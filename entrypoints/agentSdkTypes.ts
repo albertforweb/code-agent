@@ -9,6 +9,70 @@
  * sdk/controlTypes.ts directly.
  */
 
+// Stub imports for missing types
+export type HookEvent = string;
+export interface HookInput {
+  [key: string]: any;
+}
+export interface HookJSONOutput {
+  [key: string]: any;
+}
+export interface PermissionUpdate {
+  [key: string]: any;
+}
+export interface ModelUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+}
+export type SDKStatus = string;
+export interface ModelInfo {
+  id: string;
+  name?: string;
+  supportsAutoMode?: boolean;
+  supportsFastMode?: boolean;
+  supportsAdaptiveThinking?: boolean;
+  supportsEffort?: boolean;
+  supportedEffortLevels?: ('high' | 'medium' | 'low' | 'max')[];
+  value?: string;
+  displayName?: string;
+  description?: string;
+}
+export interface SDKUserMessage {
+  type: 'user';
+  content: string | any[];
+}
+export interface AssistantMessage {
+  type: 'assistant';
+  content: string | any[];
+}
+export interface SDKUserMessageReplay {
+  type: 'replay';
+  originalIndex: number;
+}
+export interface PermissionResult {
+  allowed: boolean;
+  reason?: string;
+}
+export interface McpServerConfigForProcessTransport {
+  type: 'process';
+  command: string;
+}
+export type McpServerStatus = string;
+export interface RewindFilesResult {
+  rewound: string[];
+  canRewind?: boolean;
+  error?: string;
+}
+
+export const HOOK_EVENTS = [
+  'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Notification',
+  'UserPromptSubmit', 'SessionStart', 'SessionEnd', 'Stop',
+];
+
+// Re-export SDK Message type
+export type SDKMessage = any;
+export type SDKControlRequest = any;
+
 import type {
   CallToolResult,
   ToolAnnotations,
@@ -22,23 +86,19 @@ export type {
 } from './sdk/controlTypes.js'
 // Re-export core types (common serializable types)
 export * from './sdk/coreTypes.js'
-// Re-export runtime types (callbacks, interfaces with methods)
-export * from './sdk/runtimeTypes.js'
 
-// Re-export settings types (generated from settings JSON schema)
-export type { Settings } from './sdk/settingsTypes.generated.js'
-// Re-export tool types (all marked @internal until SDK API stabilizes)
-export * from './sdk/toolTypes.js'
+// Settings types (generated from settings JSON schema)
+export type Settings = Record<string, any>;
+// Tool types
+export type ToolType = any;
 
 // ============================================================================
 // Functions
 // ============================================================================
 
 import type {
-  SDKMessage,
   SDKResultMessage,
   SDKSessionInfo,
-  SDKUserMessage,
 } from './sdk/coreTypes.js'
 // Import types needed for function signatures
 import type {
