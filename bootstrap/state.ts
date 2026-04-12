@@ -528,6 +528,10 @@ export function getCwdState(): string {
   return STATE.cwd
 }
 
+export function isReplBridgeActive(): boolean {
+  return Boolean((STATE as State & { replBridgeActive?: boolean }).replBridgeActive)
+}
+
 export function setCwdState(cwd: string): void {
   STATE.cwd = cwd.normalize('NFC')
 }

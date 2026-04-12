@@ -48,6 +48,7 @@ function fixFile(filePath) {
     // From dist/main.js (depth 0), services/foo is at ./services/foo
     // From dist/cli/cmd.js (depth 1), services/foo is at ../services/foo
     content = content.replace(/from ['"]src\//g, `from '${goBackToDist}`);
+    content = content.replace(/import\(\s*['"]src\//g, `import('${goBackToDist}`);
     
     // 2. Replace bun:bundle with path to node_modules/bun
     // e.g., from 'bun:bundle' → from '../node_modules/bun/index.js' (or ../../node_modules depending on depth)
@@ -61,13 +62,24 @@ function fixFile(filePath) {
       const modulePath = '../'.repeat(depth + 1) + `node_modules/bun/${module}.js`;
       return `from '${modulePath}'`;
     });
+
+    // 4. Normalize TSX/JSX specifiers to emitted .js files for Node ESM.
+    content = content.replace(/(from\s+['"][^'"]+)\.tsx(['"])/g, '$1.js$2');
+    content = content.replace(/(from\s+['"][^'"]+)\.jsx(['"])/g, '$1.js$2');
+    content = content.replace(/(import\s*\(\s*['"][^'"]+)\.tsx(['"]\s*\))/g, '$1.js$2');
+    content = content.replace(/(import\s*\(\s*['"][^'"]+)\.jsx(['"]\s*\))/g, '$1.js$2');
     
     if (content !== original) {
       fs.writeFileSync(filePath, content);
-      const srcCount = (original.match(/from ['"]src\//g) || []).length;
+      const srcCount =
+        (original.match(/from ['"]src\//g) || []).length +
+        (original.match(/import\(\s*['"]src\//g) || []).length;
       const bunBundleCount = (original.match(/from ['"]bun:bundle['"]/g) || []).length;
       const bunOtherCount = (original.match(/from ['"]bun:[a-z-]+['"]/g) || []).length;
-      const count = srcCount + bunBundleCount + bunOtherCount;
+      const tsxJsxCount =
+        (original.match(/from ['"][^'"]+\.(?:tsx|jsx)['"]/g) || []).length +
+        (original.match(/import\s*\(\s*['"][^'"]+\.(?:tsx|jsx)['"]\s*\)/g) || []).length;
+      const count = srcCount + bunBundleCount + bunOtherCount + tsxJsxCount;
       totalFixed += count;
       if (count > 0) {
         console.log(`  ✓ Fixed ${count} imports in ${path.relative(__dirname, filePath)}`);

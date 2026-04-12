@@ -1,6 +1,6 @@
 import noop from 'lodash-es/noop.js'
 import type { ReactElement } from 'react'
-import { LegacyRoot } from 'react-reconciler/constants.js'
+import reactReconcilerConstants from 'react-reconciler/constants.js'
 import { logForDebugging } from '../utils/debug.js'
 import { createNode, type DOMElement } from './dom.js'
 import { FocusManager } from './focus.js'
@@ -19,6 +19,8 @@ import {
   StylePool,
   setCellStyleId,
 } from './screen.js'
+
+const { LegacyRoot } = reactReconcilerConstants
 
 /** Position of a match within a rendered message, relative to the message's
  *  own bounding box (row 0 = message top). Stable across scroll — to
