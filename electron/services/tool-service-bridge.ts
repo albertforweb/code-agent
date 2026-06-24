@@ -4,7 +4,11 @@
  * Handles tool discovery, execution, and result streaming
  */
 
-import type { Tool } from './types';
+import type { Tool } from '../types';
+
+export interface BridgeToolDefinition extends Tool {
+  execute: (args: Record<string, any>, context: ToolExecutionContext) => Promise<any>;
+}
 
 /**
  * Tool execution context
@@ -28,15 +32,16 @@ export type ToolErrorHandler = (toolId: string, error: string, stack?: string) =
  * Tool Service Bridge - bridges CLI tools to IPC
  */
 export class ToolServiceBridge {
-  private tools: Map<string, any> = new Map();
+  private tools: Map<string, BridgeToolDefinition> = new Map();
   private executions: Map<string, ToolExecutionContext> = new Map();
   private onResult: ToolResultHandler = () => {};
   private onComplete: ToolCompleteHandler = () => {};
   private onError: ToolErrorHandler = () => {};
 
-  constructor() {
-    // TODO: Load tools from CLI tool registry
-    // this.loadToolsFromRegistry();
+  constructor(tools: BridgeToolDefinition[] = []) {
+    for (const tool of tools) {
+      this.registerTool(tool.name, tool);
+    }
   }
 
   /**
@@ -71,6 +76,8 @@ export class ToolServiceBridge {
         name,
         description: tool.description || '',
         inputSchema: tool.inputSchema || {},
+        source: tool.source ?? 'bridge',
+        readOnly: tool.readOnly,
       });
     }
 
@@ -98,8 +105,6 @@ export class ToolServiceBridge {
         throw new Error(`Tool not found: ${toolName}`);
       }
 
-      // Execute the tool
-      // This will typically be async and may stream results
       const result = await this._executeToolInternal(tool, args, context);
 
       // Emit result
@@ -132,31 +137,26 @@ export class ToolServiceBridge {
   }
 
   /**
-   * Internal tool execution - override in subclass
+   * Internal tool execution.
    */
-  private async _executeToolInternal(tool: any, args: any, context: ToolExecutionContext): Promise<any> {
-    // TODO: Implement actual tool execution logic
-    // This will call the actual CLI tool implementation
-    console.log(`Executing tool: ${tool.name}`, args);
-    return { status: 'success', message: 'Tool executed' };
-  }
-
-  /**
-   * Load tools from CLI registry (to be implemented)
-   */
-  private loadToolsFromRegistry(): void {
-    // TODO: Import and load tools from:
-    // - /tools/BashTool.ts
-    // - /tools/FileEditTool.ts
-    // - /tools/WebFetchTool.ts
-    // - /tools/AgentTool.ts
-    // - etc.
+  private async _executeToolInternal(
+    tool: BridgeToolDefinition,
+    args: Record<string, any>,
+    context: ToolExecutionContext,
+  ): Promise<any> {
+    return tool.execute(args, context);
   }
 
   /**
    * Register a tool manually
    */
-  registerTool(name: string, tool: any): void {
+  registerTool(name: string, tool: BridgeToolDefinition): void {
     this.tools.set(name, tool);
+  }
+
+  registerTools(tools: BridgeToolDefinition[]): void {
+    for (const tool of tools) {
+      this.registerTool(tool.name, tool);
+    }
   }
 }

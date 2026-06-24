@@ -7,12 +7,17 @@
 import type { AppConfig } from '../types';
 import Store from 'electron-store';
 
+interface AppStateStoreSchema {
+  config: AppConfig;
+  state: Record<string, any>;
+}
+
 /**
  * App State Service Bridge - manages app config and state
  */
 export class AppStateServiceBridge {
-  private store: Store;
-  private currentState: any = {};
+  private store: Store<AppStateStoreSchema>;
+  private currentState: Record<string, any> = {};
   private appConfig: AppConfig = {
     model: 'claude-3-5-sonnet-20241022',
     temperature: 0.7,
@@ -184,7 +189,7 @@ export class AppStateServiceBridge {
   /**
    * Get store instance (for advanced usage)
    */
-  getStore(): Store {
+  getStore(): Store<AppStateStoreSchema> {
     return this.store;
   }
 }

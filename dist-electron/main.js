@@ -45,7 +45,7 @@ const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const bridge_1 = require("./bridge");
 const electron_store_1 = __importDefault(require("electron-store"));
-const services_1 = require("./services");
+const services_bridge_1 = require("./services-bridge");
 const isDev = process.env.NODE_ENV === 'development';
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
@@ -58,12 +58,7 @@ exports.mainWindow = mainWindow;
 const store = new electron_store_1.default();
 const ipcBridge = new bridge_1.IpcBridge();
 exports.ipcBridge = ipcBridge;
-// Service bridges
-let toolService;
-let apiService;
-let filesService;
-let authService;
-let appStateService;
+let serviceBridges = null;
 // ============================================================================
 // WINDOW MANAGEMENT
 // ============================================================================
@@ -111,7 +106,6 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            enableRemoteModule: false,
             sandbox: true,
             nodeIntegration: false,
         },
@@ -121,10 +115,8 @@ function createWindow() {
     if (windowState.isMaximized) {
         mainWindow.maximize();
     }
-    // Load the app
-    const startUrl = isDev
-        ? 'http://localhost:3000' // Dev server
-        : `file://${path.join(__dirname, '../dist-renderer/index.html')}`; // Production
+    const rendererFileUrl = `file://${path.join(__dirname, '../dist-renderer/index.html')}`;
+    const startUrl = process.env.ELECTRON_RENDERER_URL ?? rendererFileUrl;
     mainWindow.loadURL(startUrl);
     // Open dev tools in development
     if (isDev) {
@@ -269,98 +261,10 @@ function setupMenu() {
 // IPC HANDLERS
 // ============================================================================
 function setupIpcHandlers() {
-    // Initialize service bridges
-    toolService = new services_1.ToolServiceBridge();
-    apiService = new services_1.ApiServiceBridge();
-    filesService = new services_1.FileSystemServiceBridge(process.cwd());
-    authService = new services_1.AuthServiceBridge();
-    appStateService = new services_1.AppStateServiceBridge();
-    // Setup result handlers for tool service
-    toolService.setResultHandler((toolId, data) => {
-        if (mainWindow) {
-            mainWindow.webContents.send('tool:result', { toolId, data });
-        }
-    });
-    toolService.setCompleteHandler((toolId, success, duration) => {
-        if (mainWindow) {
-            mainWindow.webContents.send('tool:complete', { toolId, success, duration });
-        }
-    });
-    toolService.setErrorHandler((toolId, error, stack) => {
-        if (mainWindow) {
-            mainWindow.webContents.send('tool:error', { toolId, error, stack });
-        }
-    });
-    // Register tool handlers
-    ipcBridge.registerToolHandler('execute', async (args) => {
-        const { toolName, args: toolArgs } = args;
-        const toolId = `tool-${Date.now()}`;
-        // Execute tool asynchronously (non-blocking)
-        toolService.executeTool(toolName, toolArgs, toolId).catch(error => {
-            console.error(`Tool execution error: ${error}`);
-        });
-        return { toolId };
-    });
-    ipcBridge.registerToolHandler('list', async () => {
-        return toolService.getTools();
-    });
-    // Register API handlers
-    ipcBridge.registerApiHandler('chat', async (request) => {
-        return apiService.chat(request);
-    });
-    ipcBridge.registerApiHandler('bootstrap', async () => {
-        return apiService.fetchBootstrap();
-    });
-    // Register file system handlers
-    ipcBridge.registerFsHandler('read', async (request) => {
-        return filesService.readFile(request.path, request.encoding);
-    });
-    ipcBridge.registerFsHandler('write', async (request) => {
-        return filesService.writeFile(request.path, request.content, request.encoding);
-    });
-    ipcBridge.registerFsHandler('list', async (request) => {
-        return filesService.listDirectory(request.path);
-    });
-    // Register auth handlers
-    ipcBridge.registerAuthHandler('getToken', async () => {
-        return authService.getToken();
-    });
-    ipcBridge.registerAuthHandler('logout', async () => {
-        return authService.logout();
-    });
-    ipcBridge.registerAuthHandler('setToken', async (token) => {
-        return authService.setToken(token);
-    });
-    // Register app state handlers
-    ipcBridge.registerAppHandler('getConfig', async () => {
-        return appStateService.getConfig();
-    });
-    ipcBridge.registerAppHandler('setConfig', async (config) => {
-        return appStateService.setConfig(config);
-    });
-    ipcBridge.registerAppHandler('getState', async () => {
-        return appStateService.getState();
-    });
-    ipcBridge.registerAppHandler('setState', async (state) => {
-        return appStateService.setState(state);
-    });
-    // Example: Simple echo handler
-    electron_1.ipcMain.handle('ping', () => {
-        return 'pong';
-    });
-    // Example: Get app info
-    electron_1.ipcMain.handle('app:info', () => {
-        return {
-            version: electron_1.app.getVersion(),
-            platform: process.platform,
-            arch: process.arch,
-            isDev,
-        };
-    });
-    // Example: Toggle theme
-    electron_1.ipcMain.handle('theme:toggle', () => {
-        const isDark = electron_1.nativeTheme.shouldUseDarkColors;
-        return { isDark };
+    serviceBridges = (0, services_bridge_1.registerServiceBridges)(ipcBridge, {
+        getMainWindow: () => mainWindow,
+        cwd: process.cwd(),
+        isDev,
     });
     // Listen for theme changes
     electron_1.nativeTheme.on('updated', () => {

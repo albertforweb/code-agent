@@ -5,34 +5,38 @@
  */
 
 import type { ChatRequest, ChatResponse, BootstrapData } from '../types';
+import Anthropic from '@anthropic-ai/sdk';
+import type { AuthToken } from '../types';
+
+type AuthTokenProvider = () => Promise<AuthToken | null>;
+type BootstrapProvider = () => Promise<BootstrapData>;
 
 /**
  * API Service Bridge - bridges API operations to IPC
  */
 export class ApiServiceBridge {
-  private apiClient: any; // Will be initialized with actual Anthropic client
+  private apiClient: any;
+  private authTokenProvider: AuthTokenProvider | null = null;
+  private bootstrapProvider: BootstrapProvider | null = null;
   private bootstrapData: BootstrapData | null = null;
   private bootstrapFetchTime: number = 0;
   private bootstrapCacheTTL: number = 1000 * 60 * 60; // 1 hour
 
-  constructor() {
-    // TODO: Initialize with actual Anthropic SDK client
-    // this.apiClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  constructor(apiClient?: any) {
+    this.apiClient = apiClient ?? null;
   }
 
   /**
    * Send a chat message and get response
    */
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    if (!this.apiClient) {
-      throw new Error('API client not initialized');
-    }
+    const client = await this.getApiClient();
 
     const startTime = Date.now();
 
     try {
       // Build the request
-      const response = await this.apiClient.messages.create({
+      const response = await client.messages.create({
         model: request.model || 'claude-3-5-sonnet-20241022',
         max_tokens: request.maxTokens || 4096,
         system: this._buildSystemPrompt(),
@@ -67,25 +71,9 @@ export class ApiServiceBridge {
     }
 
     try {
-      // TODO: Fetch actual bootstrap data from API
-      const data: BootstrapData = {
-        user: {
-          id: 'user-123',
-          name: 'User',
-          email: 'user@example.com',
-        },
-        config: {
-          model: 'claude-3-5-sonnet-20241022',
-          temperature: 0.7,
-          maxTokens: 4096,
-        },
-        features: {
-          tools: true,
-          mcp: true,
-          proactive: false,
-          buddy: false,
-        },
-      };
+      const data = this.bootstrapProvider
+        ? await this.bootstrapProvider()
+        : await this.buildLocalBootstrapData();
 
       this.bootstrapData = data;
       this.bootstrapFetchTime = now;
@@ -114,6 +102,16 @@ Always be helpful, thorough, and provide clear explanations.`;
     this.apiClient = client;
   }
 
+  setAuthTokenProvider(provider: AuthTokenProvider): void {
+    this.authTokenProvider = provider;
+    this.apiClient = null;
+  }
+
+  setBootstrapProvider(provider: BootstrapProvider): void {
+    this.bootstrapProvider = provider;
+    this.clearBootstrapCache();
+  }
+
   /**
    * Clear bootstrap cache
    */
@@ -126,7 +124,7 @@ Always be helpful, thorough, and provide clear explanations.`;
    * Check if API is configured
    */
   isConfigured(): boolean {
-    return !!this.apiClient;
+    return !!this.apiClient || !!this.authTokenProvider || !!process.env.ANTHROPIC_API_KEY;
   }
 
   /**
@@ -137,6 +135,41 @@ Always be helpful, thorough, and provide clear explanations.`;
       configured: this.isConfigured(),
       bootstrapCached: !!this.bootstrapData,
       cacheAge: this.bootstrapData ? Date.now() - this.bootstrapFetchTime : null,
+    };
+  }
+
+  private async getApiClient(): Promise<any> {
+    if (this.apiClient) {
+      return this.apiClient;
+    }
+
+    const token = await this.authTokenProvider?.();
+    const apiKey = token?.accessToken || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      throw new Error('API client not initialized: configure an Anthropic API key first');
+    }
+
+    this.apiClient = new Anthropic({ apiKey });
+    return this.apiClient;
+  }
+
+  private async buildLocalBootstrapData(): Promise<BootstrapData> {
+    const token = await this.authTokenProvider?.();
+    return {
+      user: {
+        authenticated: Boolean(token?.accessToken || process.env.ANTHROPIC_API_KEY),
+      },
+      config: {
+        model: 'claude-3-5-sonnet-20241022',
+        temperature: 0.7,
+        maxTokens: 4096,
+      },
+      features: {
+        tools: true,
+        mcp: true,
+        proactive: false,
+        buddy: false,
+      },
     };
   }
 }

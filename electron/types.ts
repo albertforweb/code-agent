@@ -13,6 +13,10 @@ export interface ToolExecuteMessage {
   toolId?: string;
 }
 
+export interface ToolExecuteResponse {
+  toolId: string;
+}
+
 export interface ToolResultMessage {
   toolId: string;
   data: any;
@@ -35,6 +39,24 @@ export interface Tool {
   name: string;
   description: string;
   inputSchema: Record<string, any>;
+  source?: 'bridge' | 'mcp' | 'cli';
+  readOnly?: boolean;
+}
+
+export interface McpServerInfo {
+  name: string;
+  type: string;
+  scope?: string;
+  status: 'configured' | 'connected' | 'error';
+  command?: string;
+  args?: string[];
+  url?: string;
+  error?: string;
+}
+
+export interface McpToolInfo extends Tool {
+  serverName: string;
+  toolName: string;
 }
 
 // ============================================================================
@@ -118,6 +140,13 @@ export interface AppConfig {
   [key: string]: any;
 }
 
+export interface AppInfo {
+  version: string;
+  platform: NodeJS.Platform;
+  arch: string;
+  isDev: boolean;
+}
+
 // ============================================================================
 // ALL IPC CHANNELS
 // ============================================================================
@@ -134,6 +163,11 @@ export const IPC_CHANNELS = {
   'api:chat': 'api:chat',
   'api:fetchBootstrap': 'api:fetchBootstrap',
 
+  // MCP channels
+  'mcp:listServers': 'mcp:listServers',
+  'mcp:listTools': 'mcp:listTools',
+  'mcp:refresh': 'mcp:refresh',
+
   // File system channels
   'fs:read': 'fs:read',
   'fs:write': 'fs:write',
@@ -145,6 +179,7 @@ export const IPC_CHANNELS = {
   'auth:setToken': 'auth:setToken',
 
   // App state channels
+  'app:info': 'app:info',
   'app:getConfig': 'app:getConfig',
   'app:setConfig': 'app:setConfig',
   'app:getState': 'app:getState',

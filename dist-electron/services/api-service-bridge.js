@@ -4,30 +4,33 @@
  * Bridges Anthropic SDK and API operations to IPC channels
  * Handles chat, bootstrap data, and API calls
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiServiceBridge = void 0;
+const sdk_1 = __importDefault(require("@anthropic-ai/sdk"));
 /**
  * API Service Bridge - bridges API operations to IPC
  */
 class ApiServiceBridge {
-    constructor() {
+    constructor(apiClient) {
+        this.authTokenProvider = null;
+        this.bootstrapProvider = null;
         this.bootstrapData = null;
         this.bootstrapFetchTime = 0;
         this.bootstrapCacheTTL = 1000 * 60 * 60; // 1 hour
-        // TODO: Initialize with actual Anthropic SDK client
-        // this.apiClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        this.apiClient = apiClient ?? null;
     }
     /**
      * Send a chat message and get response
      */
     async chat(request) {
-        if (!this.apiClient) {
-            throw new Error('API client not initialized');
-        }
+        const client = await this.getApiClient();
         const startTime = Date.now();
         try {
             // Build the request
-            const response = await this.apiClient.messages.create({
+            const response = await client.messages.create({
                 model: request.model || 'claude-3-5-sonnet-20241022',
                 max_tokens: request.maxTokens || 4096,
                 system: this._buildSystemPrompt(),
@@ -59,25 +62,9 @@ class ApiServiceBridge {
             return this.bootstrapData;
         }
         try {
-            // TODO: Fetch actual bootstrap data from API
-            const data = {
-                user: {
-                    id: 'user-123',
-                    name: 'User',
-                    email: 'user@example.com',
-                },
-                config: {
-                    model: 'claude-3-5-sonnet-20241022',
-                    temperature: 0.7,
-                    maxTokens: 4096,
-                },
-                features: {
-                    tools: true,
-                    mcp: true,
-                    proactive: false,
-                    buddy: false,
-                },
-            };
+            const data = this.bootstrapProvider
+                ? await this.bootstrapProvider()
+                : await this.buildLocalBootstrapData();
             this.bootstrapData = data;
             this.bootstrapFetchTime = now;
             return data;
@@ -102,6 +89,14 @@ Always be helpful, thorough, and provide clear explanations.`;
     setApiClient(client) {
         this.apiClient = client;
     }
+    setAuthTokenProvider(provider) {
+        this.authTokenProvider = provider;
+        this.apiClient = null;
+    }
+    setBootstrapProvider(provider) {
+        this.bootstrapProvider = provider;
+        this.clearBootstrapCache();
+    }
     /**
      * Clear bootstrap cache
      */
@@ -113,7 +108,7 @@ Always be helpful, thorough, and provide clear explanations.`;
      * Check if API is configured
      */
     isConfigured() {
-        return !!this.apiClient;
+        return !!this.apiClient || !!this.authTokenProvider || !!process.env.ANTHROPIC_API_KEY;
     }
     /**
      * Get API configuration status
@@ -123,6 +118,37 @@ Always be helpful, thorough, and provide clear explanations.`;
             configured: this.isConfigured(),
             bootstrapCached: !!this.bootstrapData,
             cacheAge: this.bootstrapData ? Date.now() - this.bootstrapFetchTime : null,
+        };
+    }
+    async getApiClient() {
+        if (this.apiClient) {
+            return this.apiClient;
+        }
+        const token = await this.authTokenProvider?.();
+        const apiKey = token?.accessToken || process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new Error('API client not initialized: configure an Anthropic API key first');
+        }
+        this.apiClient = new sdk_1.default({ apiKey });
+        return this.apiClient;
+    }
+    async buildLocalBootstrapData() {
+        const token = await this.authTokenProvider?.();
+        return {
+            user: {
+                authenticated: Boolean(token?.accessToken || process.env.ANTHROPIC_API_KEY),
+            },
+            config: {
+                model: 'claude-3-5-sonnet-20241022',
+                temperature: 0.7,
+                maxTokens: 4096,
+            },
+            features: {
+                tools: true,
+                mcp: true,
+                proactive: false,
+                buddy: false,
+            },
         };
     }
 }

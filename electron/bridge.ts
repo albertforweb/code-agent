@@ -6,12 +6,18 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import type {
   ToolExecuteMessage,
+  ToolExecuteResponse,
   ChatRequest,
   ChatResponse,
   FileReadRequest,
+  FileWriteRequest,
+  FileListRequest,
   AppConfig,
+  AppInfo,
   AuthToken,
   Tool,
+  McpServerInfo,
+  McpToolInfo,
 } from './types';
 import { IPC_CHANNELS } from './types';
 
@@ -21,6 +27,7 @@ export class IpcBridge {
   private fsHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private authHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private appHandlers: Map<string, (args: any) => Promise<any>> = new Map();
+  private mcpHandlers: Map<string, (args: any) => Promise<any>> = new Map();
 
   constructor() {
     this.setupChannelHandlers();
@@ -38,6 +45,11 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
     ipcMain.handle(IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
 
+    // MCP channels
+    ipcMain.handle(IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
+    ipcMain.handle(IPC_CHANNELS['mcp:listTools'], this.handleMcpListTools.bind(this));
+    ipcMain.handle(IPC_CHANNELS['mcp:refresh'], this.handleMcpRefresh.bind(this));
+
     // File system channels
     ipcMain.handle(IPC_CHANNELS['fs:read'], this.handleFileRead.bind(this));
     ipcMain.handle(IPC_CHANNELS['fs:write'], this.handleFileWrite.bind(this));
@@ -49,6 +61,7 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['auth:setToken'], this.handleSetToken.bind(this));
 
     // App state channels
+    ipcMain.handle(IPC_CHANNELS['app:info'], this.handleGetInfo.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:getConfig'], this.handleGetConfig.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:setConfig'], this.handleSetConfig.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:getState'], this.handleGetState.bind(this));
@@ -65,17 +78,24 @@ export class IpcBridge {
   // TOOL HANDLERS
   // ============================================================================
 
-  private async handleToolExecute(event: any, message: ToolExecuteMessage) {
-    const handler = this.toolHandlers.get(message.toolName);
-    if (!handler) {
-      throw new Error(`Tool not found: ${message.toolName}`);
+  private async handleToolExecute(_event: any, message: ToolExecuteMessage): Promise<ToolExecuteResponse> {
+    if (!message?.toolName || typeof message.toolName !== 'string') {
+      throw new Error('Invalid tool execution request: toolName is required');
     }
-    return handler(message.args);
+
+    const handler = this.toolHandlers.get('execute');
+    if (!handler) {
+      throw new Error('Tool execution handler not configured');
+    }
+    return handler(message);
   }
 
   private async handleToolList() {
-    // TODO: Return list of available tools
-    return [];
+    const handler = this.toolHandlers.get('list');
+    if (!handler) {
+      throw new Error('Tool list handler not configured');
+    }
+    return handler({});
   }
 
   // ============================================================================
@@ -110,7 +130,7 @@ export class IpcBridge {
     return handler(request);
   }
 
-  private async handleFileWrite(event: any, request: FileReadRequest) {
+  private async handleFileWrite(event: any, request: FileWriteRequest) {
     const handler = this.fsHandlers.get('write');
     if (!handler) {
       throw new Error('File system handler not configured');
@@ -118,7 +138,7 @@ export class IpcBridge {
     return handler(request);
   }
 
-  private async handleFileList(event: any, request: FileReadRequest) {
+  private async handleFileList(event: any, request: FileListRequest) {
     const handler = this.fsHandlers.get('list');
     if (!handler) {
       throw new Error('File system handler not configured');
@@ -157,6 +177,42 @@ export class IpcBridge {
   // ============================================================================
   // APP STATE HANDLERS
   // ============================================================================
+
+  private async handleGetInfo(): Promise<AppInfo> {
+    const handler = this.appHandlers.get('info');
+    if (!handler) {
+      throw new Error('App info handler not configured');
+    }
+    return handler({});
+  }
+
+  // ============================================================================
+  // MCP HANDLERS
+  // ============================================================================
+
+  private async handleMcpListServers(): Promise<McpServerInfo[]> {
+    const handler = this.mcpHandlers.get('listServers');
+    if (!handler) {
+      throw new Error('MCP server list handler not configured');
+    }
+    return handler({});
+  }
+
+  private async handleMcpListTools(): Promise<McpToolInfo[]> {
+    const handler = this.mcpHandlers.get('listTools');
+    if (!handler) {
+      throw new Error('MCP tool list handler not configured');
+    }
+    return handler({});
+  }
+
+  private async handleMcpRefresh(): Promise<McpServerInfo[]> {
+    const handler = this.mcpHandlers.get('refresh');
+    if (!handler) {
+      throw new Error('MCP refresh handler not configured');
+    }
+    return handler({});
+  }
 
   private async handleGetConfig() {
     const handler = this.appHandlers.get('getConfig');
@@ -230,8 +286,8 @@ export class IpcBridge {
   // HANDLER REGISTRATION
   // ============================================================================
 
-  registerToolHandler(toolName: string, handler: (args: any) => Promise<any>) {
-    this.toolHandlers.set(toolName, handler);
+  registerToolHandler(operation: string, handler: (args: any) => Promise<any>) {
+    this.toolHandlers.set(operation, handler);
   }
 
   registerApiHandler(apiName: string, handler: (args: any) => Promise<any>) {
@@ -240,6 +296,10 @@ export class IpcBridge {
 
   registerFsHandler(operation: string, handler: (args: any) => Promise<any>) {
     this.fsHandlers.set(operation, handler);
+  }
+
+  registerMcpHandler(operation: string, handler: (args: any) => Promise<any>) {
+    this.mcpHandlers.set(operation, handler);
   }
 
   registerAuthHandler(operation: string, handler: (args: any) => Promise<any>) {

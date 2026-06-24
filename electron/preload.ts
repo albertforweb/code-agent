@@ -8,13 +8,19 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   Tool,
   ToolExecuteMessage,
+  ToolExecuteResponse,
   ChatRequest,
   ChatResponse,
   FileReadRequest,
+  FileWriteRequest,
+  FileListRequest,
   FileEntry,
   AuthToken,
   AppConfig,
+  AppInfo,
   BootstrapData,
+  McpServerInfo,
+  McpToolInfo,
 } from './types';
 import { IPC_CHANNELS } from './types';
 
@@ -27,7 +33,7 @@ const api = {
   // TOOL API
   // ============================================================================
   tools: {
-    execute: (toolName: string, args: Record<string, any>): Promise<any> => {
+    execute: (toolName: string, args: Record<string, any>): Promise<ToolExecuteResponse> => {
       return ipcRenderer.invoke(IPC_CHANNELS['tool:execute'], { toolName, args } as ToolExecuteMessage);
     },
 
@@ -50,6 +56,23 @@ const api = {
   },
 
   // ============================================================================
+  // MCP API
+  // ============================================================================
+  mcp: {
+    listServers: (): Promise<McpServerInfo[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['mcp:listServers']);
+    },
+
+    listTools: (): Promise<McpToolInfo[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['mcp:listTools']);
+    },
+
+    refresh: (): Promise<McpServerInfo[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['mcp:refresh']);
+    },
+  },
+
+  // ============================================================================
   // FILE SYSTEM API
   // ============================================================================
   fs: {
@@ -58,11 +81,11 @@ const api = {
     },
 
     write: (path: string, content: string, encoding?: string): Promise<void> => {
-      return ipcRenderer.invoke(IPC_CHANNELS['fs:write'], { path, content, encoding } as FileReadRequest);
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:write'], { path, content, encoding } as FileWriteRequest);
     },
 
     list: (path: string): Promise<FileEntry[]> => {
-      return ipcRenderer.invoke(IPC_CHANNELS['fs:list'], { path } as FileReadRequest);
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:list'], { path } as FileListRequest);
     },
   },
 
@@ -87,6 +110,10 @@ const api = {
   // APP STATE API
   // ============================================================================
   app: {
+    info: (): Promise<AppInfo> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['app:info']);
+    },
+
     getConfig: (): Promise<AppConfig> => {
       return ipcRenderer.invoke(IPC_CHANNELS['app:getConfig']);
     },

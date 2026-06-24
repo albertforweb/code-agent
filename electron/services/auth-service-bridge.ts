@@ -16,7 +16,7 @@ export class AuthServiceBridge {
   private keychainService: string = 'code-agent';
 
   constructor(keytar?: any) {
-    this.keychain = keytar;
+    this.keychain = keytar ?? this._loadKeytar();
   }
 
   /**
@@ -39,7 +39,17 @@ export class AuthServiceBridge {
       }
     }
 
-    return this.currentToken;
+    if (this.currentToken) {
+      return this.currentToken;
+    }
+
+    if (process.env.ANTHROPIC_API_KEY) {
+      return {
+        accessToken: process.env.ANTHROPIC_API_KEY,
+      };
+    }
+
+    return null;
   }
 
   /**
@@ -132,7 +142,7 @@ export class AuthServiceBridge {
         throw new Error(`OAuth error: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
 
       const token: AuthToken = {
         accessToken: data.access_token,
@@ -175,7 +185,7 @@ export class AuthServiceBridge {
         throw new Error(`OAuth error: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
 
       const token: AuthToken = {
         accessToken: data.access_token,
@@ -210,6 +220,23 @@ export class AuthServiceBridge {
    */
   setOAuth2Config(config: any): void {
     this.oauth2Config = config;
+  }
+
+  getStatus() {
+    return {
+      hasMemoryToken: !!this.currentToken,
+      hasKeychain: !!this.keychain,
+      hasEnvironmentToken: !!process.env.ANTHROPIC_API_KEY,
+    };
+  }
+
+  private _loadKeytar(): any {
+    try {
+      // Optional native dependency; keep Electron startup working when unavailable.
+      return require('keytar');
+    } catch {
+      return null;
+    }
   }
 
   /**

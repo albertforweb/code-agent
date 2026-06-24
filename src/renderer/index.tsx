@@ -6,14 +6,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
+import { ipcClient } from './ipc-client';
 import './styles/global.css';
-
-// Declare the API for TypeScript
-declare global {
-  interface Window {
-    api: any;
-  }
-}
 
 /**
  * Initialize the renderer process
@@ -21,7 +15,7 @@ declare global {
 async function initializeRenderer() {
   try {
     // Get app info from main process
-    const info = await window.api.app.getConfig();
+    const info = await ipcClient.app.getConfig();
     console.log('App config:', info);
 
     // Render the app

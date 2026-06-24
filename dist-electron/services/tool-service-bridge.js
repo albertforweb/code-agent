@@ -10,14 +10,15 @@ exports.ToolServiceBridge = void 0;
  * Tool Service Bridge - bridges CLI tools to IPC
  */
 class ToolServiceBridge {
-    constructor() {
+    constructor(tools = []) {
         this.tools = new Map();
         this.executions = new Map();
         this.onResult = () => { };
         this.onComplete = () => { };
         this.onError = () => { };
-        // TODO: Load tools from CLI tool registry
-        // this.loadToolsFromRegistry();
+        for (const tool of tools) {
+            this.registerTool(tool.name, tool);
+        }
     }
     /**
      * Set result handler for streaming results back to renderer
@@ -47,6 +48,8 @@ class ToolServiceBridge {
                 name,
                 description: tool.description || '',
                 inputSchema: tool.inputSchema || {},
+                source: tool.source ?? 'bridge',
+                readOnly: tool.readOnly,
             });
         }
         return tools;
@@ -69,8 +72,6 @@ class ToolServiceBridge {
             if (!tool) {
                 throw new Error(`Tool not found: ${toolName}`);
             }
-            // Execute the tool
-            // This will typically be async and may stream results
             const result = await this._executeToolInternal(tool, args, context);
             // Emit result
             this.onResult(toolId, result);
@@ -97,30 +98,21 @@ class ToolServiceBridge {
         }
     }
     /**
-     * Internal tool execution - override in subclass
+     * Internal tool execution.
      */
     async _executeToolInternal(tool, args, context) {
-        // TODO: Implement actual tool execution logic
-        // This will call the actual CLI tool implementation
-        console.log(`Executing tool: ${tool.name}`, args);
-        return { status: 'success', message: 'Tool executed' };
-    }
-    /**
-     * Load tools from CLI registry (to be implemented)
-     */
-    loadToolsFromRegistry() {
-        // TODO: Import and load tools from:
-        // - /tools/BashTool.ts
-        // - /tools/FileEditTool.ts
-        // - /tools/WebFetchTool.ts
-        // - /tools/AgentTool.ts
-        // - etc.
+        return tool.execute(args, context);
     }
     /**
      * Register a tool manually
      */
     registerTool(name, tool) {
         this.tools.set(name, tool);
+    }
+    registerTools(tools) {
+        for (const tool of tools) {
+            this.registerTool(tool.name, tool);
+        }
     }
 }
 exports.ToolServiceBridge = ToolServiceBridge;

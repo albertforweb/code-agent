@@ -14,6 +14,7 @@ class IpcBridge {
         this.fsHandlers = new Map();
         this.authHandlers = new Map();
         this.appHandlers = new Map();
+        this.mcpHandlers = new Map();
         this.setupChannelHandlers();
     }
     /**
@@ -26,6 +27,10 @@ class IpcBridge {
         // API channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
+        // MCP channels
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listTools'], this.handleMcpListTools.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:refresh'], this.handleMcpRefresh.bind(this));
         // File system channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:read'], this.handleFileRead.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:write'], this.handleFileWrite.bind(this));
@@ -35,6 +40,7 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:logout'], this.handleLogout.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:setToken'], this.handleSetToken.bind(this));
         // App state channels
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:info'], this.handleGetInfo.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:getConfig'], this.handleGetConfig.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:setConfig'], this.handleSetConfig.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:getState'], this.handleGetState.bind(this));
@@ -48,16 +54,22 @@ class IpcBridge {
     // ============================================================================
     // TOOL HANDLERS
     // ============================================================================
-    async handleToolExecute(event, message) {
-        const handler = this.toolHandlers.get(message.toolName);
-        if (!handler) {
-            throw new Error(`Tool not found: ${message.toolName}`);
+    async handleToolExecute(_event, message) {
+        if (!message?.toolName || typeof message.toolName !== 'string') {
+            throw new Error('Invalid tool execution request: toolName is required');
         }
-        return handler(message.args);
+        const handler = this.toolHandlers.get('execute');
+        if (!handler) {
+            throw new Error('Tool execution handler not configured');
+        }
+        return handler(message);
     }
     async handleToolList() {
-        // TODO: Return list of available tools
-        return [];
+        const handler = this.toolHandlers.get('list');
+        if (!handler) {
+            throw new Error('Tool list handler not configured');
+        }
+        return handler({});
     }
     // ============================================================================
     // API HANDLERS
@@ -127,6 +139,37 @@ class IpcBridge {
     // ============================================================================
     // APP STATE HANDLERS
     // ============================================================================
+    async handleGetInfo() {
+        const handler = this.appHandlers.get('info');
+        if (!handler) {
+            throw new Error('App info handler not configured');
+        }
+        return handler({});
+    }
+    // ============================================================================
+    // MCP HANDLERS
+    // ============================================================================
+    async handleMcpListServers() {
+        const handler = this.mcpHandlers.get('listServers');
+        if (!handler) {
+            throw new Error('MCP server list handler not configured');
+        }
+        return handler({});
+    }
+    async handleMcpListTools() {
+        const handler = this.mcpHandlers.get('listTools');
+        if (!handler) {
+            throw new Error('MCP tool list handler not configured');
+        }
+        return handler({});
+    }
+    async handleMcpRefresh() {
+        const handler = this.mcpHandlers.get('refresh');
+        if (!handler) {
+            throw new Error('MCP refresh handler not configured');
+        }
+        return handler({});
+    }
     async handleGetConfig() {
         const handler = this.appHandlers.get('getConfig');
         if (!handler) {
@@ -190,14 +233,17 @@ class IpcBridge {
     // ============================================================================
     // HANDLER REGISTRATION
     // ============================================================================
-    registerToolHandler(toolName, handler) {
-        this.toolHandlers.set(toolName, handler);
+    registerToolHandler(operation, handler) {
+        this.toolHandlers.set(operation, handler);
     }
     registerApiHandler(apiName, handler) {
         this.apiHandlers.set(apiName, handler);
     }
     registerFsHandler(operation, handler) {
         this.fsHandlers.set(operation, handler);
+    }
+    registerMcpHandler(operation, handler) {
+        this.mcpHandlers.set(operation, handler);
     }
     registerAuthHandler(operation, handler) {
         this.authHandlers.set(operation, handler);

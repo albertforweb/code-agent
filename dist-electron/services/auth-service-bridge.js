@@ -15,7 +15,7 @@ class AuthServiceBridge {
         this.oauth2Config = null;
         this.keychain = null; // keytar module
         this.keychainService = 'code-agent';
-        this.keychain = keytar;
+        this.keychain = keytar ?? this._loadKeytar();
     }
     /**
      * Get current authentication token
@@ -36,7 +36,15 @@ class AuthServiceBridge {
                 console.warn('Failed to retrieve token from keychain:', error);
             }
         }
-        return this.currentToken;
+        if (this.currentToken) {
+            return this.currentToken;
+        }
+        if (process.env.ANTHROPIC_API_KEY) {
+            return {
+                accessToken: process.env.ANTHROPIC_API_KEY,
+            };
+        }
+        return null;
     }
     /**
      * Set authentication token (stores securely in keychain if available)
@@ -181,6 +189,22 @@ class AuthServiceBridge {
      */
     setOAuth2Config(config) {
         this.oauth2Config = config;
+    }
+    getStatus() {
+        return {
+            hasMemoryToken: !!this.currentToken,
+            hasKeychain: !!this.keychain,
+            hasEnvironmentToken: !!process.env.ANTHROPIC_API_KEY,
+        };
+    }
+    _loadKeytar() {
+        try {
+            // Optional native dependency; keep Electron startup working when unavailable.
+            return require('keytar');
+        }
+        catch {
+            return null;
+        }
     }
     /**
      * Generate PKCE code verifier

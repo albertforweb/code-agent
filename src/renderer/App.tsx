@@ -5,10 +5,14 @@
 
 import React, { useEffect, useState } from 'react';
 import styles from './App.module.css';
+import { ipcClient, type AppConfig, type AppInfo } from './ipc-client';
 
 export function App() {
   const [status, setStatus] = useState('Initializing...');
-  const [appInfo, setAppInfo] = useState<any>(null);
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+  const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [toolCount, setToolCount] = useState(0);
+  const [mcpServerCount, setMcpServerCount] = useState(0);
 
   useEffect(() => {
     initializeApp();
@@ -17,8 +21,16 @@ export function App() {
   async function initializeApp() {
     try {
       // Test IPC connectivity
-      const info = await (window as any).api.app.getConfig();
+      const [info, config, tools, mcpServers] = await Promise.all([
+        ipcClient.app.info(),
+        ipcClient.app.getConfig(),
+        ipcClient.tools.list(),
+        ipcClient.mcp.listServers(),
+      ]);
       setAppInfo(info);
+      setAppConfig(config);
+      setToolCount(tools.length);
+      setMcpServerCount(mcpServers.length);
       setStatus('Ready');
     } catch (error) {
       console.error('Failed to initialize app:', error);
@@ -42,6 +54,16 @@ export function App() {
             <div className={styles.info}>
               <p><strong>Version:</strong> {appInfo.version || 'Unknown'}</p>
               <p><strong>Platform:</strong> {appInfo.platform || 'Unknown'}</p>
+              <p><strong>Architecture:</strong> {appInfo.arch || 'Unknown'}</p>
+            </div>
+          )}
+
+          {appConfig && (
+            <div className={styles.info}>
+              <p><strong>Model:</strong> {appConfig.model || 'Not configured'}</p>
+              <p><strong>Theme:</strong> {appConfig.theme || 'system'}</p>
+              <p><strong>Bridge tools:</strong> {toolCount}</p>
+              <p><strong>MCP servers:</strong> {mcpServerCount}</p>
             </div>
           )}
 

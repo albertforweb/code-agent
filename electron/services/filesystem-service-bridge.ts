@@ -29,7 +29,7 @@ export class FileSystemServiceBridge {
   /**
    * Read file contents
    */
-  async readFile(filePath: string, encoding: string = 'utf-8'): Promise<string> {
+  async readFile(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
     const fullPath = this._resolvePath(filePath);
     this._validatePath(fullPath);
 
@@ -47,7 +47,7 @@ export class FileSystemServiceBridge {
   /**
    * Write file contents
    */
-  async writeFile(filePath: string, content: string, encoding: string = 'utf-8'): Promise<void> {
+  async writeFile(filePath: string, content: string, encoding: BufferEncoding = 'utf-8'): Promise<void> {
     const fullPath = this._resolvePath(filePath);
     this._validatePath(fullPath);
 

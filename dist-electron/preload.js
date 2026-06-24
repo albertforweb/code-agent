@@ -35,6 +35,20 @@ const api = {
         },
     },
     // ============================================================================
+    // MCP API
+    // ============================================================================
+    mcp: {
+        listServers: () => {
+            return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['mcp:listServers']);
+        },
+        listTools: () => {
+            return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['mcp:listTools']);
+        },
+        refresh: () => {
+            return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['mcp:refresh']);
+        },
+    },
+    // ============================================================================
     // FILE SYSTEM API
     // ============================================================================
     fs: {
@@ -66,6 +80,9 @@ const api = {
     // APP STATE API
     // ============================================================================
     app: {
+        info: () => {
+            return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['app:info']);
+        },
         getConfig: () => {
             return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['app:getConfig']);
         },

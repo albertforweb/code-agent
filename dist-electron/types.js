@@ -18,6 +18,10 @@ exports.IPC_CHANNELS = {
     // API channels
     'api:chat': 'api:chat',
     'api:fetchBootstrap': 'api:fetchBootstrap',
+    // MCP channels
+    'mcp:listServers': 'mcp:listServers',
+    'mcp:listTools': 'mcp:listTools',
+    'mcp:refresh': 'mcp:refresh',
     // File system channels
     'fs:read': 'fs:read',
     'fs:write': 'fs:write',
@@ -27,6 +31,7 @@ exports.IPC_CHANNELS = {
     'auth:logout': 'auth:logout',
     'auth:setToken': 'auth:setToken',
     // App state channels
+    'app:info': 'app:info',
     'app:getConfig': 'app:getConfig',
     'app:setConfig': 'app:setConfig',
     'app:getState': 'app:getState',
