@@ -9,6 +9,8 @@ import type {
   ToolExecuteResponse,
   ChatRequest,
   ChatResponse,
+  ChatStreamRequest,
+  ChatStreamResponse,
   FileReadRequest,
   FileWriteRequest,
   FileListRequest,
@@ -43,6 +45,7 @@ export class IpcBridge {
 
     // API channels
     ipcMain.handle(IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
+    ipcMain.handle(IPC_CHANNELS['api:chatStream'], this.handleApiChatStream.bind(this));
     ipcMain.handle(IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
 
     // MCP channels
@@ -106,6 +109,17 @@ export class IpcBridge {
     const handler = this.apiHandlers.get('chat');
     if (!handler) {
       throw new Error('API handler not configured');
+    }
+    return handler(request);
+  }
+
+  private async handleApiChatStream(
+    event: any,
+    request: ChatStreamRequest,
+  ): Promise<ChatStreamResponse> {
+    const handler = this.apiHandlers.get('chatStream');
+    if (!handler) {
+      throw new Error('API stream handler not configured');
     }
     return handler(request);
   }

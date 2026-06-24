@@ -11,6 +11,8 @@ import type {
   ToolExecuteResponse,
   ChatRequest,
   ChatResponse,
+  ChatStreamRequest,
+  ChatStreamResponse,
   FileReadRequest,
   FileWriteRequest,
   FileListRequest,
@@ -21,6 +23,9 @@ import type {
   BootstrapData,
   McpServerInfo,
   McpToolInfo,
+  ChatDeltaMessage,
+  ChatCompleteMessage,
+  ChatErrorMessage,
 } from './types';
 import { IPC_CHANNELS } from './types';
 
@@ -48,6 +53,10 @@ const api = {
   api: {
     chat: (request: ChatRequest): Promise<ChatResponse> => {
       return ipcRenderer.invoke(IPC_CHANNELS['api:chat'], request);
+    },
+
+    chatStream: (request: ChatStreamRequest): Promise<ChatStreamResponse> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['api:chatStream'], request);
     },
 
     fetchBootstrap: (): Promise<BootstrapData> => {
@@ -171,6 +180,24 @@ const api = {
     const handler = (_event: any, data: any) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['tool:error'], handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:error'], handler);
+  },
+
+  onChatDelta: (callback: (data: ChatDeltaMessage) => void): (() => void) => {
+    const handler = (_event: any, data: ChatDeltaMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['api:chatDelta'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['api:chatDelta'], handler);
+  },
+
+  onChatComplete: (callback: (data: ChatCompleteMessage) => void): (() => void) => {
+    const handler = (_event: any, data: ChatCompleteMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['api:chatComplete'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['api:chatComplete'], handler);
+  },
+
+  onChatError: (callback: (data: ChatErrorMessage) => void): (() => void) => {
+    const handler = (_event: any, data: ChatErrorMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['api:chatError'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['api:chatError'], handler);
   },
 };
 

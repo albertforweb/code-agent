@@ -10,6 +10,9 @@ const services_1 = require("./services");
 function createToolId() {
     return `tool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+function createChatRequestId() {
+    return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 function sendToRenderer(getMainWindow, channel, payload) {
     const window = getMainWindow();
     if (!window || window.isDestroyed()) {
@@ -83,6 +86,32 @@ function registerServiceBridges(ipcBridge, options) {
     });
     ipcBridge.registerApiHandler('chat', async (request) => {
         return apiService.chat(request);
+    });
+    ipcBridge.registerApiHandler('chatStream', async (request) => {
+        const requestId = request.requestId ?? createChatRequestId();
+        const startTime = Date.now();
+        apiService.streamChat(request, {
+            onDelta: delta => {
+                sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['api:chatDelta'], {
+                    requestId,
+                    delta,
+                    timestamp: Date.now(),
+                });
+            },
+        }).then(response => {
+            sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['api:chatComplete'], {
+                requestId,
+                response,
+                duration: Date.now() - startTime,
+            });
+        }).catch(error => {
+            sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['api:chatError'], {
+                requestId,
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+        });
+        return { requestId };
     });
     ipcBridge.registerApiHandler('bootstrap', async () => {
         return apiService.fetchBootstrap();

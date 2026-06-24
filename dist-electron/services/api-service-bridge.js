@@ -37,8 +37,7 @@ class ApiServiceBridge {
                 messages: request.messages,
                 temperature: request.temperature,
             });
-            // Extract response content
-            const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+            const content = this.extractTextContent(response);
             return {
                 content,
                 model: response.model,
@@ -50,6 +49,36 @@ class ApiServiceBridge {
         }
         catch (error) {
             throw new Error(`API Error: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Send a chat message and stream text deltas while collecting the final response.
+     */
+    async streamChat(request, handlers = {}) {
+        const client = await this.getApiClient();
+        try {
+            const stream = client.messages.stream({
+                model: request.model || 'claude-3-5-sonnet-20241022',
+                max_tokens: request.maxTokens || 4096,
+                system: this._buildSystemPrompt(),
+                messages: request.messages,
+                temperature: request.temperature,
+            });
+            stream.on('text', (textDelta) => {
+                handlers.onDelta?.(textDelta);
+            });
+            const response = await stream.finalMessage();
+            return {
+                content: this.extractTextContent(response),
+                model: response.model,
+                usage: {
+                    inputTokens: response.usage.input_tokens,
+                    outputTokens: response.usage.output_tokens,
+                },
+            };
+        }
+        catch (error) {
+            throw new Error(`API Stream Error: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
     /**
@@ -131,6 +160,14 @@ Always be helpful, thorough, and provide clear explanations.`;
         }
         this.apiClient = new sdk_1.default({ apiKey });
         return this.apiClient;
+    }
+    extractTextContent(response) {
+        return Array.isArray(response.content)
+            ? response.content
+                .filter((block) => block?.type === 'text')
+                .map((block) => block.text)
+                .join('')
+            : '';
     }
     async buildLocalBootstrapData() {
         const token = await this.authTokenProvider?.();

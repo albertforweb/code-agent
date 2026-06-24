@@ -4,7 +4,7 @@
 
 import { app, BrowserWindow } from 'electron';
 import { IpcBridge } from './bridge';
-import { IPC_CHANNELS, type ToolExecuteMessage } from './types';
+import { IPC_CHANNELS, type ChatStreamRequest, type ToolExecuteMessage } from './types';
 import {
   ToolServiceBridge,
   type BridgeToolDefinition,
@@ -33,6 +33,10 @@ export interface RegisteredServiceBridges {
 
 function createToolId(): string {
   return `tool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createChatRequestId(): string {
+  return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function sendToRenderer(
@@ -129,6 +133,35 @@ export function registerServiceBridges(
 
   ipcBridge.registerApiHandler('chat', async request => {
     return apiService.chat(request);
+  });
+
+  ipcBridge.registerApiHandler('chatStream', async (request: ChatStreamRequest) => {
+    const requestId = request.requestId ?? createChatRequestId();
+    const startTime = Date.now();
+
+    apiService.streamChat(request, {
+      onDelta: delta => {
+        sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatDelta'], {
+          requestId,
+          delta,
+          timestamp: Date.now(),
+        });
+      },
+    }).then(response => {
+      sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatComplete'], {
+        requestId,
+        response,
+        duration: Date.now() - startTime,
+      });
+    }).catch(error => {
+      sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatError'], {
+        requestId,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    });
+
+    return { requestId };
   });
 
   ipcBridge.registerApiHandler('bootstrap', async () => {

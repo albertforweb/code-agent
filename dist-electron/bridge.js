@@ -26,6 +26,7 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['tool:list'], this.handleToolList.bind(this));
         // API channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:chatStream'], this.handleApiChatStream.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
         // MCP channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
@@ -78,6 +79,13 @@ class IpcBridge {
         const handler = this.apiHandlers.get('chat');
         if (!handler) {
             throw new Error('API handler not configured');
+        }
+        return handler(request);
+    }
+    async handleApiChatStream(event, request) {
+        const handler = this.apiHandlers.get('chatStream');
+        if (!handler) {
+            throw new Error('API stream handler not configured');
         }
         return handler(request);
     }

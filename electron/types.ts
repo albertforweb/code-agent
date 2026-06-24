@@ -84,6 +84,32 @@ export interface ChatResponse {
   };
 }
 
+export interface ChatStreamRequest extends ChatRequest {
+  requestId?: string;
+}
+
+export interface ChatStreamResponse {
+  requestId: string;
+}
+
+export interface ChatDeltaMessage {
+  requestId: string;
+  delta: string;
+  timestamp: number;
+}
+
+export interface ChatCompleteMessage {
+  requestId: string;
+  response: ChatResponse;
+  duration: number;
+}
+
+export interface ChatErrorMessage {
+  requestId: string;
+  error: string;
+  stack?: string;
+}
+
 export interface BootstrapData {
   user: any;
   config: any;
@@ -161,6 +187,10 @@ export const IPC_CHANNELS = {
 
   // API channels
   'api:chat': 'api:chat',
+  'api:chatStream': 'api:chatStream',
+  'api:chatDelta': 'api:chatDelta',
+  'api:chatComplete': 'api:chatComplete',
+  'api:chatError': 'api:chatError',
   'api:fetchBootstrap': 'api:fetchBootstrap',
 
   // MCP channels

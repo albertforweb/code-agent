@@ -30,6 +30,9 @@ const api = {
         chat: (request) => {
             return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['api:chat'], request);
         },
+        chatStream: (request) => {
+            return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['api:chatStream'], request);
+        },
         fetchBootstrap: () => {
             return electron_1.ipcRenderer.invoke(types_1.IPC_CHANNELS['api:fetchBootstrap']);
         },
@@ -130,6 +133,21 @@ const api = {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(types_1.IPC_CHANNELS['tool:error'], handler);
         return () => electron_1.ipcRenderer.removeListener(types_1.IPC_CHANNELS['tool:error'], handler);
+    },
+    onChatDelta: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(types_1.IPC_CHANNELS['api:chatDelta'], handler);
+        return () => electron_1.ipcRenderer.removeListener(types_1.IPC_CHANNELS['api:chatDelta'], handler);
+    },
+    onChatComplete: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(types_1.IPC_CHANNELS['api:chatComplete'], handler);
+        return () => electron_1.ipcRenderer.removeListener(types_1.IPC_CHANNELS['api:chatComplete'], handler);
+    },
+    onChatError: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(types_1.IPC_CHANNELS['api:chatError'], handler);
+        return () => electron_1.ipcRenderer.removeListener(types_1.IPC_CHANNELS['api:chatError'], handler);
     },
 };
 /**

@@ -49,6 +49,32 @@ export interface ChatResponse {
   };
 }
 
+export interface ChatStreamRequest extends ChatRequest {
+  requestId?: string;
+}
+
+export interface ChatStreamResponse {
+  requestId: string;
+}
+
+export interface ChatDeltaMessage {
+  requestId: string;
+  delta: string;
+  timestamp: number;
+}
+
+export interface ChatCompleteMessage {
+  requestId: string;
+  response: ChatResponse;
+  duration: number;
+}
+
+export interface ChatErrorMessage {
+  requestId: string;
+  error: string;
+  stack?: string;
+}
+
 export interface FileEntry {
   name: string;
   type: 'file' | 'directory';
@@ -108,6 +134,7 @@ export interface ElectronRendererApi {
   };
   api: {
     chat(request: ChatRequest): Promise<ChatResponse>;
+    chatStream(request: ChatStreamRequest): Promise<ChatStreamResponse>;
     fetchBootstrap(): Promise<BootstrapData>;
   };
   mcp: {
@@ -141,6 +168,9 @@ export interface ElectronRendererApi {
   onToolResult(callback: (data: ToolResultMessage) => void): () => void;
   onToolComplete(callback: (data: ToolCompleteMessage) => void): () => void;
   onToolError(callback: (data: ToolErrorMessage) => void): () => void;
+  onChatDelta(callback: (data: ChatDeltaMessage) => void): () => void;
+  onChatComplete(callback: (data: ChatCompleteMessage) => void): () => void;
+  onChatError(callback: (data: ChatErrorMessage) => void): () => void;
 }
 
 declare global {
@@ -164,6 +194,7 @@ export const ipcClient: ElectronRendererApi = {
   },
   api: {
     chat: request => getApi().api.chat(request),
+    chatStream: request => getApi().api.chatStream(request),
     fetchBootstrap: () => getApi().api.fetchBootstrap(),
   },
   mcp: {
@@ -197,4 +228,7 @@ export const ipcClient: ElectronRendererApi = {
   onToolResult: callback => getApi().onToolResult(callback),
   onToolComplete: callback => getApi().onToolComplete(callback),
   onToolError: callback => getApi().onToolError(callback),
+  onChatDelta: callback => getApi().onChatDelta(callback),
+  onChatComplete: callback => getApi().onChatComplete(callback),
+  onChatError: callback => getApi().onChatError(callback),
 };

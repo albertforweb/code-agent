@@ -17,6 +17,10 @@ exports.IPC_CHANNELS = {
     'tool:error': 'tool:error',
     // API channels
     'api:chat': 'api:chat',
+    'api:chatStream': 'api:chatStream',
+    'api:chatDelta': 'api:chatDelta',
+    'api:chatComplete': 'api:chatComplete',
+    'api:chatError': 'api:chatError',
     'api:fetchBootstrap': 'api:fetchBootstrap',
     // MCP channels
     'mcp:listServers': 'mcp:listServers',
