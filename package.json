@@ -4,6 +4,7 @@
   "description": "Claude Code CLI - Leaked source analysis",
   "type": "module",
   "main": "dist/main.js",
+  "electron-main": "dist-electron/main.js",
   "bin": {
     "code-agent": "dist/main.js"
   },
@@ -12,7 +13,16 @@
     "build": "node run-build.js",
     "build:watch": "tsc --watch",
     "dev": "tsx watch src/main.tsx",
-    "clean": "del /s /q dist 2>nul || rm -rf dist"
+    "clean": "del /s /q dist 2>nul || rm -rf dist",
+    "build:electron": "tsc -p tsconfig.electron.json && tsc -p tsconfig.renderer.json",
+    "build:electron:prod": "cross-env NODE_ENV=production tsc -p tsconfig.electron.json && tsc -p tsconfig.renderer.json",
+    "dev:electron": "cross-env NODE_ENV=development electron .",
+    "dev:electron:watch": "concurrently \"tsc -p tsconfig.electron.json -w\" \"tsc -p tsconfig.renderer.json -w\" \"wait-on dist-electron/main.js && electron .\"",
+    "dist": "npm run build:electron:prod && electron-builder",
+    "dist:win": "npm run build:electron:prod && electron-builder --win",
+    "dist:mac": "npm run build:electron:prod && electron-builder --mac",
+    "dist:linux": "npm run build:electron:prod && electron-builder --linux",
+    "pack": "electron-builder --dir --publish never"
   },
   "keywords": [
     "claude",
@@ -106,9 +116,73 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "tsx": "^4.7.0"
+    "tsx": "^4.7.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^25.0.0",
+    "electron-updater": "^6.1.0",
+    "@electron/notarize": "^2.3.0",
+    "@types/electron": "^1.6.10",
+    "keytar": "^7.9.0",
+    "electron-store": "^8.5.0",
+    "cross-env": "^7.0.0",
+    "concurrently": "^8.2.0",
+    "wait-on": "^7.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "build": {
+    "appId": "com.anthropic.code-agent",
+    "productName": "Code Agent",
+    "directories": {
+      "buildResources": "electron/resources",
+      "output": "dist-build"
+    },
+    "files": [
+      "dist-electron/**",
+      "dist-renderer/**",
+      "node_modules/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "certificateFile": null,
+      "certificatePassword": null
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.plist"
+    },
+    "dmg": {
+      "sign": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    }
   }
 }
