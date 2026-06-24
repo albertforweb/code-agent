@@ -14,6 +14,13 @@ import {
 import * as path from 'path';
 import { IpcBridge } from './bridge';
 import Store from 'electron-store';
+import {
+  ToolServiceBridge,
+  ApiServiceBridge,
+  FileSystemServiceBridge,
+  AuthServiceBridge,
+  AppStateServiceBridge,
+} from './services';
 
 const isDev = process.env.NODE_ENV === 'development';
 const isMac = process.platform === 'darwin';
@@ -39,6 +46,13 @@ interface WindowState {
 let mainWindow: BrowserWindow | null = null;
 const store = new Store<{ windowState?: WindowState }>();
 const ipcBridge = new IpcBridge();
+
+// Service bridges
+let toolService: ToolServiceBridge;
+let apiService: ApiServiceBridge;
+let filesService: FileSystemServiceBridge;
+let authService: AuthServiceBridge;
+let appStateService: AppStateServiceBridge;
 
 // ============================================================================
 // WINDOW MANAGEMENT
@@ -272,6 +286,101 @@ function setupMenu() {
 // ============================================================================
 
 function setupIpcHandlers() {
+  // Initialize service bridges
+  toolService = new ToolServiceBridge();
+  apiService = new ApiServiceBridge();
+  filesService = new FileSystemServiceBridge(process.cwd());
+  authService = new AuthServiceBridge();
+  appStateService = new AppStateServiceBridge();
+
+  // Setup result handlers for tool service
+  toolService.setResultHandler((toolId: string, data: any) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('tool:result', { toolId, data });
+    }
+  });
+
+  toolService.setCompleteHandler((toolId: string, success: boolean, duration: number) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('tool:complete', { toolId, success, duration });
+    }
+  });
+
+  toolService.setErrorHandler((toolId: string, error: string, stack?: string) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('tool:error', { toolId, error, stack });
+    }
+  });
+
+  // Register tool handlers
+  ipcBridge.registerToolHandler('execute', async (args: any) => {
+    const { toolName, args: toolArgs } = args;
+    const toolId = `tool-${Date.now()}`;
+    
+    // Execute tool asynchronously (non-blocking)
+    toolService.executeTool(toolName, toolArgs, toolId).catch(error => {
+      console.error(`Tool execution error: ${error}`);
+    });
+
+    return { toolId };
+  });
+
+  ipcBridge.registerToolHandler('list', async () => {
+    return toolService.getTools();
+  });
+
+  // Register API handlers
+  ipcBridge.registerApiHandler('chat', async (request: any) => {
+    return apiService.chat(request);
+  });
+
+  ipcBridge.registerApiHandler('bootstrap', async () => {
+    return apiService.fetchBootstrap();
+  });
+
+  // Register file system handlers
+  ipcBridge.registerFsHandler('read', async (request: any) => {
+    return filesService.readFile(request.path, request.encoding);
+  });
+
+  ipcBridge.registerFsHandler('write', async (request: any) => {
+    return filesService.writeFile(request.path, request.content, request.encoding);
+  });
+
+  ipcBridge.registerFsHandler('list', async (request: any) => {
+    return filesService.listDirectory(request.path);
+  });
+
+  // Register auth handlers
+  ipcBridge.registerAuthHandler('getToken', async () => {
+    return authService.getToken();
+  });
+
+  ipcBridge.registerAuthHandler('logout', async () => {
+    return authService.logout();
+  });
+
+  ipcBridge.registerAuthHandler('setToken', async (token: any) => {
+    return authService.setToken(token);
+  });
+
+  // Register app state handlers
+  ipcBridge.registerAppHandler('getConfig', async () => {
+    return appStateService.getConfig();
+  });
+
+  ipcBridge.registerAppHandler('setConfig', async (config: any) => {
+    return appStateService.setConfig(config);
+  });
+
+  ipcBridge.registerAppHandler('getState', async () => {
+    return appStateService.getState();
+  });
+
+  ipcBridge.registerAppHandler('setState', async (state: any) => {
+    return appStateService.setState(state);
+  });
+
   // Example: Simple echo handler
   ipcMain.handle('ping', () => {
     return 'pong';
@@ -301,11 +410,6 @@ function setupIpcHandlers() {
       });
     }
   });
-
-  // TODO: Register service handlers with ipcBridge
-  // ipcBridge.registerToolHandler('bash', handleBashTool);
-  // ipcBridge.registerApiHandler('chat', handleChat);
-  // etc.
 }
 
 // ============================================================================
