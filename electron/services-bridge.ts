@@ -70,7 +70,8 @@ export function registerServiceBridges(
     }),
   );
 
-  apiService.setAuthTokenProvider(() => authService.getToken());
+  apiService.setAuthTokenProvider(provider => authService.getToken(provider));
+  apiService.setAppConfigProvider(() => appStateService.getConfig());
   apiService.setBootstrapProvider(async () => {
     const [config, tools, mcpServers, mcpTools] = await Promise.all([
       appStateService.getConfig(),
@@ -81,7 +82,8 @@ export function registerServiceBridges(
 
     return {
       user: {
-        authenticated: Boolean(await authService.getToken()),
+        authenticated: config.llmProvider === 'openai-compatible' ||
+          Boolean(await authService.getToken(config.llmProvider ?? 'anthropic')),
       },
       config,
       features: {

@@ -4,16 +4,17 @@
  * Handles token management, OAuth flow, and keychain access
  */
 
-import type { AuthToken } from '../types';
+import type { AuthToken, LlmProviderType } from '../types';
 
 /**
  * Auth Service Bridge - bridges auth operations to IPC
  */
 export class AuthServiceBridge {
-  private currentToken: AuthToken | null = null;
+  private currentTokens: Map<LlmProviderType, AuthToken> = new Map();
   private oauth2Config: any = null;
   private keychain: any = null; // keytar module
   private keychainService: string = 'code-agent';
+  private legacyKeychainKey: string = 'anthropic-api-key';
 
   constructor(keytar?: any) {
     this.keychain = keytar ?? this._loadKeytar();
@@ -22,30 +23,44 @@ export class AuthServiceBridge {
   /**
    * Get current authentication token
    */
-  async getToken(): Promise<AuthToken | null> {
+  async getToken(provider: LlmProviderType = 'anthropic'): Promise<AuthToken | null> {
+    const memoryToken = this.currentTokens.get(provider);
+    if (memoryToken) {
+      return memoryToken;
+    }
+
     // Try to load from keychain first
     if (this.keychain) {
       try {
-        const keychainKey = 'anthropic-api-key';
+        const keychainKey = this.getKeychainKey(provider);
         const token = await this.keychain.getPassword(this.keychainService, keychainKey);
 
         if (token) {
           return {
             accessToken: token,
+            provider,
           };
+        }
+
+        if (provider === 'anthropic') {
+          const legacyToken = await this.keychain.getPassword(this.keychainService, this.legacyKeychainKey);
+          if (legacyToken) {
+            return {
+              accessToken: legacyToken,
+              provider,
+            };
+          }
         }
       } catch (error) {
         console.warn('Failed to retrieve token from keychain:', error);
       }
     }
 
-    if (this.currentToken) {
-      return this.currentToken;
-    }
-
-    if (process.env.ANTHROPIC_API_KEY) {
+    const environmentToken = this.getEnvironmentToken(provider);
+    if (environmentToken) {
       return {
-        accessToken: process.env.ANTHROPIC_API_KEY,
+        accessToken: environmentToken,
+        provider,
       };
     }
 
@@ -56,14 +71,15 @@ export class AuthServiceBridge {
    * Set authentication token (stores securely in keychain if available)
    */
   async setToken(token: AuthToken): Promise<void> {
-    this.currentToken = token;
+    const provider = token.provider ?? 'anthropic';
+    this.currentTokens.set(provider, { ...token, provider });
 
     // Try to store in keychain for persistence
     if (this.keychain && token.accessToken) {
       try {
         await this.keychain.setPassword(
           this.keychainService,
-          'anthropic-api-key',
+          this.getKeychainKey(provider),
           token.accessToken
         );
       } catch (error) {
@@ -75,15 +91,26 @@ export class AuthServiceBridge {
   /**
    * Logout - clear token from memory and keychain
    */
-  async logout(): Promise<void> {
-    this.currentToken = null;
+  async logout(provider?: LlmProviderType): Promise<void> {
+    const providers: LlmProviderType[] = provider
+      ? [provider]
+      : ['anthropic', 'openai', 'openai-compatible'];
+
+    for (const providerName of providers) {
+      this.currentTokens.delete(providerName);
+    }
 
     // Try to delete from keychain
     if (this.keychain) {
-      try {
-        await this.keychain.deletePassword(this.keychainService, 'anthropic-api-key');
-      } catch (error) {
-        console.warn('Failed to delete token from keychain:', error);
+      for (const providerName of providers) {
+        try {
+          await this.keychain.deletePassword(this.keychainService, this.getKeychainKey(providerName));
+          if (providerName === 'anthropic') {
+            await this.keychain.deletePassword(this.keychainService, this.legacyKeychainKey);
+          }
+        } catch (error) {
+          console.warn('Failed to delete token from keychain:', error);
+        }
       }
     }
   }
@@ -161,7 +188,8 @@ export class AuthServiceBridge {
    * Refresh access token
    */
   async refreshToken(): Promise<AuthToken> {
-    if (!this.currentToken?.refreshToken) {
+    const currentToken = this.currentTokens.get('anthropic');
+    if (!currentToken?.refreshToken) {
       throw new Error('No refresh token available');
     }
 
@@ -175,7 +203,7 @@ export class AuthServiceBridge {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
           grant_type: 'refresh_token',
-          refresh_token: this.currentToken.refreshToken,
+          refresh_token: currentToken.refreshToken,
           client_id: this.oauth2Config.clientId,
           client_secret: this.oauth2Config.clientSecret,
         }).toString(),
@@ -189,8 +217,9 @@ export class AuthServiceBridge {
 
       const token: AuthToken = {
         accessToken: data.access_token,
-        refreshToken: data.refresh_token || this.currentToken.refreshToken,
+        refreshToken: data.refresh_token || currentToken.refreshToken,
         expiresAt: Date.now() + (data.expires_in * 1000),
+        provider: 'anthropic',
       };
 
       await this.setToken(token);
@@ -204,11 +233,12 @@ export class AuthServiceBridge {
    * Check if token is valid and not expired
    */
   isTokenValid(): boolean {
-    if (!this.currentToken) {
+    const currentToken = this.currentTokens.get('anthropic');
+    if (!currentToken) {
       return false;
     }
 
-    if (this.currentToken.expiresAt && Date.now() > this.currentToken.expiresAt) {
+    if (currentToken.expiresAt && Date.now() > currentToken.expiresAt) {
       return false;
     }
 
@@ -224,10 +254,31 @@ export class AuthServiceBridge {
 
   getStatus() {
     return {
-      hasMemoryToken: !!this.currentToken,
+      hasMemoryToken: this.currentTokens.size > 0,
       hasKeychain: !!this.keychain,
-      hasEnvironmentToken: !!process.env.ANTHROPIC_API_KEY,
+      hasEnvironmentToken: Boolean(
+        process.env.ANTHROPIC_API_KEY ||
+        process.env.OPENAI_API_KEY ||
+        process.env.OPENAI_COMPATIBLE_API_KEY ||
+        process.env.LM_STUDIO_API_KEY,
+      ),
     };
+  }
+
+  private getKeychainKey(provider: LlmProviderType): string {
+    return `llm-api-key-${provider}`;
+  }
+
+  private getEnvironmentToken(provider: LlmProviderType): string | undefined {
+    if (provider === 'anthropic') {
+      return process.env.ANTHROPIC_API_KEY;
+    }
+
+    if (provider === 'openai') {
+      return process.env.OPENAI_API_KEY;
+    }
+
+    return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
   }
 
   private _loadKeytar(): any {

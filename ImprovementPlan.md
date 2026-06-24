@@ -350,6 +350,7 @@ window.api = {
 - [x] Updated `electron/main.ts` to load the built renderer file by default, with `ELECTRON_RENDERER_URL` override support for future dev-server usage.
 - [x] Replaced placeholder welcome screen with the chat workspace, message list, composer, status rail, and settings dialog.
 - [x] Smoke-launched Electron successfully; observed only Chromium DevTools Autofill warnings, not renderer app errors.
+- [x] Fixed sandboxed preload startup by inlining IPC channel constants and mounting React without a blocking pre-flight IPC probe.
 
 ---
 
@@ -384,7 +385,7 @@ window.api = {
 
 ---
 
-### 3.3 Implement Settings & Configuration UI 🔄 IN PROGRESS
+### 3.3 Implement Settings & Configuration UI ✅ COMPLETE
 **Objective**: Create settings panel to replace CLI flags
 
 **Components to Create**:
@@ -405,20 +406,21 @@ window.api = {
 - [x] Appearance (light/dark theme)
 
 **Success Criteria**:
-- [ ] All CLI flags have UI equivalent (full root-command option audit pending)
+- [x] All CLI flags have UI equivalent
 - [x] Settings persist across restarts
-- [x] No CLI required for API/model/theme/runtime configuration
+- [x] No CLI required for configuration
 
 **Status Update (June 24, 2026)**:
 - [x] Added settings dialog backed by `app:setConfig` and secure `auth:setToken`.
 - [x] Added model, temperature, token limit, theme, memory, plugin, and auto-update controls.
-- [ ] Next: map the large CLI root option surface from `main.tsx` into grouped desktop settings where it is applicable.
+- [x] Audited the large CLI root option surface from `main.tsx` and mapped user-facing, hidden, and feature-gated root flags into grouped persisted desktop settings.
+- [x] Added grouped settings for output/debug, tools/permissions, workspace context, session/resume, integrations, and advanced compatibility flags.
 
 ---
 
-## Phase 4: Service Refactoring (Days 11-14)
+## Phase 4: Service Refactoring (Days 11-14) 🔄 IN PROGRESS
 
-### 4.1 Decouple Terminal-Specific Code ✅ PENDING
+### 4.1 Decouple Terminal-Specific Code 🔄 IN PROGRESS
 **Objective**: Remove terminal dependencies from shared services
 
 **Files to Audit/Modify**:
@@ -434,14 +436,20 @@ window.api = {
 - [ ] stdin/stdout → window events
 
 **Strategy**:
-- [ ] Create abstraction layer for terminal vs desktop
+- [x] Create abstraction layer for terminal vs desktop service seams where needed
 - [ ] Use feature flags or runtime detection
 - [ ] Keep backward compatibility for CLI
 
 **Success Criteria**:
-- Services work in both terminal and desktop contexts
-- No terminal code in shared services
-- Can run with or without TTY
+- [ ] Services work in both terminal and desktop contexts
+- [ ] No terminal code in shared services
+- [ ] Can run with or without TTY
+
+**Status Update (June 24, 2026)**:
+- [x] Refactored the Electron API bridge behind provider adapters for Anthropic, OpenAI, and OpenAI-compatible backends.
+- [x] Added OpenAI-compatible `/chat/completions` normal and streaming support for local backends such as LM Studio.
+- [x] Verified OpenAI-compatible normal and streaming chat with a local mock server.
+- [ ] Remaining: continue the broader terminal-specific shared-service audit.
 
 ---
 
@@ -465,22 +473,22 @@ window.api = {
 
 ---
 
-### 4.3 Implement Secure Keychain Integration ✅ PENDING
+### 4.3 Implement Secure Keychain Integration 🔄 IN PROGRESS
 **Objective**: Use OS keychain for API key storage
 
 **Implementation**:
-- Use `keytar` npm package (Node.js bindings to system keychain)
-- Store API keys securely in macOS Keychain / Windows Credential Manager / Linux Secrets
-- Never pass keys in IPC (only access from main process)
+- [x] Use `keytar` npm package (Node.js bindings to system keychain)
+- [x] Store provider-scoped API keys securely in macOS Keychain / Windows Credential Manager / Linux Secrets when available
+- [ ] Never pass keys in IPC beyond the one-time settings save path
 
 **Files to Create/Modify**:
-- `electron/keychain.ts` - Keychain service
-- `electron/services-bridge.ts` - Add keychain endpoints
+- [ ] `electron/keychain.ts` - Keychain service
+- [x] `electron/services-bridge.ts` - Add keychain endpoints
 
 **Success Criteria**:
-- API keys stored in OS keychain
-- No keys in plain text config
-- Can read/write keys securely
+- [x] API keys stored in OS keychain
+- [x] No keys in plain text config
+- [x] Can read/write keys securely
 
 ---
 
@@ -719,8 +727,8 @@ window.api = {
 ### Overall Progress
 - **Phase 1** (Foundation): 100% ✅ COMPLETE
 - **Phase 2** (IPC Bridge): 100% ✅ COMPLETE - IPC/preload/client, service registration, executable bridge tools, API/auth bootstrap, and MCP metadata bridge complete
-- **Phase 3** (UI Replacement): 75% 🔄 IN PROGRESS - React DOM shell, streaming chat, message rendering, tool feedback, and initial settings UI complete
-- **Phase 4** (Service Refactoring): 0% - Not Started
+- **Phase 3** (UI Replacement): 100% ✅ COMPLETE - React DOM shell, streaming chat, message rendering, tool feedback, and full settings/configuration UI complete
+- **Phase 4** (Service Refactoring): 20% 🔄 IN PROGRESS - LLM provider abstraction and provider-scoped key storage started
 - **Phase 5** (Packaging): 0% - Not Started
 - **Phase 6** (Testing): 0% - Not Started
 - **Phase 7** (Documentation): 0% - Not Started
@@ -730,8 +738,8 @@ window.api = {
 - **Current Date**: June 24, 2026
 - **Target Launch**: ~July 21, 2026
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
-- **Latest Update**: June 24, 2026 - completed Phase 3.1 and 3.2 with a real chat workspace, streaming API IPC, tool-result feedback, syntax-highlighted messages, and settings dialog.
-- **Next Focus**: complete Phase 3.3 by auditing CLI root options and mapping applicable flags into grouped desktop settings.
+- **Latest Update**: June 24, 2026 - added Anthropic/OpenAI/OpenAI-compatible LLM provider support with LM Studio-compatible streaming and provider-scoped key storage.
+- **Next Focus**: test against a real LM Studio instance, then continue Phase 4.1 terminal-specific shared-service audit.
 
 ---
 

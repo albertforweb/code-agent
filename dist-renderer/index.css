@@ -503,7 +503,7 @@ body.App_dark .App_dangerButton:hover {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  width: min(760px, 100%);
+  width: min(1040px, 100%);
   max-height: calc(100vh - 48px);
   padding: var(--spacing-lg);
   overflow-y: auto;
@@ -532,6 +532,27 @@ body.App_dark .App_settingsDialog {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-md);
 }
+.App_settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+body.App_dark .App_settingsSection {
+  border-bottom-color: var(--color-border-dark);
+}
+.App_settingsSection h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+body.App_dark .App_settingsSection h3 {
+  color: var(--color-text-dark);
+}
+.App_fieldWide {
+  grid-column: 1 / -1;
+}
 .App_field,
 .App_toggleField {
   display: flex;
@@ -551,8 +572,14 @@ body.App_dark .App_toggleField span {
   color: var(--color-text-dark);
 }
 .App_field input,
-.App_field select {
+.App_field select,
+.App_field textarea {
   width: 100%;
+}
+.App_field textarea {
+  min-height: 78px;
+  resize: vertical;
+  line-height: 1.45;
 }
 .App_toggleField {
   align-items: center;
@@ -563,6 +590,12 @@ body.App_dark .App_toggleField span {
 }
 body.App_dark .App_toggleField {
   border-color: var(--color-border-dark);
+}
+.App_toggleGrid,
+.App_checkboxGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
 }
 .App_settingsSummary {
   display: grid;
@@ -644,7 +677,9 @@ body.App_dark .App_settingsMessage {
     padding-bottom: var(--spacing-xs);
   }
   .App_settingsGrid,
-  .App_settingsSummary {
+  .App_settingsSummary,
+  .App_toggleGrid,
+  .App_checkboxGroup {
     grid-template-columns: 1fr;
   }
   .App_dialogFooter {

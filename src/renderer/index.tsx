@@ -6,7 +6,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
-import { ipcClient } from './ipc-client';
 import './styles/global.css';
 
 /**
@@ -14,11 +13,6 @@ import './styles/global.css';
  */
 async function initializeRenderer() {
   try {
-    // Get app info from main process
-    const info = await ipcClient.app.getConfig();
-    console.log('App config:', info);
-
-    // Render the app
     const root = ReactDOM.createRoot(document.getElementById('root')!);
     root.render(
       <React.StrictMode>

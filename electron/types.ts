@@ -68,8 +68,12 @@ export interface ChatMessage {
   content: string;
 }
 
+export type LlmProviderType = 'anthropic' | 'openai' | 'openai-compatible';
+
 export interface ChatRequest {
   messages: ChatMessage[];
+  provider?: LlmProviderType;
+  baseUrl?: string;
   model?: string;
   maxTokens?: number;
   temperature?: number;
@@ -148,6 +152,7 @@ export interface FileEntry {
 
 export interface AuthToken {
   accessToken: string;
+  provider?: LlmProviderType;
   expiresAt?: number;
   refreshToken?: string;
 }
@@ -158,6 +163,8 @@ export interface AuthToken {
 
 export interface AppConfig {
   apiKey?: string;
+  llmProvider?: LlmProviderType;
+  baseUrl?: string;
   model?: string;
   temperature?: number;
   maxTokens?: number;

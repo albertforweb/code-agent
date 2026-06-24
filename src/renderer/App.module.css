@@ -588,7 +588,7 @@ body.dark .dangerButton:hover {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  width: min(760px, 100%);
+  width: min(1040px, 100%);
   max-height: calc(100vh - 48px);
   padding: var(--spacing-lg);
   overflow-y: auto;
@@ -622,6 +622,32 @@ body.dark .settingsDialog {
   gap: var(--spacing-md);
 }
 
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+body.dark .settingsSection {
+  border-bottom-color: var(--color-border-dark);
+}
+
+.settingsSection h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+
+body.dark .settingsSection h3 {
+  color: var(--color-text-dark);
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
 .field,
 .toggleField {
   display: flex;
@@ -645,8 +671,15 @@ body.dark .toggleField span {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
+}
+
+.field textarea {
+  min-height: 78px;
+  resize: vertical;
+  line-height: 1.45;
 }
 
 .toggleField {
@@ -659,6 +692,13 @@ body.dark .toggleField span {
 
 body.dark .toggleField {
   border-color: var(--color-border-dark);
+}
+
+.toggleGrid,
+.checkboxGroup {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-sm);
 }
 
 .settingsSummary {
@@ -759,7 +799,9 @@ body.dark .settingsMessage {
   }
 
   .settingsGrid,
-  .settingsSummary {
+  .settingsSummary,
+  .toggleGrid,
+  .checkboxGroup {
     grid-template-columns: 1fr;
   }
 

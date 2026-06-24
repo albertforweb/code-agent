@@ -38624,8 +38624,12 @@
     dialogFooter: "App_dialogFooter",
     dialogActions: "App_dialogActions",
     settingsGrid: "App_settingsGrid",
+    settingsSection: "App_settingsSection",
+    fieldWide: "App_fieldWide",
     field: "App_field",
     toggleField: "App_toggleField",
+    toggleGrid: "App_toggleGrid",
+    checkboxGroup: "App_checkboxGroup",
     settingsMessage: "App_settingsMessage"
   };
 
@@ -38684,13 +38688,41 @@
 
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-  var DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
-  var SUPPORTED_MODELS = [
-    "claude-3-5-sonnet-20241022",
-    "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307"
-  ];
+  var DEFAULT_PROVIDER = "anthropic";
+  var PROVIDER_DEFAULTS = {
+    anthropic: {
+      label: "Anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      baseUrl: ""
+    },
+    openai: {
+      label: "OpenAI",
+      model: "gpt-4o-mini",
+      baseUrl: "https://api.openai.com/v1"
+    },
+    "openai-compatible": {
+      label: "OpenAI-compatible / LM Studio",
+      model: "local-model",
+      baseUrl: "http://127.0.0.1:1234/v1"
+    }
+  };
+  function getProviderDefault(provider) {
+    return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
+  }
+  var PERMISSION_MODES = ["default", "acceptEdits", "plan", "bypassPermissions", "auto"];
+  var SETTING_SOURCE_OPTIONS = ["user", "project", "local"];
+  function readCliOption(config, key, fallback = "") {
+    const value = config?.cliOptions?.[key];
+    return value === void 0 || value === null ? fallback : String(value);
+  }
+  function readCliBoolean(config, key, fallback = false) {
+    const value = config?.cliOptions?.[key];
+    return value === void 0 || value === null ? fallback : Boolean(value);
+  }
+  function readCliChoice(config, key, fallback, choices) {
+    const value = readCliOption(config, key, fallback);
+    return choices.includes(value) ? value : fallback;
+  }
   function createMessage(role, content, overrides = {}) {
     return {
       id: `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -38701,15 +38733,187 @@
     };
   }
   function createSettingsDraft(config) {
+    const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
+    const providerDefault = getProviderDefault(llmProvider);
     return {
       apiKey: "",
-      model: config?.model || DEFAULT_MODEL,
+      llmProvider,
+      baseUrl: config?.baseUrl || providerDefault.baseUrl,
+      model: config?.model || providerDefault.model,
+      fallbackModel: readCliOption(config, "fallbackModel"),
       temperature: Number(config?.temperature ?? 0.7),
       maxTokens: Number(config?.maxTokens ?? 4096),
       theme: config?.theme || "system",
       memoryEnabled: Boolean(config?.memoryEnabled ?? true),
       pluginsEnabled: Boolean(config?.pluginsEnabled ?? true),
-      autoUpdate: Boolean(config?.autoUpdate ?? false)
+      autoUpdate: Boolean(config?.autoUpdate ?? false),
+      outputFormat: readCliChoice(config, "outputFormat", "text", ["text", "json", "stream-json"]),
+      inputFormat: readCliChoice(config, "inputFormat", "text", ["text", "stream-json"]),
+      printMode: readCliBoolean(config, "printMode"),
+      includeHookEvents: readCliBoolean(config, "includeHookEvents"),
+      includePartialMessages: readCliBoolean(config, "includePartialMessages"),
+      replayUserMessages: readCliBoolean(config, "replayUserMessages"),
+      jsonSchema: readCliOption(config, "jsonSchema"),
+      debugEnabled: readCliBoolean(config, "debugEnabled"),
+      debugFilter: readCliOption(config, "debugFilter"),
+      debugToStderr: readCliBoolean(config, "debugToStderr"),
+      debugFile: readCliOption(config, "debugFile"),
+      verbose: readCliBoolean(config, "verbose"),
+      mcpDebug: readCliBoolean(config, "mcpDebug"),
+      bareMode: readCliBoolean(config, "bareMode"),
+      startupMode: readCliChoice(config, "startupMode", "none", ["none", "init", "init-only", "maintenance"]),
+      thinkingMode: readCliChoice(config, "thinkingMode", "adaptive", ["adaptive", "enabled", "disabled"]),
+      effort: readCliChoice(config, "effort", "medium", ["low", "medium", "high", "max"]),
+      maxThinkingTokens: readCliOption(config, "maxThinkingTokens"),
+      maxTurns: readCliOption(config, "maxTurns"),
+      maxBudgetUsd: readCliOption(config, "maxBudgetUsd"),
+      taskBudget: readCliOption(config, "taskBudget"),
+      workload: readCliOption(config, "workload"),
+      betas: readCliOption(config, "betas"),
+      agent: readCliOption(config, "agent"),
+      allowedTools: readCliOption(config, "allowedTools"),
+      selectedTools: readCliOption(config, "selectedTools", "default"),
+      disallowedTools: readCliOption(config, "disallowedTools"),
+      permissionMode: readCliOption(config, "permissionMode", "default"),
+      permissionPromptTool: readCliOption(config, "permissionPromptTool"),
+      dangerouslySkipPermissions: readCliBoolean(config, "dangerouslySkipPermissions"),
+      allowDangerouslySkipPermissions: readCliBoolean(config, "allowDangerouslySkipPermissions"),
+      systemPrompt: readCliOption(config, "systemPrompt"),
+      systemPromptFile: readCliOption(config, "systemPromptFile"),
+      appendSystemPrompt: readCliOption(config, "appendSystemPrompt"),
+      appendSystemPromptFile: readCliOption(config, "appendSystemPromptFile"),
+      mcpConfig: readCliOption(config, "mcpConfig"),
+      strictMcpConfig: readCliBoolean(config, "strictMcpConfig"),
+      settingsSource: readCliOption(config, "settingsSource"),
+      settingSources: readCliOption(config, "settingSources", "user,project,local"),
+      addDirs: readCliOption(config, "addDirs"),
+      pluginDirs: readCliOption(config, "pluginDirs"),
+      agentsJson: readCliOption(config, "agentsJson"),
+      disableSlashCommands: readCliBoolean(config, "disableSlashCommands"),
+      chromeIntegration: readCliChoice(config, "chromeIntegration", "default", ["default", "enabled", "disabled"]),
+      ideAutoConnect: readCliBoolean(config, "ideAutoConnect"),
+      continueSession: readCliBoolean(config, "continueSession"),
+      resumeSession: readCliOption(config, "resumeSession"),
+      fromPr: readCliOption(config, "fromPr"),
+      forkSession: readCliBoolean(config, "forkSession"),
+      noSessionPersistence: readCliBoolean(config, "noSessionPersistence"),
+      resumeSessionAt: readCliOption(config, "resumeSessionAt"),
+      rewindFilesMessageId: readCliOption(config, "rewindFilesMessageId"),
+      sessionId: readCliOption(config, "sessionId"),
+      sessionName: readCliOption(config, "sessionName"),
+      prefill: readCliOption(config, "prefill"),
+      deepLinkOrigin: readCliBoolean(config, "deepLinkOrigin"),
+      deepLinkRepo: readCliOption(config, "deepLinkRepo"),
+      deepLinkLastFetch: readCliOption(config, "deepLinkLastFetch"),
+      worktree: readCliOption(config, "worktree"),
+      tmuxMode: readCliChoice(config, "tmuxMode", "off", ["off", "default", "classic"]),
+      advisorModel: readCliOption(config, "advisorModel"),
+      proactive: readCliBoolean(config, "proactive"),
+      fileSpecs: readCliOption(config, "fileSpecs"),
+      messagingSocketPath: readCliOption(config, "messagingSocketPath"),
+      briefMode: readCliBoolean(config, "briefMode"),
+      assistantMode: readCliBoolean(config, "assistantMode"),
+      channelServers: readCliOption(config, "channelServers"),
+      developmentChannelServers: readCliOption(config, "developmentChannelServers"),
+      agentId: readCliOption(config, "agentId"),
+      agentName: readCliOption(config, "agentName"),
+      teamName: readCliOption(config, "teamName"),
+      agentColor: readCliOption(config, "agentColor"),
+      planModeRequired: readCliBoolean(config, "planModeRequired"),
+      parentSessionId: readCliOption(config, "parentSessionId"),
+      teammateMode: readCliChoice(config, "teammateMode", "auto", ["auto", "tmux", "in-process"]),
+      agentType: readCliOption(config, "agentType"),
+      sdkUrl: readCliOption(config, "sdkUrl"),
+      teleportSession: readCliOption(config, "teleportSession"),
+      remoteDescription: readCliOption(config, "remoteDescription"),
+      remoteControlName: readCliOption(config, "remoteControlName"),
+      hardFail: readCliBoolean(config, "hardFail")
+    };
+  }
+  function buildCliOptions(draft) {
+    return {
+      fallbackModel: draft.fallbackModel,
+      outputFormat: draft.outputFormat,
+      inputFormat: draft.inputFormat,
+      printMode: draft.printMode,
+      includeHookEvents: draft.includeHookEvents,
+      includePartialMessages: draft.includePartialMessages,
+      replayUserMessages: draft.replayUserMessages,
+      jsonSchema: draft.jsonSchema,
+      debugEnabled: draft.debugEnabled,
+      debugFilter: draft.debugFilter,
+      debugToStderr: draft.debugToStderr,
+      debugFile: draft.debugFile,
+      verbose: draft.verbose,
+      mcpDebug: draft.mcpDebug,
+      bareMode: draft.bareMode,
+      startupMode: draft.startupMode,
+      thinkingMode: draft.thinkingMode,
+      effort: draft.effort,
+      maxThinkingTokens: draft.maxThinkingTokens,
+      maxTurns: draft.maxTurns,
+      maxBudgetUsd: draft.maxBudgetUsd,
+      taskBudget: draft.taskBudget,
+      workload: draft.workload,
+      betas: draft.betas,
+      agent: draft.agent,
+      allowedTools: draft.allowedTools,
+      selectedTools: draft.selectedTools,
+      disallowedTools: draft.disallowedTools,
+      permissionMode: draft.permissionMode,
+      permissionPromptTool: draft.permissionPromptTool,
+      dangerouslySkipPermissions: draft.dangerouslySkipPermissions,
+      allowDangerouslySkipPermissions: draft.allowDangerouslySkipPermissions,
+      systemPrompt: draft.systemPrompt,
+      systemPromptFile: draft.systemPromptFile,
+      appendSystemPrompt: draft.appendSystemPrompt,
+      appendSystemPromptFile: draft.appendSystemPromptFile,
+      mcpConfig: draft.mcpConfig,
+      strictMcpConfig: draft.strictMcpConfig,
+      settingsSource: draft.settingsSource,
+      settingSources: draft.settingSources,
+      addDirs: draft.addDirs,
+      pluginDirs: draft.pluginDirs,
+      agentsJson: draft.agentsJson,
+      disableSlashCommands: draft.disableSlashCommands,
+      chromeIntegration: draft.chromeIntegration,
+      ideAutoConnect: draft.ideAutoConnect,
+      continueSession: draft.continueSession,
+      resumeSession: draft.resumeSession,
+      fromPr: draft.fromPr,
+      forkSession: draft.forkSession,
+      noSessionPersistence: draft.noSessionPersistence,
+      resumeSessionAt: draft.resumeSessionAt,
+      rewindFilesMessageId: draft.rewindFilesMessageId,
+      sessionId: draft.sessionId,
+      sessionName: draft.sessionName,
+      prefill: draft.prefill,
+      deepLinkOrigin: draft.deepLinkOrigin,
+      deepLinkRepo: draft.deepLinkRepo,
+      deepLinkLastFetch: draft.deepLinkLastFetch,
+      worktree: draft.worktree,
+      tmuxMode: draft.tmuxMode,
+      advisorModel: draft.advisorModel,
+      proactive: draft.proactive,
+      fileSpecs: draft.fileSpecs,
+      messagingSocketPath: draft.messagingSocketPath,
+      briefMode: draft.briefMode,
+      assistantMode: draft.assistantMode,
+      channelServers: draft.channelServers,
+      developmentChannelServers: draft.developmentChannelServers,
+      agentId: draft.agentId,
+      agentName: draft.agentName,
+      teamName: draft.teamName,
+      agentColor: draft.agentColor,
+      planModeRequired: draft.planModeRequired,
+      parentSessionId: draft.parentSessionId,
+      teammateMode: draft.teammateMode,
+      agentType: draft.agentType,
+      sdkUrl: draft.sdkUrl,
+      teleportSession: draft.teleportSession,
+      remoteDescription: draft.remoteDescription,
+      remoteControlName: draft.remoteControlName,
+      hardFail: draft.hardFail
     };
   }
   function formatJson(value) {
@@ -38774,69 +38978,75 @@
       initializeApp();
     }, []);
     (0, import_react.useEffect)(() => {
-      const removeChatDeltaListener = ipcClient.onChatDelta((data) => {
-        const messageId = streamMessageIds.current.get(data.requestId);
-        if (!messageId) {
-          return;
-        }
-        setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: `${message.content}${data.delta}` } : message));
-      });
-      const removeChatCompleteListener = ipcClient.onChatComplete((data) => {
-        const messageId = streamMessageIds.current.get(data.requestId);
-        streamMessageIds.current.delete(data.requestId);
-        if (messageId) {
-          setMessages((current) => current.map((message) => message.id === messageId ? {
-            ...message,
-            content: data.response.content || message.content || "No response content.",
-            status: "sent",
-            title: data.response.model,
-            usage: data.response.usage
-          } : message));
-        }
-        setIsSending(false);
-        setStatus("Ready");
-        inputRef.current?.focus();
-      });
-      const removeChatErrorListener = ipcClient.onChatError((data) => {
-        const messageId = streamMessageIds.current.get(data.requestId);
-        streamMessageIds.current.delete(data.requestId);
-        if (messageId) {
-          setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: data.error, status: "failed", title: "Request failed", role: "error" } : message));
-        } else {
-          appendMessage(createMessage("error", data.error, {
-            title: "Request failed",
-            status: "failed"
-          }));
-        }
-        setIsSending(false);
-        setStatus("Error");
-        inputRef.current?.focus();
-      });
-      const removeResultListener = ipcClient.onToolResult((data) => {
-        appendMessage(createMessage("tool", `\`\`\`json
+      const removers = [];
+      try {
+        removers.push(ipcClient.onChatDelta((data) => {
+          const messageId = streamMessageIds.current.get(data.requestId);
+          if (!messageId) {
+            return;
+          }
+          setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: `${message.content}${data.delta}` } : message));
+        }));
+        removers.push(ipcClient.onChatComplete((data) => {
+          const messageId = streamMessageIds.current.get(data.requestId);
+          streamMessageIds.current.delete(data.requestId);
+          if (messageId) {
+            setMessages((current) => current.map((message) => message.id === messageId ? {
+              ...message,
+              content: data.response.content || message.content || "No response content.",
+              status: "sent",
+              title: data.response.model,
+              usage: data.response.usage
+            } : message));
+          }
+          setIsSending(false);
+          setStatus("Ready");
+          inputRef.current?.focus();
+        }));
+        removers.push(ipcClient.onChatError((data) => {
+          const messageId = streamMessageIds.current.get(data.requestId);
+          streamMessageIds.current.delete(data.requestId);
+          if (messageId) {
+            setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: data.error, status: "failed", title: "Request failed", role: "error" } : message));
+          } else {
+            appendMessage(createMessage("error", data.error, {
+              title: "Request failed",
+              status: "failed"
+            }));
+          }
+          setIsSending(false);
+          setStatus("Error");
+          inputRef.current?.focus();
+        }));
+        removers.push(ipcClient.onToolResult((data) => {
+          appendMessage(createMessage("tool", `\`\`\`json
 ${formatJson(data.data)}
 \`\`\``, {
-          title: `Tool result ${data.toolId}`
+            title: `Tool result ${data.toolId}`
+          }));
         }));
-      });
-      const removeCompleteListener = ipcClient.onToolComplete((data) => {
-        appendMessage(createMessage("tool", `${data.success ? "Completed" : "Failed"} in ${data.duration} ms`, {
-          title: `Tool ${data.toolId}`
+        removers.push(ipcClient.onToolComplete((data) => {
+          appendMessage(createMessage("tool", `${data.success ? "Completed" : "Failed"} in ${data.duration} ms`, {
+            title: `Tool ${data.toolId}`
+          }));
         }));
-      });
-      const removeErrorListener = ipcClient.onToolError((data) => {
-        appendMessage(createMessage("error", data.error, {
-          title: `Tool error ${data.toolId}`,
+        removers.push(ipcClient.onToolError((data) => {
+          appendMessage(createMessage("error", data.error, {
+            title: `Tool error ${data.toolId}`,
+            status: "failed"
+          }));
+        }));
+      } catch (error) {
+        setStatus("Startup error");
+        appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
+          title: "IPC unavailable",
           status: "failed"
         }));
-      });
+      }
       return () => {
-        removeChatDeltaListener();
-        removeChatCompleteListener();
-        removeChatErrorListener();
-        removeResultListener();
-        removeCompleteListener();
-        removeErrorListener();
+        for (const remove of removers) {
+          remove();
+        }
       };
     }, []);
     (0, import_react.useEffect)(() => {
@@ -38918,8 +39128,10 @@ ${formatJson(data.data)}
         setStatus("Streaming");
         const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         pendingStreamRequestId = requestId;
+        const activeProvider2 = appConfig?.llmProvider || DEFAULT_PROVIDER;
+        const activeProviderDefault2 = getProviderDefault(activeProvider2);
         const assistantMessage = createMessage("assistant", "", {
-          title: appConfig?.model || DEFAULT_MODEL,
+          title: `${PROVIDER_DEFAULTS[activeProvider2].label} / ${appConfig?.model || activeProviderDefault2.model}`,
           status: "sending"
         });
         streamMessageIds.current.set(requestId, assistantMessage.id);
@@ -38927,7 +39139,9 @@ ${formatJson(data.data)}
         await ipcClient.api.chatStream({
           requestId,
           messages: getChatMessages(messages, prompt),
-          model: appConfig?.model || DEFAULT_MODEL,
+          provider: activeProvider2,
+          baseUrl: appConfig?.baseUrl || activeProviderDefault2.baseUrl,
+          model: appConfig?.model || activeProviderDefault2.model,
           maxTokens: Number(appConfig?.maxTokens ?? 4096),
           temperature: Number(appConfig?.temperature ?? 0.7)
         });
@@ -39028,17 +39242,23 @@ ${formatJson(appConfig)}
       setSettingsMessage("");
       try {
         const nextConfig = {
+          llmProvider: settingsDraft.llmProvider,
+          baseUrl: settingsDraft.baseUrl,
           model: settingsDraft.model,
           temperature: Number(settingsDraft.temperature),
           maxTokens: Number(settingsDraft.maxTokens),
           theme: settingsDraft.theme,
           memoryEnabled: settingsDraft.memoryEnabled,
           pluginsEnabled: settingsDraft.pluginsEnabled,
-          autoUpdate: settingsDraft.autoUpdate
+          autoUpdate: settingsDraft.autoUpdate,
+          cliOptions: buildCliOptions(settingsDraft)
         };
         await ipcClient.app.setConfig(nextConfig);
         if (settingsDraft.apiKey.trim()) {
-          await ipcClient.auth.setToken({ accessToken: settingsDraft.apiKey.trim() });
+          await ipcClient.auth.setToken({
+            accessToken: settingsDraft.apiKey.trim(),
+            provider: settingsDraft.llmProvider
+          });
         }
         const config = await ipcClient.app.getConfig();
         setAppConfig(config);
@@ -39059,11 +39279,18 @@ ${formatJson(appConfig)}
       setSettingsMessage("Authentication cleared");
     }
     const statusLabel = isSending ? "Working" : status;
+    const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
+    const activeProviderDefault = getProviderDefault(activeProvider);
+    const activeProviderLabel = PROVIDER_DEFAULTS[activeProvider].label;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.container, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { className: App_default.header, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: "Code Agent" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: appConfig?.model || DEFAULT_MODEL })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.subtitle, children: [
+            activeProviderLabel,
+            " / ",
+            appConfig?.model || activeProviderDefault.model
+          ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerActions, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.status} ${isSending ? App_default.statusBusy : ""}`, children: statusLabel }),
@@ -39248,6 +39475,66 @@ ${formatJson(appConfig)}
     }
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.codeBlock, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { dangerouslySetInnerHTML: { __html: highlighted } }) }, key);
   }
+  function SettingsSection({ title, children }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.settingsSection, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: title }),
+      children
+    ] });
+  }
+  function TextSetting({
+    label,
+    value,
+    onChange,
+    type = "text",
+    className = ""
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${className}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type, value, onChange: (event) => onChange(event.target.value), autoComplete: "off" })
+    ] });
+  }
+  function TextAreaSetting({
+    label,
+    value,
+    onChange,
+    className = ""
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${className}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value, onChange: (event) => onChange(event.target.value), rows: 3 })
+    ] });
+  }
+  function SelectSetting({
+    label,
+    value,
+    options,
+    onChange
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value, onChange: (event) => onChange(event.target.value), children: options.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value)) })
+    ] });
+  }
+  function ToggleSetting({
+    label,
+    checked,
+    onChange
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toggleField, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type: "checkbox", checked, onChange: (event) => onChange(event.target.checked) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label })
+    ] });
+  }
+  function updateCsvValue(value, entry, enabled) {
+    const entries = value.split(",").map((item) => item.trim()).filter(Boolean);
+    const next = new Set(entries);
+    if (enabled) {
+      next.add(entry);
+    } else {
+      next.delete(entry);
+    }
+    return Array.from(next).join(",");
+  }
   function SettingsDialog({
     draft,
     message,
@@ -39259,96 +39546,313 @@ ${formatJson(appConfig)}
     onClearToken,
     onSubmit
   }) {
+    const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
+    const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
+      value,
+      label: option.label
+    }));
+    function changeProvider(provider) {
+      const providerDefault = getProviderDefault(provider);
+      onChange({
+        llmProvider: provider,
+        baseUrl: providerDefault.baseUrl,
+        model: providerDefault.model,
+        apiKey: ""
+      });
+    }
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.settingsDialog, onSubmit, role: "dialog", "aria-modal": "true", "aria-labelledby": "settings-title", children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "settings-title", children: "Settings" }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: onClose, children: "Close" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "API key" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Model", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          SelectSetting,
+          {
+            label: "LLM backend",
+            value: draft.llmProvider,
+            options: providerOptions,
+            onChange: changeProvider
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
+            type: "password",
+            value: draft.apiKey,
+            onChange: (value) => onChange({ apiKey: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Base URL",
+            value: draft.baseUrl,
+            onChange: (value) => onChange({ baseUrl: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Model",
+            value: draft.model,
+            onChange: (value) => onChange({ model: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          SelectSetting,
+          {
+            label: "Theme",
+            value: draft.theme,
+            options: [
+              { value: "system", label: "System" },
+              { value: "light", label: "Light" },
+              { value: "dark", label: "Dark" }
+            ],
+            onChange: (value) => onChange({ theme: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Temperature",
+            type: "number",
+            value: draft.temperature,
+            onChange: (value) => onChange({ temperature: Number(value) })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Max tokens",
+            type: "number",
+            value: draft.maxTokens,
+            onChange: (value) => onChange({ maxTokens: Number(value) })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          SelectSetting,
+          {
+            label: "Thinking",
+            value: draft.thinkingMode,
+            options: [
+              { value: "adaptive", label: "Adaptive" },
+              { value: "enabled", label: "Enabled" },
+              { value: "disabled", label: "Disabled" }
+            ],
+            onChange: (value) => onChange({ thinkingMode: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          SelectSetting,
+          {
+            label: "Effort",
+            value: draft.effort,
+            options: [
+              { value: "low", label: "Low" },
+              { value: "medium", label: "Medium" },
+              { value: "high", label: "High" },
+              { value: "max", label: "Max" }
+            ],
+            onChange: (value) => onChange({ effort: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
+      ] }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
+            SelectSetting,
             {
-              type: "password",
-              value: draft.apiKey,
-              onChange: (event) => onChange({ apiKey: event.target.value }),
-              autoComplete: "off"
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.model, onChange: (event) => onChange({ model: event.target.value }), children: SUPPORTED_MODELS.map((model) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: model, children: model }, model)) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Temperature" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
-            {
-              type: "number",
-              min: "0",
-              max: "1",
-              step: "0.1",
-              value: draft.temperature,
-              onChange: (event) => onChange({ temperature: Number(event.target.value) })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Max tokens" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
-            {
-              type: "number",
-              min: "256",
-              max: "8192",
-              step: "256",
-              value: draft.maxTokens,
-              onChange: (event) => onChange({ maxTokens: Number(event.target.value) })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Theme" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.theme, onChange: (event) => onChange({ theme: event.target.value }), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "system", children: "System" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "light", children: "Light" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "dark", children: "Dark" })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toggleField, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
-            {
-              type: "checkbox",
-              checked: draft.memoryEnabled,
-              onChange: (event) => onChange({ memoryEnabled: event.target.checked })
+              label: "Output format",
+              value: draft.outputFormat,
+              options: [
+                { value: "text", label: "Text" },
+                { value: "json", label: "JSON" },
+                { value: "stream-json", label: "Stream JSON" }
+              ],
+              onChange: (value) => onChange({ outputFormat: value })
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Memory" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toggleField, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
+            SelectSetting,
             {
-              type: "checkbox",
-              checked: draft.pluginsEnabled,
-              onChange: (event) => onChange({ pluginsEnabled: event.target.checked })
+              label: "Input format",
+              value: draft.inputFormat,
+              options: [
+                { value: "text", label: "Text" },
+                { value: "stream-json", label: "Stream JSON" }
+              ],
+              onChange: (value) => onChange({ inputFormat: value })
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Plugins" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug filter", value: draft.debugFilter, onChange: (value) => onChange({ debugFilter: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug file", value: draft.debugFile, onChange: (value) => onChange({ debugFile: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "JSON schema", value: draft.jsonSchema, onChange: (value) => onChange({ jsonSchema: value }), className: App_default.fieldWide })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toggleField, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Print mode", checked: draft.printMode, onChange: (checked) => onChange({ printMode: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include hook events", checked: draft.includeHookEvents, onChange: (checked) => onChange({ includeHookEvents: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include partial messages", checked: draft.includePartialMessages, onChange: (checked) => onChange({ includePartialMessages: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Replay user messages", checked: draft.replayUserMessages, onChange: (checked) => onChange({ replayUserMessages: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug", checked: draft.debugEnabled, onChange: (checked) => onChange({ debugEnabled: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug to stderr", checked: draft.debugToStderr, onChange: (checked) => onChange({ debugToStderr: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Verbose", checked: draft.verbose, onChange: (checked) => onChange({ verbose: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "MCP debug", checked: draft.mcpDebug, onChange: (checked) => onChange({ mcpDebug: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
+            SelectSetting,
             {
-              type: "checkbox",
-              checked: draft.autoUpdate,
-              onChange: (event) => onChange({ autoUpdate: event.target.checked })
+              label: "Startup mode",
+              value: draft.startupMode,
+              options: [
+                { value: "none", label: "None" },
+                { value: "init", label: "Init" },
+                { value: "init-only", label: "Init only" },
+                { value: "maintenance", label: "Maintenance" }
+              ],
+              onChange: (value) => onChange({ startupMode: value })
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Auto-update" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission mode" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.permissionMode, onChange: (event) => onChange({ permissionMode: event.target.value }), children: PERMISSION_MODES.map((mode) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: mode, children: mode }, mode)) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Permission prompt tool", value: draft.permissionPromptTool, onChange: (value) => onChange({ permissionPromptTool: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent", value: draft.agent, onChange: (value) => onChange({ agent: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Allowed tools", value: draft.allowedTools, onChange: (value) => onChange({ allowedTools: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Selected tools", value: draft.selectedTools, onChange: (value) => onChange({ selectedTools: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Disallowed tools", value: draft.disallowedTools, onChange: (value) => onChange({ disallowedTools: value }) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Memory", checked: draft.memoryEnabled, onChange: (checked) => onChange({ memoryEnabled: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plugins", checked: draft.pluginsEnabled, onChange: (checked) => onChange({ pluginsEnabled: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Disable slash commands", checked: draft.disableSlashCommands, onChange: (checked) => onChange({ disableSlashCommands: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Skip permissions", checked: draft.dangerouslySkipPermissions, onChange: (checked) => onChange({ dangerouslySkipPermissions: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "System prompt file", value: draft.systemPromptFile, onChange: (value) => onChange({ systemPromptFile: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Append prompt file", value: draft.appendSystemPromptFile, onChange: (value) => onChange({ appendSystemPromptFile: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "MCP config", value: draft.mcpConfig, onChange: (value) => onChange({ mcpConfig: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Settings file or JSON", value: draft.settingsSource, onChange: (value) => onChange({ settingsSource: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Additional directories", value: draft.addDirs, onChange: (value) => onChange({ addDirs: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Plugin directories", value: draft.pluginDirs, onChange: (value) => onChange({ pluginDirs: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Agents JSON", value: draft.agentsJson, onChange: (value) => onChange({ agentsJson: value }), className: App_default.fieldWide })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.checkboxGroup, children: [
+          SETTING_SOURCE_OPTIONS.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ToggleSetting,
+            {
+              label: `${source} settings`,
+              checked: selectedSources.has(source),
+              onChange: (checked) => onChange({ settingSources: updateCsvValue(draft.settingSources, source, checked) })
+            },
+            source
+          )),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume at message", value: draft.resumeSessionAt, onChange: (value) => onChange({ resumeSessionAt: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Rewind files message", value: draft.rewindFilesMessageId, onChange: (value) => onChange({ rewindFilesMessageId: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session ID", value: draft.sessionId, onChange: (value) => onChange({ sessionId: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session name", value: draft.sessionName, onChange: (value) => onChange({ sessionName: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Prefill", value: draft.prefill, onChange: (value) => onChange({ prefill: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link repo", value: draft.deepLinkRepo, onChange: (value) => onChange({ deepLinkRepo: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link fetch ms", type: "number", value: draft.deepLinkLastFetch, onChange: (value) => onChange({ deepLinkLastFetch: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Worktree", value: draft.worktree, onChange: (value) => onChange({ worktree: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            SelectSetting,
+            {
+              label: "Tmux",
+              value: draft.tmuxMode,
+              options: [
+                { value: "off", label: "Off" },
+                { value: "default", label: "Default" },
+                { value: "classic", label: "Classic" }
+              ],
+              onChange: (value) => onChange({ tmuxMode: value })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            SelectSetting,
+            {
+              label: "Chrome",
+              value: draft.chromeIntegration,
+              options: [
+                { value: "default", label: "Default" },
+                { value: "enabled", label: "Enabled" },
+                { value: "disabled", label: "Disabled" }
+              ],
+              onChange: (value) => onChange({ chromeIntegration: value })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Advisor model", value: draft.advisorModel, onChange: (value) => onChange({ advisorModel: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "File specs", value: draft.fileSpecs, onChange: (value) => onChange({ fileSpecs: value }), className: App_default.fieldWide })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Continue latest", checked: draft.continueSession, onChange: (checked) => onChange({ continueSession: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Development channels", value: draft.developmentChannelServers, onChange: (value) => onChange({ developmentChannelServers: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent ID", value: draft.agentId, onChange: (value) => onChange({ agentId: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent name", value: draft.agentName, onChange: (value) => onChange({ agentName: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Team name", value: draft.teamName, onChange: (value) => onChange({ teamName: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent color", value: draft.agentColor, onChange: (value) => onChange({ agentColor: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Parent session ID", value: draft.parentSessionId, onChange: (value) => onChange({ parentSessionId: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            SelectSetting,
+            {
+              label: "Teammate mode",
+              value: draft.teammateMode,
+              options: [
+                { value: "auto", label: "Auto" },
+                { value: "tmux", label: "Tmux" },
+                { value: "in-process", label: "In process" }
+              ],
+              onChange: (value) => onChange({ teammateMode: value })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent type", value: draft.agentType, onChange: (value) => onChange({ agentType: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "SDK URL", value: draft.sdkUrl, onChange: (value) => onChange({ sdkUrl: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Teleport session", value: draft.teleportSession, onChange: (value) => onChange({ teleportSession: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote description", value: draft.remoteDescription, onChange: (value) => onChange({ remoteDescription: value }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote control name", value: draft.remoteControlName, onChange: (value) => onChange({ remoteControlName: value }) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Brief mode", checked: draft.briefMode, onChange: (checked) => onChange({ briefMode: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Assistant mode", checked: draft.assistantMode, onChange: (checked) => onChange({ assistantMode: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plan mode required", checked: draft.planModeRequired, onChange: (checked) => onChange({ planModeRequired: checked }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Hard fail", checked: draft.hardFail, onChange: (checked) => onChange({ hardFail: checked }) })
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsSummary, children: [
@@ -39376,8 +39880,6 @@ ${formatJson(appConfig)}
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   async function initializeRenderer() {
     try {
-      const info = await ipcClient.app.getConfig();
-      console.log("App config:", info);
       const root = import_client.default.createRoot(document.getElementById("root"));
       root.render(
         /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react2.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(App, {}) })

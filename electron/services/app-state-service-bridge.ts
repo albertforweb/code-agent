@@ -19,6 +19,8 @@ export class AppStateServiceBridge {
   private store: Store<AppStateStoreSchema>;
   private currentState: Record<string, any> = {};
   private appConfig: AppConfig = {
+    llmProvider: 'anthropic',
+    baseUrl: '',
     model: 'claude-3-5-sonnet-20241022',
     temperature: 0.7,
     maxTokens: 4096,
@@ -117,6 +119,8 @@ export class AppStateServiceBridge {
    */
   async resetConfig(): Promise<void> {
     this.appConfig = {
+      llmProvider: 'anthropic',
+      baseUrl: '',
       model: 'claude-3-5-sonnet-20241022',
       temperature: 0.7,
       maxTokens: 4096,

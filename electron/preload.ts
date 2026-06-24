@@ -27,7 +27,38 @@ import type {
   ChatCompleteMessage,
   ChatErrorMessage,
 } from './types';
-import { IPC_CHANNELS } from './types';
+
+const IPC_CHANNELS = {
+  'tool:execute': 'tool:execute',
+  'tool:list': 'tool:list',
+  'tool:result': 'tool:result',
+  'tool:complete': 'tool:complete',
+  'tool:error': 'tool:error',
+  'api:chat': 'api:chat',
+  'api:chatStream': 'api:chatStream',
+  'api:chatDelta': 'api:chatDelta',
+  'api:chatComplete': 'api:chatComplete',
+  'api:chatError': 'api:chatError',
+  'api:fetchBootstrap': 'api:fetchBootstrap',
+  'mcp:listServers': 'mcp:listServers',
+  'mcp:listTools': 'mcp:listTools',
+  'mcp:refresh': 'mcp:refresh',
+  'fs:read': 'fs:read',
+  'fs:write': 'fs:write',
+  'fs:list': 'fs:list',
+  'auth:getToken': 'auth:getToken',
+  'auth:logout': 'auth:logout',
+  'auth:setToken': 'auth:setToken',
+  'app:info': 'app:info',
+  'app:getConfig': 'app:getConfig',
+  'app:setConfig': 'app:setConfig',
+  'app:getState': 'app:getState',
+  'app:setState': 'app:setState',
+  'window:minimize': 'window:minimize',
+  'window:maximize': 'window:maximize',
+  'window:close': 'window:close',
+  'window:devtools': 'window:devtools',
+} as const;
 
 /**
  * Safe API exposed to renderer via contextBridge

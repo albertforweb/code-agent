@@ -101,6 +101,16 @@ function createWindow() {
     icon: isMac ? undefined : path.join(__dirname, '../electron/resources/icon.ico'),
   });
 
+  mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
+    console.error(`Preload failed: ${preloadPath}`, error);
+  });
+
+  if (isDev) {
+    mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+      console.log(`[renderer:${level}] ${message} (${sourceId}:${line})`);
+    });
+  }
+
   // Restore maximized state
   if (windowState.isMaximized) {
     mainWindow.maximize();
