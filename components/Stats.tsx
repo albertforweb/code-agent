@@ -3,10 +3,11 @@ import { feature } from 'bun:bundle';
 import { plot as asciichart } from 'asciichart';
 import chalk from 'chalk';
 import figures from 'figures';
-import React, { Suspense, use, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import stripAnsi from 'strip-ansi';
 import type { CommandResultDisplay } from '../commands.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
+import { usePromiseState } from '../hooks/usePromiseState.js';
 import { applyColor } from '../ink/colorize.js';
 import { stringWidth as getStringWidth } from '../ink/stringWidth.js';
 import type { Color } from '../ink/styles.js';
@@ -101,7 +102,7 @@ export function Stats(t0) {
   }
   let t3;
   if ($[2] !== onClose) {
-    t3 = <Suspense fallback={t2}><StatsContent allTimePromise={allTimePromise} onClose={onClose} /></Suspense>;
+    t3 = <StatsContent allTimePromise={allTimePromise} onClose={onClose} />;
     $[2] = onClose;
     $[3] = t3;
   } else {
@@ -115,8 +116,8 @@ type StatsContentProps = {
 };
 
 /**
- * Inner component that uses React 19's use() to read the stats promise.
- * Suspends while loading all-time stats, then handles date range changes without suspending.
+ * Inner component that reads stats from state so it works with React 18.
+ * Handles date range changes without suspending.
  */
 function StatsContent(t0) {
   const $ = _c(34);
@@ -124,7 +125,13 @@ function StatsContent(t0) {
     allTimePromise,
     onClose
   } = t0;
-  const allTimeResult = use(allTimePromise);
+  const allTimeState = usePromiseState(allTimePromise);
+  const allTimeResult =
+    allTimeState.status === 'fulfilled'
+      ? allTimeState.value
+      : allTimeState.status === 'rejected'
+        ? ({ type: 'error', message: 'Failed to load stats' } as StatsResult)
+        : null;
   const [dateRange, setDateRange] = useState("all");
   let t1;
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
@@ -176,8 +183,8 @@ function StatsContent(t0) {
     t3 = $[4];
   }
   useEffect(t2, t3);
-  const displayStats = dateRange === "all" ? allTimeResult.type === "success" ? allTimeResult.data : null : statsCache[dateRange] ?? (allTimeResult.type === "success" ? allTimeResult.data : null);
-  const allTimeStats = allTimeResult.type === "success" ? allTimeResult.data : null;
+  const displayStats = dateRange === "all" ? allTimeResult?.type === "success" ? allTimeResult.data : null : statsCache[dateRange] ?? (allTimeResult?.type === "success" ? allTimeResult.data : null);
+  const allTimeStats = allTimeResult?.type === "success" ? allTimeResult.data : null;
   let t4;
   if ($[5] !== onClose) {
     t4 = () => {
@@ -228,6 +235,16 @@ function StatsContent(t0) {
     t6 = $[12];
   }
   useInput(t6);
+  if (allTimeResult === null) {
+    let t7;
+    if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
+      t7 = <Box marginTop={1}><Spinner /><Text> Loading stats…</Text></Box>;
+      $[16] = t7;
+    } else {
+      t7 = $[16];
+    }
+    return t7;
+  }
   if (allTimeResult.type === "error") {
     let t7;
     if ($[13] !== allTimeResult.message) {

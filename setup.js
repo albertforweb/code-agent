@@ -403,7 +403,9 @@ writeStubFile(
 
 writeStubFile(
   path.join(projectRoot, 'node_modules', 'react', 'compiler-runtime.js'),
-  `export function c(size) { return new Array(size); }\n`,
+  `const sentinel = Symbol.for("react.memo_cache_sentinel");
+export function c(size) { return new Array(size).fill(sentinel); }
+`,
 );
 writeStubFile(
   path.join(projectRoot, 'node_modules', 'react', 'esm-wrapper.mjs'),
@@ -548,10 +550,14 @@ if (fs.existsSync(reactPackageJsonPath)) {
       };
     } else {
       reactPackage.exports['.'] = {
-        ...(reactPackage.exports['.'] || {}),
         import: './esm-wrapper.mjs',
         require: './index.js',
         default: './index.js',
+        ...Object.fromEntries(
+          Object.entries(reactPackage.exports['.'] || {}).filter(
+            ([key]) => !['import', 'require', 'default'].includes(key),
+          ),
+        ),
       };
     }
     reactPackage.exports['./compiler-runtime'] = './compiler-runtime.js';

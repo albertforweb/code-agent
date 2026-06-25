@@ -1,5 +1,6 @@
 import { c as _c } from "react/compiler-runtime";
-import React, { Suspense, use, useState } from 'react';
+import React, { useState } from 'react';
+import { usePromiseState } from '../../hooks/usePromiseState.js';
 import { Box, Text } from '../../ink.js';
 import { useKeybinding } from '../../keybindings/useKeybinding.js';
 import { logEvent } from '../../services/analytics/index.js';
@@ -147,8 +148,8 @@ export function usePermissionExplainerUI(props) {
 }
 
 /**
- * Inner component that uses React 19's use() to read the promise.
- * Suspends while loading, returns null on error.
+ * Inner component that reads the promise through React 18-compatible state.
+ * Shows the loading shimmer while loading, returns null on error.
  */
 function _temp(v) {
   return !v;
@@ -158,7 +159,12 @@ function ExplanationResult(t0) {
   const {
     promise
   } = t0;
-  const explanation = use(promise);
+  const explanationState = usePromiseState(promise);
+  if (explanationState.status === 'pending') {
+    return <Box marginTop={1}><ShimmerLoadingText /></Box>;
+  }
+  const explanation =
+    explanationState.status === 'fulfilled' ? explanationState.value : null;
   if (!explanation) {
     let t1;
     if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
@@ -241,7 +247,7 @@ function ExplanationResult(t0) {
 }
 
 /**
- * Content component - shows loading (via Suspense) or explanation when visible
+ * Content component - shows loading or explanation when visible
  */
 export function PermissionExplainerContent(t0) {
   const $ = _c(3);
@@ -261,7 +267,7 @@ export function PermissionExplainerContent(t0) {
   }
   let t2;
   if ($[1] !== promise) {
-    t2 = <Suspense fallback={t1}><ExplanationResult promise={promise} /></Suspense>;
+    t2 = <ExplanationResult promise={promise} />;
     $[1] = promise;
     $[2] = t2;
   } else {

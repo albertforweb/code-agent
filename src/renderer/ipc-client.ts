@@ -112,6 +112,18 @@ export interface AppInfo {
   isDev: boolean;
 }
 
+export interface AppConfigChangedMessage {
+  config: AppConfig;
+  version: number;
+  updatedAt: number;
+}
+
+export interface AppStateChangedMessage {
+  state: Record<string, any>;
+  version: number;
+  updatedAt: number;
+}
+
 export interface BootstrapData {
   user: any;
   config: any;
@@ -178,6 +190,8 @@ export interface ElectronRendererApi {
   onChatDelta(callback: (data: ChatDeltaMessage) => void): () => void;
   onChatComplete(callback: (data: ChatCompleteMessage) => void): () => void;
   onChatError(callback: (data: ChatErrorMessage) => void): () => void;
+  onConfigChanged(callback: (data: AppConfigChangedMessage) => void): () => void;
+  onStateChanged(callback: (data: AppStateChangedMessage) => void): () => void;
 }
 
 declare global {
@@ -238,4 +252,6 @@ export const ipcClient: ElectronRendererApi = {
   onChatDelta: callback => getApi().onChatDelta(callback),
   onChatComplete: callback => getApi().onChatComplete(callback),
   onChatError: callback => getApi().onChatError(callback),
+  onConfigChanged: callback => getApi().onConfigChanged(callback),
+  onStateChanged: callback => getApi().onStateChanged(callback),
 };

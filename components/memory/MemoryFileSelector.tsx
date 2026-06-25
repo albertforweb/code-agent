@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { mkdir } from 'fs/promises';
 import { join } from 'path';
 import * as React from 'react';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getOriginalCwd } from '../../bootstrap/state.js';
 import { useExitOnCtrlCDWithKeybindings } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
 import { Box, Text } from '../../ink.js';
@@ -47,7 +47,18 @@ export function MemoryFileSelector(t0) {
     onSelect,
     onCancel
   } = t0;
-  const existingMemoryFiles = use(getMemoryFiles());
+  const [existingMemoryFiles, setExistingMemoryFiles] = useState<MemoryFileInfo[]>([]);
+  useEffect(() => {
+    let mounted = true;
+    void getMemoryFiles().then(files => {
+      if (mounted) setExistingMemoryFiles(files);
+    }).catch(() => {
+      if (mounted) setExistingMemoryFiles([]);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
   const userMemoryPath = join(getClaudeConfigHomeDir(), "CLAUDE.md");
   const projectMemoryPath = join(getOriginalCwd(), "CLAUDE.md");
   const hasUserMemory = existingMemoryFiles.some(f => f.path === userMemoryPath);

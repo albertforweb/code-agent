@@ -197,6 +197,8 @@ export class AuthCodeListener {
   }
 
   close(): void {
+    this.reject(new Error('OAuth flow cancelled'))
+
     // If we have a pending response, send a redirect before closing
     if (this.pendingResponse) {
       this.handleErrorRedirect()

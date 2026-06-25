@@ -16,6 +16,7 @@ import {
   getAPIProvider,
   isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
+import { isOpenAICompatibleProvider } from 'src/utils/model/openaiCompatible.js'
 import { getProxyFetchOptions } from 'src/utils/proxy.js'
 import {
   getIsNonInteractiveSession,
@@ -23,6 +24,7 @@ import {
 } from '../../bootstrap/state.js'
 import { getOauthConfig } from '../../constants/oauth.js'
 import { isDebugToStdErr, logForDebugging } from '../../utils/debug.js'
+import { createOpenAICompatibleClient } from './openaiCompatibleClient.js'
 import {
   getAWSRegion,
   getVertexRegionForModel,
@@ -85,6 +87,26 @@ function createStderrLogger(): ClientOptions['logger'] {
   }
 }
 
+type AnthropicWithMaybeBeta = Anthropic & {
+  beta?: {
+    messages?: Anthropic['messages']
+  }
+  messages?: Anthropic['messages']
+}
+
+function withBetaMessagesCompatibility(client: Anthropic): Anthropic {
+  const compatClient = client as AnthropicWithMaybeBeta
+
+  if (!compatClient.beta?.messages && compatClient.messages) {
+    compatClient.beta = {
+      ...(compatClient.beta ?? {}),
+      messages: compatClient.messages,
+    }
+  }
+
+  return client
+}
+
 export async function getAnthropicClient({
   apiKey,
   maxRetries,
@@ -98,6 +120,10 @@ export async function getAnthropicClient({
   fetchOverride?: ClientOptions['fetch']
   source?: string
 }): Promise<Anthropic> {
+  if (isOpenAICompatibleProvider()) {
+    return createOpenAICompatibleClient({ model, fetchOverride })
+  }
+
   const containerId = process.env.CLAUDE_CODE_CONTAINER_ID
   const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
   const clientApp = process.env.CLAUDE_AGENT_SDK_CLIENT_APP
@@ -186,7 +212,9 @@ export async function getAnthropicClient({
       }
     }
     // we have always been lying about the return type - this doesn't support batching or models
-    return new AnthropicBedrock(bedrockArgs) as unknown as Anthropic
+    return withBetaMessagesCompatibility(
+      new AnthropicBedrock(bedrockArgs) as unknown as Anthropic,
+    )
   }
   if (isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)) {
     const { AnthropicFoundry } = await import('@anthropic-ai/foundry-sdk')
@@ -216,7 +244,9 @@ export async function getAnthropicClient({
       ...(isDebugToStdErr() && { logger: createStderrLogger() }),
     }
     // we have always been lying about the return type - this doesn't support batching or models
-    return new AnthropicFoundry(foundryArgs) as unknown as Anthropic
+    return withBetaMessagesCompatibility(
+      new AnthropicFoundry(foundryArgs) as unknown as Anthropic,
+    )
   }
   if (isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX)) {
     // Refresh GCP credentials if gcpAuthRefresh is configured and credentials are expired
@@ -294,7 +324,9 @@ export async function getAnthropicClient({
       ...(isDebugToStdErr() && { logger: createStderrLogger() }),
     }
     // we have always been lying about the return type - this doesn't support batching or models
-    return new AnthropicVertex(vertexArgs) as unknown as Anthropic
+    return withBetaMessagesCompatibility(
+      new AnthropicVertex(vertexArgs) as unknown as Anthropic,
+    )
   }
 
   // Determine authentication method based on available tokens
@@ -312,7 +344,7 @@ export async function getAnthropicClient({
     ...(isDebugToStdErr() && { logger: createStderrLogger() }),
   }
 
-  return new Anthropic(clientConfig)
+  return withBetaMessagesCompatibility(new Anthropic(clientConfig))
 }
 
 async function configureApiKeyHeaders(

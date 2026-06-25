@@ -135,6 +135,14 @@ export async function checkMetricsEnabled(): Promise<MetricsStatus> {
     return { enabled: false, hasError: false }
   }
 
+  const authResult = getAuthHeaders()
+  if (authResult.error === 'No API key available') {
+    logForDebugging(
+      'Metrics opt-out check skipped: no API key available',
+    )
+    return { enabled: false, hasError: false }
+  }
+
   const cached = getGlobalConfig().metricsStatusCache
   if (cached) {
     if (Date.now() - cached.timestamp > DISK_CACHE_TTL_MS) {

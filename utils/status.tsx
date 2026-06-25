@@ -11,6 +11,7 @@ import { getDisplayPath } from './file.js';
 import { formatNumber } from './format.js';
 import { getIdeClientName, type IDEExtensionInstallationStatus, isJetBrainsIde, toIDEDisplayName } from './ide.js';
 import { getClaudeAiUserDefaultModelDescription, modelDisplayString } from './model/model.js';
+import { getOpenAICompatibleBaseUrl, getOpenAICompatibleModel, isOpenAICompatibleProvider } from './model/openaiCompatible.js';
 import { getAPIProvider } from './model/providers.js';
 import { getMTLSConfig } from './mtls.js';
 import { checkInstall } from './nativeInstaller/index.js';
@@ -240,7 +241,20 @@ export function buildAccountProperties(): Property[] {
 export function buildAPIProviderProperties(): Property[] {
   const apiProvider = getAPIProvider();
   const properties: Property[] = [];
-  if (apiProvider !== 'firstParty') {
+  if (isOpenAICompatibleProvider()) {
+    properties.push({
+      label: 'API provider',
+      value: 'OpenAI-compatible'
+    });
+    properties.push({
+      label: 'OpenAI-compatible base URL',
+      value: getOpenAICompatibleBaseUrl()
+    });
+    properties.push({
+      label: 'OpenAI-compatible model',
+      value: getOpenAICompatibleModel()
+    });
+  } else if (apiProvider !== 'firstParty') {
     const providerLabel = {
       bedrock: 'AWS Bedrock',
       vertex: 'Google Vertex AI',

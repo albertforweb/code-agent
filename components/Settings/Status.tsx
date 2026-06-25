@@ -1,10 +1,10 @@
 import { c as _c } from "react/compiler-runtime";
 import figures from 'figures';
 import * as React from 'react';
-import { Suspense, use } from 'react';
 import { getSessionId } from '../../bootstrap/state.js';
 import type { LocalJSXCommandContext } from '../../commands.js';
 import { useIsInsideModal } from '../../context/modalContext.js';
+import { usePromiseState } from '../../hooks/usePromiseState.js';
 import { Box, Text, useTheme } from '../../ink.js';
 import { type AppState, useAppState } from '../../state/AppState.js';
 import { getCwd } from '../../utils/cwd.js';
@@ -151,7 +151,7 @@ export function Status(t0) {
   }
   let t5;
   if ($[10] !== diagnosticsPromise) {
-    t5 = <Suspense fallback={null}><Diagnostics promise={diagnosticsPromise} /></Suspense>;
+    t5 = <Diagnostics promise={diagnosticsPromise} />;
     $[10] = diagnosticsPromise;
     $[11] = t5;
   } else {
@@ -206,7 +206,11 @@ function Diagnostics(t0) {
   const {
     promise
   } = t0;
-  const diagnostics = use(promise);
+  const diagnosticsState = usePromiseState(promise);
+  if (diagnosticsState.status !== 'fulfilled') {
+    return null;
+  }
+  const diagnostics = diagnosticsState.value;
   if (diagnostics.length === 0) {
     return null;
   }

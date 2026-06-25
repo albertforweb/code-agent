@@ -24,6 +24,7 @@ import { formatDuration } from '../../utils/format.js';
 import { setEnvHookNotifier } from '../../utils/hooks/fileChangedWatcher.js';
 import { toIDEDisplayName } from '../../utils/ide.js';
 import { getMessagesAfterCompactBoundary } from '../../utils/messages.js';
+import { isOpenAICompatibleProvider } from '../../utils/model/openaiCompatible.js';
 import { tokenCountFromLastAPIResponse } from '../../utils/tokens.js';
 import { AutoUpdaterWrapper } from '../AutoUpdaterWrapper.js';
 import { ConfigurableShortcutHint } from '../ConfigurableShortcutHint.js';
@@ -144,7 +145,9 @@ export function Notifications(t0) {
     t8 = $[9];
   }
   const editor = t8;
-  const shouldShowExternalEditorHint = isInputWrapped && !isShowingCompactMessage && apiKeyStatus !== "invalid" && apiKeyStatus !== "missing" && editor !== undefined;
+  const isLocalProvider = isOpenAICompatibleProvider();
+  const isAuthUnavailable = !isLocalProvider && (apiKeyStatus === "invalid" || apiKeyStatus === "missing");
+  const shouldShowExternalEditorHint = isInputWrapped && !isShowingCompactMessage && !isAuthUnavailable && editor !== undefined;
   let t10;
   let t9;
   if ($[10] !== addNotification || $[11] !== removeNotification || $[12] !== shouldShowExternalEditorHint) {
@@ -303,7 +306,7 @@ function NotificationContent({
             ({apiKeyHelperSlow})
           </Text>
         </Box>}
-      {(apiKeyStatus === 'invalid' || apiKeyStatus === 'missing') && <Box>
+      {isAuthUnavailable && <Box>
           <Text color="error" wrap="truncate">
             {isEnvTruthy(process.env.CLAUDE_CODE_REMOTE) ? 'Authentication error · Try again' : 'Not logged in · Run /login'}
           </Text>
@@ -313,7 +316,7 @@ function NotificationContent({
             Debug mode
           </Text>
         </Box>}
-      {apiKeyStatus !== 'invalid' && apiKeyStatus !== 'missing' && verbose && <Box>
+      {!isAuthUnavailable && verbose && <Box>
           <Text dimColor wrap="truncate">
             {tokenUsage} tokens
           </Text>

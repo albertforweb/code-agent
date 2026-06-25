@@ -72,7 +72,7 @@ export function ThemePicker(t0) {
   } = usePreviewTheme();
   const syntaxHighlightingDisabled = useAppState(_temp) ?? false;
   const setAppState = useSetAppState();
-  useRegisterKeybindingContext("ThemePicker");
+  useRegisterKeybindingContext("ThemePicker", true);
   const syntaxToggleShortcut = useShortcutDisplay("theme:toggleSyntaxHighlighting", "ThemePicker", "ctrl+t");
   let t8;
   if ($[3] !== setAppState || $[4] !== syntaxHighlightingDisabled) {
@@ -107,7 +107,7 @@ export function ThemePicker(t0) {
     t9 = $[6];
   }
   useKeybinding("theme:toggleSyntaxHighlighting", t8, t9);
-  const exitState = useExitOnCtrlCDWithKeybindings(skipExitHandling ? _temp2 : undefined);
+  const exitState = useExitOnCtrlCDWithKeybindings(undefined, undefined, !skipExitHandling);
   let t10;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
     t10 = [...(feature("AUTO_THEME") ? [{
@@ -326,7 +326,6 @@ export function ThemePicker(t0) {
   }
   return content;
 }
-function _temp2() {}
 function _temp(s) {
   return s.settings.syntaxHighlightingDisabled;
 }

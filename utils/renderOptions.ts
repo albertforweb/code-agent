@@ -1,8 +1,8 @@
 import { openSync } from 'fs'
 import { ReadStream } from 'tty'
 import type { RenderOptions } from '../ink.js'
+import { logForDebugging } from './debug.js'
 import { isEnvTruthy } from './envUtils.js'
-import { logError } from './log.js'
 
 // Cached stdin override - computed once per process
 let cachedStdinOverride: ReadStream | undefined | null = null
@@ -53,7 +53,11 @@ function getStdinOverride(): ReadStream | undefined {
     cachedStdinOverride = ttyStream
     return cachedStdinOverride
   } catch (err) {
-    logError(err as Error)
+    const code = (err as NodeJS.ErrnoException).code
+    const message = err instanceof Error ? err.message : String(err)
+    logForDebugging(
+      `Unable to open /dev/tty for stdin override${code ? ` (${code})` : ''}: ${message}`,
+    )
     cachedStdinOverride = undefined
     return undefined
   }

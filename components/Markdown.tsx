@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 import { marked, type Token, type Tokens } from 'marked';
-import React, { Suspense, use, useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useSettings } from '../hooks/useSettings.js';
+import { usePromiseState } from '../hooks/usePromiseState.js';
 import { Ansi, Box, useTheme } from '../ink.js';
 import { type CliHighlight, getCliHighlightPromise } from '../utils/cliHighlight.js';
 import { hashContent } from '../utils/hash.js';
@@ -91,7 +92,7 @@ export function Markdown(props) {
   }
   let t0;
   if ($[2] !== props) {
-    t0 = <Suspense fallback={<MarkdownBody {...props} highlight={null} />}><MarkdownWithHighlight {...props} /></Suspense>;
+    t0 = <MarkdownWithHighlight {...props} />;
     $[2] = props;
     $[3] = t0;
   } else {
@@ -108,7 +109,8 @@ function MarkdownWithHighlight(props) {
   } else {
     t0 = $[0];
   }
-  const highlight = use(t0);
+  const highlightState = usePromiseState(t0);
+  const highlight = highlightState.status === 'fulfilled' ? highlightState.value : null;
   let t1;
   if ($[1] !== highlight || $[2] !== props) {
     t1 = <MarkdownBody {...props} highlight={highlight} />;

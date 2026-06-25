@@ -25,6 +25,11 @@ import {
   isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
 import {
+  getOpenAICompatibleMaxOutputTokens,
+  getOpenAICompatibleProviderKind,
+  shouldSendOpenAICompatibleTools,
+} from 'src/utils/model/openaiCompatible.js'
+import {
   getAttributionHeader,
   getCLISyspromptPrefix,
 } from '../../constants/system.js'
@@ -1117,6 +1122,10 @@ async function* queryModel(
 
   // Check if tool search is enabled (checks mode, model support, and threshold for auto mode)
   // This is async because it may need to calculate MCP tool description sizes for TstAuto mode
+  const openAICompatibleProvider = getOpenAICompatibleProviderKind()
+  const sendOpenAICompatibleTools =
+    openAICompatibleProvider === null || shouldSendOpenAICompatibleTools()
+
   let useToolSearch = await isToolSearchEnabled(
     options.model,
     tools,
@@ -1124,6 +1133,13 @@ async function* queryModel(
     options.agents,
     'query',
   )
+
+  if (!sendOpenAICompatibleTools) {
+    useToolSearch = false
+    logForDebugging(
+      `[OpenAI-compatible] local tool mode disabled; omitting tool-search metadata for ${tools.length} available tool(s)`,
+    )
+  }
 
   // Precompute once — isDeferredTool does 2 GrowthBook lookups per call
   const deferredToolNames = new Set<string>()
@@ -1151,7 +1167,9 @@ async function* queryModel(
   // ToolSearchTool returns tool_reference blocks which unsupported models can't handle
   let filteredTools: Tools
 
-  if (useToolSearch) {
+  if (!sendOpenAICompatibleTools) {
+    filteredTools = []
+  } else if (useToolSearch) {
     // Dynamic tool loading: Only include deferred tools that have been discovered
     // via tool_reference blocks in the message history. This eliminates the need
     // to predeclare all deferred tools upfront and removes limits on tool quantity.
@@ -1588,10 +1606,17 @@ async function* queryModel(
     }
 
     // Retry context gets preference because it tries to course correct if we exceed the context window limit
-    const maxOutputTokens =
+    const requestedMaxOutputTokens =
       retryContext?.maxTokensOverride ||
       options.maxOutputTokensOverride ||
       getMaxOutputTokensForModel(options.model)
+    const maxOutputTokens =
+      openAICompatibleProvider !== null
+        ? Math.min(
+            requestedMaxOutputTokens,
+            getOpenAICompatibleMaxOutputTokens(),
+          )
+        : requestedMaxOutputTokens
 
     const hasThinking =
       thinkingConfig.type !== 'disabled' &&

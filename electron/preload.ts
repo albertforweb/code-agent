@@ -20,6 +20,8 @@ import type {
   AuthToken,
   AppConfig,
   AppInfo,
+  AppConfigChangedMessage,
+  AppStateChangedMessage,
   BootstrapData,
   McpServerInfo,
   McpToolInfo,
@@ -54,6 +56,8 @@ const IPC_CHANNELS = {
   'app:setConfig': 'app:setConfig',
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
+  'app:configChanged': 'app:configChanged',
+  'app:stateChanged': 'app:stateChanged',
   'window:minimize': 'window:minimize',
   'window:maximize': 'window:maximize',
   'window:close': 'window:close',
@@ -229,6 +233,18 @@ const api = {
     const handler = (_event: any, data: ChatErrorMessage) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['api:chatError'], handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS['api:chatError'], handler);
+  },
+
+  onConfigChanged: (callback: (data: AppConfigChangedMessage) => void): (() => void) => {
+    const handler = (_event: any, data: AppConfigChangedMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['app:configChanged'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['app:configChanged'], handler);
+  },
+
+  onStateChanged: (callback: (data: AppStateChangedMessage) => void): (() => void) => {
+    const handler = (_event: any, data: AppStateChangedMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['app:stateChanged'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['app:stateChanged'], handler);
   },
 };
 

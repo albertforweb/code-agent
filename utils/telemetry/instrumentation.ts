@@ -7,7 +7,7 @@ import {
   envDetector,
   hostDetector,
   osDetector,
-  resourceFromAttributes,
+  Resource,
 } from '@opentelemetry/resources'
 import {
   BatchLogRecordProcessor,
@@ -65,6 +65,9 @@ import {
   endInteractionSpan,
   isEnhancedTelemetryEnabled,
 } from './sessionTracing.js'
+
+const resourceFromAttributes = (attributes: ConstructorParameters<typeof Resource>[0]) =>
+  new Resource(attributes)
 
 const DEFAULT_METRICS_EXPORT_INTERVAL_MS = 60000
 const DEFAULT_LOGS_EXPORT_INTERVAL_MS = 5000
@@ -351,7 +354,7 @@ function isBigQueryMetricsEnabled() {
  * Uses BETA_TRACING_ENDPOINT instead of OTEL_EXPORTER_OTLP_ENDPOINT.
  */
 async function initializeBetaTracing(
-  resource: ReturnType<typeof resourceFromAttributes>,
+  resource: Resource,
 ): Promise<void> {
   const endpoint = process.env.BETA_TRACING_ENDPOINT
   if (!endpoint) {

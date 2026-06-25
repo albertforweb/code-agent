@@ -13,6 +13,7 @@ import { withOAuth401Retry } from '../../utils/http.js'
 import { lazySchema } from '../../utils/lazySchema.js'
 import { logError } from '../../utils/log.js'
 import { getAPIProvider } from '../../utils/model/providers.js'
+import { isOpenAICompatibleProvider } from '../../utils/model/openaiCompatible.js'
 import { isEssentialTrafficOnly } from '../../utils/privacyLevel.js'
 import { getClaudeCodeUserAgent } from '../../utils/userAgent.js'
 
@@ -45,7 +46,7 @@ async function fetchBootstrapAPI(): Promise<BootstrapResponse | null> {
     return null
   }
 
-  if (getAPIProvider() !== 'firstParty') {
+  if (getAPIProvider() !== 'firstParty' || isOpenAICompatibleProvider()) {
     logForDebugging('[Bootstrap] Skipped: 3P provider')
     return null
   }

@@ -1,5 +1,5 @@
 import type { AnyValueMap, Logger, logs } from '@opentelemetry/api-logs'
-import { resourceFromAttributes } from '@opentelemetry/resources'
+import { Resource } from '@opentelemetry/resources'
 import {
   BatchLogRecordProcessor,
   LoggerProvider,
@@ -23,6 +23,9 @@ import type { GrowthBookUserAttributes } from './growthbook.js'
 import { getDynamicConfig_CACHED_MAY_BE_STALE } from './growthbook.js'
 import { getEventMetadata } from './metadata.js'
 import { isSinkKilled } from './sinkKillswitch.js'
+
+const resourceFromAttributes = (attributes: ConstructorParameters<typeof Resource>[0]) =>
+  new Resource(attributes)
 
 /**
  * Configuration for sampling individual event types.

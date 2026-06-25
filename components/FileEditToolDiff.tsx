@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 import type { StructuredPatchHunk } from 'diff';
 import * as React from 'react';
-import { Suspense, use, useState } from 'react';
+import { useState } from 'react';
+import { usePromiseState } from '../hooks/usePromiseState.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import { Box, Text } from '../ink.js';
 import type { FileEdit } from '../tools/FileEditTool/types.js';
@@ -21,34 +22,10 @@ type DiffData = {
   fileContent: string | undefined;
 };
 export function FileEditToolDiff(props) {
-  const $ = _c(7);
-  let t0;
-  if ($[0] !== props.edits || $[1] !== props.file_path) {
-    t0 = () => loadDiffData(props.file_path, props.edits);
-    $[0] = props.edits;
-    $[1] = props.file_path;
-    $[2] = t0;
-  } else {
-    t0 = $[2];
-  }
-  const [dataPromise] = useState(t0);
-  let t1;
-  if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
-    t1 = <DiffFrame placeholder={true} />;
-    $[3] = t1;
-  } else {
-    t1 = $[3];
-  }
-  let t2;
-  if ($[4] !== dataPromise || $[5] !== props.file_path) {
-    t2 = <Suspense fallback={t1}><DiffBody promise={dataPromise} file_path={props.file_path} /></Suspense>;
-    $[4] = dataPromise;
-    $[5] = props.file_path;
-    $[6] = t2;
-  } else {
-    t2 = $[6];
-  }
-  return t2;
+  const [dataPromise] = useState(() =>
+    loadDiffData(props.file_path, props.edits),
+  );
+  return <DiffBody promise={dataPromise} file_path={props.file_path} />;
 }
 function DiffBody(t0) {
   const $ = _c(6);
@@ -56,11 +33,15 @@ function DiffBody(t0) {
     promise,
     file_path
   } = t0;
+  const dataState = usePromiseState(promise);
+  if (dataState.status !== 'fulfilled') {
+    return <DiffFrame placeholder={true} />;
+  }
   const {
     patch,
     firstLine,
     fileContent
-  } = use(promise);
+  } = dataState.value;
   const {
     columns
   } = useTerminalSize();

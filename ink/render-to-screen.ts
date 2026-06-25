@@ -5,7 +5,7 @@ import { logForDebugging } from '../utils/debug.js'
 import { createNode, type DOMElement } from './dom.js'
 import { FocusManager } from './focus.js'
 import Output from './output.js'
-import reconciler from './reconciler.js'
+import reconciler, { updateInkContainer } from './reconciler.js'
 import renderNodeToOutput, {
   resetLayoutShifted,
 } from './render-node-to-output.js'
@@ -84,10 +84,7 @@ export function renderToScreen(
   }
 
   const t0 = performance.now()
-  // @ts-expect-error updateContainerSync exists but not in @types
-  reconciler.updateContainerSync(el, container, null, noop)
-  // @ts-expect-error flushSyncWork exists but not in @types
-  reconciler.flushSyncWork()
+  updateInkContainer(el, container, null, noop)
   const t1 = performance.now()
 
   // Yoga layout. Root might not have a yogaNode if the tree is empty.
@@ -119,10 +116,7 @@ export function renderToScreen(
   const t3 = performance.now()
 
   // Unmount so next call gets a fresh tree. Leaves root/container/pools.
-  // @ts-expect-error updateContainerSync exists but not in @types
-  reconciler.updateContainerSync(null, container, null, noop)
-  // @ts-expect-error flushSyncWork exists but not in @types
-  reconciler.flushSyncWork()
+  updateInkContainer(null, container, null, noop)
 
   timing.reconcile += t1 - t0
   timing.yoga += t2 - t1

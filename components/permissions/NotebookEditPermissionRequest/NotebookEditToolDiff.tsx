@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 import { relative } from 'path';
 import * as React from 'react';
-import { Suspense, use, useMemo } from 'react';
+import { useMemo } from 'react';
+import { usePromiseState } from '../../../hooks/usePromiseState.js';
 import { Box, NoSelect, Text } from '../../../ink.js';
 import type { NotebookCellType, NotebookContent } from '../../../types/notebook.js';
 import { intersperse } from '../../../utils/array.js';
@@ -46,7 +47,7 @@ export function NotebookEditToolDiff(props) {
   const notebookDataPromise = t0;
   let t1;
   if ($[2] !== notebookDataPromise || $[3] !== props) {
-    t1 = <Suspense fallback={null}><NotebookEditToolDiffInner {...props} promise={notebookDataPromise} /></Suspense>;
+    t1 = <NotebookEditToolDiffInner {...props} promise={notebookDataPromise} />;
     $[2] = notebookDataPromise;
     $[3] = props;
     $[4] = t1;
@@ -74,7 +75,12 @@ function NotebookEditToolDiffInner(t0) {
     promise
   } = t0;
   const edit_mode = t1 === undefined ? "replace" : t1;
-  const notebookData = use(promise);
+  const notebookDataState = usePromiseState(promise);
+  if (notebookDataState.status === 'pending') {
+    return null;
+  }
+  const notebookData =
+    notebookDataState.status === 'fulfilled' ? notebookDataState.value : null;
   let t2;
   if ($[0] !== cell_id || $[1] !== notebookData) {
     bb0: {

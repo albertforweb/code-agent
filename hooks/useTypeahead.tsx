@@ -1358,6 +1358,7 @@ export function useTypeahead({
     if (e.key === 'return' && !e.shift && !e.meta) {
       e.preventDefault();
       handleEnter();
+      e.stopImmediatePropagation();
     }
   };
 

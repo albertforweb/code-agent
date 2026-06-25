@@ -33,6 +33,15 @@ interface UiMessage {
   };
 }
 
+interface AnsiSegment {
+  text: string;
+  style: {
+    color?: string;
+    fontWeight?: 700;
+    opacity?: number;
+  };
+}
+
 interface SettingsDraft {
   apiKey: string;
   llmProvider: LlmProviderType;
@@ -153,6 +162,24 @@ function getProviderDefault(provider: LlmProviderType) {
 
 const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'auto'];
 const SETTING_SOURCE_OPTIONS = ['user', 'project', 'local'];
+const ANSI_COLORS: Record<number, string> = {
+  30: '#1f2937',
+  31: '#b91c1c',
+  32: '#15803d',
+  33: '#a16207',
+  34: '#1d4ed8',
+  35: '#a21caf',
+  36: '#0e7490',
+  37: '#f3f4f6',
+  90: '#6b7280',
+  91: '#ef4444',
+  92: '#22c55e',
+  93: '#eab308',
+  94: '#3b82f6',
+  95: '#d946ef',
+  96: '#06b6d4',
+  97: '#ffffff',
+};
 
 function readCliOption(config: AppConfig | null, key: string, fallback = ''): string {
   const value = config?.cliOptions?.[key];
@@ -408,10 +435,70 @@ function getChatMessages(messages: UiMessage[], nextUserMessage: string): ChatMe
   return [...history, { role: 'user', content: nextUserMessage }];
 }
 
+function parseAnsiText(text: string): AnsiSegment[] {
+  const segments: AnsiSegment[] = [];
+  const pattern = /\x1b\[([0-9;]*)m/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let style: AnsiSegment['style'] = {};
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ text: text.slice(lastIndex, match.index), style: { ...style } });
+    }
+
+    style = applyAnsiCodes(style, match[1]);
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ text: text.slice(lastIndex), style: { ...style } });
+  }
+
+  return segments.length > 0 ? segments : [{ text, style: {} }];
+}
+
+function applyAnsiCodes(style: AnsiSegment['style'], rawCodes: string): AnsiSegment['style'] {
+  const codes = rawCodes === '' ? [0] : rawCodes.split(';').map(code => Number(code));
+  let next = { ...style };
+
+  for (const code of codes) {
+    if (code === 0) {
+      next = {};
+    } else if (code === 1) {
+      next.fontWeight = 700;
+    } else if (code === 2) {
+      next.opacity = 0.72;
+    } else if (code === 22) {
+      delete next.fontWeight;
+      delete next.opacity;
+    } else if (code === 39) {
+      delete next.color;
+    } else if (ANSI_COLORS[code]) {
+      next.color = ANSI_COLORS[code];
+    }
+  }
+
+  return next;
+}
+
+function renderAnsiText(text: string): React.ReactNode {
+  return parseAnsiText(text).map((segment, index) => (
+    <span style={segment.style} key={`${index}-${segment.text.slice(0, 8)}`}>
+      {segment.text}
+    </span>
+  ));
+}
+
 export function App() {
   const [status, setStatus] = useState('Initializing');
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
+  const [appState, setAppState] = useState<Record<string, any>>({});
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
   const [tools, setTools] = useState<Tool[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerInfo[]>([]);
   const [mcpTools, setMcpTools] = useState<McpToolInfo[]>([]);
@@ -442,6 +529,18 @@ export function App() {
 
   useEffect(() => {
     initializeApp();
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -524,6 +623,14 @@ export function App() {
           status: 'failed',
         }));
       }));
+
+      removers.push(ipcClient.onConfigChanged(data => {
+        setAppConfig(data.config);
+      }));
+
+      removers.push(ipcClient.onStateChanged(data => {
+        setAppState(data.state);
+      }));
     } catch (error) {
       setStatus('Startup error');
       appendMessage(createMessage('error', error instanceof Error ? error.message : String(error), {
@@ -564,9 +671,10 @@ export function App() {
 
   async function initializeApp() {
     try {
-      const [info, config, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
+      const [info, config, state, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
         ipcClient.app.info(),
         ipcClient.app.getConfig(),
+        ipcClient.app.getState(),
         ipcClient.tools.list(),
         ipcClient.mcp.listServers(),
         ipcClient.mcp.listTools(),
@@ -574,6 +682,7 @@ export function App() {
 
       setAppInfo(info);
       setAppConfig(config);
+      setAppState(state);
       setSettingsDraft(createSettingsDraft(config));
       setTools(bridgeTools);
       setMcpServers(servers);
@@ -901,6 +1010,10 @@ export function App() {
                 <dt>Tokens</dt>
                 <dd>{tokenUsage.inputTokens + tokenUsage.outputTokens}</dd>
               </div>
+              <div>
+                <dt>State keys</dt>
+                <dd>{Object.keys(appState).length}</dd>
+              </div>
             </dl>
           </section>
 
@@ -926,6 +1039,10 @@ export function App() {
               <div>
                 <dt>Platform</dt>
                 <dd>{appInfo ? `${appInfo.platform} ${appInfo.arch}` : 'Unknown'}</dd>
+              </div>
+              <div>
+                <dt>Viewport</dt>
+                <dd>{viewportSize.width} x {viewportSize.height}</dd>
               </div>
               <div>
                 <dt>Theme</dt>
@@ -1022,7 +1139,7 @@ function renderTextBlock(text: string, key: string): React.ReactNode {
 
   return (
     <p className={styles.textBlock} key={key}>
-      {text}
+      {renderAnsiText(text)}
     </p>
   );
 }

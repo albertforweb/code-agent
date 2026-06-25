@@ -6,6 +6,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthServiceBridge = void 0;
+const keychain_1 = require("../keychain");
 /**
  * Auth Service Bridge - bridges auth operations to IPC
  */
@@ -13,10 +14,7 @@ class AuthServiceBridge {
     constructor(keytar) {
         this.currentTokens = new Map();
         this.oauth2Config = null;
-        this.keychain = null; // keytar module
-        this.keychainService = 'code-agent';
-        this.legacyKeychainKey = 'anthropic-api-key';
-        this.keychain = keytar ?? this._loadKeytar();
+        this.keychain = new keychain_1.KeychainService(keytar);
     }
     /**
      * Get current authentication token
@@ -26,30 +24,17 @@ class AuthServiceBridge {
         if (memoryToken) {
             return memoryToken;
         }
-        // Try to load from keychain first
-        if (this.keychain) {
-            try {
-                const keychainKey = this.getKeychainKey(provider);
-                const token = await this.keychain.getPassword(this.keychainService, keychainKey);
-                if (token) {
-                    return {
-                        accessToken: token,
-                        provider,
-                    };
-                }
-                if (provider === 'anthropic') {
-                    const legacyToken = await this.keychain.getPassword(this.keychainService, this.legacyKeychainKey);
-                    if (legacyToken) {
-                        return {
-                            accessToken: legacyToken,
-                            provider,
-                        };
-                    }
-                }
+        try {
+            const keychainToken = await this.keychain.getToken(provider);
+            if (keychainToken) {
+                return {
+                    accessToken: keychainToken,
+                    provider,
+                };
             }
-            catch (error) {
-                console.warn('Failed to retrieve token from keychain:', error);
-            }
+        }
+        catch (error) {
+            console.warn('Failed to retrieve token from keychain:', error);
         }
         const environmentToken = this.getEnvironmentToken(provider);
         if (environmentToken) {
@@ -66,14 +51,13 @@ class AuthServiceBridge {
     async setToken(token) {
         const provider = token.provider ?? 'anthropic';
         this.currentTokens.set(provider, { ...token, provider });
-        // Try to store in keychain for persistence
-        if (this.keychain && token.accessToken) {
-            try {
-                await this.keychain.setPassword(this.keychainService, this.getKeychainKey(provider), token.accessToken);
+        try {
+            if (token.accessToken) {
+                await this.keychain.setToken(provider, token.accessToken);
             }
-            catch (error) {
-                console.warn('Failed to store token in keychain:', error);
-            }
+        }
+        catch (error) {
+            console.warn('Failed to store token in keychain:', error);
         }
     }
     /**
@@ -86,19 +70,11 @@ class AuthServiceBridge {
         for (const providerName of providers) {
             this.currentTokens.delete(providerName);
         }
-        // Try to delete from keychain
-        if (this.keychain) {
-            for (const providerName of providers) {
-                try {
-                    await this.keychain.deletePassword(this.keychainService, this.getKeychainKey(providerName));
-                    if (providerName === 'anthropic') {
-                        await this.keychain.deletePassword(this.keychainService, this.legacyKeychainKey);
-                    }
-                }
-                catch (error) {
-                    console.warn('Failed to delete token from keychain:', error);
-                }
-            }
+        try {
+            await this.keychain.deleteToken(provider);
+        }
+        catch (error) {
+            console.warn('Failed to delete token from keychain:', error);
         }
     }
     /**
@@ -221,15 +197,12 @@ class AuthServiceBridge {
     getStatus() {
         return {
             hasMemoryToken: this.currentTokens.size > 0,
-            hasKeychain: !!this.keychain,
+            hasKeychain: this.keychain.hasKeychain(),
             hasEnvironmentToken: Boolean(process.env.ANTHROPIC_API_KEY ||
                 process.env.OPENAI_API_KEY ||
                 process.env.OPENAI_COMPATIBLE_API_KEY ||
                 process.env.LM_STUDIO_API_KEY),
         };
-    }
-    getKeychainKey(provider) {
-        return `llm-api-key-${provider}`;
     }
     getEnvironmentToken(provider) {
         if (provider === 'anthropic') {
@@ -239,15 +212,6 @@ class AuthServiceBridge {
             return process.env.OPENAI_API_KEY;
         }
         return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
-    }
-    _loadKeytar() {
-        try {
-            // Optional native dependency; keep Electron startup working when unavailable.
-            return require('keytar');
-        }
-        catch {
-            return null;
-        }
     }
     /**
      * Generate PKCE code verifier

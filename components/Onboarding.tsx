@@ -33,6 +33,7 @@ export function Onboarding({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [skipOAuth, setSkipOAuth] = useState(false);
   const [oauthEnabled] = useState(() => isAnthropicAuthEnabled());
+  const [preflightEnabled] = useState(() => process.env.CLAUDE_CODE_ENABLE_PREFLIGHT === '1');
   const [theme, setTheme] = useTheme();
   useEffect(() => {
     logEvent('tengu_began_setup', {
@@ -58,7 +59,7 @@ export function Onboarding({
   const exitState = useExitOnCtrlCDWithKeybindings();
 
   // Define all onboarding steps
-  const themeStep = <Box marginX={1}>
+  const themeStep = <Box flexDirection="column" marginX={1} width="100%">
       <ThemePicker onThemeSelect={handleThemeSelection} showIntroText={true} helpText="To change this later, run /theme" hideEscToCancel={true} skipExitHandling={true} // Skip exit handling as Onboarding already handles it
     />
     </Box>;
@@ -114,7 +115,7 @@ export function Onboarding({
     goToNextStep();
   }
   const steps: OnboardingStep[] = [];
-  if (oauthEnabled) {
+  if (oauthEnabled && preflightEnabled) {
     steps.push({
       id: 'preflight',
       component: preflightStep

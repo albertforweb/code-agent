@@ -1068,10 +1068,14 @@ function PromptInput({
       return;
     }
 
-    // PromptInput UX: Check if suggestions dropdown is showing
+    // PromptInput UX: Check if suggestions dropdown is showing.
+    // Exact slash commands should still submit even while their suggestion row
+    // is visible; otherwise "/login" appears selected but Enter is swallowed.
     // For directory suggestions, allow submission (Tab is used for completion)
     const hasDirectorySuggestions = suggestionsState.suggestions.length > 0 && suggestionsState.suggestions.every(s => s.description === 'directory');
-    if (suggestionsState.suggestions.length > 0 && !isSubmittingSlashCommand && !hasDirectorySuggestions) {
+    const exactSlashCommand = inputParam.trim().match(/^\/([a-zA-Z0-9_:-]+)$/);
+    const isExactSlashCommand = exactSlashCommand ? hasCommand(exactSlashCommand[1]!, commands) : false;
+    if (suggestionsState.suggestions.length > 0 && !isSubmittingSlashCommand && !hasDirectorySuggestions && !isExactSlashCommand) {
       logForDebugging(`[onSubmit] early return: suggestions showing (count=${suggestionsState.suggestions.length})`);
       return; // Don't submit, user needs to clear suggestions first
     }
@@ -1102,7 +1106,7 @@ function PromptInput({
       clearBuffer,
       resetHistory
     });
-  }, [promptSuggestionState, speculation, speculationSessionTimeSavedMs, teamContext, store, footerItems, suggestionsState.suggestions, onSubmitProp, onAgentSubmit, clearBuffer, resetHistory, logOutcomeAtSubmission, setAppState, markAccepted, pastedContents, removeNotification]);
+  }, [promptSuggestionState, speculation, speculationSessionTimeSavedMs, teamContext, store, footerItems, suggestionsState.suggestions, commands, onSubmitProp, onAgentSubmit, clearBuffer, resetHistory, logOutcomeAtSubmission, setAppState, markAccepted, pastedContents, removeNotification]);
   const {
     suggestions,
     selectedSuggestion,

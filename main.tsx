@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // These side-effects must run before all other imports:
 // 1. profileCheckpoint marks entry before heavy module evaluation begins
 // 2. startMdmRawRead fires MDM subprocesses (plutil/reg query) so they run in
@@ -64,6 +65,49 @@ import { jsonParse, writeFileSync_DEPRECATED } from './utils/slowOperations.js';
 import { computeInitialTeamContext } from './utils/swarm/reconnection.js';
 import { initializeWarningHandler } from './utils/warningHandler.js';
 import { isWorktreeModeEnabled } from './utils/worktreeModeEnabled.js';
+
+function applyLlmProviderCliOptions(options: {
+  llmProvider?: string
+  baseUrl?: string
+  model?: string
+}): void {
+  const provider = options.llmProvider?.trim()
+  const baseUrl = options.baseUrl?.trim()
+
+  if (provider) {
+    process.env.CODE_AGENT_LLM_PROVIDER = provider
+  } else if (baseUrl && !process.env.CODE_AGENT_LLM_PROVIDER && !process.env.CLAUDE_CODE_LLM_PROVIDER) {
+    process.env.CODE_AGENT_LLM_PROVIDER = 'openai-compatible'
+  }
+
+  if (baseUrl) {
+    process.env.CODE_AGENT_BASE_URL = baseUrl
+  }
+
+  const activeProvider =
+    process.env.CODE_AGENT_LLM_PROVIDER || process.env.CLAUDE_CODE_LLM_PROVIDER
+  if (!activeProvider) return
+
+  const normalizedProvider = activeProvider.trim().toLowerCase().replace(/_/g, '-')
+  const defaultModel =
+    normalizedProvider === 'openai'
+      ? 'gpt-4o-mini'
+      : normalizedProvider === 'anthropic' || normalizedProvider === 'claude'
+        ? undefined
+        : 'local-model'
+  const configuredModel =
+    options.model ||
+    process.env.CODE_AGENT_MODEL ||
+    process.env.OPENAI_MODEL ||
+    process.env.LM_STUDIO_MODEL ||
+    process.env.LMSTUDIO_MODEL ||
+    defaultModel
+
+  if (!configuredModel) return
+
+  process.env.CODE_AGENT_MODEL = configuredModel
+  process.env.ANTHROPIC_MODEL = configuredModel
+}
 
 // Lazy require to avoid circular dependency: teammate.ts -> AppState.tsx -> ... -> main.tsx
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -990,7 +1034,7 @@ async function run(): Promise<CommanderCommand> {
     return Number.isFinite(n) ? n : undefined;
   }).hideHelp()).option('--from-pr [value]', 'Resume a session linked to a PR by PR number/URL, or open interactive picker with optional search term', value => value || true).option('--no-session-persistence', 'Disable session persistence - sessions will not be saved to disk and cannot be resumed (only works with --print)').addOption(new Option('--resume-session-at <message id>', 'When resuming, only messages up to and including the assistant message with <message.id> (use with --resume in print mode)').argParser(String).hideHelp()).addOption(new Option('--rewind-files <user-message-id>', 'Restore files to state at the specified user message and exit (requires --resume)').hideHelp())
   // @[MODEL LAUNCH]: Update the example model ID in the --model help text.
-  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').`).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
+  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'claude-sonnet-4-6').`).addOption(new Option('--llm-provider <provider>', 'LLM provider for API requests: anthropic, openai, or openai-compatible').choices(['anthropic', 'openai', 'openai-compatible', 'lmstudio', 'lm-studio', 'local'])).addOption(new Option('--base-url <url>', 'Base URL for OpenAI-compatible API requests (for example, http://127.0.0.1:1234/v1)')).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
     const value = rawValue.toLowerCase();
     const allowed = ['low', 'medium', 'high', 'max'];
     if (!allowed.includes(value)) {
@@ -1003,8 +1047,9 @@ async function run(): Promise<CommanderCommand> {
   // `mcp` and `add` as paths, then choked on --transport as an unknown
   // top-level option. Single-value + collect accumulator means each
   // --plugin-dir takes exactly one arg; repeat the flag for multiple dirs.
-  .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Claude in Chrome integration').option('--no-chrome', 'Disable Claude in Chrome integration').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
+.option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable Claude in Chrome integration').option('--no-chrome', 'Disable Claude in Chrome integration').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
     profileCheckpoint('action_handler_start');
+    applyLlmProviderCliOptions(options);
 
     // --bare = one-switch minimal mode. Sets SIMPLE so all the existing
     // gates fire (CLAUDE.md, skills, hooks inside executeHooks, agent
@@ -1484,8 +1529,8 @@ async function run(): Promise<CommanderCommand> {
           }
         }
         if (reservedNameError) {
-          // stderr+exit(1) — a throw here becomes a silent unhandled
-          // rejection in stream-json mode (void main() in cli.tsx).
+        // stderr+exit(1) keeps this visible in stream-json mode instead of
+        // relying on Commander/top-level exception formatting.
           process.stderr.write(`Error: ${reservedNameError}\n`);
           process.exit(1);
         }
@@ -2826,7 +2871,7 @@ async function run(): Promise<CommanderCommand> {
         runHeadless
       } = await import('src/cli/print.js');
       profileCheckpoint('after_print_import');
-      void runHeadless(inputPrompt, () => headlessStore.getState(), headlessStore.setState, commandsHeadless, tools, sdkMcpConfigs, agentDefinitions.activeAgents, {
+      await runHeadless(inputPrompt, () => headlessStore.getState(), headlessStore.setState, commandsHeadless, tools, sdkMcpConfigs, agentDefinitions.activeAgents, {
         continue: options.continue,
         resume: options.resume,
         verbose: verbose,

@@ -58,6 +58,10 @@ $ npm install --save-dev react-devtools-core
 // --
 
 type AnyObject = Record<string, unknown>
+type UpdatePayload = {
+  props?: AnyObject
+  style?: AnyObject
+}
 
 const diff = (before: AnyObject, after: AnyObject): AnyObject | undefined => {
   if (before === after) {
@@ -90,6 +94,56 @@ const diff = (before: AnyObject, after: AnyObject): AnyObject | undefined => {
   }
 
   return isChanged ? changed : undefined
+}
+
+function createUpdatePayload(
+  oldProps: Props,
+  newProps: Props,
+): UpdatePayload | null {
+  const props = diff(oldProps, newProps)
+  const style = diff(oldProps['style'] as Styles, newProps['style'] as Styles)
+
+  if (!props && !style) {
+    return null
+  }
+
+  return {
+    props,
+    style,
+  }
+}
+
+function applyUpdatePayload(
+  node: DOMElement,
+  payload: UpdatePayload,
+  newProps: Props,
+): void {
+  const { props, style } = payload
+
+  if (props) {
+    for (const [key, value] of Object.entries(props)) {
+      if (key === 'style') {
+        setStyle(node, value as Styles)
+        continue
+      }
+
+      if (key === 'textStyles') {
+        setTextStyles(node, value as TextStyles)
+        continue
+      }
+
+      if (EVENT_HANDLER_PROPS.has(key)) {
+        setEventHandler(node, key, value)
+        continue
+      }
+
+      setAttribute(node, key, value as DOMNodeAttribute)
+    }
+  }
+
+  if (style && node.yogaNode) {
+    applyStyles(node.yogaNode, style as Styles, newProps['style'] as Styles)
+  }
 }
 
 const cleanupYogaNode = (node: DOMElement | TextNode): void => {
@@ -232,7 +286,7 @@ const reconciler = createReconciler<
   unknown,
   DOMElement,
   HostContext,
-  null, // UpdatePayload - not used in React 19
+  UpdatePayload,
   NodeJS.Timeout,
   -1,
   null
@@ -328,6 +382,14 @@ const reconciler = createReconciler<
     return { isInsideText }
   },
   shouldSetTextContent: () => false,
+  prepareUpdate(
+    _node: DOMElement,
+    _type: ElementNames,
+    oldProps: Props,
+    newProps: Props,
+  ): UpdatePayload | null {
+    return createUpdatePayload(oldProps, newProps)
+  },
   createInstance(
     originalType: ElementNames,
     newProps: Props,
@@ -422,40 +484,24 @@ const reconciler = createReconciler<
     cleanupYogaNode(removeNode)
     getFocusManager(node).handleNodeRemoved(removeNode, node)
   },
-  // React 19 commitUpdate receives old and new props directly instead of an updatePayload
   commitUpdate(
     node: DOMElement,
-    _type: ElementNames,
-    oldProps: Props,
-    newProps: Props,
+    updatePayloadOrType: UpdatePayload | ElementNames | null,
+    typeOrOldProps: ElementNames | Props,
+    oldPropsOrNewProps: Props,
+    newPropsFromReact18?: Props,
   ): void {
-    const props = diff(oldProps, newProps)
-    const style = diff(oldProps['style'] as Styles, newProps['style'] as Styles)
+    const isReact19Call = typeof updatePayloadOrType === 'string'
+    const payload = isReact19Call
+      ? createUpdatePayload(typeOrOldProps as Props, oldPropsOrNewProps)
+      : updatePayloadOrType
+    const newProps = isReact19Call ? oldPropsOrNewProps : newPropsFromReact18
 
-    if (props) {
-      for (const [key, value] of Object.entries(props)) {
-        if (key === 'style') {
-          setStyle(node, value as Styles)
-          continue
-        }
-
-        if (key === 'textStyles') {
-          setTextStyles(node, value as TextStyles)
-          continue
-        }
-
-        if (EVENT_HANDLER_PROPS.has(key)) {
-          setEventHandler(node, key, value)
-          continue
-        }
-
-        setAttribute(node, key, value as DOMNodeAttribute)
-      }
+    if (!payload || !newProps) {
+      return
     }
 
-    if (style && node.yogaNode) {
-      applyStyles(node.yogaNode, style, newProps['style'] as Styles)
-    }
+    applyUpdatePayload(node, payload, newProps)
   },
   commitTextUpdate(node: TextNode, _oldText: string, newText: string): void {
     setTextNodeValue(node, newText)
@@ -491,6 +537,9 @@ const reconciler = createReconciler<
   resolveUpdatePriority(): number {
     return dispatcher.resolveEventPriority()
   },
+  getCurrentEventPriority(): number {
+    return dispatcher.resolveEventPriority()
+  },
   resetFormInstance(): void {},
   requestPostPaintCallback(): void {},
   shouldAttemptEagerTransition(): boolean {
@@ -504,6 +553,38 @@ const reconciler = createReconciler<
     return dispatcher.currentEvent?.timeStamp ?? -1.1
   },
 })
+
+type ReconcilerCompat = typeof reconciler & {
+  updateContainerSync?: typeof reconciler.updateContainer
+  flushSync?: (callback: () => void) => void
+  flushSyncWork?: () => void
+}
+
+export function updateInkContainer(
+  element: Parameters<typeof reconciler.updateContainer>[0],
+  container: Parameters<typeof reconciler.updateContainer>[1],
+  parentComponent: Parameters<typeof reconciler.updateContainer>[2],
+  callback: Parameters<typeof reconciler.updateContainer>[3],
+): void {
+  const compat = reconciler as ReconcilerCompat
+  const update = () => {
+    if (compat.updateContainerSync) {
+      compat.updateContainerSync(element, container, parentComponent, callback)
+    } else {
+      compat.updateContainer(element, container, parentComponent, callback)
+    }
+  }
+
+  if (compat.updateContainerSync) {
+    update()
+  } else if (compat.flushSync) {
+    compat.flushSync(update)
+  } else {
+    update()
+  }
+
+  compat.flushSyncWork?.()
+}
 
 // Wire the reconciler's discreteUpdates into the dispatcher.
 // This breaks the import cycle: dispatcher.ts doesn't import reconciler.ts.

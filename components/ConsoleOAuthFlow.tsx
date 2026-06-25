@@ -3,17 +3,18 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
 import { installOAuthTokens } from '../cli/handlers/auth.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
+import reconciler from '../ink/reconciler.js';
 import { setClipboard } from '../ink/termio/osc.js';
 import { useTerminalNotification } from '../ink/useTerminalNotification.js';
-import { Box, Link, Text } from '../ink.js';
+import { Box, Link, Text, useInput } from '../ink.js';
 import { useKeybinding } from '../keybindings/useKeybinding.js';
 import { getSSLErrorHint } from '../services/api/errorUtils.js';
 import { sendNotification } from '../services/notifier.js';
 import { OAuthService } from '../services/oauth/index.js';
 import { getOauthAccountInfo, validateForceLoginOrg } from '../utils/auth.js';
 import { logError } from '../utils/log.js';
+import { saveGlobalConfig } from '../utils/config.js';
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js';
-import { Select } from './CustomSelect/select.js';
 import { KeyboardShortcutHint } from './design-system/KeyboardShortcutHint.js';
 import { Spinner } from './Spinner.js';
 import TextInput from './TextInput.js';
@@ -30,8 +31,23 @@ type OAuthStatus = {
   state: 'platform_setup';
 } // Show platform setup info (Bedrock/Vertex/Foundry)
 | {
+  state: 'local_setup_base_url';
+} // Configure local OpenAI-compatible base URL
+| {
+  state: 'local_setup_model';
+} // Configure local OpenAI-compatible model
+| {
+  state: 'local_setup_success';
+  baseUrl: string;
+  model: string;
+} // Local provider config saved
+| {
   state: 'ready_to_start';
 } // Flow started, waiting for browser to open
+| {
+  state: 'starting';
+  loginWithClaudeAi: boolean;
+} // User selected a login method and OAuth startup is scheduled
 | {
   state: 'waiting_for_login';
   url: string;
@@ -50,7 +66,104 @@ type OAuthStatus = {
   message: string;
   toRetry?: OAuthStatus;
 };
+type LoginMethod = 'claudeai' | 'console' | 'platform' | 'local' | 'skip';
+const LOGIN_METHOD_OPTIONS: {
+  value: LoginMethod;
+  title: string;
+  detail: string;
+}[] = [{
+  value: 'claudeai',
+  title: 'Claude account with subscription',
+  detail: 'Pro, Max, Team, or Enterprise'
+}, {
+  value: 'console',
+  title: 'Anthropic Console account',
+  detail: 'API usage billing'
+}, {
+  value: 'platform',
+  title: '3rd-party platform',
+  detail: 'Amazon Bedrock, Microsoft Foundry, or Vertex AI'
+}, {
+  value: 'local',
+  title: 'Local OpenAI-compatible backend',
+  detail: 'LM Studio or another /v1 chat completions API'
+}, {
+  value: 'skip',
+  title: 'Skip login for now',
+  detail: 'Configure a provider later with /login or CLI flags'
+}];
+const LOGIN_METHODS: LoginMethod[] = LOGIN_METHOD_OPTIONS.map(option => option.value);
 const PASTE_HERE_MSG = 'Paste code here if prompted > ';
+const OAUTH_STARTUP_TIMEOUT_MS = 10_000;
+const DEFAULT_LOCAL_BASE_URL = 'http://127.0.0.1:1234/v1';
+const DEFAULT_LOCAL_MODEL = 'local-model';
+
+function getDefaultLocalBaseUrl(): string {
+  return firstDefined(
+    process.env.CODE_AGENT_BASE_URL,
+    process.env.CODE_AGENT_LLM_BASE_URL,
+    process.env.OPENAI_BASE_URL,
+    process.env.LM_STUDIO_BASE_URL,
+    process.env.LMSTUDIO_BASE_URL,
+  ) ?? DEFAULT_LOCAL_BASE_URL;
+}
+
+function getDefaultLocalModel(): string {
+  return getConfiguredLocalModel() || DEFAULT_LOCAL_MODEL;
+}
+
+function getConfiguredLocalModel(): string {
+  return firstDefined(
+    process.env.CODE_AGENT_MODEL,
+    process.env.OPENAI_MODEL,
+    process.env.LM_STUDIO_MODEL,
+    process.env.LMSTUDIO_MODEL,
+    process.env.ANTHROPIC_MODEL,
+  ) ?? '';
+}
+
+function firstDefined(...values: Array<string | undefined>): string | undefined {
+  return values.find(value => value !== undefined && value.trim() !== '');
+}
+
+function normalizeLocalSetupValue(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  return trimmed || fallback;
+}
+
+function applyLocalProviderConfig(baseUrl: string, model: string): void {
+  process.env.CODE_AGENT_LLM_PROVIDER = 'openai-compatible';
+  process.env.CODE_AGENT_BASE_URL = baseUrl;
+  process.env.CODE_AGENT_MODEL = model;
+  process.env.ANTHROPIC_MODEL = model;
+  saveGlobalConfig(current => ({
+    ...current,
+    env: {
+      ...(current.env ?? {}),
+      CODE_AGENT_LLM_PROVIDER: 'openai-compatible',
+      CODE_AGENT_BASE_URL: baseUrl,
+      CODE_AGENT_MODEL: model,
+    },
+  }));
+}
+function runInkDiscreteUpdate(callback: () => void): void {
+  const inkReconciler = reconciler as typeof reconciler & {
+    discreteUpdates?: (
+      fn: () => void,
+      a?: unknown,
+      b?: unknown,
+      c?: unknown,
+      d?: unknown,
+    ) => void;
+    flushSyncFromReconciler?: () => void;
+  };
+  if (inkReconciler.discreteUpdates) {
+    inkReconciler.discreteUpdates(callback, undefined, undefined, undefined, undefined);
+  } else {
+    callback();
+  }
+  inkReconciler.flushSyncFromReconciler?.();
+}
 export function ConsoleOAuthFlow({
   onDone,
   startingMessage,
@@ -79,6 +192,7 @@ export function ConsoleOAuthFlow({
   });
   const [pastedCode, setPastedCode] = useState('');
   const [cursorOffset, setCursorOffset] = useState(0);
+  const [focusedLoginMethodIndex, setFocusedLoginMethodIndex] = useState(0);
   const [oauthService] = useState(() => new OAuthService());
   const [loginWithClaudeAi, setLoginWithClaudeAi] = useState(() => {
     // Use Claude AI auth for setup-token mode to support user:inference scope
@@ -90,6 +204,11 @@ export function ConsoleOAuthFlow({
   const [showPastePrompt, setShowPastePrompt] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const textInputColumns = useTerminalSize().columns - PASTE_HERE_MSG.length - 1;
+  const [localBaseUrl, setLocalBaseUrl] = useState(getDefaultLocalBaseUrl);
+  const [localModel, setLocalModel] = useState(getConfiguredLocalModel);
+  const [localBaseUrlCursorOffset, setLocalBaseUrlCursorOffset] = useState(() => getDefaultLocalBaseUrl().length);
+  const [localModelCursorOffset, setLocalModelCursorOffset] = useState(() => getConfiguredLocalModel().length);
+  const pendingOAuthStartRef = useRef(false);
 
   // Log forced login method on mount
   useEffect(() => {
@@ -127,6 +246,14 @@ export function ConsoleOAuthFlow({
   }, {
     context: 'Confirmation',
     isActive: oauthStatus.state === 'platform_setup'
+  });
+
+  // Handle Enter to continue from local provider setup success
+  useKeybinding('confirm:yes', () => {
+    onDone();
+  }, {
+    context: 'Confirmation',
+    isActive: oauthStatus.state === 'local_setup_success'
   });
 
   // Handle Enter to retry on error state
@@ -186,24 +313,81 @@ export function ConsoleOAuthFlow({
       });
     }
   }
-  const startOAuth = useCallback(async () => {
+
+  function handleLocalBaseUrlSubmit(value: string): void {
+    const nextBaseUrl = normalizeLocalSetupValue(value, DEFAULT_LOCAL_BASE_URL);
+    setLocalBaseUrl(nextBaseUrl);
+    setOAuthStatus({
+      state: 'local_setup_model'
+    });
+  }
+
+  function handleLocalModelSubmit(value: string): void {
+    const nextModel = normalizeLocalSetupValue(value, DEFAULT_LOCAL_MODEL);
+    try {
+      applyLocalProviderConfig(localBaseUrl, nextModel);
+      setLocalModel(nextModel);
+      logEvent('tengu_oauth_local_provider_configured', {});
+      setOAuthStatus({
+        state: 'local_setup_success',
+        baseUrl: localBaseUrl,
+        model: nextModel
+      });
+    } catch (err: unknown) {
+      logError(err);
+      setOAuthStatus({
+        state: 'error',
+        message: `Failed to save local provider config: ${(err as Error).message}`,
+        toRetry: {
+          state: 'local_setup_base_url'
+        }
+      });
+    }
+  }
+
+  const startOAuth = useCallback(async (loginWithClaudeAiOverride?: boolean) => {
+    if (pendingOAuthStartRef.current) return;
+    pendingOAuthStartRef.current = true;
+    const activeLoginWithClaudeAi = loginWithClaudeAiOverride ?? loginWithClaudeAi;
+    let authUrlDelivered = false;
+    let startupTimedOut = false;
+    const retryState: OAuthStatus = {
+      state: mode === 'setup-token' ? 'ready_to_start' : 'idle'
+    };
+    const startupTimer = setTimeout(() => {
+      if (authUrlDelivered) return;
+      startupTimedOut = true;
+      oauthService.cleanup();
+      setOAuthStatus({
+        state: 'error',
+        message: 'Timed out preparing browser sign-in. Press Enter to retry.',
+        toRetry: retryState
+      });
+    }, OAUTH_STARTUP_TIMEOUT_MS);
     try {
       logEvent('tengu_oauth_flow_start', {
-        loginWithClaudeAi
+        loginWithClaudeAi: activeLoginWithClaudeAi
       });
       const result = await oauthService.startOAuthFlow(async url_0 => {
-        setOAuthStatus({
-          state: 'waiting_for_login',
-          url: url_0
+        authUrlDelivered = true;
+        clearTimeout(startupTimer);
+        runInkDiscreteUpdate(() => {
+          setOAuthStatus({
+            state: 'waiting_for_login',
+            url: url_0
+          });
         });
         setTimeout(setShowPastePrompt, 3000, true);
       }, {
-        loginWithClaudeAi,
+        loginWithClaudeAi: activeLoginWithClaudeAi,
         inferenceOnly: mode === 'setup-token',
         expiresIn: mode === 'setup-token' ? 365 * 24 * 60 * 60 : undefined,
         // 1 year for setup-token
         orgUUID
       }).catch(err_1 => {
+        if (startupTimedOut) {
+          throw new Error('Timed out preparing browser sign-in. Press Enter to retry.');
+        }
         const isTokenExchangeError = err_1.message.includes('Token exchange failed');
         // Enterprise TLS proxies (Zscaler et al.) intercept the token
         // exchange POST and cause cryptic SSL errors. Surface an
@@ -212,11 +396,7 @@ export function ConsoleOAuthFlow({
         setOAuthStatus({
           state: 'error',
           message: sslHint_0 ?? (isTokenExchangeError ? 'Failed to exchange authorization code for access token. Please try again.' : err_1.message),
-          toRetry: mode === 'setup-token' ? {
-            state: 'ready_to_start'
-          } : {
-            state: 'idle'
-          }
+          toRetry: retryState
         });
         logEvent('tengu_oauth_token_exchange_error', {
           error: err_1.message,
@@ -251,26 +431,90 @@ export function ConsoleOAuthFlow({
       setOAuthStatus({
         state: 'error',
         message: sslHint ?? errorMessage,
-        toRetry: {
-          state: mode === 'setup-token' ? 'ready_to_start' : 'idle'
-        }
+        toRetry: retryState
       });
       logEvent('tengu_oauth_error', {
         error: errorMessage as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         ssl_error: sslHint !== null
       });
+    } finally {
+      clearTimeout(startupTimer);
+      pendingOAuthStartRef.current = false;
     }
   }, [oauthService, setShowPastePrompt, loginWithClaudeAi, mode, orgUUID]);
-  const pendingOAuthStartRef = useRef(false);
+  const selectLoginMethod = useCallback((value: LoginMethod) => {
+    if (value === 'skip') {
+      logEvent('tengu_oauth_skipped', {});
+      onDone();
+      return;
+    }
+    if (value === 'platform') {
+      logEvent('tengu_oauth_platform_selected', {});
+      setOAuthStatus({
+        state: 'platform_setup'
+      });
+      return;
+    }
+    if (value === 'local') {
+      logEvent('tengu_oauth_local_provider_selected', {});
+      setOAuthStatus({
+        state: 'local_setup_base_url'
+      });
+      return;
+    }
+    const selectedLoginWithClaudeAi = value === 'claudeai';
+    void startOAuth(selectedLoginWithClaudeAi);
+    setOAuthStatus({
+      state: 'starting',
+      loginWithClaudeAi: selectedLoginWithClaudeAi
+    });
+    if (selectedLoginWithClaudeAi) {
+      logEvent('tengu_oauth_claudeai_selected', {});
+    } else {
+      logEvent('tengu_oauth_console_selected', {});
+    }
+    setLoginWithClaudeAi(selectedLoginWithClaudeAi);
+  }, [startOAuth, onDone]);
+  useInput((input, key, event) => {
+    if (oauthStatus.state !== 'idle') return;
+    const selectedDigit = input.match(/[1-5]/)?.[0];
+    if (selectedDigit) {
+      const index = Number(selectedDigit) - 1;
+      setFocusedLoginMethodIndex(index);
+      selectLoginMethod(LOGIN_METHODS[index]!);
+      event.stopImmediatePropagation();
+      return;
+    }
+    const upCount =
+      (key.upArrow ? 1 : 0) + (input.match(/\x1B\[A/g)?.length ?? 0);
+    const downCount =
+      (key.downArrow ? 1 : 0) + (input.match(/\x1B\[B/g)?.length ?? 0);
+    const hasReturn = key.return || input.includes('\r') || input.includes('\n');
+    if (upCount > 0 || downCount > 0) {
+      const nextIndex =
+        (focusedLoginMethodIndex + downCount - upCount + LOGIN_METHODS.length) %
+        LOGIN_METHODS.length;
+      setFocusedLoginMethodIndex(nextIndex);
+      if (hasReturn) {
+        selectLoginMethod(LOGIN_METHODS[nextIndex]!);
+      }
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (hasReturn) {
+      selectLoginMethod(LOGIN_METHODS[focusedLoginMethodIndex]!);
+      event.stopImmediatePropagation();
+    }
+  }, {
+    isActive: oauthStatus.state === 'idle'
+  });
   useEffect(() => {
     if (oauthStatus.state === 'ready_to_start' && !pendingOAuthStartRef.current) {
-      pendingOAuthStartRef.current = true;
-      process.nextTick((startOAuth_0: () => Promise<void>, pendingOAuthStartRef_0: React.MutableRefObject<boolean>) => {
-        void startOAuth_0();
-        pendingOAuthStartRef_0.current = false;
-      }, startOAuth, pendingOAuthStartRef);
+      void startOAuth();
+    } else if (oauthStatus.state === 'starting' && !pendingOAuthStartRef.current) {
+      void startOAuth(oauthStatus.loginWithClaudeAi);
     }
-  }, [oauthStatus.state, startOAuth]);
+  }, [oauthStatus, startOAuth]);
 
   // Auto-exit for setup-token mode
   useEffect(() => {
@@ -323,9 +567,9 @@ export function ConsoleOAuthFlow({
                 CLAUDE_CODE_OAUTH_TOKEN=&lt;token&gt;
               </Text>
             </Box>
-          </Box>}
+      </Box>}
       <Box paddingLeft={1} flexDirection="column" gap={1}>
-        <OAuthStatusMessage oauthStatus={oauthStatus} mode={mode} startingMessage={startingMessage} forcedMethodMessage={forcedMethodMessage} showPastePrompt={showPastePrompt} pastedCode={pastedCode} setPastedCode={setPastedCode} cursorOffset={cursorOffset} setCursorOffset={setCursorOffset} textInputColumns={textInputColumns} handleSubmitCode={handleSubmitCode} setOAuthStatus={setOAuthStatus} setLoginWithClaudeAi={setLoginWithClaudeAi} />
+        <OAuthStatusMessage oauthStatus={oauthStatus} mode={mode} startingMessage={startingMessage} forcedMethodMessage={forcedMethodMessage} showPastePrompt={showPastePrompt} pastedCode={pastedCode} setPastedCode={setPastedCode} cursorOffset={cursorOffset} setCursorOffset={setCursorOffset} textInputColumns={textInputColumns} handleSubmitCode={handleSubmitCode} setOAuthStatus={setOAuthStatus} focusedLoginMethodIndex={focusedLoginMethodIndex} localBaseUrl={localBaseUrl} setLocalBaseUrl={setLocalBaseUrl} localBaseUrlCursorOffset={localBaseUrlCursorOffset} setLocalBaseUrlCursorOffset={setLocalBaseUrlCursorOffset} localModel={localModel} setLocalModel={setLocalModel} localModelCursorOffset={localModelCursorOffset} setLocalModelCursorOffset={setLocalModelCursorOffset} handleLocalBaseUrlSubmit={handleLocalBaseUrlSubmit} handleLocalModelSubmit={handleLocalModelSubmit} />
       </Box>
     </Box>;
 }
@@ -342,10 +586,20 @@ type OAuthStatusMessageProps = {
   textInputColumns: number;
   handleSubmitCode: (value: string, url: string) => void;
   setOAuthStatus: (status: OAuthStatus) => void;
-  setLoginWithClaudeAi: (value: boolean) => void;
+  focusedLoginMethodIndex: number;
+  localBaseUrl: string;
+  setLocalBaseUrl: (value: string) => void;
+  localBaseUrlCursorOffset: number;
+  setLocalBaseUrlCursorOffset: (offset: number) => void;
+  localModel: string;
+  setLocalModel: (value: string) => void;
+  localModelCursorOffset: number;
+  setLocalModelCursorOffset: (offset: number) => void;
+  handleLocalBaseUrlSubmit: (value: string) => void;
+  handleLocalModelSubmit: (value: string) => void;
 };
 function OAuthStatusMessage(t0) {
-  const $ = _c(51);
+  const $ = _c(52);
   const {
     oauthStatus,
     mode,
@@ -359,94 +613,39 @@ function OAuthStatusMessage(t0) {
     textInputColumns,
     handleSubmitCode,
     setOAuthStatus,
-    setLoginWithClaudeAi
+    focusedLoginMethodIndex,
+    localBaseUrl,
+    setLocalBaseUrl,
+    localBaseUrlCursorOffset,
+    setLocalBaseUrlCursorOffset,
+    localModel,
+    setLocalModel,
+    localModelCursorOffset,
+    setLocalModelCursorOffset,
+    handleLocalBaseUrlSubmit,
+    handleLocalModelSubmit
   } = t0;
   switch (oauthStatus.state) {
     case "idle":
       {
         const t1 = startingMessage ? startingMessage : "Claude Code can be used with your Claude subscription or billed based on API usage through your Console account.";
-        let t2;
-        if ($[0] !== t1) {
-          t2 = <Text bold={true}>{t1}</Text>;
-          $[0] = t1;
-          $[1] = t2;
-        } else {
-          t2 = $[1];
-        }
-        let t3;
-        if ($[2] === Symbol.for("react.memo_cache_sentinel")) {
-          t3 = <Text>Select login method:</Text>;
-          $[2] = t3;
-        } else {
-          t3 = $[2];
-        }
-        let t4;
-        if ($[3] === Symbol.for("react.memo_cache_sentinel")) {
-          t4 = {
-            label: <Text>Claude account with subscription ·{" "}<Text dimColor={true}>Pro, Max, Team, or Enterprise</Text>{false && <Text>{"\n"}<Text color="warning">[ANT-ONLY]</Text>{" "}<Text dimColor={true}>Please use this option unless you need to login to a special org for accessing sensitive data (e.g. customer data, HIPI data) with the Console option</Text></Text>}{"\n"}</Text>,
-            value: "claudeai"
-          };
-          $[3] = t4;
-        } else {
-          t4 = $[3];
-        }
-        let t5;
-        if ($[4] === Symbol.for("react.memo_cache_sentinel")) {
-          t5 = {
-            label: <Text>Anthropic Console account ·{" "}<Text dimColor={true}>API usage billing</Text>{"\n"}</Text>,
-            value: "console"
-          };
-          $[4] = t5;
-        } else {
-          t5 = $[4];
-        }
-        let t6;
-        if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
-          t6 = [t4, t5, {
-            label: <Text>3rd-party platform ·{" "}<Text dimColor={true}>Amazon Bedrock, Microsoft Foundry, or Vertex AI</Text>{"\n"}</Text>,
-            value: "platform"
-          }];
-          $[5] = t6;
-        } else {
-          t6 = $[5];
-        }
-        let t7;
-        if ($[6] !== setLoginWithClaudeAi || $[7] !== setOAuthStatus) {
-          t7 = <Box><Select options={t6} onChange={value_0 => {
-              if (value_0 === "platform") {
-                logEvent("tengu_oauth_platform_selected", {});
-                setOAuthStatus({
-                  state: "platform_setup"
-                });
-              } else {
-                setOAuthStatus({
-                  state: "ready_to_start"
-                });
-                if (value_0 === "claudeai") {
-                  logEvent("tengu_oauth_claudeai_selected", {});
-                  setLoginWithClaudeAi(true);
-                } else {
-                  logEvent("tengu_oauth_console_selected", {});
-                  setLoginWithClaudeAi(false);
-                }
-              }
-            }} /></Box>;
-          $[6] = setLoginWithClaudeAi;
-          $[7] = setOAuthStatus;
-          $[8] = t7;
-        } else {
-          t7 = $[8];
-        }
-        let t8;
-        if ($[9] !== t2 || $[10] !== t7) {
-          t8 = <Box flexDirection="column" gap={1} marginTop={1}>{t2}{t3}{t7}</Box>;
-          $[9] = t2;
-          $[10] = t7;
-          $[11] = t8;
-        } else {
-          t8 = $[11];
-        }
-        return t8;
+        return <Box flexDirection="column" gap={1} marginTop={1}>
+            <Text bold={true}>{t1}</Text>
+            <Text>Select login method or skip:</Text>
+            <Box flexDirection="column">
+              {LOGIN_METHOD_OPTIONS.map((option, index) => {
+              const focused = index === focusedLoginMethodIndex;
+              return <Box key={option.title}>
+                    <Text color={focused ? "suggestion" : undefined}>{focused ? "❯" : " "}</Text>
+                    <Text> </Text>
+                    <Text dimColor={true}>{index + 1}. </Text>
+                    <Text color={focused ? "suggestion" : undefined}>{option.title} · </Text>
+                    <Text dimColor={true}>{option.detail}</Text>
+                  </Box>;
+            })}
+            </Box>
+            <Text dimColor={true}>Use ↑/↓ or 1-5, then Enter.</Text>
+          </Box>;
       }
     case "platform_setup":
       {
@@ -504,6 +703,45 @@ function OAuthStatusMessage(t0) {
           t8 = $[19];
         }
         return t8;
+      }
+    case "local_setup_base_url":
+      {
+        return <Box flexDirection="column" gap={1} marginTop={1}>
+            <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
+            <Text>Base URL</Text>
+            <Box>
+              <Text>URL > </Text>
+              <TextInput value={localBaseUrl} onChange={setLocalBaseUrl} onSubmit={handleLocalBaseUrlSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localBaseUrlCursorOffset} onChangeCursorOffset={setLocalBaseUrlCursorOffset} focus showCursor />
+            </Box>
+            <Text dimColor={true}>LM Studio default: {DEFAULT_LOCAL_BASE_URL}</Text>
+          </Box>;
+      }
+    case "local_setup_model":
+      {
+        return <Box flexDirection="column" gap={1} marginTop={1}>
+            <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
+            <Text>Model ID</Text>
+            <Box>
+              <Text>Model > </Text>
+              <TextInput value={localModel} onChange={setLocalModel} onSubmit={handleLocalModelSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localModelCursorOffset} onChangeCursorOffset={setLocalModelCursorOffset} placeholder={DEFAULT_LOCAL_MODEL} focus showCursor />
+            </Box>
+            <Text dimColor={true}>Use the loaded model ID shown by your local backend.</Text>
+          </Box>;
+      }
+    case "local_setup_success":
+      {
+        return <Box flexDirection="column" gap={1} marginTop={1}>
+            <Text color="success">Local provider saved.</Text>
+            <Text dimColor={true}>Provider: OpenAI-compatible</Text>
+            <Text dimColor={true}>Base URL: {oauthStatus.baseUrl}</Text>
+            <Text dimColor={true}>Model: {oauthStatus.model}</Text>
+            <Text color="success">Press <Text bold={true}>Enter</Text> to continue.</Text>
+          </Box>;
+      }
+    case "ready_to_start":
+    case "starting":
+      {
+        return <Box><Spinner /><Text>Preparing browser sign-in…</Text></Box>;
       }
     case "waiting_for_login":
       {

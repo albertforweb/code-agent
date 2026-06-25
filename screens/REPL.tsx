@@ -18,6 +18,7 @@ import { renderMessagesToPlainText } from '../utils/exportRenderer.js';
 import { openFileInExternalEditor } from '../utils/editor.js';
 import { writeFile } from 'fs/promises';
 import { Box, Text, useStdin, useTheme, useTerminalFocus, useTerminalTitle, useTabStatus } from '../ink.js';
+import reconciler from '../ink/reconciler.js';
 import type { TabStatusKind } from '../ink/hooks/use-tab-status.js';
 import { CostThresholdDialog } from '../components/CostThresholdDialog.js';
 import { IdleReturnDialog } from '../components/IdleReturnDialog.js';
@@ -101,6 +102,27 @@ const useVoiceIntegration: typeof import('../hooks/useVoiceIntegration.js').useV
   resetAnchor: () => {}
 });
 const VoiceKeybindingHandler: typeof import('../hooks/useVoiceIntegration.js').VoiceKeybindingHandler = feature('VOICE_MODE') ? require('../hooks/useVoiceIntegration.js').VoiceKeybindingHandler : () => null;
+
+function runInkDiscreteUpdate(callback: () => void): void {
+  const inkReconciler = reconciler as typeof reconciler & {
+    discreteUpdates?: (
+      fn: () => void,
+      a?: unknown,
+      b?: unknown,
+      c?: unknown,
+      d?: unknown,
+    ) => void;
+    flushSyncFromReconciler?: () => void;
+  };
+
+  if (inkReconciler.discreteUpdates) {
+    inkReconciler.discreteUpdates(callback, undefined, undefined, undefined, undefined);
+  } else {
+    callback();
+  }
+
+  inkReconciler.flushSyncFromReconciler?.();
+}
 // Frustration detection is ant-only (dogfooding). Conditional require so external
 // builds eliminate the module entirely (including its two O(n) useMemos that run
 // on every messages change, plus the GrowthBook fetch).
@@ -1075,7 +1097,7 @@ export function REPL({
         ...rest,
         isLocalJSXCommand: true
       };
-      setToolJSXInternal(rest);
+      runInkDiscreteUpdate(() => setToolJSXInternal(rest));
       return;
     }
 
@@ -1084,7 +1106,7 @@ export function REPL({
       // Allow clearing only if explicitly requested (from onDone callbacks)
       if (args?.clearLocalJSX) {
         localJSXCommandRef.current = null;
-        setToolJSXInternal(null);
+        runInkDiscreteUpdate(() => setToolJSXInternal(null));
         return;
       }
       // Otherwise, keep the local JSX command visible - ignore tool updates
@@ -1093,10 +1115,10 @@ export function REPL({
 
     // No active local JSX command, allow any update
     if (args?.clearLocalJSX) {
-      setToolJSXInternal(null);
+      runInkDiscreteUpdate(() => setToolJSXInternal(null));
       return;
     }
-    setToolJSXInternal(args);
+    runInkDiscreteUpdate(() => setToolJSXInternal(args));
   }, []);
   const [toolUseConfirmQueue, setToolUseConfirmQueue] = useState<ToolUseConfirm[]>([]);
   // Sticky footer JSX registered by permission request components (currently
@@ -3181,7 +3203,10 @@ export function REPL({
         });
         idleHintShownRef.current = false;
       }
-      const shouldTreatAsImmediate = queryGuard.isActive && (matchingCommand?.immediate || options?.fromKeybinding);
+      const shouldTreatAsImmediate = (queryGuard.isActive || matchingCommand?.name === 'login') && (matchingCommand?.immediate || options?.fromKeybinding);
+      if (commandName === 'login') {
+        logForDebugging(`[login] submit matching=${matchingCommand?.name ?? 'none'} immediate=${matchingCommand?.immediate === true} queryActive=${queryGuard.isActive} shouldTreatAsImmediate=${shouldTreatAsImmediate}`);
+      }
       if (matchingCommand && shouldTreatAsImmediate && matchingCommand.type === 'local-jsx') {
         // Only clear input if the submitted text matches what's in the prompt.
         // When a command keybinding fires, input is "/<command>" but the actual
@@ -3263,6 +3288,9 @@ export function REPL({
           const context = getToolUseContext(messagesRef.current, [], createAbortController(), mainLoopModel);
           const mod = await matchingCommand.load();
           const jsx = await mod.call(onDone, context, commandArgs);
+          if (matchingCommand.name === 'login') {
+            logForDebugging(`[login] local JSX created hasJsx=${jsx != null} doneWasCalled=${doneWasCalled}`);
+          }
 
           // Skip if onDone already fired — prevents stuck isLocalJSXCommand
           // (see processSlashCommand.tsx local-jsx case for full mechanism).
@@ -3276,7 +3304,7 @@ export function REPL({
             });
           }
         };
-        void executeImmediateCommand();
+        void executeImmediateCommand().catch(logError);
         return; // Always return early - don't add to history or queue
       }
     }

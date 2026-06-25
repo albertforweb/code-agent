@@ -1,6 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
-import React, { Suspense, use, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSettings } from '../../../hooks/useSettings.js';
+import { usePromiseState } from '../../../hooks/usePromiseState.js';
 import { useTerminalSize } from '../../../hooks/useTerminalSize.js';
 import { stringWidth } from '../../../ink/stringWidth.js';
 import { Ansi, Box, Text, useTheme } from '../../../ink.js';
@@ -52,7 +53,7 @@ export function PreviewBox(props) {
   }
   let t0;
   if ($[2] !== props) {
-    t0 = <Suspense fallback={<PreviewBoxBody {...props} highlight={null} />}><PreviewBoxWithHighlight {...props} /></Suspense>;
+    t0 = <PreviewBoxWithHighlight {...props} />;
     $[2] = props;
     $[3] = t0;
   } else {
@@ -69,7 +70,8 @@ function PreviewBoxWithHighlight(props) {
   } else {
     t0 = $[0];
   }
-  const highlight = use(t0);
+  const highlightState = usePromiseState(t0);
+  const highlight = highlightState.status === 'fulfilled' ? highlightState.value : null;
   let t1;
   if ($[1] !== highlight || $[2] !== props) {
     t1 = <PreviewBoxBody {...props} highlight={highlight} />;

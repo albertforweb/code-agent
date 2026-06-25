@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 import { basename, relative } from 'path';
-import React, { Suspense, use, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { FileEditToolDiff } from 'src/components/FileEditToolDiff.js';
+import { usePromiseState } from 'src/hooks/usePromiseState.js';
 import { getCwd } from 'src/utils/cwd.js';
 import { isENOENT } from 'src/utils/errors.js';
 import { detectEncodingForResolvedPath } from 'src/utils/fileRead.js';
@@ -57,7 +58,7 @@ export function SedEditPermissionRequest(t0) {
   const contentPromise = t1;
   let t2;
   if ($[5] !== contentPromise || $[6] !== props || $[7] !== sedInfo) {
-    t2 = <Suspense fallback={null}><SedEditPermissionRequestInner sedInfo={sedInfo} contentPromise={contentPromise} {...props} /></Suspense>;
+    t2 = <SedEditPermissionRequestInner sedInfo={sedInfo} contentPromise={contentPromise} {...props} />;
     $[5] = contentPromise;
     $[6] = props;
     $[7] = sedInfo;
@@ -99,10 +100,14 @@ function SedEditPermissionRequestInner(t0) {
   const {
     filePath
   } = sedInfo;
+  const contentState = usePromiseState(contentPromise);
+  if (contentState.status !== 'fulfilled') {
+    return null;
+  }
   const {
     oldContent,
     fileExists
-  } = use(contentPromise);
+  } = contentState.value;
   let t1;
   if ($[4] !== oldContent || $[5] !== sedInfo) {
     t1 = applySedSubstitution(oldContent, sedInfo);

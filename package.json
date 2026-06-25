@@ -4,15 +4,15 @@
   "description": "Claude Code CLI - Leaked source analysis",
   "type": "module",
   "main": "dist-electron/main.js",
-  "cli-main": "dist/main.js",
+  "cli-main": "dist/entrypoints/cli.js",
   "bin": {
-    "code-agent": "dist/main.js"
+    "code-agent": "dist/entrypoints/cli.js"
   },
   "scripts": {
     "setup": "node setup.js",
     "build": "node run-build.js",
     "build:watch": "tsc --watch",
-    "dev": "tsx watch src/main.tsx",
+    "dev": "npm run build && node dist/entrypoints/cli.js",
     "clean": "del /s /q dist 2>nul || rm -rf dist",
     "build:renderer": "node build-renderer.mjs",
     "build:electron:main": "tsc -p tsconfig.electron.json && node write-electron-package.mjs",

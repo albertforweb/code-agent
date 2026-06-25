@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
-import React, { Suspense, use, useDeferredValue, useEffect, useState } from 'react';
+import React, { useDeferredValue, useEffect, useState } from 'react';
 import type { DeepImmutable } from 'src/types/utils.js';
 import type { CommandResultDisplay } from '../../commands.js';
+import { usePromiseState } from '../../hooks/usePromiseState.js';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import type { KeyboardEvent } from '../../ink/events/keyboard-event.js';
 import { Box, Text } from '../../ink.js';
@@ -264,7 +265,7 @@ export function ShellDetailDialog(t0) {
   }
   let t24;
   if ($[45] !== columns || $[46] !== deferredOutputPromise) {
-    t24 = <Box flexDirection="column">{t22}<Suspense fallback={t23}><ShellOutputContent outputPromise={deferredOutputPromise} columns={columns} /></Suspense></Box>;
+    t24 = <Box flexDirection="column">{t22}<ShellOutputContent outputPromise={deferredOutputPromise} columns={columns} /></Box>;
     $[45] = columns;
     $[46] = deferredOutputPromise;
     $[47] = t24;
@@ -307,10 +308,17 @@ function ShellOutputContent(t0) {
     outputPromise,
     columns
   } = t0;
+  const outputState = usePromiseState(outputPromise);
+  if (outputState.status === 'pending') {
+    return <Text dimColor={true}>Loading output…</Text>;
+  }
+  if (outputState.status === 'rejected') {
+    return <Text dimColor={true}>No output available</Text>;
+  }
   const {
     content,
     bytesTotal
-  } = use(outputPromise);
+  } = outputState.value;
   if (!content) {
     let t1;
     if ($[0] === Symbol.for("react.memo_cache_sentinel")) {

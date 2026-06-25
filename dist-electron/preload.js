@@ -32,6 +32,8 @@ const IPC_CHANNELS = {
     'app:setConfig': 'app:setConfig',
     'app:getState': 'app:getState',
     'app:setState': 'app:setState',
+    'app:configChanged': 'app:configChanged',
+    'app:stateChanged': 'app:stateChanged',
     'window:minimize': 'window:minimize',
     'window:maximize': 'window:maximize',
     'window:close': 'window:close',
@@ -178,6 +180,16 @@ const api = {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(IPC_CHANNELS['api:chatError'], handler);
         return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['api:chatError'], handler);
+    },
+    onConfigChanged: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['app:configChanged'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['app:configChanged'], handler);
+    },
+    onStateChanged: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['app:stateChanged'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['app:stateChanged'], handler);
     },
 };
 /**

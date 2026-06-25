@@ -58,6 +58,17 @@ type MalformedFeatureDefinition = {
 
 let client: GrowthBook | null = null
 
+type MaybeDestroyableGrowthBook = GrowthBook & {
+  destroy?: () => void
+}
+
+function destroyGrowthBookClient(activeClient: GrowthBook | null): void {
+  const destroy = (activeClient as MaybeDestroyableGrowthBook | null)?.destroy
+  if (typeof destroy === 'function') {
+    destroy.call(activeClient)
+  }
+}
+
 // Named handler refs so resetGrowthBook can remove them to prevent accumulation
 let currentBeforeExitHandler: (() => void) | null = null
 let currentExitHandler: (() => void) | null = null
@@ -607,8 +618,8 @@ const getGrowthBookClient = memoize(
       })
 
     // Register cleanup handlers for graceful shutdown (named refs so resetGrowthBook can remove them)
-    currentBeforeExitHandler = () => client?.destroy()
-    currentExitHandler = () => client?.destroy()
+    currentBeforeExitHandler = () => destroyGrowthBookClient(client)
+    currentExitHandler = () => destroyGrowthBookClient(client)
     process.on('beforeExit', currentBeforeExitHandler)
     process.on('exit', currentExitHandler)
 
@@ -995,7 +1006,7 @@ export function resetGrowthBook(): void {
     process.off('exit', currentExitHandler)
     currentExitHandler = null
   }
-  client?.destroy()
+  destroyGrowthBookClient(client)
   client = null
   clientCreatedWithAuth = false
   reinitializingPromise = null

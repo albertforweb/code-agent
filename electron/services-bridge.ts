@@ -87,6 +87,7 @@ export function registerServiceBridges(
       },
       config,
       features: {
+        desktopRuntime: true,
         tools: tools.length > 0,
         mcp: mcpServers.length > 0 || mcpTools.length > 0,
         proactive: false,
@@ -220,7 +221,10 @@ export function registerServiceBridges(
   });
 
   ipcBridge.registerAppHandler('setConfig', async config => {
-    return appStateService.setConfig(config);
+    const update = await appStateService.setConfig(config);
+    apiService.clearBootstrapCache();
+    sendToRenderer(options.getMainWindow, IPC_CHANNELS['app:configChanged'], update);
+    return update;
   });
 
   ipcBridge.registerAppHandler('getState', async () => {
@@ -228,7 +232,9 @@ export function registerServiceBridges(
   });
 
   ipcBridge.registerAppHandler('setState', async state => {
-    return appStateService.setState(state);
+    const update = await appStateService.setState(state);
+    sendToRenderer(options.getMainWindow, IPC_CHANNELS['app:stateChanged'], update);
+    return update;
   });
 
   return {

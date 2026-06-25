@@ -16,6 +16,9 @@ const electron_store_1 = __importDefault(require("electron-store"));
 class AppStateServiceBridge {
     constructor() {
         this.currentState = {};
+        this.configVersion = 0;
+        this.stateVersion = 0;
+        this.writeQueue = Promise.resolve();
         this.appConfig = {
             llmProvider: 'anthropic',
             baseUrl: '',
@@ -31,6 +34,10 @@ class AppStateServiceBridge {
             defaults: {
                 config: this.appConfig,
                 state: {},
+                metadata: {
+                    configVersion: 0,
+                    stateVersion: 0,
+                },
             },
         });
         // Load persisted data
@@ -46,13 +53,20 @@ class AppStateServiceBridge {
      * Update app configuration
      */
     async setConfig(config) {
-        // Merge with existing config
-        this.appConfig = {
-            ...this.appConfig,
-            ...config,
-        };
-        // Persist to store
-        this.store.set('config', this.appConfig);
+        return this.enqueueWrite(async () => {
+            this.appConfig = {
+                ...this.appConfig,
+                ...config,
+            };
+            this.configVersion += 1;
+            this.store.set('config', this.appConfig);
+            this.store.set('metadata', this.getMetadata());
+            return {
+                config: { ...this.appConfig },
+                version: this.configVersion,
+                updatedAt: Date.now(),
+            };
+        });
     }
     /**
      * Get app state
@@ -64,13 +78,20 @@ class AppStateServiceBridge {
      * Set app state
      */
     async setState(state) {
-        // Merge with existing state
-        this.currentState = {
-            ...this.currentState,
-            ...state,
-        };
-        // Persist to store
-        this.store.set('state', this.currentState);
+        return this.enqueueWrite(async () => {
+            this.currentState = {
+                ...this.currentState,
+                ...state,
+            };
+            this.stateVersion += 1;
+            this.store.set('state', this.currentState);
+            this.store.set('metadata', this.getMetadata());
+            return {
+                state: { ...this.currentState },
+                version: this.stateVersion,
+                updatedAt: Date.now(),
+            };
+        });
     }
     /**
      * Get specific config value
@@ -82,8 +103,7 @@ class AppStateServiceBridge {
      * Set specific config value
      */
     async setConfigValue(key, value) {
-        this.appConfig[key] = value;
-        this.store.set('config', this.appConfig);
+        return this.setConfig({ [key]: value });
     }
     /**
      * Get specific state value
@@ -95,14 +115,13 @@ class AppStateServiceBridge {
      * Set specific state value
      */
     async setStateValue(key, value) {
-        this.currentState[key] = value;
-        this.store.set('state', this.currentState);
+        return this.setState({ [key]: value });
     }
     /**
      * Reset config to defaults
      */
     async resetConfig() {
-        this.appConfig = {
+        return this.setConfig({
             llmProvider: 'anthropic',
             baseUrl: '',
             model: 'claude-3-5-sonnet-20241022',
@@ -110,22 +129,35 @@ class AppStateServiceBridge {
             maxTokens: 4096,
             theme: 'system',
             language: 'en',
-        };
-        this.store.set('config', this.appConfig);
+        });
     }
     /**
      * Reset state
      */
     async resetState() {
-        this.currentState = {};
-        this.store.set('state', this.currentState);
+        return this.enqueueWrite(async () => {
+            this.currentState = {};
+            this.stateVersion += 1;
+            this.store.set('state', this.currentState);
+            this.store.set('metadata', this.getMetadata());
+            return {
+                state: {},
+                version: this.stateVersion,
+                updatedAt: Date.now(),
+            };
+        });
     }
     /**
      * Clear all data
      */
     async clearAll() {
-        this.store.clear();
-        this._loadFromStore();
+        await this.enqueueWrite(async () => {
+            this.store.clear();
+            this.configVersion += 1;
+            this.stateVersion += 1;
+            this._loadFromStore();
+            this.store.set('metadata', this.getMetadata());
+        });
     }
     /**
      * Load data from store
@@ -139,6 +171,11 @@ class AppStateServiceBridge {
             const storedState = this.store.get('state');
             if (storedState) {
                 this.currentState = storedState;
+            }
+            const metadata = this.store.get('metadata');
+            if (metadata) {
+                this.configVersion = Number(metadata.configVersion ?? 0);
+                this.stateVersion = Number(metadata.stateVersion ?? 0);
             }
         }
         catch (error) {
@@ -158,20 +195,42 @@ class AppStateServiceBridge {
      * Import data
      */
     async importData(data) {
-        if (data.config) {
-            this.appConfig = { ...this.appConfig, ...data.config };
-            this.store.set('config', this.appConfig);
-        }
-        if (data.state) {
-            this.currentState = data.state;
-            this.store.set('state', this.currentState);
-        }
+        await this.enqueueWrite(async () => {
+            if (data.config) {
+                this.appConfig = { ...this.appConfig, ...data.config };
+                this.configVersion += 1;
+                this.store.set('config', this.appConfig);
+            }
+            if (data.state) {
+                this.currentState = data.state;
+                this.stateVersion += 1;
+                this.store.set('state', this.currentState);
+            }
+            this.store.set('metadata', this.getMetadata());
+        });
     }
     /**
      * Get store instance (for advanced usage)
      */
     getStore() {
         return this.store;
+    }
+    getConfigVersion() {
+        return this.configVersion;
+    }
+    getStateVersion() {
+        return this.stateVersion;
+    }
+    getMetadata() {
+        return {
+            configVersion: this.configVersion,
+            stateVersion: this.stateVersion,
+        };
+    }
+    async enqueueWrite(operation) {
+        const run = this.writeQueue.then(operation, operation);
+        this.writeQueue = run.then(() => undefined, () => undefined);
+        return run;
     }
 }
 exports.AppStateServiceBridge = AppStateServiceBridge;

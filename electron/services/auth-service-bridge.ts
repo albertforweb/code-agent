@@ -5,6 +5,7 @@
  */
 
 import type { AuthToken, LlmProviderType } from '../types';
+import { KeychainService } from '../keychain';
 
 /**
  * Auth Service Bridge - bridges auth operations to IPC
@@ -12,12 +13,10 @@ import type { AuthToken, LlmProviderType } from '../types';
 export class AuthServiceBridge {
   private currentTokens: Map<LlmProviderType, AuthToken> = new Map();
   private oauth2Config: any = null;
-  private keychain: any = null; // keytar module
-  private keychainService: string = 'code-agent';
-  private legacyKeychainKey: string = 'anthropic-api-key';
+  private keychain: KeychainService;
 
   constructor(keytar?: any) {
-    this.keychain = keytar ?? this._loadKeytar();
+    this.keychain = new KeychainService(keytar);
   }
 
   /**
@@ -29,31 +28,16 @@ export class AuthServiceBridge {
       return memoryToken;
     }
 
-    // Try to load from keychain first
-    if (this.keychain) {
-      try {
-        const keychainKey = this.getKeychainKey(provider);
-        const token = await this.keychain.getPassword(this.keychainService, keychainKey);
-
-        if (token) {
-          return {
-            accessToken: token,
-            provider,
-          };
-        }
-
-        if (provider === 'anthropic') {
-          const legacyToken = await this.keychain.getPassword(this.keychainService, this.legacyKeychainKey);
-          if (legacyToken) {
-            return {
-              accessToken: legacyToken,
-              provider,
-            };
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to retrieve token from keychain:', error);
+    try {
+      const keychainToken = await this.keychain.getToken(provider);
+      if (keychainToken) {
+        return {
+          accessToken: keychainToken,
+          provider,
+        };
       }
+    } catch (error) {
+      console.warn('Failed to retrieve token from keychain:', error);
     }
 
     const environmentToken = this.getEnvironmentToken(provider);
@@ -74,17 +58,12 @@ export class AuthServiceBridge {
     const provider = token.provider ?? 'anthropic';
     this.currentTokens.set(provider, { ...token, provider });
 
-    // Try to store in keychain for persistence
-    if (this.keychain && token.accessToken) {
-      try {
-        await this.keychain.setPassword(
-          this.keychainService,
-          this.getKeychainKey(provider),
-          token.accessToken
-        );
-      } catch (error) {
-        console.warn('Failed to store token in keychain:', error);
+    try {
+      if (token.accessToken) {
+        await this.keychain.setToken(provider, token.accessToken);
       }
+    } catch (error) {
+      console.warn('Failed to store token in keychain:', error);
     }
   }
 
@@ -100,18 +79,10 @@ export class AuthServiceBridge {
       this.currentTokens.delete(providerName);
     }
 
-    // Try to delete from keychain
-    if (this.keychain) {
-      for (const providerName of providers) {
-        try {
-          await this.keychain.deletePassword(this.keychainService, this.getKeychainKey(providerName));
-          if (providerName === 'anthropic') {
-            await this.keychain.deletePassword(this.keychainService, this.legacyKeychainKey);
-          }
-        } catch (error) {
-          console.warn('Failed to delete token from keychain:', error);
-        }
-      }
+    try {
+      await this.keychain.deleteToken(provider);
+    } catch (error) {
+      console.warn('Failed to delete token from keychain:', error);
     }
   }
 
@@ -255,7 +226,7 @@ export class AuthServiceBridge {
   getStatus() {
     return {
       hasMemoryToken: this.currentTokens.size > 0,
-      hasKeychain: !!this.keychain,
+      hasKeychain: this.keychain.hasKeychain(),
       hasEnvironmentToken: Boolean(
         process.env.ANTHROPIC_API_KEY ||
         process.env.OPENAI_API_KEY ||
@@ -263,10 +234,6 @@ export class AuthServiceBridge {
         process.env.LM_STUDIO_API_KEY,
       ),
     };
-  }
-
-  private getKeychainKey(provider: LlmProviderType): string {
-    return `llm-api-key-${provider}`;
   }
 
   private getEnvironmentToken(provider: LlmProviderType): string | undefined {
@@ -279,15 +246,6 @@ export class AuthServiceBridge {
     }
 
     return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
-  }
-
-  private _loadKeytar(): any {
-    try {
-      // Optional native dependency; keep Electron startup working when unavailable.
-      return require('keytar');
-    } catch {
-      return null;
-    }
   }
 
   /**

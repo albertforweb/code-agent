@@ -38683,7 +38683,9 @@
     onToolError: (callback) => getApi().onToolError(callback),
     onChatDelta: (callback) => getApi().onChatDelta(callback),
     onChatComplete: (callback) => getApi().onChatComplete(callback),
-    onChatError: (callback) => getApi().onChatError(callback)
+    onChatError: (callback) => getApi().onChatError(callback),
+    onConfigChanged: (callback) => getApi().onConfigChanged(callback),
+    onStateChanged: (callback) => getApi().onStateChanged(callback)
   };
 
   // src/renderer/App.tsx
@@ -38711,6 +38713,24 @@
   }
   var PERMISSION_MODES = ["default", "acceptEdits", "plan", "bypassPermissions", "auto"];
   var SETTING_SOURCE_OPTIONS = ["user", "project", "local"];
+  var ANSI_COLORS = {
+    30: "#1f2937",
+    31: "#b91c1c",
+    32: "#15803d",
+    33: "#a16207",
+    34: "#1d4ed8",
+    35: "#a21caf",
+    36: "#0e7490",
+    37: "#f3f4f6",
+    90: "#6b7280",
+    91: "#ef4444",
+    92: "#22c55e",
+    93: "#eab308",
+    94: "#3b82f6",
+    95: "#d946ef",
+    96: "#06b6d4",
+    97: "#ffffff"
+  };
   function readCliOption(config, key, fallback = "") {
     const value = config?.cliOptions?.[key];
     return value === void 0 || value === null ? fallback : String(value);
@@ -38945,10 +38965,57 @@
     }));
     return [...history, { role: "user", content: nextUserMessage }];
   }
+  function parseAnsiText(text) {
+    const segments = [];
+    const pattern = /\x1b\[([0-9;]*)m/g;
+    let lastIndex = 0;
+    let match;
+    let style = {};
+    while ((match = pattern.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        segments.push({ text: text.slice(lastIndex, match.index), style: { ...style } });
+      }
+      style = applyAnsiCodes(style, match[1]);
+      lastIndex = pattern.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      segments.push({ text: text.slice(lastIndex), style: { ...style } });
+    }
+    return segments.length > 0 ? segments : [{ text, style: {} }];
+  }
+  function applyAnsiCodes(style, rawCodes) {
+    const codes = rawCodes === "" ? [0] : rawCodes.split(";").map((code) => Number(code));
+    let next = { ...style };
+    for (const code of codes) {
+      if (code === 0) {
+        next = {};
+      } else if (code === 1) {
+        next.fontWeight = 700;
+      } else if (code === 2) {
+        next.opacity = 0.72;
+      } else if (code === 22) {
+        delete next.fontWeight;
+        delete next.opacity;
+      } else if (code === 39) {
+        delete next.color;
+      } else if (ANSI_COLORS[code]) {
+        next.color = ANSI_COLORS[code];
+      }
+    }
+    return next;
+  }
+  function renderAnsiText(text) {
+    return parseAnsiText(text).map((segment, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: segment.style, children: segment.text }, `${index}-${segment.text.slice(0, 8)}`));
+  }
   function App() {
     const [status, setStatus] = (0, import_react.useState)("Initializing");
     const [appInfo, setAppInfo] = (0, import_react.useState)(null);
     const [appConfig, setAppConfig] = (0, import_react.useState)(null);
+    const [appState, setAppState] = (0, import_react.useState)({});
+    const [viewportSize, setViewportSize] = (0, import_react.useState)(() => ({
+      width: window.innerWidth,
+      height: window.innerHeight
+    }));
     const [tools, setTools] = (0, import_react.useState)([]);
     const [mcpServers, setMcpServers] = (0, import_react.useState)([]);
     const [mcpTools, setMcpTools] = (0, import_react.useState)([]);
@@ -38976,6 +39043,16 @@
     }, [messages]);
     (0, import_react.useEffect)(() => {
       initializeApp();
+    }, []);
+    (0, import_react.useEffect)(() => {
+      const handleResize = () => {
+        setViewportSize({
+          width: window.innerWidth,
+          height: window.innerHeight
+        });
+      };
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
     }, []);
     (0, import_react.useEffect)(() => {
       const removers = [];
@@ -39036,6 +39113,12 @@ ${formatJson(data.data)}
             status: "failed"
           }));
         }));
+        removers.push(ipcClient.onConfigChanged((data) => {
+          setAppConfig(data.config);
+        }));
+        removers.push(ipcClient.onStateChanged((data) => {
+          setAppState(data.state);
+        }));
       } catch (error) {
         setStatus("Startup error");
         appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
@@ -39070,15 +39153,17 @@ ${formatJson(data.data)}
     }, [input]);
     async function initializeApp() {
       try {
-        const [info, config, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
+        const [info, config, state, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
           ipcClient.app.info(),
           ipcClient.app.getConfig(),
+          ipcClient.app.getState(),
           ipcClient.tools.list(),
           ipcClient.mcp.listServers(),
           ipcClient.mcp.listTools()
         ]);
         setAppInfo(info);
         setAppConfig(config);
+        setAppState(state);
         setSettingsDraft(createSettingsDraft(config));
         setTools(bridgeTools);
         setMcpServers(servers);
@@ -39360,6 +39445,10 @@ ${formatJson(appConfig)}
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tokens" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens + tokenUsage.outputTokens })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
               ] })
             ] })
           ] }),
@@ -39380,6 +39469,14 @@ ${formatJson(appConfig)}
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Platform" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+                  viewportSize.width,
+                  " x ",
+                  viewportSize.height
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Theme" }),
@@ -39464,7 +39561,7 @@ ${formatJson(appConfig)}
     if (!text) {
       return null;
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.textBlock, children: text }, key);
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.textBlock, children: renderAnsiText(text) }, key);
   }
   function renderCodeBlock(code, language, key) {
     let highlighted = "";

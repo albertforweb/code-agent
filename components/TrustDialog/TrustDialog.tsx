@@ -5,21 +5,31 @@ import { logEvent } from 'src/services/analytics/index.js';
 import { setSessionTrustAccepted } from '../../bootstrap/state.js';
 import type { Command } from '../../commands.js';
 import { useExitOnCtrlCDWithKeybindings } from '../../hooks/useExitOnCtrlCDWithKeybindings.js';
-import { Box, Link, Text } from '../../ink.js';
-import { useKeybinding } from '../../keybindings/useKeybinding.js';
+import { Box, Link, Text, useInput } from '../../ink.js';
+import { useKeybindings } from '../../keybindings/useKeybinding.js';
 import { getMcpConfigsByScope } from '../../services/mcp/config.js';
 import { BASH_TOOL_NAME } from '../../tools/BashTool/toolName.js';
 import { checkHasTrustDialogAccepted, saveCurrentProjectConfig } from '../../utils/config.js';
 import { getCwd } from '../../utils/cwd.js';
 import { getFsImplementation } from '../../utils/fsOperations.js';
 import { gracefulShutdownSync } from '../../utils/gracefulShutdown.js';
-import { Select } from '../CustomSelect/index.js';
 import { PermissionDialog } from '../permissions/PermissionDialog.js';
 import { getApiKeyHelperSources, getAwsCommandsSources, getBashPermissionSources, getDangerousEnvVarsSources, getGcpCommandsSources, getHooksSources, getOtelHeadersHelperSources } from './utils.js';
 type Props = {
   onDone(): void;
   commands?: Command[];
 };
+type TrustChoice = 'enable_all' | 'exit';
+const TRUST_OPTIONS: {
+  label: string;
+  value: TrustChoice;
+}[] = [{
+  label: 'Yes, I trust this folder',
+  value: 'enable_all'
+}, {
+  label: 'No, exit',
+  value: 'exit'
+}];
 export function TrustDialog(t0) {
   const $ = _c(33);
   const {
@@ -185,17 +195,51 @@ export function TrustDialog(t0) {
     t14 = $[18];
   }
   const onChange = t14;
+  const [focusedTrustOptionIndex, setFocusedTrustOptionIndex] = React.useState(0);
+  const focusPreviousTrustOption = React.useCallback(() => {
+    setFocusedTrustOptionIndex(index => (index + TRUST_OPTIONS.length - 1) % TRUST_OPTIONS.length);
+  }, []);
+  const focusNextTrustOption = React.useCallback(() => {
+    setFocusedTrustOptionIndex(index => (index + 1) % TRUST_OPTIONS.length);
+  }, []);
+  const confirmFocusedTrustOption = React.useCallback(() => {
+    onChange(TRUST_OPTIONS[focusedTrustOptionIndex]!.value);
+  }, [focusedTrustOptionIndex, onChange]);
+  const cancelTrustDialog = React.useCallback(() => {
+    onChange("exit");
+  }, [onChange]);
   const exitState = useExitOnCtrlCDWithKeybindings(_temp6);
-  let t15;
-  if ($[19] === Symbol.for("react.memo_cache_sentinel")) {
-    t15 = {
-      context: "Confirmation"
-    };
-    $[19] = t15;
-  } else {
-    t15 = $[19];
-  }
-  useKeybinding("confirm:no", _temp7, t15);
+  useKeybindings({
+    'confirm:yes': confirmFocusedTrustOption,
+    'confirm:no': cancelTrustDialog,
+    'confirm:previous': focusPreviousTrustOption,
+    'confirm:next': focusNextTrustOption
+  }, {
+    context: 'Confirmation',
+    isActive: !hasTrustDialogAccepted
+  });
+  useInput((input, key, event) => {
+    if (hasTrustDialogAccepted) return;
+    const selectedDigit = input.match(/[1-2]/)?.[0];
+    if (selectedDigit) {
+      const index = Number(selectedDigit) - 1;
+      setFocusedTrustOptionIndex(index);
+      onChange(TRUST_OPTIONS[index]!.value);
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (key.return || input.includes('\r') || input.includes('\n')) {
+      confirmFocusedTrustOption();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (input === 'n') {
+      onChange("exit");
+      event.stopImmediatePropagation();
+    }
+  }, {
+    isActive: !hasTrustDialogAccepted
+  });
   if (hasTrustDialogAccepted) {
     setTimeout(onDone);
     return null;
@@ -222,49 +266,19 @@ export function TrustDialog(t0) {
   } else {
     t19 = $[23];
   }
-  let t20;
-  if ($[24] === Symbol.for("react.memo_cache_sentinel")) {
-    t20 = [{
-      label: "Yes, I trust this folder",
-      value: "enable_all"
-    }, {
-      label: "No, exit",
-      value: "exit"
-    }];
-    $[24] = t20;
-  } else {
-    t20 = $[24];
-  }
-  let t21;
-  if ($[25] !== onChange) {
-    t21 = <Select options={t20} onChange={value_0 => onChange(value_0 as 'enable_all' | 'exit')} onCancel={() => onChange("exit")} />;
-    $[25] = onChange;
-    $[26] = t21;
-  } else {
-    t21 = $[26];
-  }
-  let t22;
-  if ($[27] !== exitState.keyName || $[28] !== exitState.pending) {
-    t22 = <Text dimColor={true}>{exitState.pending ? <>Press {exitState.keyName} again to exit</> : <>Enter to confirm · Esc to cancel</>}</Text>;
-    $[27] = exitState.keyName;
-    $[28] = exitState.pending;
-    $[29] = t22;
-  } else {
-    t22 = $[29];
-  }
-  let t23;
-  if ($[30] !== t21 || $[31] !== t22) {
-    t23 = <PermissionDialog color="warning" titleColor="warning" title="Accessing workspace:"><Box flexDirection="column" gap={1} paddingTop={1}>{t16}{t17}{t18}{t19}{t21}{t22}</Box></PermissionDialog>;
-    $[30] = t21;
-    $[31] = t22;
-    $[32] = t23;
-  } else {
-    t23 = $[32];
-  }
-  return t23;
-}
-function _temp7() {
-  gracefulShutdownSync(0);
+  const trustOptions = <Box flexDirection="column">
+      {TRUST_OPTIONS.map((option, index) => {
+      const focused = index === focusedTrustOptionIndex;
+      return <Box key={option.value}>
+            <Text color={focused ? "suggestion" : undefined}>{focused ? "❯" : " "}</Text>
+            <Text> </Text>
+            <Text dimColor={true}>{index + 1}. </Text>
+            <Text color={focused ? "suggestion" : undefined}>{option.label}</Text>
+          </Box>;
+    })}
+    </Box>;
+  const helpText = exitState.pending ? <Text dimColor={true}>Press {exitState.keyName} again to exit</Text> : <Text dimColor={true}>Use ↑/↓ or 1-2, then Enter · Esc to cancel</Text>;
+  return <PermissionDialog color="warning" titleColor="warning" title="Accessing workspace:"><Box flexDirection="column" gap={1} paddingTop={1}>{t16}{t17}{t18}{t19}{trustOptions}{helpText}</Box></PermissionDialog>;
 }
 function _temp6() {
   return gracefulShutdownSync(1);

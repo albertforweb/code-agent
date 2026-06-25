@@ -180,6 +180,18 @@ export interface AppInfo {
   isDev: boolean;
 }
 
+export interface AppConfigChangedMessage {
+  config: AppConfig;
+  version: number;
+  updatedAt: number;
+}
+
+export interface AppStateChangedMessage {
+  state: Record<string, any>;
+  version: number;
+  updatedAt: number;
+}
+
 // ============================================================================
 // ALL IPC CHANNELS
 // ============================================================================
@@ -221,6 +233,8 @@ export const IPC_CHANNELS = {
   'app:setConfig': 'app:setConfig',
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
+  'app:configChanged': 'app:configChanged',
+  'app:stateChanged': 'app:stateChanged',
 
   // Window channels
   'window:minimize': 'window:minimize',

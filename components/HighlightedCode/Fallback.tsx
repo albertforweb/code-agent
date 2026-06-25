@@ -1,6 +1,7 @@
 import { c as _c } from "react/compiler-runtime";
 import { extname } from 'path';
-import React, { Suspense, use, useMemo } from 'react';
+import React from 'react';
+import { usePromiseState } from '../../hooks/usePromiseState.js';
 import { Ansi, Text } from '../../ink.js';
 import { getCliHighlightPromise } from '../../utils/cliHighlight.js';
 import { logForDebugging } from '../../utils/debug.js';
@@ -102,13 +103,12 @@ export function HighlightedCodeFallback(t0) {
     t6 = $[13];
   }
   let t7;
-  if ($[14] !== t5 || $[15] !== t6) {
-    t7 = <Suspense fallback={t5}>{t6}</Suspense>;
-    $[14] = t5;
-    $[15] = t6;
-    $[16] = t7;
+  if ($[14] !== t6) {
+    t7 = t6;
+    $[14] = t6;
+    $[15] = t7;
   } else {
-    t7 = $[16];
+    t7 = $[15];
   }
   let t8;
   if ($[17] !== dim || $[18] !== t7) {
@@ -134,7 +134,8 @@ function Highlighted(t0) {
   } else {
     t1 = $[0];
   }
-  const hl = use(t1);
+  const hlState = usePromiseState(t1);
+  const hl = hlState.status === 'fulfilled' ? hlState.value : null;
   let t2;
   if ($[1] !== codeWithSpaces || $[2] !== hl || $[3] !== language) {
     bb0: {

@@ -1,7 +1,8 @@
 import { c as _c } from "react/compiler-runtime";
 import type { Base64ImageSource, ImageBlockParam } from '@anthropic-ai/sdk/resources/messages.mjs';
-import React, { Suspense, use, useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useSettings } from '../../../hooks/useSettings.js';
+import { usePromiseState } from '../../../hooks/usePromiseState.js';
 import { useTerminalSize } from '../../../hooks/useTerminalSize.js';
 import { stringWidth } from '../../../ink/stringWidth.js';
 import { useTheme } from '../../../ink.js';
@@ -43,7 +44,7 @@ export function AskUserQuestionPermissionRequest(props) {
   }
   let t0;
   if ($[2] !== props) {
-    t0 = <Suspense fallback={<AskUserQuestionPermissionRequestBody {...props} highlight={null} />}><AskUserQuestionWithHighlight {...props} /></Suspense>;
+    t0 = <AskUserQuestionWithHighlight {...props} />;
     $[2] = props;
     $[3] = t0;
   } else {
@@ -60,7 +61,8 @@ function AskUserQuestionWithHighlight(props) {
   } else {
     t0 = $[0];
   }
-  const highlight = use(t0);
+  const highlightState = usePromiseState(t0);
+  const highlight = highlightState.status === 'fulfilled' ? highlightState.value : null;
   let t1;
   if ($[1] !== highlight || $[2] !== props) {
     t1 = <AskUserQuestionPermissionRequestBody {...props} highlight={highlight} />;

@@ -33,28 +33,52 @@ function getUltraplanModel(): string {
   return getFeatureValue_CACHED_MAY_BE_STALE('tengu_ultraplan_model', ALL_MODEL_CONFIGS.opus46.firstParty);
 }
 
-// prompt.txt is wrapped in <system-reminder> so the CCR browser hides
-// scaffolding (CLI_BLOCK_TAGS dropped by stripSystemNotifications)
-// while the model still sees full text.
-// Phrasing deliberately avoids the feature name because
-// the remote CCR CLI runs keyword detection on raw input before
-// any tag stripping, and a bare "ultraplan" in the prompt would self-trigger as
-// /ultraplan, which is filtered out of headless mode as "Unknown skill"
-//
-// Bundler inlines .txt as a string; the test runner wraps it as {default}.
-/* eslint-disable @typescript-eslint/no-require-imports */
-const _rawPrompt = require('../utils/ultraplan/prompt.txt');
-/* eslint-enable @typescript-eslint/no-require-imports */
-const DEFAULT_INSTRUCTIONS: string = (typeof _rawPrompt === 'string' ? _rawPrompt : _rawPrompt.default).trimEnd();
+const FALLBACK_INSTRUCTIONS = [
+  '<system-reminder>',
+  'Create a thorough implementation plan for the requested work.',
+  'Identify assumptions, risks, concrete steps, and validation needed before execution.',
+  '</system-reminder>',
+].join('\n');
 
-// Dev-only prompt override resolved eagerly at module load.
-// Gated to ant builds (USER_TYPE is a build-time define,
-// so the override path is DCE'd from external builds).
-// Shell-set env only, so top-level process.env read is fine
-// — settings.env never injects this.
-/* eslint-disable custom-rules/no-process-env-top-level, custom-rules/no-sync-fs -- ant-only dev override; eager top-level read is the point (crash at startup, not silently inside the slash-command try/catch) */
-const ULTRAPLAN_INSTRUCTIONS: string = "external" === 'ant' && process.env.ULTRAPLAN_PROMPT_FILE ? readFileSync(process.env.ULTRAPLAN_PROMPT_FILE, 'utf8').trimEnd() : DEFAULT_INSTRUCTIONS;
-/* eslint-enable custom-rules/no-process-env-top-level, custom-rules/no-sync-fs */
+let cachedUltraplanInstructions: string | null = null;
+
+function getBundledUltraplanInstructions(): string {
+  // prompt.txt is wrapped in <system-reminder> so the CCR browser hides
+  // scaffolding while the model still sees full text. Load lazily so a missing
+  // optional asset cannot break normal CLI startup.
+  if (cachedUltraplanInstructions !== null) {
+    return cachedUltraplanInstructions;
+  }
+
+  try {
+    // Bundler inlines .txt as a string; the test runner wraps it as {default}.
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const rawPrompt = require('../utils/ultraplan/prompt.txt');
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    const prompt = typeof rawPrompt === 'string' ? rawPrompt : rawPrompt.default;
+    if (typeof prompt !== 'string' || !prompt.trim()) {
+      throw new Error('Bundled ultraplan prompt is empty or invalid');
+    }
+    cachedUltraplanInstructions = prompt.trimEnd();
+  } catch (e) {
+    logForDebugging(
+      `ultraplan: bundled prompt unavailable; using fallback instructions (${errorMessage(e)})`,
+    );
+    cachedUltraplanInstructions = FALLBACK_INSTRUCTIONS;
+  }
+
+  return cachedUltraplanInstructions;
+}
+
+function getUltraplanInstructions(): string {
+  // Dev-only prompt override. Gated to ant builds (USER_TYPE is a build-time
+  // define, so the override path is DCE'd from external builds).
+  /* eslint-disable custom-rules/no-sync-fs -- ant-only dev override */
+  return "external" === 'ant' && process.env.ULTRAPLAN_PROMPT_FILE
+    ? readFileSync(process.env.ULTRAPLAN_PROMPT_FILE, 'utf8').trimEnd()
+    : getBundledUltraplanInstructions();
+  /* eslint-enable custom-rules/no-sync-fs */
+}
 
 /**
  * Assemble the initial CCR user message. seedPlan and blurb stay outside the
@@ -65,7 +89,7 @@ export function buildUltraplanPrompt(blurb: string, seedPlan?: string): string {
   if (seedPlan) {
     parts.push('Here is a draft plan to refine:', '', seedPlan, '');
   }
-  parts.push(ULTRAPLAN_INSTRUCTIONS);
+  parts.push(getUltraplanInstructions());
   if (blurb) {
     parts.push('', blurb);
   }
