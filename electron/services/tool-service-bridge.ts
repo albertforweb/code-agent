@@ -4,7 +4,7 @@
  * Handles tool discovery, execution, and result streaming
  */
 
-import type { Tool } from '../types';
+import type { Tool, ToolPermissionMode } from '../types';
 
 export interface BridgeToolDefinition extends Tool {
   execute: (args: Record<string, any>, context: ToolExecutionContext) => Promise<any>;
@@ -24,9 +24,20 @@ export interface ToolExecutionContext {
 /**
  * Tool result streaming handler
  */
+export type ToolStartHandler = (toolId: string, toolName: string, args: Record<string, any>) => void;
 export type ToolResultHandler = (toolId: string, data: any) => void;
 export type ToolCompleteHandler = (toolId: string, success: boolean, duration: number) => void;
 export type ToolErrorHandler = (toolId: string, error: string, stack?: string) => void;
+export type ToolPermissionPolicyProvider = (
+  tool: BridgeToolDefinition,
+  args: Record<string, any>,
+  context: ToolExecutionContext,
+) => Promise<ToolPermissionMode> | ToolPermissionMode;
+export type ToolPermissionReviewHandler = (
+  tool: BridgeToolDefinition,
+  args: Record<string, any>,
+  context: ToolExecutionContext,
+) => Promise<void>;
 
 /**
  * Tool Service Bridge - bridges CLI tools to IPC
@@ -34,14 +45,24 @@ export type ToolErrorHandler = (toolId: string, error: string, stack?: string) =
 export class ToolServiceBridge {
   private tools: Map<string, BridgeToolDefinition> = new Map();
   private executions: Map<string, ToolExecutionContext> = new Map();
+  private onStart: ToolStartHandler = () => {};
   private onResult: ToolResultHandler = () => {};
   private onComplete: ToolCompleteHandler = () => {};
   private onError: ToolErrorHandler = () => {};
+  private permissionPolicyProvider: ToolPermissionPolicyProvider = () => 'allow';
+  private permissionReviewHandler: ToolPermissionReviewHandler = async () => {};
 
   constructor(tools: BridgeToolDefinition[] = []) {
     for (const tool of tools) {
       this.registerTool(tool.name, tool);
     }
+  }
+
+  /**
+   * Set start handler
+   */
+  setStartHandler(handler: ToolStartHandler) {
+    this.onStart = handler;
   }
 
   /**
@@ -65,6 +86,14 @@ export class ToolServiceBridge {
     this.onError = handler;
   }
 
+  setPermissionPolicyProvider(provider: ToolPermissionPolicyProvider) {
+    this.permissionPolicyProvider = provider;
+  }
+
+  setPermissionReviewHandler(handler: ToolPermissionReviewHandler) {
+    this.permissionReviewHandler = handler;
+  }
+
   /**
    * Get list of available tools
    */
@@ -78,6 +107,7 @@ export class ToolServiceBridge {
         inputSchema: tool.inputSchema || {},
         source: tool.source ?? 'bridge',
         readOnly: tool.readOnly,
+        category: tool.category,
       });
     }
 
@@ -88,6 +118,13 @@ export class ToolServiceBridge {
    * Execute a tool
    */
   async executeTool(toolName: string, args: Record<string, any>, toolId: string): Promise<void> {
+    await this.executeToolAndReturn(toolName, args, toolId);
+  }
+
+  /**
+   * Execute a tool and return the result to callers that need an agent loop.
+   */
+  async executeToolAndReturn(toolName: string, args: Record<string, any>, toolId: string): Promise<any> {
     const startTime = Date.now();
     const context: ToolExecutionContext = {
       toolId,
@@ -105,6 +142,16 @@ export class ToolServiceBridge {
         throw new Error(`Tool not found: ${toolName}`);
       }
 
+      this.onStart(toolId, toolName, args);
+      const permissionMode = await this.permissionPolicyProvider(tool, args, context);
+      if (permissionMode === 'deny') {
+        throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
+      }
+
+      if (permissionMode === 'ask') {
+        await this.permissionReviewHandler(tool, args, context);
+      }
+
       const result = await this._executeToolInternal(tool, args, context);
 
       // Emit result
@@ -113,6 +160,7 @@ export class ToolServiceBridge {
       // Emit completion
       const duration = Date.now() - startTime;
       this.onComplete(toolId, true, duration);
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       this.onError(
@@ -121,6 +169,7 @@ export class ToolServiceBridge {
         error instanceof Error ? error.stack : undefined
       );
       this.onComplete(toolId, false, duration);
+      throw error;
     } finally {
       this.executions.delete(toolId);
     }

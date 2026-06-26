@@ -19,18 +19,32 @@ const DEFAULT_BASE_URLS = {
     openai: 'https://api.openai.com/v1',
     'openai-compatible': 'http://127.0.0.1:1234/v1',
 };
+const DEFAULT_CONTEXT_TOKENS = {
+    anthropic: 200000,
+    openai: 128000,
+    'openai-compatible': 8192,
+};
+const DEFAULT_MAX_TOKENS = {
+    anthropic: 4096,
+    openai: 4096,
+    'openai-compatible': 2048,
+};
+const MAX_TOOL_ROUNDS = 4;
 /**
  * API Service Bridge - bridges API operations to IPC.
  */
 class ApiServiceBridge {
-    constructor(apiClient) {
+    constructor(apiClient, workspacePath = process.cwd()) {
         this.authTokenProvider = null;
         this.appConfigProvider = null;
         this.bootstrapProvider = null;
+        this.toolProvider = null;
+        this.toolExecutor = null;
         this.bootstrapData = null;
         this.bootstrapFetchTime = 0;
         this.bootstrapCacheTTL = 1000 * 60 * 60; // 1 hour
         this.apiClient = apiClient ?? null;
+        this.workspacePath = workspacePath;
     }
     /**
      * Send a chat message and get response.
@@ -90,6 +104,19 @@ class ApiServiceBridge {
 
 You have access to multiple tools and can execute code, analyze files, and help with various programming tasks.
 
+Current workspace root: ${this.workspacePath}
+
+All desktop file tools are scoped to this workspace root. Use workspace-relative paths when calling file tools. When asked for a full file path, combine the workspace root with the relative path that was used. Do not invent generic paths such as /workspace.
+
+Tool use policy:
+- For current time or date questions, use time.now. Do not create scripts or files to answer time/date questions.
+- For stock, ETF, index, crypto, or market price questions, use finance.quote first. Answer with the returned price, currency, symbol, exchange, change, and market timestamp when available. Mention that quotes may be delayed and are informational only.
+- For current public facts, external documentation, product facts, news, policies, schedules, or other external questions without a structured tool, use web.research. If you use web.search and the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Do not answer with only a list of links unless the user explicitly asks for links.
+- If configured MCP tools may be relevant, use mcp.listTools to inspect executable MCP tools, then use mcp.callTool with the reported serverName and toolName. Do not assume an MCP server is executable until it appears in mcp.listTools.
+- Use fs.write only when the user explicitly asks to create or modify files.
+- Use bash.run for workspace inspection, tests, builds, and simple non-interactive commands. Do not use bash.run for simple time/date or web lookup questions.
+- Keep tool calls focused and prefer read-only tools before tools that modify the workspace.
+
 Always be helpful, thorough, and provide clear explanations.`;
     }
     /**
@@ -110,6 +137,13 @@ Always be helpful, thorough, and provide clear explanations.`;
     setBootstrapProvider(provider) {
         this.bootstrapProvider = provider;
         this.clearBootstrapCache();
+    }
+    setWorkspacePath(workspacePath) {
+        this.workspacePath = workspacePath;
+    }
+    setToolProvider(provider, executor) {
+        this.toolProvider = provider;
+        this.toolExecutor = executor;
     }
     /**
      * Clear bootstrap cache.
@@ -175,54 +209,134 @@ Always be helpful, thorough, and provide clear explanations.`;
         };
     }
     async chatOpenAiCompatible(request, config) {
-        const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
-            method: 'POST',
-            headers: this.getOpenAiHeaders(config),
-            body: JSON.stringify({
-                model: config.model,
-                messages: this.toOpenAiMessages(request),
-                max_tokens: config.maxTokens,
-                temperature: config.temperature,
-                stream: false,
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(await this.formatOpenAiError(response));
+        const messages = this.toOpenAiMessages(request);
+        const toolSet = await this.getOpenAiToolSet(config);
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let lastModel = config.model;
+        for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+            const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+                method: 'POST',
+                headers: this.getOpenAiHeaders(config),
+                body: JSON.stringify(this.buildOpenAiPayload(config, messages, false, toolSet)),
+            });
+            if (!response.ok) {
+                throw new Error(await this.formatOpenAiError(response));
+            }
+            const data = await response.json();
+            const message = data.choices?.[0]?.message ?? {};
+            const toolCalls = this.normalizeOpenAiToolCalls(message.tool_calls);
+            lastModel = data.model || config.model;
+            inputTokens += Number(data.usage?.prompt_tokens ?? 0);
+            outputTokens += Number(data.usage?.completion_tokens ?? 0);
+            if (!toolCalls.length) {
+                return {
+                    content: message.content ?? '',
+                    model: lastModel,
+                    usage: { inputTokens, outputTokens },
+                };
+            }
+            if (round === MAX_TOOL_ROUNDS) {
+                return {
+                    content: 'Stopped after reaching the desktop tool-call round limit.',
+                    model: lastModel,
+                    usage: { inputTokens, outputTokens },
+                };
+            }
+            messages.push({
+                role: 'assistant',
+                content: message.content || null,
+                tool_calls: toolCalls,
+            });
+            await this.appendToolResults(messages, toolCalls, toolSet);
         }
-        const data = await response.json();
         return {
-            content: data.choices?.[0]?.message?.content ?? '',
-            model: data.model || config.model,
-            usage: {
-                inputTokens: Number(data.usage?.prompt_tokens ?? 0),
-                outputTokens: Number(data.usage?.completion_tokens ?? 0),
-            },
+            content: '',
+            model: lastModel,
+            usage: { inputTokens, outputTokens },
         };
     }
     async streamOpenAiCompatible(request, config, handlers) {
-        const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
-            method: 'POST',
-            headers: this.getOpenAiHeaders(config),
-            body: JSON.stringify({
-                model: config.model,
-                messages: this.toOpenAiMessages(request),
-                max_tokens: config.maxTokens,
-                temperature: config.temperature,
-                stream: true,
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(await this.formatOpenAiError(response));
+        const messages = this.toOpenAiMessages(request);
+        const toolSet = await this.getOpenAiToolSet(config);
+        let content = '';
+        let inputTokens = 0;
+        let outputTokens = 0;
+        let lastModel = config.model;
+        for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+            const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+                method: 'POST',
+                headers: this.getOpenAiHeaders(config),
+                body: JSON.stringify(this.buildOpenAiPayload(config, messages, true, toolSet)),
+            });
+            if (!response.ok) {
+                throw new Error(await this.formatOpenAiError(response));
+            }
+            if (!response.body) {
+                throw new Error('Streaming response did not include a response body');
+            }
+            const result = await this.readOpenAiStream(response, handlers);
+            content += result.content;
+            inputTokens += result.inputTokens;
+            outputTokens += result.outputTokens;
+            lastModel = result.model || lastModel;
+            if (!result.toolCalls.length) {
+                return {
+                    content,
+                    model: lastModel,
+                    usage: {
+                        inputTokens,
+                        outputTokens,
+                    },
+                };
+            }
+            if (round === MAX_TOOL_ROUNDS) {
+                const limitMessage = '\n\nStopped after reaching the desktop tool-call round limit.';
+                content += limitMessage;
+                handlers.onDelta?.(limitMessage);
+                break;
+            }
+            messages.push({
+                role: 'assistant',
+                content: result.assistantContent || null,
+                tool_calls: result.toolCalls,
+            });
+            await this.appendToolResults(messages, result.toolCalls, toolSet);
         }
-        if (!response.body) {
-            throw new Error('Streaming response did not include a response body');
-        }
+        return {
+            content,
+            model: lastModel,
+            usage: {
+                inputTokens,
+                outputTokens,
+            },
+        };
+    }
+    async readOpenAiStream(response, handlers) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        const toolCallsByIndex = new Map();
         let buffer = '';
         let content = '';
         let inputTokens = 0;
         let outputTokens = 0;
+        let model;
+        const processParsed = (parsed) => {
+            if (!parsed || parsed === '[DONE]') {
+                return;
+            }
+            model = parsed.model || model;
+            inputTokens = Number(parsed.usage?.prompt_tokens ?? inputTokens);
+            outputTokens = Number(parsed.usage?.completion_tokens ?? outputTokens);
+            const choice = parsed.choices?.[0];
+            const delta = choice?.delta ?? {};
+            const textDelta = delta.content ?? '';
+            if (textDelta) {
+                content += textDelta;
+                handlers.onDelta?.(textDelta);
+            }
+            this.mergeOpenAiToolCallDeltas(toolCallsByIndex, delta.tool_calls);
+        };
         while (true) {
             const { value, done } = await reader.read();
             if (done) {
@@ -232,39 +346,19 @@ Always be helpful, thorough, and provide clear explanations.`;
             const lines = buffer.split(/\r?\n/);
             buffer = lines.pop() ?? '';
             for (const line of lines) {
-                const parsed = this.parseOpenAiStreamLine(line);
-                if (!parsed) {
-                    continue;
-                }
-                if (parsed === '[DONE]') {
-                    continue;
-                }
-                const delta = parsed.choices?.[0]?.delta?.content ?? '';
-                if (delta) {
-                    content += delta;
-                    handlers.onDelta?.(delta);
-                }
-                inputTokens = Number(parsed.usage?.prompt_tokens ?? inputTokens);
-                outputTokens = Number(parsed.usage?.completion_tokens ?? outputTokens);
+                processParsed(this.parseOpenAiStreamLine(line));
             }
         }
         if (buffer.trim()) {
-            const parsed = this.parseOpenAiStreamLine(buffer);
-            if (parsed && parsed !== '[DONE]') {
-                const delta = parsed.choices?.[0]?.delta?.content ?? '';
-                if (delta) {
-                    content += delta;
-                    handlers.onDelta?.(delta);
-                }
-            }
+            processParsed(this.parseOpenAiStreamLine(buffer));
         }
         return {
             content,
-            model: config.model,
-            usage: {
-                inputTokens,
-                outputTokens,
-            },
+            assistantContent: content,
+            toolCalls: Array.from(toolCallsByIndex.values()).filter(call => call.id && call.function.name),
+            inputTokens,
+            outputTokens,
+            model,
         };
     }
     async resolveRuntimeConfig(request) {
@@ -272,6 +366,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         const provider = (request.provider || appConfig?.llmProvider || 'anthropic');
         const token = await this.authTokenProvider?.(provider);
         const baseUrl = request.baseUrl || appConfig?.baseUrl || this.getDefaultBaseUrl(provider);
+        const contextTokens = this.resolveContextTokens(provider, request.contextTokens ?? appConfig?.contextTokens);
+        const maxTokens = this.resolveMaxTokens(provider, request.maxTokens ?? appConfig?.maxTokens, contextTokens);
         const apiKey = token?.accessToken || this.getEnvironmentApiKey(provider);
         if (provider !== 'openai-compatible' && !apiKey) {
             throw new Error(`API client not initialized: configure an API key for ${this.getProviderLabel(provider)} first`);
@@ -280,9 +376,12 @@ Always be helpful, thorough, and provide clear explanations.`;
             provider,
             baseUrl,
             model: request.model || appConfig?.model || DEFAULT_MODELS[provider],
-            maxTokens: Number(request.maxTokens ?? appConfig?.maxTokens ?? 4096),
+            maxTokens,
+            contextTokens,
             temperature: request.temperature ?? appConfig?.temperature,
             apiKey,
+            enableTools: this.shouldEnableTools(provider, request.enableTools ?? appConfig?.enableLlmTools),
+            disabledTools: this.normalizeToolNameSet(appConfig?.disabledLlmTools),
         };
     }
     getAnthropicClient(config) {
@@ -301,6 +400,191 @@ Always be helpful, thorough, and provide clear explanations.`;
                 .map((block) => block.text)
                 .join('')
             : '';
+    }
+    buildOpenAiPayload(config, messages, stream, toolSet) {
+        const payload = {
+            model: config.model,
+            messages,
+            max_tokens: config.maxTokens,
+            temperature: config.temperature,
+            stream,
+        };
+        if (config.enableTools && toolSet.tools.length > 0) {
+            payload.tools = toolSet.tools;
+            payload.tool_choice = 'auto';
+        }
+        return Object.fromEntries(Object.entries(payload).filter(([, value]) => value !== undefined));
+    }
+    async getOpenAiToolSet(config) {
+        if (!config.enableTools || !this.toolProvider) {
+            return { tools: [], nameMap: new Map() };
+        }
+        const nameMap = new Map();
+        const usedNames = new Set();
+        const bridgeTools = (await this.toolProvider())
+            .filter(tool => !config.disabledTools.has(tool.name));
+        const tools = bridgeTools.map(tool => {
+            const safeName = this.toOpenAiToolName(tool.name, usedNames);
+            nameMap.set(safeName, tool.name);
+            return {
+                type: 'function',
+                function: {
+                    name: safeName,
+                    description: tool.description || `Run ${tool.name}`,
+                    parameters: this.normalizeToolInputSchema(tool.inputSchema),
+                },
+            };
+        });
+        return { tools, nameMap };
+    }
+    async appendToolResults(messages, toolCalls, toolSet) {
+        if (!this.toolExecutor) {
+            throw new Error('Desktop tool executor is not configured');
+        }
+        for (const toolCall of toolCalls) {
+            const requestedName = toolCall.function.name;
+            const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
+            const args = this.parseToolArguments(toolCall.function.arguments);
+            try {
+                const result = await this.toolExecutor(toolName, args);
+                messages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: this.stringifyToolResult(result),
+                });
+            }
+            catch (error) {
+                messages.push({
+                    role: 'tool',
+                    tool_call_id: toolCall.id,
+                    content: this.stringifyToolResult({
+                        error: error instanceof Error ? error.message : String(error),
+                    }),
+                });
+            }
+        }
+    }
+    normalizeOpenAiToolCalls(value) {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+        return value
+            .filter(call => call?.function?.name)
+            .map(call => ({
+            id: String(call.id || `tool-call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+            type: 'function',
+            function: {
+                name: String(call.function.name),
+                arguments: typeof call.function.arguments === 'string' ? call.function.arguments : '{}',
+            },
+        }));
+    }
+    mergeOpenAiToolCallDeltas(toolCallsByIndex, deltas) {
+        if (!Array.isArray(deltas)) {
+            return;
+        }
+        for (const delta of deltas) {
+            const index = Number(delta?.index ?? toolCallsByIndex.size);
+            const current = toolCallsByIndex.get(index) ?? {
+                id: '',
+                type: 'function',
+                function: {
+                    name: '',
+                    arguments: '',
+                },
+            };
+            if (delta.id) {
+                current.id = String(delta.id);
+            }
+            if (delta.function?.name) {
+                current.function.name += String(delta.function.name);
+            }
+            if (delta.function?.arguments) {
+                current.function.arguments += String(delta.function.arguments);
+            }
+            toolCallsByIndex.set(index, current);
+        }
+    }
+    parseToolArguments(rawArguments) {
+        if (!rawArguments.trim()) {
+            return {};
+        }
+        try {
+            const parsed = JSON.parse(rawArguments);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+        catch {
+            // Fall through to a raw argument payload for models that stream malformed JSON.
+        }
+        return { input: rawArguments };
+    }
+    stringifyToolResult(result) {
+        if (result === undefined) {
+            return JSON.stringify({ ok: true });
+        }
+        if (result === null) {
+            return 'null';
+        }
+        if (typeof result === 'string') {
+            return result;
+        }
+        try {
+            return JSON.stringify(result) ?? String(result);
+        }
+        catch {
+            return String(result);
+        }
+    }
+    toOpenAiToolName(name, usedNames) {
+        const baseName = name.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64) || 'tool';
+        let safeName = baseName;
+        let suffix = 2;
+        while (usedNames.has(safeName)) {
+            const suffixText = `_${suffix}`;
+            safeName = `${baseName.slice(0, Math.max(1, 64 - suffixText.length))}${suffixText}`;
+            suffix += 1;
+        }
+        usedNames.add(safeName);
+        return safeName;
+    }
+    normalizeToolInputSchema(schema) {
+        if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+            return { type: 'object', properties: {} };
+        }
+        return schema;
+    }
+    normalizeToolNameSet(value) {
+        if (Array.isArray(value)) {
+            return new Set(value.map(item => String(item).trim()).filter(Boolean));
+        }
+        if (typeof value === 'string') {
+            return new Set(value.split(',').map(item => item.trim()).filter(Boolean));
+        }
+        return new Set();
+    }
+    resolveContextTokens(provider, value) {
+        const parsed = Number(value ?? DEFAULT_CONTEXT_TOKENS[provider]);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return DEFAULT_CONTEXT_TOKENS[provider];
+        }
+        return Math.floor(parsed);
+    }
+    resolveMaxTokens(provider, value, contextTokens) {
+        const parsed = Number(value ?? DEFAULT_MAX_TOKENS[provider]);
+        const fallback = DEFAULT_MAX_TOKENS[provider];
+        const maxTokens = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+        return Math.max(1, Math.min(maxTokens, contextTokens));
+    }
+    shouldEnableTools(provider, value) {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+        if (typeof value === 'string') {
+            return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+        }
+        return provider !== 'openai-compatible';
     }
     toOpenAiMessages(request) {
         return [
@@ -394,7 +678,9 @@ Always be helpful, thorough, and provide clear explanations.`;
                 baseUrl: config?.baseUrl || this.getDefaultBaseUrl(provider),
                 model: config?.model || DEFAULT_MODELS[provider],
                 temperature: config?.temperature ?? 0.7,
-                maxTokens: config?.maxTokens ?? 4096,
+                maxTokens: config?.maxTokens ?? DEFAULT_MAX_TOKENS[provider],
+                contextTokens: config?.contextTokens ?? DEFAULT_CONTEXT_TOKENS[provider],
+                enableLlmTools: Boolean(config?.enableLlmTools),
             },
             features: {
                 tools: true,

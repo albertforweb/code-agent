@@ -529,19 +529,135 @@ window.api = {
 
 ---
 
+### 4.4 Desktop CLI Parity Foundation ✅ COMPLETE
+**Objective**: Bring the desktop app up to the current CLI foundation for local LM Studio/OpenAI-compatible testing
+
+**Scope Completed (June 25, 2026)**:
+- [x] Added desktop-safe local provider defaults matching the CLI LM Studio path: 8192 context tokens, 2048 max output tokens, and model tool schemas disabled by default.
+- [x] Exposed context tokens and model tool-call enablement in the desktop Settings UI.
+- [x] Added provider-aware Settings defaults so Anthropic, OpenAI, and OpenAI-compatible backends switch model/base URL/token settings together.
+- [x] Added `/help`, `/status`, `/login`, `/login lmstudio`, `/settings`, `/tools`, `/mcp`, `/config`, `/run`, and `/clear` desktop command equivalents.
+- [x] Fixed the desktop menu Settings action by forwarding the menu event through preload to the renderer.
+- [x] Added an Electron OpenAI-compatible tool-call loop over desktop bridge tools, including streamed tool-call parsing, tool-name sanitization for OpenAI function names, tool-result feedback, and bounded tool-call rounds.
+- [x] Kept local model tool schemas opt-in so basic LM Studio chat stays within small local context windows by default.
+- [x] Fixed desktop OpenAI-compatible tool-result formatting so void-returning bridge tools such as `fs.write` send a valid string `content` field back to LM Studio.
+- [x] Clarified desktop filesystem tool descriptions so models prefer workspace-relative paths.
+- [x] Added an explicit desktop filesystem guard for `~/...` paths so home-directory writes fail clearly instead of creating a literal `~` folder inside the workspace.
+- [x] Exposed the real desktop workspace path through `app:info`, the sidebar, `/status`, `/pwd`, and `/workspace`.
+- [x] Added the desktop workspace root to the OpenAI-compatible system prompt so local models can report real full paths instead of hallucinating `/workspace`.
+- [x] Verified main-process and renderer TypeScript checks after the parity changes.
+- [x] Verified the void-returning `fs.write` tool-call path, home-path guard, and workspace-root prompt with mock smoke tests.
+
+**Remaining Parity Notes**:
+- [ ] Full CLI session resume/fork and terminal-only registry parity are still broader follow-up work; desktop session persistence, permission workflows, and local bridge-tool testing are complete for the local-first workbench.
+- [x] MCP stdio tool execution is available from the desktop app; HTTP/WebSocket MCP transports remain a future transport expansion.
+
+---
+
+### 4.5 Local-First Desktop Agent UX ✅ COMPLETE
+**Objective**: Turn the working desktop chat/tool bridge into a usable local agent workbench inspired by Claude Desktop/Claude Code, without chasing proprietary cloud-only parity.
+
+**Direction Decision (June 25, 2026)**:
+- [x] Keep Anthropic/OpenAI/LM Studio provider flexibility as a core product direction.
+- [x] Prioritize local LM Studio/OpenAI-compatible agent reliability before packaging.
+- [x] Use current Claude Desktop/Claude Code UX patterns as reference points, but implement only the pieces that fit this codebase and local-first execution model.
+- [x] Defer cloud-specific features such as hosted background agents, managed connectors, scheduled cloud tasks, and proprietary PR monitoring until the local desktop foundation is solid.
+- [x] Keep the built-in agent core small and generic: filesystem, Bash, web research, time, app config, and MCP discovery/execution.
+- [x] Treat specialized services such as finance quotes as built-in connector examples for common structured data, not as the pattern for every possible topic.
+- [x] Prefer generic web research and MCP/plugin extensibility over hardcoding a new service for each user question category.
+
+**Reference Capability Gaps to Track**:
+- [x] Full permission workflow for file writes, command execution, MCP calls, undo, and other potentially destructive tools through per-tool allow/ask/deny policies plus specific diff/command reviews.
+- [x] File edit diff preview before apply, plus an applied-changes review surface after tool execution with Open/Reveal actions for applied filesystem results.
+- [x] Checkpoint/undo support for tool-driven file changes.
+- [x] Desktop session persistence, recent session restore, and transcript search. Resume/fork remain future enhancements.
+- [x] MCP stdio tool execution from the desktop app, not just MCP server/tool metadata discovery.
+- [x] Initial rich workspace context: visible workspace path, scoped file browser, and file open/reveal actions. Open-file content context and selected-context prompts remain future enhancements.
+- [x] Tool activity timeline with arguments, status, results, and errors. Retry affordances remain future polish.
+- [x] Integrated terminal/run-command experience with permission gates.
+- [x] Git-aware workflow helpers: changed files, diffs, branch status, commit summary, and PR-ready change review. Initial helpers are exposed as approved workspace commands; deeper PR automation remains future work.
+- [x] Desktop app preview or dev-server awareness for web projects through approved workspace helper commands for listening ports/dev-server discovery. Embedded preview remains future work.
+- [x] Plugin/skill management UI only after core tools, sessions, and permissions are reliable. Initial plugin/skill/MCP configuration visibility is available in Tools and detailed editing remains in Settings.
+- [x] Initial tool registry UI that distinguishes bridge tools, MCP server state, and executable MCP tools.
+- [x] Initial tool router controls that let users hide/show bridge tools from model tool calls without code changes.
+- [x] Full connector/MCP-specific router controls, policy presets, and per-tool permission modes.
+- [x] Connector architecture cleanup: group built-in tools into core, research, connector examples, API bridge, and MCP adapters in the Tools UI.
+
+**Desktop UX Workbench Backlog**:
+- [x] Replace the current chat-first shell with a stable workbench layout: session/sidebar area, primary chat, and context/tool inspector.
+- [x] Add a clear model/provider/workspace status header with endpoint context, request state, tool-call mode, exposed-tool count, and MCP summary. Active backend ping/health check remains future polish.
+- [x] Add a workspace file browser with directory navigation, Open/Reveal actions, and a visible absolute workspace path.
+- [x] Add read-only utility tools for current time, generic web research, web lookup/fetch, and finance quotes so the model does not create files/scripts or stop at search-link lists for simple factual questions.
+- [x] Add a tool timeline panel that shows each model-requested tool call, parameters, result summary, and failure reason.
+- [x] Add a safe file-write flow: model proposes write/edit -> app shows path and diff -> user approves -> bridge applies change.
+- [x] Add checkpoint creation before file write tools and restore support for the latest checkpoint.
+- [x] Add a guarded command execution tool with desktop approval, workspace cwd scoping, timeout/output limits, and destructive-command blocking.
+- [x] Add session list/recent activity so desktop restarts do not lose chat history.
+- [x] Add command palette/slash-command UI polish for `/login`, `/settings`, `/status`, `/tools`, `/mcp`, `/workspace`, and future commands.
+- [x] Add clear empty/loading/error states for LM Studio unavailable, model context overflow, bad tool-call JSON, and unsupported paths such as `~/...`.
+- [x] Polish the desktop shell toward a Claude-like workbench: left navigation, recents, warm neutral canvas, centered chat column, rounded composer, and quieter context rail.
+- [x] Make the left navigation functional: Chats returns to the conversation, Projects opens workspace context, and Tools opens tool catalog/activity.
+- [x] Remove the always-visible right context rail from the chat view and move compact context into clickable footer/status panes.
+- [x] Convert Settings from modal/drawer treatment into a first-class main workspace view.
+- [x] Rework Settings into a sectioned main view with left-side groups and one selected configuration form at a time.
+- [x] Move the Settings entry point out of the top header and into the lower-left sidebar status area.
+- [x] Add executable stdio MCP support: discover configured stdio servers, list their tools, and call selected MCP tools through the audited bridge tool path.
+- [x] Keep HTTP/WebSocket MCP servers visible but explicitly mark them as not executable until those transports are added.
+
+**Progress Update (June 25, 2026)**:
+- [x] Added a typed `tool:start` IPC event from main process to renderer so model-driven and manual tool calls can be displayed as activity, not only as chat messages.
+- [x] Added a desktop side-panel tool activity timeline with compact arguments, result previews, success/failure state, timing, and clear action.
+- [x] Added a typed desktop file-write review flow: `fs.write` now generates a real-path diff preview, sends it to the renderer, and waits for explicit approve/reject before writing.
+- [x] Added checkpointed desktop writes plus `fs.undoLastWrite` to restore the latest write checkpoint.
+- [x] Verified filesystem preview/checkpoint/undo service behavior for both new-file and existing-file writes.
+- [x] Made Electron DevTools opt-in during development after a native Electron 31/macOS crash report showed `SIGSEGV` in Chromium font/GPU code while DevTools was opening; added a GPU-off development script for local crash isolation.
+- [x] Reworked the renderer UI into a more polished desktop assistant shell inspired by Claude Desktop patterns: left sidebar, recent prompts, centered conversation, subtle message styling, refined composer, and less debug-heavy context panels.
+- [x] Follow-up UI polish: left-panel Projects/Tools now switch to real views, operational context moved into status panes, and Settings is a main workspace view.
+- [x] Added `time.now`, `web.search`, and `web.fetch` as read-only desktop bridge tools, plus prompt policy directing models to use them before filesystem or Bash workarounds.
+- [x] Added `web.research` as a generic search+fetch+extract tool so broad external/current questions can produce direct source-grounded answers without hardcoded topic services.
+- [x] Added `finance.quote` as a read-only structured quote tool so stock-price questions can return a direct price/currency/change/timestamp instead of only search-result links.
+- [x] Added `bash.run` as an approved desktop bridge tool with parsed non-shell commands, workspace cwd enforcement, blocked destructive commands, timeout/output caps, and a command review dialog.
+- [x] Reworked Settings into a main-view section navigation layout with a selected detail form, preserving existing config fields and save/auth actions.
+- [x] Added stdio MCP runtime support with SDK-backed server connections, executable MCP tool discovery, `mcp.listTools`, and `mcp.callTool`.
+- [x] Reworked the Tools view into a clearer registry showing bridge tools, MCP server statuses, and discovered executable stdio MCP tools.
+- [x] Added persisted desktop chat sessions with current-session restore, bounded recent sessions, sidebar switching, `/sessions`, and Projects view session summary.
+- [x] Added a scoped Projects file browser backed by `fs.list`, with root/up/refresh controls, directory navigation, visible workspace path, and sorted directory/file rows.
+- [x] Added persisted tool-router controls in the Tools view: expose all, read-only only, hide mutating tools, and per-tool hide/expose toggles that filter model tool schemas while preserving manual `/run`.
+- [x] Added sidebar transcript search across persisted sessions and workspace-scoped Projects Open/Reveal actions through guarded Electron shell IPC.
+- [x] Added user-facing error guidance for unreachable local LLM endpoints, context-window overflow, malformed tool/chat payloads, and workspace path policy violations.
+- [x] Added a slash-command palette in the composer backed by the same command registry used for `/help`.
+- [x] Added a compact chat runtime strip for provider, model, workspace, tool-call exposure, and MCP status with navigation into Settings, Projects, and Tools.
+- [x] Added a generic desktop tool permission review channel plus persisted allow/ask/deny policies enforced before bridge tool execution.
+- [x] Added Tools view policy presets, per-tool permission selectors, connector/tool grouping, MCP execution-policy visibility, plugin/skill configuration visibility, and an approved workspace command runner.
+- [x] Added built-in workspace helper commands for git status/diff/branch, npm script discovery, and dev-server/listening-port awareness.
+- [x] Added applied filesystem result actions in the tool activity timeline so completed writes/undo operations can be opened or revealed from the UI.
+
+**Acceptance Criteria Before Packaging**:
+- [x] A user can configure LM Studio, start a desktop chat, ask for a file change, review the proposed diff, approve it, and see the file created/edited in the real workspace. Implementation is complete; full manual regression moves to Phase 6 testing.
+- [x] The app never claims `/workspace` or another invented path; workspace-relative and absolute paths are shown consistently.
+- [x] Tool calls are visible and auditable from the UI, including failed calls.
+- [x] At least one checkpoint/undo path works for file writes.
+- [x] Read-only current-time, generic web research, finance quote, and web lookup tools are available so simple factual questions no longer require generated scripts or link-only search answers.
+- [x] Bash command execution is gated by user approval and scoped to the workspace.
+- [x] A restarted desktop app can show recent sessions and recover the last session state.
+- [x] MCP execution is implemented for local stdio MCP servers, with UI that distinguishes configured servers from executable tools. HTTP/WebSocket MCP execution remains deferred.
+
+---
+
 ## Phase 5: Packaging & Distribution (Days 15-18)
 
-### 5.1 Configure Electron Builder ✅ PENDING
+### 5.1 Configure Electron Builder 🚧 PARTIAL
 **Objective**: Set up cross-platform packaging
 
 **Files to Create/Modify**:
-- `electron-builder.json` - Build configuration
-- `package.json` - Add build scripts
+- `package.json` - Build configuration and scripts
 
 **Configuration**:
-- [ ] Windows: .exe installer + portable
-- [ ] macOS: .dmg installer + code signing + notarization
-- [ ] Linux: .AppImage + .deb packages
+- [x] Windows: .exe installer + portable targets configured
+- [x] macOS: .dmg + zip targets configured
+- [x] Linux: .AppImage + .deb targets configured
+- [x] macOS hardened-runtime entitlements file is valid for local signing
+- [ ] macOS notarization options/credentials
 - [ ] Auto-update channels (stable, beta)
 
 **Scripts to Add**:
@@ -557,9 +673,15 @@ window.api = {
 ```
 
 **Success Criteria**:
-- `npm run dist` creates installers for all platforms
-- Apps are signed and notarized
-- Auto-update works correctly
+- [x] `npm run pack` creates a signed macOS directory app locally
+- [ ] `npm run dist` creates installers for all platforms
+- [ ] Apps are signed and notarized for release distribution
+- [ ] Auto-update works correctly
+
+**Progress Update (June 25, 2026)**:
+- [x] Existing `package.json` electron-builder config includes app id, product name, output directories, mac/win/linux targets, and build scripts.
+- [x] Replaced malformed macOS entitlements file with a valid LF-normalized hardened-runtime plist.
+- [x] Verified `npm run pack` on macOS arm64. Packaging and signing succeeded; notarization was skipped because notarization options were not configured.
 
 ---
 
@@ -765,8 +887,9 @@ window.api = {
 - **Phase 1** (Foundation): 100% ✅ COMPLETE
 - **Phase 2** (IPC Bridge): 100% ✅ COMPLETE - IPC/preload/client, service registration, executable bridge tools, API/auth bootstrap, and MCP metadata bridge complete
 - **Phase 3** (UI Replacement): 100% ✅ COMPLETE - React DOM shell, streaming chat, message rendering, tool feedback, and full settings/configuration UI complete
-- **Phase 4** (Service Refactoring): 100% ✅ COMPLETE - LLM provider abstraction, provider-scoped keychain storage, main/renderer state sync, and terminal-decoupled desktop service paths complete
-- **Phase 5** (Packaging): 0% - Not Started
+- **Phase 4** (Service Refactoring): 100% ✅ COMPLETE - LLM provider abstraction, provider-scoped keychain storage, main/renderer state sync, terminal-decoupled service paths, CLI local-provider support, and desktop CLI-parity foundation complete
+- **Phase 4.5** (Local-First Desktop Agent UX): 100% ✅ COMPLETE - roadmap documented, utility tools, guarded Bash, permission policies, command runner, git/dev helpers, tool activity timeline, safe file-write review, applied-change actions, checkpoint undo, Claude-like shell polish, sectioned Settings, slash-command palette, runtime status strip, stdio MCP execution, registry clarity, persisted sessions, transcript search, workspace file browser, Open/Reveal actions, tool-router controls, and common error-state guidance complete
+- **Phase 5** (Packaging): 20% 🚧 IN PROGRESS - electron-builder config/scripts are present, macOS entitlements fixed, and `npm run pack` validates a signed macOS directory app; notarization, installers, auto-update, and release automation remain
 - **Phase 6** (Testing): 0% - Not Started
 - **Phase 7** (Documentation): 0% - Not Started
 
@@ -775,8 +898,8 @@ window.api = {
 - **Current Date**: June 25, 2026
 - **Target Launch**: ~July 21, 2026
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
-- **Latest Update**: June 25, 2026 - fixed exact `/login` command submission and added persisted LM Studio/OpenAI-compatible CLI provider setup with local-provider auth/status handling.
-- **Next Focus**: begin Phase 5 packaging and distribution with Electron Builder configuration, auto-update wiring, and release pipeline setup.
+- **Latest Update**: June 25, 2026 - completed Phase 4.5 local-first desktop agent UX with permission policies, command runner, git/dev helpers, connector grouping, applied-change actions, session/search/workspace/tool-router/runtime-status polish, fixed macOS entitlements, and verified `npm run pack` for a signed macOS directory app.
+- **Next Focus**: Phase 5 notarization/release packaging, auto-update wiring, and release automation.
 
 ---
 
@@ -795,16 +918,16 @@ window.api = {
 
 ## Success Criteria (Overall)
 
-- ✅ Standalone desktop app (no terminal required)
-- ✅ All features from CLI work in desktop
-- ✅ Cross-platform (Windows, macOS, Linux)
-- ✅ Auto-update working
-- ✅ < 3 second startup time
-- ✅ 512KB installer size (or reasonable)
-- ✅ Code-signed and notarized
-- ✅ Feature parity with CLI version
-- ✅ Good user documentation
-- ✅ Developer documentation for extensions
+- ✅ Standalone desktop app shell (no terminal required for core UI)
+- 🚧 CLI feature parity: local provider setup, chat, status/help commands, settings, bridge tools, local permission workflow, and MCP stdio execution are in place; full CLI resume/fork semantics and terminal-only registry parity remain follow-up work
+- ✅ Local-first desktop agent UX: LM Studio chat, bridge tool calls, safe file write review, guarded Bash, web/finance/time tools, stdio MCP execution, session persistence, workspace browser, command runner, and applied-change review are in place
+- ⏳ Cross-platform packages (Windows, macOS, Linux)
+- ⏳ Auto-update working
+- ⏳ < 3 second startup time
+- ⏳ Installer size measured and reasonable
+- ⏳ Code-signed and notarized
+- ⏳ Good user documentation
+- ⏳ Developer documentation for extensions
 
 ---
 

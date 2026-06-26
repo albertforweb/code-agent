@@ -2,23 +2,23 @@
 
 :root {
   /* Colors */
-  --color-primary: #0066cc;
-  --color-primary-dark: #0052a3;
-  --color-background: #ffffff;
-  --color-background-secondary: #f5f5f5;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #666666;
-  --color-border: #dddddd;
-  --color-error: #cc0000;
-  --color-success: #00cc00;
-  --color-warning: #ffaa00;
+  --color-primary: #c15f3c;
+  --color-primary-dark: #9d482c;
+  --color-background: #fbfaf7;
+  --color-background-secondary: #f0eee8;
+  --color-text: #26231f;
+  --color-text-secondary: #6f6a60;
+  --color-border: #ded8cd;
+  --color-error: #b0443f;
+  --color-success: #2f7a4b;
+  --color-warning: #a66a14;
 
   /* Dark mode */
-  --color-bg-dark: #1a1a1a;
-  --color-bg-dark-secondary: #2d2d2d;
-  --color-text-dark: #ffffff;
-  --color-text-dark-secondary: #cccccc;
-  --color-border-dark: #444444;
+  --color-bg-dark: #1f1d1a;
+  --color-bg-dark-secondary: #2a2722;
+  --color-text-dark: #f4f1ea;
+  --color-text-dark-secondary: #bdb5a8;
+  --color-border-dark: #454036;
 
   /* Spacing */
   --spacing-xs: 4px;
@@ -36,7 +36,7 @@
   --font-size-xl: 24px;
 
   /* Border radius */
-  --radius-sm: 4px;
+  --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
 }

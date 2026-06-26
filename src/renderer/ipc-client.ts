@@ -10,6 +10,51 @@ export interface ToolExecuteResponse {
   toolId: string;
 }
 
+export interface ToolStartMessage {
+  toolId: string;
+  toolName: string;
+  args: Record<string, any>;
+  timestamp: number;
+}
+
+export interface FileWritePreview {
+  path: string;
+  absolutePath: string;
+  exists: boolean;
+  previousSizeBytes: number;
+  nextSizeBytes: number;
+  diff: string;
+}
+
+export interface FileWriteReviewRequest extends FileWritePreview {
+  requestId: string;
+  toolId: string;
+  createdAt: number;
+}
+
+export interface FileWriteReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
+export interface CommandReviewRequest {
+  requestId: string;
+  toolId: string;
+  command: string;
+  argv: string[];
+  cwd: string;
+  absoluteCwd: string;
+  timeoutMs: number;
+  createdAt: number;
+}
+
+export interface CommandReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
 export interface ToolResultMessage {
   toolId: string;
   data: any;
@@ -28,6 +73,22 @@ export interface ToolErrorMessage {
   stack?: string;
 }
 
+export type ToolPermissionMode = 'allow' | 'ask' | 'deny';
+
+export interface ToolPermissionReviewRequest {
+  requestId: string;
+  toolId: string;
+  toolName: string;
+  args: Record<string, any>;
+  createdAt: number;
+}
+
+export interface ToolPermissionReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -42,6 +103,8 @@ export interface ChatRequest {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  contextTokens?: number;
+  enableTools?: boolean;
 }
 
 export interface ChatResponse {
@@ -86,6 +149,12 @@ export interface FileEntry {
   modified?: number;
 }
 
+export interface FilePathActionResult {
+  ok: true;
+  path: string;
+  absolutePath: string;
+}
+
 export interface AuthToken {
   accessToken: string;
   provider?: LlmProviderType;
@@ -100,6 +169,10 @@ export interface AppConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  contextTokens?: number;
+  enableLlmTools?: boolean;
+  disabledLlmTools?: string[];
+  toolPermissionPolicies?: Record<string, ToolPermissionMode>;
   theme?: 'light' | 'dark' | 'system';
   language?: string;
   [key: string]: any;
@@ -110,6 +183,7 @@ export interface AppInfo {
   platform: string;
   arch: string;
   isDev: boolean;
+  workspacePath: string;
 }
 
 export interface AppConfigChangedMessage {
@@ -143,6 +217,8 @@ export interface McpServerInfo {
 
 export interface McpToolInfo extends Tool {
   serverName: string;
+  serverScope?: string;
+  serverKey?: string;
   toolName: string;
 }
 
@@ -150,6 +226,9 @@ export interface ElectronRendererApi {
   tools: {
     execute(toolName: string, args: Record<string, any>): Promise<ToolExecuteResponse>;
     list(): Promise<Tool[]>;
+    respondToFileWriteReview(response: FileWriteReviewResponse): Promise<{ ok: boolean }>;
+    respondToCommandReview(response: CommandReviewResponse): Promise<{ ok: boolean }>;
+    respondToToolPermissionReview(response: ToolPermissionReviewResponse): Promise<{ ok: boolean }>;
   };
   api: {
     chat(request: ChatRequest): Promise<ChatResponse>;
@@ -165,6 +244,8 @@ export interface ElectronRendererApi {
     read(path: string, encoding?: string): Promise<string>;
     write(path: string, content: string, encoding?: string): Promise<void>;
     list(path: string): Promise<FileEntry[]>;
+    open(path: string): Promise<FilePathActionResult>;
+    reveal(path: string): Promise<FilePathActionResult>;
   };
   auth: {
     getToken(): Promise<AuthToken | null>;
@@ -185,13 +266,18 @@ export interface ElectronRendererApi {
     openDevTools(): Promise<void>;
   };
   onToolResult(callback: (data: ToolResultMessage) => void): () => void;
+  onToolStart(callback: (data: ToolStartMessage) => void): () => void;
   onToolComplete(callback: (data: ToolCompleteMessage) => void): () => void;
   onToolError(callback: (data: ToolErrorMessage) => void): () => void;
+  onToolPermissionReview(callback: (data: ToolPermissionReviewRequest) => void): () => void;
+  onFileWriteReview(callback: (data: FileWriteReviewRequest) => void): () => void;
+  onCommandReview(callback: (data: CommandReviewRequest) => void): () => void;
   onChatDelta(callback: (data: ChatDeltaMessage) => void): () => void;
   onChatComplete(callback: (data: ChatCompleteMessage) => void): () => void;
   onChatError(callback: (data: ChatErrorMessage) => void): () => void;
   onConfigChanged(callback: (data: AppConfigChangedMessage) => void): () => void;
   onStateChanged(callback: (data: AppStateChangedMessage) => void): () => void;
+  onMenuOpenSettings(callback: () => void): () => void;
 }
 
 declare global {
@@ -212,6 +298,9 @@ export const ipcClient: ElectronRendererApi = {
   tools: {
     execute: (toolName, args) => getApi().tools.execute(toolName, args),
     list: () => getApi().tools.list(),
+    respondToFileWriteReview: response => getApi().tools.respondToFileWriteReview(response),
+    respondToCommandReview: response => getApi().tools.respondToCommandReview(response),
+    respondToToolPermissionReview: response => getApi().tools.respondToToolPermissionReview(response),
   },
   api: {
     chat: request => getApi().api.chat(request),
@@ -227,6 +316,8 @@ export const ipcClient: ElectronRendererApi = {
     read: (path, encoding) => getApi().fs.read(path, encoding),
     write: (path, content, encoding) => getApi().fs.write(path, content, encoding),
     list: path => getApi().fs.list(path),
+    open: path => getApi().fs.open(path),
+    reveal: path => getApi().fs.reveal(path),
   },
   auth: {
     getToken: () => getApi().auth.getToken(),
@@ -246,12 +337,17 @@ export const ipcClient: ElectronRendererApi = {
     close: () => getApi().window.close(),
     openDevTools: () => getApi().window.openDevTools(),
   },
+  onToolStart: callback => getApi().onToolStart(callback),
   onToolResult: callback => getApi().onToolResult(callback),
   onToolComplete: callback => getApi().onToolComplete(callback),
   onToolError: callback => getApi().onToolError(callback),
+  onToolPermissionReview: callback => getApi().onToolPermissionReview(callback),
+  onFileWriteReview: callback => getApi().onFileWriteReview(callback),
+  onCommandReview: callback => getApi().onCommandReview(callback),
   onChatDelta: callback => getApi().onChatDelta(callback),
   onChatComplete: callback => getApi().onChatComplete(callback),
   onChatError: callback => getApi().onChatError(callback),
   onConfigChanged: callback => getApi().onConfigChanged(callback),
   onStateChanged: callback => getApi().onStateChanged(callback),
+  onMenuOpenSettings: callback => getApi().onMenuOpenSettings(callback),
 };

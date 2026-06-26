@@ -16,9 +16,15 @@ import Store from 'electron-store';
 import { registerServiceBridges, type RegisteredServiceBridges } from './services-bridge';
 
 const isDev = process.env.NODE_ENV === 'development';
+const shouldOpenDevTools = process.env.ELECTRON_OPEN_DEVTOOLS === '1';
+const shouldDisableGpu = process.env.ELECTRON_DISABLE_GPU === '1';
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
 const isLinux = process.platform === 'linux';
+
+if (shouldDisableGpu) {
+  app.commandLine.appendSwitch('disable-gpu');
+}
 
 // ============================================================================
 // TYPES
@@ -121,8 +127,9 @@ function createWindow() {
 
   mainWindow.loadURL(startUrl);
 
-  // Open dev tools in development
-  if (isDev) {
+  // Open DevTools only when explicitly requested. On some macOS/Electron
+  // combinations DevTools startup can crash natively before JS reports errors.
+  if (isDev && shouldOpenDevTools) {
     mainWindow.webContents.openDevTools();
   }
 

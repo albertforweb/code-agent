@@ -19,6 +19,8 @@
     "build:electron": "npm run build:electron:main && tsc -p tsconfig.renderer.json --noEmit && npm run build:renderer",
     "build:electron:prod": "cross-env NODE_ENV=production npm run build:electron:main && tsc -p tsconfig.renderer.json --noEmit && npm run build:renderer",
     "dev:electron": "npm run build:electron && cross-env NODE_ENV=development electron .",
+    "dev:electron:debug": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_OPEN_DEVTOOLS=1 electron .",
+    "dev:electron:gpu-off": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_DISABLE_GPU=1 electron .",
     "dev:electron:watch": "concurrently \"tsc -p tsconfig.electron.json -w\" \"tsc -p tsconfig.renderer.json -w\" \"wait-on dist-electron/main.js && electron .\"",
     "dist": "npm run build:electron:prod && electron-builder",
     "dist:win": "npm run build:electron:prod && electron-builder --win",

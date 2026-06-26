@@ -383,6 +383,123 @@ body.App_dark .App_statsList dd,
 body.App_dark .App_runtimeList dd {
   color: var(--color-text-dark);
 }
+.App_toolActivityList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_toolActivityItem {
+  display: grid;
+  gap: 6px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+body.App_dark .App_toolActivityItem {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+.App_toolActivityHeader,
+.App_toolActivityMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_toolName {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_toolName {
+  color: var(--color-text-dark);
+}
+.App_toolStatus {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid #c9d2dc;
+  border-radius: var(--radius-sm);
+  background: #f5f7fa;
+  color: #3f4b59;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.App_toolStatus_running {
+  border-color: #c8a652;
+  background: #fff7dd;
+  color: #7a5200;
+}
+.App_toolStatus_succeeded {
+  border-color: #9ac7a2;
+  background: #edf8ef;
+  color: #246b32;
+}
+.App_toolStatus_failed {
+  border-color: #e0a4a4;
+  background: #fff4f4;
+  color: #9a2f2f;
+}
+body.App_dark .App_toolStatus {
+  border-color: #526070;
+  background: #28313a;
+  color: #c9d2dc;
+}
+body.App_dark .App_toolStatus_running {
+  border-color: #8f6d20;
+  background: #3a2d12;
+  color: #ffd778;
+}
+body.App_dark .App_toolStatus_succeeded {
+  border-color: #2f7942;
+  background: #17391f;
+  color: #9ad9a7;
+}
+body.App_dark .App_toolStatus_failed {
+  border-color: #7f3434;
+  background: #341d1d;
+  color: #ffb4b4;
+}
+.App_toolActivityMeta,
+.App_toolActivityText,
+.App_toolActivityResult,
+.App_toolActivityError {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+.App_toolActivityMeta {
+  color: var(--color-text-secondary);
+}
+.App_toolActivityText,
+.App_toolActivityResult {
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.App_toolActivityResult {
+  padding-top: 2px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+.App_toolActivityError {
+  color: #9a2f2f;
+  overflow-wrap: anywhere;
+}
+body.App_dark .App_toolActivityMeta,
+body.App_dark .App_toolActivityText {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_toolActivityResult {
+  border-top-color: var(--color-border-dark);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_toolActivityError {
+  color: #ffb4b4;
+}
 .App_tagList {
   display: flex;
   flex-wrap: wrap;
@@ -490,6 +607,1145 @@ body.App_dark .App_secondaryButton:hover {
 body.App_dark .App_dangerButton:hover {
   background: #432424;
 }
+.App_container {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  height: 100%;
+  min-width: 0;
+  background: #f7f5ef;
+  color: var(--color-text);
+}
+body.App_dark .App_container {
+  background: #191815;
+  color: var(--color-text-dark);
+}
+.App_navSidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 14px 12px;
+  border-right: 1px solid #e3ded4;
+  background: #eeeae1;
+}
+body.App_dark .App_navSidebar {
+  border-right-color: #39352d;
+  background: #24211d;
+}
+.App_brandBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 8px 8px;
+}
+.App_brandBlock > div,
+.App_sidebarFooter > div {
+  display: grid;
+  min-width: 0;
+}
+.App_brandBlock strong,
+.App_sidebarFooter strong {
+  overflow: hidden;
+  color: #2b2823;
+  font-size: var(--font-size-sm);
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_brandBlock span:not(.App_brandMark),
+.App_sidebarFooter span:not(.App_statusDot):not(.App_statusDotBusy) {
+  overflow: hidden;
+  color: #7a7267;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_brandBlock strong,
+body.App_dark .App_sidebarFooter strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_brandBlock span:not(.App_brandMark),
+body.App_dark .App_sidebarFooter span:not(.App_statusDot):not(.App_statusDotBusy) {
+  color: var(--color-text-dark-secondary);
+}
+.App_brandMark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(193, 95, 60, 0.28);
+  border-radius: 999px;
+  background: #fff7ef;
+  color: #c15f3c;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+body.App_dark .App_brandMark {
+  border-color: rgba(233, 132, 86, 0.35);
+  background: #33261f;
+  color: #e98456;
+}
+.App_newChatButton,
+.App_navItem,
+.App_navItemActive,
+.App_recentItem,
+.App_recentItemActive {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #403b34;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-align: left;
+}
+.App_newChatButton {
+  gap: 8px;
+  margin: 4px 0 12px;
+  border-color: #d9d1c5;
+  background: #fbfaf7;
+  box-shadow: 0 1px 2px rgba(42, 37, 30, 0.06);
+}
+.App_newChatButton span {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #c15f3c;
+  color: #fff;
+  line-height: 1;
+}
+.App_navList,
+.App_recentList {
+  display: grid;
+  gap: 2px;
+}
+.App_navItemActive,
+.App_recentItemActive {
+  background: #dfd8cd;
+}
+.App_recentSection {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+  margin-top: 18px;
+}
+.App_recentSection h2 {
+  margin: 0;
+  padding: 0 8px;
+  color: #8a8175;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.App_sessionSearchInput {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #d9d1c5;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.56);
+  color: #403b34;
+  font-size: var(--font-size-sm);
+}
+.App_recentList {
+  min-height: 0;
+  overflow-y: auto;
+}
+.App_recentItem,
+.App_recentItemActive {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 46px;
+  padding: 6px 8px;
+  overflow: hidden;
+  color: #5f574d;
+  font-weight: 500;
+}
+.App_recentTitle,
+.App_recentMeta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_recentTitle {
+  color: inherit;
+}
+.App_recentMeta {
+  color: #948a7d;
+  font-size: 11px;
+  font-weight: 500;
+}
+.App_sidebarFooter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.42);
+}
+.App_sidebarBottom {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.App_sidebarBottom .App_sidebarFooter {
+  margin-top: 0;
+}
+.App_sidebarSettingsButton,
+.App_sidebarSettingsButtonActive {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #403b34;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  text-align: left;
+}
+.App_sidebarSettingsButton:hover {
+  background: #e8e1d7;
+}
+.App_sidebarSettingsButtonActive {
+  border-color: #d9d1c5;
+  background: #dfd8cd;
+}
+.App_statusDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #2f7a4b;
+  box-shadow: 0 0 0 3px rgba(47, 122, 75, 0.12);
+}
+.App_statusDotBusy {
+  background: #c15f3c;
+  box-shadow: 0 0 0 3px rgba(193, 95, 60, 0.16);
+}
+body.App_dark .App_newChatButton,
+body.App_dark .App_navItem,
+body.App_dark .App_navItemActive,
+body.App_dark .App_recentItem,
+body.App_dark .App_recentItemActive {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_newChatButton {
+  border-color: #4b4439;
+  background: #2d2923;
+}
+body.App_dark .App_navItemActive,
+body.App_dark .App_recentItemActive {
+  background: #39342d;
+}
+body.App_dark .App_recentSection h2,
+body.App_dark .App_recentItem,
+body.App_dark .App_recentItemActive {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_recentMeta {
+  color: #8d8376;
+}
+body.App_dark .App_sessionSearchInput {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_sidebarFooter {
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_sidebarSettingsButton,
+body.App_dark .App_sidebarSettingsButtonActive {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_sidebarSettingsButton:hover {
+  background: #302b25;
+}
+body.App_dark .App_sidebarSettingsButtonActive {
+  border-color: #4b4439;
+  background: #39342d;
+}
+.App_appShell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #fbfaf7;
+}
+body.App_dark .App_appShell {
+  background: #1f1d1a;
+}
+.App_header {
+  min-height: 58px;
+  padding: 0 24px;
+  border-bottom: 1px solid #ebe6dc;
+  background: rgba(251, 250, 247, 0.92);
+  backdrop-filter: blur(14px);
+}
+body.App_dark .App_header {
+  border-bottom-color: #343027;
+  background: rgba(31, 29, 26, 0.92);
+}
+.App_headerTitle {
+  min-width: 0;
+}
+.App_header h1 {
+  max-width: min(620px, 50vw);
+  overflow: hidden;
+  color: #2b2823;
+  font-size: var(--font-size-md);
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_header h1 {
+  color: var(--color-text-dark);
+}
+.App_subtitle {
+  max-width: min(620px, 50vw);
+  color: #81786b;
+}
+.App_status {
+  border-color: #d7cfc2;
+  border-radius: 999px;
+  background: #f5f1ea;
+  color: #60584d;
+  font-size: 12px;
+  font-weight: 650;
+}
+.App_statusBusy {
+  border-color: rgba(193, 95, 60, 0.35);
+  background: #fff3ec;
+  color: #9d482c;
+}
+body.App_dark .App_status {
+  border-color: #484237;
+  background: #2b2822;
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_statusBusy {
+  border-color: rgba(233, 132, 86, 0.42);
+  background: #352620;
+  color: #e98456;
+}
+.App_workspace {
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  background: #fbfaf7;
+}
+body.App_dark .App_workspace {
+  background: #1f1d1a;
+}
+.App_chatPanel {
+  border-right: 0;
+}
+body.App_dark .App_chatPanel {
+  border-right-color: transparent;
+}
+.App_runtimeStrip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  width: min(860px, calc(100% - 56px));
+  align-self: center;
+  margin: 24px 28px 0;
+  padding: 8px;
+  border: 1px solid #e5ded3;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.58);
+}
+body.App_dark .App_runtimeStrip {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+.App_runtimeCellButton {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #81786b;
+  font: inherit;
+  text-align: left;
+}
+.App_runtimeCellButton:hover {
+  border-color: #e0d7ca;
+  background: #fbfaf7;
+}
+.App_runtimeCellButton span {
+  overflow: hidden;
+  color: #8a8175;
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.App_runtimeCellButton strong {
+  overflow: hidden;
+  color: #403b34;
+  font-size: 12px;
+  font-weight: 740;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_runtimeCellButton {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_runtimeCellButton:hover {
+  border-color: #454036;
+  background: #29251f;
+}
+body.App_dark .App_runtimeCellButton span {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_runtimeCellButton strong {
+  color: var(--color-text-dark);
+}
+.App_messageList {
+  width: min(860px, 100%);
+  align-self: center;
+  gap: 20px;
+  padding: 34px 28px 24px;
+}
+.App_message {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+body.App_dark .App_message {
+  border: 0;
+  background: transparent;
+}
+.App_message_user {
+  width: fit-content;
+  max-width: min(680px, 86%);
+  align-self: flex-end;
+  padding: 11px 14px;
+  border: 1px solid #e3ded4;
+  border-radius: 18px;
+  background: #f0eee8;
+  box-shadow: 0 1px 2px rgba(42, 37, 30, 0.04);
+}
+.App_message_assistant {
+  align-self: stretch;
+}
+.App_message_system,
+.App_message_tool {
+  width: min(700px, 100%);
+  padding: 10px 12px;
+  border: 1px solid #eadccf;
+  border-radius: var(--radius-md);
+  background: #fff8f0;
+}
+.App_message_error {
+  width: min(700px, 100%);
+  padding: 10px 12px;
+  border: 1px solid #e5b5af;
+  border-radius: var(--radius-md);
+  background: #fff2f0;
+}
+body.App_dark .App_message_user {
+  border-color: #454036;
+  background: #2a2722;
+}
+body.App_dark .App_message_system,
+body.App_dark .App_message_tool {
+  border-color: #5a4638;
+  background: #2d251f;
+}
+body.App_dark .App_message_error {
+  border-color: #74423d;
+  background: #33211f;
+}
+.App_messageHeader {
+  margin-bottom: 7px;
+}
+.App_message_assistant .App_messageHeader {
+  min-height: 20px;
+}
+.App_message_assistant .App_messageRole {
+  color: #c15f3c;
+}
+.App_message_user .App_messageHeader {
+  display: none;
+}
+.App_messageRole {
+  color: #4b4439;
+  font-size: 12px;
+}
+.App_messageHeader time,
+.App_messageMeta {
+  color: #8a8175;
+}
+.App_messageContent {
+  color: #2b2823;
+  font-size: 15px;
+  line-height: 1.6;
+}
+body.App_dark .App_messageContent {
+  color: var(--color-text-dark);
+}
+.App_textBlock {
+  line-height: 1.62;
+}
+.App_composer {
+  width: min(860px, calc(100% - 56px));
+  align-self: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 0 22px;
+  padding: 10px;
+  border: 1px solid #ded7cb;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(61, 52, 39, 0.08);
+}
+body.App_dark .App_composer {
+  border-color: #454036;
+  background: #26231f;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.22);
+}
+.App_commandPalette {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 3px;
+  max-height: 220px;
+  padding: 2px;
+  overflow-y: auto;
+}
+.App_commandPaletteItem {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #403b34;
+  font: inherit;
+  text-align: left;
+}
+.App_commandPaletteItem:hover {
+  border-color: #e7dfd4;
+  background: #fbfaf7;
+}
+.App_commandPaletteItem strong,
+.App_commandPaletteItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_commandPaletteItem strong {
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+}
+.App_commandPaletteItem span {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_commandPaletteItem {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_commandPaletteItem:hover {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_commandPaletteItem strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_commandPaletteItem span {
+  color: var(--color-text-dark-secondary);
+}
+.App_composer textarea {
+  min-height: 46px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  box-shadow: none;
+}
+.App_composer textarea:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+.App_composerActions {
+  align-items: flex-end;
+  padding-left: 4px;
+}
+.App_primaryButton,
+.App_secondaryButton,
+.App_dangerButton,
+.App_textButton {
+  border-radius: var(--radius-sm);
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+}
+.App_primaryButton {
+  background: #c15f3c;
+}
+.App_primaryButton:hover {
+  background: #9d482c;
+}
+.App_secondaryButton {
+  border-color: #d8d0c2;
+  background: #fffdf9;
+}
+.App_sidePanel {
+  gap: 18px;
+  padding: 24px 20px;
+  border-left: 0;
+  background: #f3f0e8;
+}
+body.App_dark .App_sidePanel {
+  background: #24211d;
+}
+.App_panelSection {
+  gap: 10px;
+}
+.App_panelSection h2,
+.App_settingsDialog h2,
+.App_settingsSummary h3 {
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+  font-weight: 760;
+}
+.App_statsList div,
+.App_runtimeList div,
+.App_toolActivityItem {
+  border-color: #e2dbcf;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+body.App_dark .App_statsList div,
+body.App_dark .App_runtimeList div,
+body.App_dark .App_toolActivityItem {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+.App_tag {
+  border-color: #dfd3c7;
+  background: #fff8f0;
+  color: #7b4a34;
+}
+body.App_dark .App_tag {
+  border-color: #5a4638;
+  background: #30251f;
+  color: #e0a383;
+}
+.App_footer {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, auto));
+  justify-content: start;
+  min-height: 42px;
+  padding: 5px 16px;
+  border-top: 1px solid #ebe6dc;
+  background: #fbfaf7;
+  color: #81786b;
+}
+body.App_dark .App_footer {
+  border-top-color: #343027;
+  background: #1f1d1a;
+}
+.App_statusPane,
+.App_statusPaneStatic {
+  display: grid;
+  min-width: 118px;
+  max-width: 260px;
+  padding: 3px 10px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #81786b;
+  text-align: left;
+}
+.App_statusPane:hover {
+  border-color: #e0d7ca;
+  background: #f4f0e8;
+}
+.App_statusPane span,
+.App_statusPaneStatic span {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.App_statusPane strong,
+.App_statusPaneStatic strong {
+  overflow: hidden;
+  color: #403b34;
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_statusPane,
+body.App_dark .App_statusPaneStatic {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_statusPane:hover {
+  border-color: #454036;
+  background: #29251f;
+}
+body.App_dark .App_statusPane strong,
+body.App_dark .App_statusPaneStatic strong {
+  color: var(--color-text-dark);
+}
+.App_workspaceDetail {
+  display: block;
+  overflow-y: auto;
+}
+.App_detailView {
+  width: min(1040px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 34px 0 42px;
+}
+.App_detailHero,
+.App_detailToolbar {
+  margin-bottom: 22px;
+}
+.App_detailHero h2,
+.App_detailToolbar h2 {
+  margin: 2px 0 0;
+  color: #2b2823;
+  font-size: 28px;
+  font-weight: 760;
+}
+.App_detailHero p {
+  max-width: 760px;
+  margin-top: 8px;
+  overflow: hidden;
+  color: #746b5f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_detailToolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.App_detailEyebrow {
+  color: #a15b3f;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+.App_detailGrid,
+.App_toolsLayout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+.App_toolsLayout {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(280px, 0.9fr);
+}
+.App_detailPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e4ddd1;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.58);
+}
+.App_detailPanel h3 {
+  margin: 0;
+  color: #3b362f;
+  font-size: var(--font-size-md);
+}
+.App_detailPanel .App_panelHeader {
+  align-items: flex-start;
+}
+.App_detailPanel .App_panelHeader > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.App_detailPanel .App_panelHeader span {
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_panelActions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--spacing-sm);
+}
+.App_inlineError {
+  color: #9a2f2f;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+.App_inlineSuccess {
+  color: #2f7a4b;
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+.App_fileBrowser {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_fileEntry,
+.App_fileEntryDirectory {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 34px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #3b362f;
+  font: inherit;
+  text-align: left;
+}
+.App_fileEntryDirectory {
+  cursor: pointer;
+}
+.App_fileEntryDirectory:hover {
+  border-color: #d9d1c5;
+  background: rgba(255, 255, 255, 0.62);
+}
+.App_fileEntryMain {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 88px;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+.App_fileEntryActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-right: 6px;
+}
+.App_fileEntry span,
+.App_fileEntryDirectory span,
+.App_fileEntry em,
+.App_fileEntryDirectory em {
+  overflow: hidden;
+  color: #8a8175;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_fileEntry strong,
+.App_fileEntryDirectory strong {
+  overflow: hidden;
+  color: #3b362f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_detailList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_detailList div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.App_detailList dt {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+.App_detailList dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_toolCatalog {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_toolCatalogGroup {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_toolCatalogGroup h4 {
+  margin: var(--spacing-sm) 0 0;
+  color: #7a4d38;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+.App_toolsStack {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+.App_commandRunner {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_toolRouterSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+.App_toolRouterSummary div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.5);
+}
+.App_toolRouterSummary span,
+.App_toolRouterMessage,
+.App_toolExposureRow span {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+.App_toolRouterSummary strong {
+  overflow: hidden;
+  color: #3b362f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_toolRouterActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.App_toolExposureRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_toolPermissionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_toolPermissionRow span {
+  min-width: 0;
+}
+.App_toolPermissionRow select {
+  min-width: 0;
+  height: 30px;
+  padding: 0 7px;
+  font-size: var(--font-size-sm);
+}
+.App_toolExposureButton,
+.App_toolExposureButtonOff {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid #d8d0c2;
+  border-radius: var(--radius-sm);
+  background: #fffdf9;
+  color: #5b5248;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+.App_toolExposureButtonOff {
+  border-color: #b9d2c2;
+  background: #eef8f2;
+  color: #235d38;
+}
+.App_toolCatalogItem {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.52);
+}
+.App_toolCatalogItem > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_toolCatalogItem strong {
+  overflow: hidden;
+  color: #3b362f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_toolCatalogItem span {
+  flex: 0 0 auto;
+  color: #8a8175;
+  font-size: var(--font-size-sm);
+}
+.App_toolCatalogItem .App_toolStatusBadge {
+  padding: 2px 7px;
+  border: 1px solid #d8cfc1;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.62);
+  color: #6f665b;
+  text-transform: capitalize;
+}
+.App_toolCatalogItem .App_toolStatusConnected {
+  border-color: #b9d2c2;
+  background: #eef8f2;
+  color: #235d38;
+}
+.App_toolCatalogItem .App_toolStatusError {
+  border-color: #e2bbb1;
+  background: #fff1ee;
+  color: #8f3324;
+}
+.App_toolCatalogItem p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_toolActivityActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.App_toolActivityActions span {
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_detailHero h2,
+body.App_dark .App_detailToolbar h2,
+body.App_dark .App_detailPanel h3,
+body.App_dark .App_detailList dd,
+body.App_dark .App_toolCatalogItem strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_detailHero p,
+body.App_dark .App_detailList dt,
+body.App_dark .App_detailPanel .App_panelHeader span,
+body.App_dark .App_toolRouterSummary span,
+body.App_dark .App_toolRouterMessage,
+body.App_dark .App_toolCatalogGroup h4,
+body.App_dark .App_toolExposureRow span,
+body.App_dark .App_toolPermissionRow span,
+body.App_dark .App_toolActivityActions span,
+body.App_dark .App_toolCatalogItem span,
+body.App_dark .App_toolCatalogItem p {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_toolRouterSummary div {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_toolRouterSummary strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_toolExposureButton {
+  border-color: #403b32;
+  background: #2d2923;
+  color: var(--color-text-dark);
+}
+body.App_dark .App_toolExposureButtonOff {
+  border-color: #2f7652;
+  background: #162d22;
+  color: #9bd8b7;
+}
+body.App_dark .App_inlineError {
+  color: #ffb4b4;
+}
+body.App_dark .App_inlineSuccess {
+  color: #9bd8b7;
+}
+body.App_dark .App_fileEntry,
+body.App_dark .App_fileEntryDirectory {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_fileEntryDirectory:hover {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_fileEntry span,
+body.App_dark .App_fileEntryDirectory span,
+body.App_dark .App_fileEntry em,
+body.App_dark .App_fileEntryDirectory em {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_fileEntry strong,
+body.App_dark .App_fileEntryDirectory strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_toolCatalogItem .App_toolStatusBadge {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_toolCatalogItem .App_toolStatusConnected {
+  border-color: #2f7652;
+  background: #162d22;
+  color: #9bd8b7;
+}
+body.App_dark .App_toolCatalogItem .App_toolStatusError {
+  border-color: #8f4238;
+  background: #331d1a;
+  color: #ffb4a8;
+}
+body.App_dark .App_detailPanel,
+body.App_dark .App_toolCatalogItem {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
 .App_dialogBackdrop {
   position: fixed;
   inset: 0;
@@ -502,19 +1758,310 @@ body.App_dark .App_dangerButton:hover {
 .App_settingsDialog {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  width: min(1040px, 100%);
-  max-height: calc(100vh - 48px);
+  gap: 0;
+  width: min(980px, calc(100vw - 48px));
+  height: 100vh;
+  max-height: 100vh;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  background: var(--color-background);
+  box-shadow: -22px 0 50px rgba(41, 34, 24, 0.22);
+}
+body.App_dark .App_settingsDialog {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+}
+.App_settingsView {
+  display: flex;
+  width: min(1120px, calc(100% - 48px));
+  height: calc(100% - 48px);
+  min-height: 520px;
+  margin: 24px auto;
+}
+.App_settingsPageForm {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 1px solid #e4ddd1;
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+body.App_dark .App_settingsPageForm {
+  border-color: #403b32;
+}
+.App_settingsPageSubtitle {
+  margin: 4px 0 0;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_settingsPageSubtitle {
+  color: var(--color-text-dark-secondary);
+}
+.App_settingsDialog > .App_dialogHeader {
+  flex: 0 0 auto;
+  min-height: 62px;
+  padding: 0 var(--spacing-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+body.App_dark .App_settingsDialog > .App_dialogHeader {
+  border-bottom-color: var(--color-border-dark);
+}
+.App_settingsBody {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.App_settingsMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding: var(--spacing-md);
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+  background: #f5f1ea;
+}
+body.App_dark .App_settingsMenu {
+  border-right-color: var(--color-border-dark);
+  background: #25221e;
+}
+.App_settingsMenuItem,
+.App_settingsMenuItemActive {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 50px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #4b4439;
+  text-align: left;
+}
+.App_settingsMenuItemActive {
+  border-color: #dfd3c7;
+  background: #fffaf3;
+  box-shadow: 0 1px 2px rgba(42, 37, 30, 0.05);
+}
+.App_settingsMenuItem:hover {
+  background: #eee8df;
+}
+.App_settingsMenuItem strong,
+.App_settingsMenuItemActive strong {
+  overflow: hidden;
+  color: #342f28;
+  font-size: var(--font-size-sm);
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_settingsMenuItem span,
+.App_settingsMenuItemActive span {
+  overflow: hidden;
+  color: #81786b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_settingsMenuItem,
+body.App_dark .App_settingsMenuItemActive {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_settingsMenuItemActive {
+  border-color: #4b4237;
+  background: #302b25;
+}
+body.App_dark .App_settingsMenuItem:hover {
+  background: #2d2923;
+}
+body.App_dark .App_settingsMenuItem strong,
+body.App_dark .App_settingsMenuItemActive strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_settingsMenuItem span,
+body.App_dark .App_settingsMenuItemActive span {
+  color: var(--color-text-dark-secondary);
+}
+.App_settingsMenuSummary {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: auto;
+  padding-top: var(--spacing-md);
+}
+.App_settingsMenuSummary section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid #e0d7ca;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.48);
+}
+.App_settingsMenuSummary span {
+  color: #81786b;
+  font-size: 12px;
+  font-weight: 650;
+}
+.App_settingsMenuSummary strong {
+  color: #3b362f;
+}
+body.App_dark .App_settingsMenuSummary section {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_settingsMenuSummary span {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_settingsMenuSummary strong {
+  color: var(--color-text-dark);
+}
+.App_settingsContent {
+  min-width: 0;
+  min-height: 0;
   padding: var(--spacing-lg);
   overflow-y: auto;
+}
+.App_settingsContentHeader {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--spacing-lg);
+}
+.App_settingsContentHeader h3 {
+  margin: 0;
+  color: #2b2823;
+  font-size: 24px;
+  font-weight: 760;
+}
+.App_settingsContentHeader p {
+  margin: 0;
+  color: #81786b;
+}
+body.App_dark .App_settingsContentHeader h3 {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_settingsContentHeader p {
+  color: var(--color-text-dark-secondary);
+}
+.App_reviewDialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: min(920px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: var(--spacing-lg);
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-background);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28);
 }
-body.App_dark .App_settingsDialog {
+body.App_dark .App_reviewDialog {
   border-color: var(--color-border-dark);
   background: var(--color-bg-dark);
+}
+.App_reviewSubtitle {
+  margin: var(--spacing-xs) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_reviewSubtitle {
+  color: var(--color-text-dark-secondary);
+}
+.App_reviewBadge {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border: 1px solid #c8a652;
+  border-radius: var(--radius-sm);
+  background: #fff7dd;
+  color: #7a5200;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+body.App_dark .App_reviewBadge {
+  border-color: #8f6d20;
+  background: #3a2d12;
+  color: #ffd778;
+}
+.App_reviewMeta {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_reviewMeta div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: center;
+  min-width: 0;
+}
+.App_reviewMeta dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+.App_reviewMeta dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_reviewMeta dt {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_reviewMeta dd {
+  color: var(--color-text-dark);
+}
+.App_diffBlock,
+.App_commandBlock {
+  flex: 1;
+  min-height: 220px;
+  margin: 0;
+  padding: var(--spacing-md);
+  overflow: auto;
+  border: 1px solid #ccd5df;
+  border-radius: var(--radius-sm);
+  background: #111827;
+  color: #e5e7eb;
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.App_commandBlock {
+  flex: 0 0 auto;
+  min-height: 140px;
+  white-space: pre-wrap;
+}
+.App_diffHeaderLine {
+  color: #93c5fd;
+}
+.App_diffAdded {
+  color: #86efac;
+}
+.App_diffRemoved {
+  color: #fca5a5;
+}
+.App_diffMeta {
+  color: #d1d5db;
 }
 .App_dialogHeader,
 .App_dialogFooter,
@@ -526,6 +2073,17 @@ body.App_dark .App_settingsDialog {
 .App_dialogHeader,
 .App_dialogFooter {
   justify-content: space-between;
+}
+.App_settingsDialog > .App_dialogFooter {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+}
+body.App_dark .App_settingsDialog > .App_dialogFooter {
+  border-top-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
 }
 .App_settingsGrid {
   display: grid;
@@ -632,14 +2190,49 @@ body.App_dark .App_settingsSummary p {
 body.App_dark .App_settingsMessage {
   color: var(--color-text-dark-secondary);
 }
-@media (max-width: 900px) {
-  .App_workspace {
+@media (max-width: 1100px) {
+  .App_runtimeStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .App_detailGrid,
+  .App_toolsLayout {
     grid-template-columns: 1fr;
   }
-  .App_chatPanel {
-    border-right: none;
+  .App_footer {
+    grid-template-columns: repeat(3, minmax(0, auto));
   }
-  .App_sidePanel {
+}
+@media (max-width: 820px) {
+  .App_container {
+    grid-template-columns: 1fr;
+  }
+  .App_navSidebar {
+    display: none;
+  }
+  .App_header h1,
+  .App_subtitle {
+    max-width: 58vw;
+  }
+  .App_footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .App_settingsBody {
+    grid-template-columns: 1fr;
+  }
+  .App_settingsMenu {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(150px, 1fr);
+    display: grid;
+    max-height: 118px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  body.App_dark .App_settingsMenu {
+    border-bottom-color: var(--color-border-dark);
+  }
+  .App_settingsMenuSummary {
     display: none;
   }
 }
@@ -664,8 +2257,21 @@ body.App_dark .App_settingsMessage {
   .App_composer {
     padding: var(--spacing-md);
   }
+  .App_messageList {
+    width: 100%;
+    gap: var(--spacing-md);
+  }
+  .App_runtimeStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: calc(100% - 24px);
+    margin: var(--spacing-md) auto 0;
+    padding: 6px;
+  }
   .App_composer {
     grid-template-columns: 1fr;
+    width: calc(100% - 24px);
+    margin-bottom: var(--spacing-md);
+    padding: var(--spacing-sm);
   }
   .App_composerActions {
     justify-content: flex-end;
@@ -682,6 +2288,30 @@ body.App_dark .App_settingsMessage {
   .App_checkboxGroup {
     grid-template-columns: 1fr;
   }
+  .App_detailView {
+    width: calc(100% - 24px);
+    padding-top: var(--spacing-lg);
+  }
+  .App_settingsView {
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
+    min-height: 0;
+    margin: var(--spacing-md) auto;
+  }
+  .App_settingsDialog {
+    width: 100vw;
+  }
+  .App_settingsPageForm {
+    width: 100%;
+  }
+  .App_settingsContent {
+    padding: var(--spacing-md);
+  }
+  .App_settingsDialog > .App_dialogHeader,
+  .App_settingsDialog > .App_dialogFooter {
+    padding-right: var(--spacing-md);
+    padding-left: var(--spacing-md);
+  }
   .App_dialogFooter {
     align-items: stretch;
     flex-direction: column;
@@ -693,21 +2323,21 @@ body.App_dark .App_settingsMessage {
 
 /* src/renderer/styles/global.css */
 :root {
-  --color-primary: #0066cc;
-  --color-primary-dark: #0052a3;
-  --color-background: #ffffff;
-  --color-background-secondary: #f5f5f5;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #666666;
-  --color-border: #dddddd;
-  --color-error: #cc0000;
-  --color-success: #00cc00;
-  --color-warning: #ffaa00;
-  --color-bg-dark: #1a1a1a;
-  --color-bg-dark-secondary: #2d2d2d;
-  --color-text-dark: #ffffff;
-  --color-text-dark-secondary: #cccccc;
-  --color-border-dark: #444444;
+  --color-primary: #c15f3c;
+  --color-primary-dark: #9d482c;
+  --color-background: #fbfaf7;
+  --color-background-secondary: #f0eee8;
+  --color-text: #26231f;
+  --color-text-secondary: #6f6a60;
+  --color-border: #ded8cd;
+  --color-error: #b0443f;
+  --color-success: #2f7a4b;
+  --color-warning: #a66a14;
+  --color-bg-dark: #1f1d1a;
+  --color-bg-dark-secondary: #2a2722;
+  --color-text-dark: #f4f1ea;
+  --color-text-dark-secondary: #bdb5a8;
+  --color-border-dark: #454036;
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
@@ -727,7 +2357,7 @@ body.App_dark .App_settingsMessage {
   --font-size-md: 16px;
   --font-size-lg: 18px;
   --font-size-xl: 24px;
-  --radius-sm: 4px;
+  --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
 }

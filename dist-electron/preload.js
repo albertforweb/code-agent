@@ -9,9 +9,16 @@ const electron_1 = require("electron");
 const IPC_CHANNELS = {
     'tool:execute': 'tool:execute',
     'tool:list': 'tool:list',
+    'tool:start': 'tool:start',
     'tool:result': 'tool:result',
     'tool:complete': 'tool:complete',
     'tool:error': 'tool:error',
+    'tool:fileWriteReview': 'tool:fileWriteReview',
+    'tool:fileWriteReviewResponse': 'tool:fileWriteReviewResponse',
+    'tool:commandReview': 'tool:commandReview',
+    'tool:commandReviewResponse': 'tool:commandReviewResponse',
+    'tool:permissionReview': 'tool:permissionReview',
+    'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
     'api:chat': 'api:chat',
     'api:chatStream': 'api:chatStream',
     'api:chatDelta': 'api:chatDelta',
@@ -24,6 +31,8 @@ const IPC_CHANNELS = {
     'fs:read': 'fs:read',
     'fs:write': 'fs:write',
     'fs:list': 'fs:list',
+    'fs:open': 'fs:open',
+    'fs:reveal': 'fs:reveal',
     'auth:getToken': 'auth:getToken',
     'auth:logout': 'auth:logout',
     'auth:setToken': 'auth:setToken',
@@ -38,6 +47,7 @@ const IPC_CHANNELS = {
     'window:maximize': 'window:maximize',
     'window:close': 'window:close',
     'window:devtools': 'window:devtools',
+    'menu:open-settings': 'menu:open-settings',
 };
 /**
  * Safe API exposed to renderer via contextBridge
@@ -53,6 +63,15 @@ const api = {
         },
         list: () => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['tool:list']);
+        },
+        respondToFileWriteReview: (response) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['tool:fileWriteReviewResponse'], response);
+        },
+        respondToCommandReview: (response) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['tool:commandReviewResponse'], response);
+        },
+        respondToToolPermissionReview: (response) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['tool:permissionReviewResponse'], response);
         },
     },
     // ============================================================================
@@ -95,6 +114,12 @@ const api = {
         },
         list: (path) => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:list'], { path });
+        },
+        open: (path) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:open'], { path });
+        },
+        reveal: (path) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:reveal'], { path });
         },
     },
     // ============================================================================
@@ -151,6 +176,11 @@ const api = {
     // ============================================================================
     // EVENT LISTENERS
     // ============================================================================
+    onToolStart: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['tool:start'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:start'], handler);
+    },
     onToolResult: (callback) => {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(IPC_CHANNELS['tool:result'], handler);
@@ -165,6 +195,21 @@ const api = {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(IPC_CHANNELS['tool:error'], handler);
         return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:error'], handler);
+    },
+    onFileWriteReview: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['tool:fileWriteReview'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:fileWriteReview'], handler);
+    },
+    onCommandReview: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['tool:commandReview'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:commandReview'], handler);
+    },
+    onToolPermissionReview: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['tool:permissionReview'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:permissionReview'], handler);
     },
     onChatDelta: (callback) => {
         const handler = (_event, data) => callback(data);
@@ -190,6 +235,11 @@ const api = {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(IPC_CHANNELS['app:stateChanged'], handler);
         return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['app:stateChanged'], handler);
+    },
+    onMenuOpenSettings: (callback) => {
+        const handler = () => callback();
+        electron_1.ipcRenderer.on(IPC_CHANNELS['menu:open-settings'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['menu:open-settings'], handler);
     },
 };
 /**

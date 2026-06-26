@@ -13,12 +13,21 @@ class ToolServiceBridge {
     constructor(tools = []) {
         this.tools = new Map();
         this.executions = new Map();
+        this.onStart = () => { };
         this.onResult = () => { };
         this.onComplete = () => { };
         this.onError = () => { };
+        this.permissionPolicyProvider = () => 'allow';
+        this.permissionReviewHandler = async () => { };
         for (const tool of tools) {
             this.registerTool(tool.name, tool);
         }
+    }
+    /**
+     * Set start handler
+     */
+    setStartHandler(handler) {
+        this.onStart = handler;
     }
     /**
      * Set result handler for streaming results back to renderer
@@ -38,6 +47,12 @@ class ToolServiceBridge {
     setErrorHandler(handler) {
         this.onError = handler;
     }
+    setPermissionPolicyProvider(provider) {
+        this.permissionPolicyProvider = provider;
+    }
+    setPermissionReviewHandler(handler) {
+        this.permissionReviewHandler = handler;
+    }
     /**
      * Get list of available tools
      */
@@ -50,6 +65,7 @@ class ToolServiceBridge {
                 inputSchema: tool.inputSchema || {},
                 source: tool.source ?? 'bridge',
                 readOnly: tool.readOnly,
+                category: tool.category,
             });
         }
         return tools;
@@ -58,6 +74,12 @@ class ToolServiceBridge {
      * Execute a tool
      */
     async executeTool(toolName, args, toolId) {
+        await this.executeToolAndReturn(toolName, args, toolId);
+    }
+    /**
+     * Execute a tool and return the result to callers that need an agent loop.
+     */
+    async executeToolAndReturn(toolName, args, toolId) {
         const startTime = Date.now();
         const context = {
             toolId,
@@ -72,17 +94,27 @@ class ToolServiceBridge {
             if (!tool) {
                 throw new Error(`Tool not found: ${toolName}`);
             }
+            this.onStart(toolId, toolName, args);
+            const permissionMode = await this.permissionPolicyProvider(tool, args, context);
+            if (permissionMode === 'deny') {
+                throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
+            }
+            if (permissionMode === 'ask') {
+                await this.permissionReviewHandler(tool, args, context);
+            }
             const result = await this._executeToolInternal(tool, args, context);
             // Emit result
             this.onResult(toolId, result);
             // Emit completion
             const duration = Date.now() - startTime;
             this.onComplete(toolId, true, duration);
+            return result;
         }
         catch (error) {
             const duration = Date.now() - startTime;
             this.onError(toolId, error instanceof Error ? error.message : String(error), error instanceof Error ? error.stack : undefined);
             this.onComplete(toolId, false, duration);
+            throw error;
         }
         finally {
             this.executions.delete(toolId);

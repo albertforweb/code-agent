@@ -13,3 +13,16 @@ export { FileSystemServiceBridge } from './filesystem-service-bridge';
 export { AuthServiceBridge } from './auth-service-bridge';
 export { AppStateServiceBridge } from './app-state-service-bridge';
 export { McpServiceBridge } from './mcp-service-bridge';
+export {
+  CommandServiceBridge,
+  type CommandRunPreview,
+  type CommandRunResult,
+} from './command-service-bridge';
+export {
+  WebServiceBridge,
+  type WebSearchResult,
+} from './web-service-bridge';
+export {
+  FinanceServiceBridge,
+  type FinanceQuote,
+} from './finance-service-bridge';

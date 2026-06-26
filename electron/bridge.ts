@@ -7,6 +7,9 @@ import { ipcMain, BrowserWindow } from 'electron';
 import type {
   ToolExecuteMessage,
   ToolExecuteResponse,
+  ToolPermissionReviewResponse,
+  CommandReviewResponse,
+  FileWriteReviewResponse,
   ChatRequest,
   ChatResponse,
   ChatStreamRequest,
@@ -14,6 +17,8 @@ import type {
   FileReadRequest,
   FileWriteRequest,
   FileListRequest,
+  FilePathRequest,
+  FilePathActionResult,
   AppConfig,
   AppInfo,
   AuthToken,
@@ -42,6 +47,9 @@ export class IpcBridge {
     // Tool channels
     ipcMain.handle(IPC_CHANNELS['tool:execute'], this.handleToolExecute.bind(this));
     ipcMain.handle(IPC_CHANNELS['tool:list'], this.handleToolList.bind(this));
+    ipcMain.handle(IPC_CHANNELS['tool:fileWriteReviewResponse'], this.handleFileWriteReviewResponse.bind(this));
+    ipcMain.handle(IPC_CHANNELS['tool:commandReviewResponse'], this.handleCommandReviewResponse.bind(this));
+    ipcMain.handle(IPC_CHANNELS['tool:permissionReviewResponse'], this.handleToolPermissionReviewResponse.bind(this));
 
     // API channels
     ipcMain.handle(IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
@@ -57,6 +65,8 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['fs:read'], this.handleFileRead.bind(this));
     ipcMain.handle(IPC_CHANNELS['fs:write'], this.handleFileWrite.bind(this));
     ipcMain.handle(IPC_CHANNELS['fs:list'], this.handleFileList.bind(this));
+    ipcMain.handle(IPC_CHANNELS['fs:open'], this.handleFileOpen.bind(this));
+    ipcMain.handle(IPC_CHANNELS['fs:reveal'], this.handleFileReveal.bind(this));
 
     // Auth channels
     ipcMain.handle(IPC_CHANNELS['auth:getToken'], this.handleGetToken.bind(this));
@@ -99,6 +109,39 @@ export class IpcBridge {
       throw new Error('Tool list handler not configured');
     }
     return handler({});
+  }
+
+  private async handleFileWriteReviewResponse(
+    _event: any,
+    response: FileWriteReviewResponse,
+  ): Promise<{ ok: boolean }> {
+    const handler = this.toolHandlers.get('fileWriteReviewResponse');
+    if (!handler) {
+      throw new Error('File write review response handler not configured');
+    }
+    return handler(response);
+  }
+
+  private async handleCommandReviewResponse(
+    _event: any,
+    response: CommandReviewResponse,
+  ): Promise<{ ok: boolean }> {
+    const handler = this.toolHandlers.get('commandReviewResponse');
+    if (!handler) {
+      throw new Error('Command review response handler not configured');
+    }
+    return handler(response);
+  }
+
+  private async handleToolPermissionReviewResponse(
+    _event: any,
+    response: ToolPermissionReviewResponse,
+  ): Promise<{ ok: boolean }> {
+    const handler = this.toolHandlers.get('permissionReviewResponse');
+    if (!handler) {
+      throw new Error('Tool permission review response handler not configured');
+    }
+    return handler(response);
   }
 
   // ============================================================================
@@ -156,6 +199,22 @@ export class IpcBridge {
     const handler = this.fsHandlers.get('list');
     if (!handler) {
       throw new Error('File system handler not configured');
+    }
+    return handler(request);
+  }
+
+  private async handleFileOpen(event: any, request: FilePathRequest): Promise<FilePathActionResult> {
+    const handler = this.fsHandlers.get('open');
+    if (!handler) {
+      throw new Error('File open handler not configured');
+    }
+    return handler(request);
+  }
+
+  private async handleFileReveal(event: any, request: FilePathRequest): Promise<FilePathActionResult> {
+    const handler = this.fsHandlers.get('reveal');
+    if (!handler) {
+      throw new Error('File reveal handler not configured');
     }
     return handler(request);
   }

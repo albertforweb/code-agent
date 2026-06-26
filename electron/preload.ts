@@ -9,6 +9,13 @@ import type {
   Tool,
   ToolExecuteMessage,
   ToolExecuteResponse,
+  ToolStartMessage,
+  ToolPermissionReviewRequest,
+  ToolPermissionReviewResponse,
+  CommandReviewRequest,
+  CommandReviewResponse,
+  FileWriteReviewRequest,
+  FileWriteReviewResponse,
   ChatRequest,
   ChatResponse,
   ChatStreamRequest,
@@ -16,6 +23,8 @@ import type {
   FileReadRequest,
   FileWriteRequest,
   FileListRequest,
+  FilePathRequest,
+  FilePathActionResult,
   FileEntry,
   AuthToken,
   AppConfig,
@@ -33,9 +42,16 @@ import type {
 const IPC_CHANNELS = {
   'tool:execute': 'tool:execute',
   'tool:list': 'tool:list',
+  'tool:start': 'tool:start',
   'tool:result': 'tool:result',
   'tool:complete': 'tool:complete',
   'tool:error': 'tool:error',
+  'tool:fileWriteReview': 'tool:fileWriteReview',
+  'tool:fileWriteReviewResponse': 'tool:fileWriteReviewResponse',
+  'tool:commandReview': 'tool:commandReview',
+  'tool:commandReviewResponse': 'tool:commandReviewResponse',
+  'tool:permissionReview': 'tool:permissionReview',
+  'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
   'api:chat': 'api:chat',
   'api:chatStream': 'api:chatStream',
   'api:chatDelta': 'api:chatDelta',
@@ -48,6 +64,8 @@ const IPC_CHANNELS = {
   'fs:read': 'fs:read',
   'fs:write': 'fs:write',
   'fs:list': 'fs:list',
+  'fs:open': 'fs:open',
+  'fs:reveal': 'fs:reveal',
   'auth:getToken': 'auth:getToken',
   'auth:logout': 'auth:logout',
   'auth:setToken': 'auth:setToken',
@@ -62,6 +80,7 @@ const IPC_CHANNELS = {
   'window:maximize': 'window:maximize',
   'window:close': 'window:close',
   'window:devtools': 'window:devtools',
+  'menu:open-settings': 'menu:open-settings',
 } as const;
 
 /**
@@ -79,6 +98,18 @@ const api = {
 
     list: (): Promise<Tool[]> => {
       return ipcRenderer.invoke(IPC_CHANNELS['tool:list']);
+    },
+
+    respondToFileWriteReview: (response: FileWriteReviewResponse): Promise<{ ok: boolean }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['tool:fileWriteReviewResponse'], response);
+    },
+
+    respondToCommandReview: (response: CommandReviewResponse): Promise<{ ok: boolean }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['tool:commandReviewResponse'], response);
+    },
+
+    respondToToolPermissionReview: (response: ToolPermissionReviewResponse): Promise<{ ok: boolean }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['tool:permissionReviewResponse'], response);
     },
   },
 
@@ -130,6 +161,14 @@ const api = {
 
     list: (path: string): Promise<FileEntry[]> => {
       return ipcRenderer.invoke(IPC_CHANNELS['fs:list'], { path } as FileListRequest);
+    },
+
+    open: (path: string): Promise<FilePathActionResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:open'], { path } as FilePathRequest);
+    },
+
+    reveal: (path: string): Promise<FilePathActionResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:reveal'], { path } as FilePathRequest);
     },
   },
 
@@ -199,6 +238,12 @@ const api = {
   // ============================================================================
   // EVENT LISTENERS
   // ============================================================================
+  onToolStart: (callback: (data: ToolStartMessage) => void): (() => void) => {
+    const handler = (_event: any, data: ToolStartMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['tool:start'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:start'], handler);
+  },
+
   onToolResult: (callback: (data: any) => void): (() => void) => {
     const handler = (_event: any, data: any) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['tool:result'], handler);
@@ -215,6 +260,24 @@ const api = {
     const handler = (_event: any, data: any) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['tool:error'], handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:error'], handler);
+  },
+
+  onFileWriteReview: (callback: (data: FileWriteReviewRequest) => void): (() => void) => {
+    const handler = (_event: any, data: FileWriteReviewRequest) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['tool:fileWriteReview'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:fileWriteReview'], handler);
+  },
+
+  onCommandReview: (callback: (data: CommandReviewRequest) => void): (() => void) => {
+    const handler = (_event: any, data: CommandReviewRequest) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['tool:commandReview'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:commandReview'], handler);
+  },
+
+  onToolPermissionReview: (callback: (data: ToolPermissionReviewRequest) => void): (() => void) => {
+    const handler = (_event: any, data: ToolPermissionReviewRequest) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['tool:permissionReview'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:permissionReview'], handler);
   },
 
   onChatDelta: (callback: (data: ChatDeltaMessage) => void): (() => void) => {
@@ -245,6 +308,12 @@ const api = {
     const handler = (_event: any, data: AppStateChangedMessage) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['app:stateChanged'], handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS['app:stateChanged'], handler);
+  },
+
+  onMenuOpenSettings: (callback: () => void): (() => void) => {
+    const handler = () => callback();
+    ipcRenderer.on(IPC_CHANNELS['menu:open-settings'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['menu:open-settings'], handler);
   },
 };
 

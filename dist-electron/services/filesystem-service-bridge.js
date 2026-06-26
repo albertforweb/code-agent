@@ -41,6 +41,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileSystemServiceBridge = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const { createTwoFilesPatch } = require('diff');
+const MAX_DIFF_INPUT_BYTES = 200000;
+const MAX_WRITE_CHECKPOINTS = 20;
 /**
  * File System Service Bridge - bridges file operations to IPC
  */
@@ -48,6 +51,7 @@ class FileSystemServiceBridge {
     constructor(basePath) {
         this.basePath = process.cwd();
         this.maxFileSize = 1024 * 1024 * 10; // 10 MB
+        this.writeCheckpoints = [];
         this.allowedExtensions = [
             '.ts', '.tsx', '.js', '.jsx', '.json', '.md',
             '.txt', '.yml', '.yaml', '.xml', '.html', '.css',
@@ -81,19 +85,93 @@ class FileSystemServiceBridge {
         const fullPath = this._resolvePath(filePath);
         this._validatePath(fullPath);
         // Check file size
-        if (content.length > this.maxFileSize) {
-            throw new Error(`File too large: maximum ${this.maxFileSize} bytes`);
-        }
+        this._validateWriteSize(content);
         try {
-            // Ensure directory exists
-            const dir = path.dirname(fullPath);
-            await fs.mkdir(dir, { recursive: true });
-            // Write file
-            await fs.writeFile(fullPath, content, encoding);
+            await this._writeResolvedFile(fullPath, content, encoding);
         }
         catch (error) {
             throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+    /**
+     * Build a safe write preview for user review before an agent write is applied.
+     */
+    async createWritePreview(filePath, content, encoding = 'utf-8') {
+        const fullPath = this._resolvePath(filePath);
+        this._validatePath(fullPath);
+        this._validateWriteSize(content);
+        const previous = await this._readExistingContent(fullPath, encoding);
+        const relativePath = this._relativePath(fullPath);
+        return {
+            path: relativePath,
+            absolutePath: fullPath,
+            exists: previous.exists,
+            previousSizeBytes: Buffer.byteLength(previous.content, encoding),
+            nextSizeBytes: Buffer.byteLength(content, encoding),
+            diff: this._createDiff(relativePath, previous.content, content, previous.exists),
+        };
+    }
+    /**
+     * Write a file and keep an in-memory checkpoint for undo.
+     */
+    async writeFileWithCheckpoint(filePath, content, encoding = 'utf-8') {
+        const fullPath = this._resolvePath(filePath);
+        this._validatePath(fullPath);
+        this._validateWriteSize(content);
+        const previous = await this._readExistingContent(fullPath, encoding);
+        const checkpoint = {
+            id: `write-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            path: this._relativePath(fullPath),
+            absolutePath: fullPath,
+            existed: previous.exists,
+            previousContent: previous.content,
+            encoding,
+            createdAt: Date.now(),
+        };
+        await this._writeResolvedFile(fullPath, content, encoding);
+        this.writeCheckpoints.unshift(checkpoint);
+        this.writeCheckpoints = this.writeCheckpoints.slice(0, MAX_WRITE_CHECKPOINTS);
+        return {
+            ok: true,
+            path: checkpoint.path,
+            absolutePath: fullPath,
+            checkpointId: checkpoint.id,
+        };
+    }
+    /**
+     * Restore the most recent write checkpoint.
+     */
+    async restoreLastWriteCheckpoint() {
+        const checkpoint = this.writeCheckpoints.shift();
+        if (!checkpoint) {
+            throw new Error('No file write checkpoint is available to restore.');
+        }
+        this._validatePath(checkpoint.absolutePath);
+        if (checkpoint.existed) {
+            await this._writeResolvedFile(checkpoint.absolutePath, checkpoint.previousContent, checkpoint.encoding);
+            return {
+                ok: true,
+                checkpointId: checkpoint.id,
+                path: checkpoint.path,
+                absolutePath: checkpoint.absolutePath,
+                restored: 'previous-content',
+            };
+        }
+        try {
+            await fs.unlink(checkpoint.absolutePath);
+        }
+        catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw new Error(`Failed to restore checkpoint: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+        return {
+            ok: true,
+            checkpointId: checkpoint.id,
+            path: checkpoint.path,
+            absolutePath: checkpoint.absolutePath,
+            restored: 'deleted-created-file',
+        };
     }
     /**
      * List directory contents
@@ -127,6 +205,14 @@ class FileSystemServiceBridge {
             }
             throw new Error(`Failed to list directory: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+    /**
+     * Resolve a workspace path for trusted main-process actions.
+     */
+    resolveWorkspacePath(filePath) {
+        const fullPath = this._resolvePath(filePath);
+        this._validatePath(fullPath);
+        return fullPath;
     }
     /**
      * Check if file/directory exists
@@ -194,8 +280,12 @@ class FileSystemServiceBridge {
      * Resolve file path safely
      */
     _resolvePath(filePath) {
+        const normalizedInput = filePath.trim();
+        if (normalizedInput === '~' || normalizedInput.startsWith('~/')) {
+            throw new Error('Home-directory paths are not supported by the desktop file bridge. Use a workspace-relative path.');
+        }
         // Resolve relative to base path
-        let resolved = path.resolve(this.basePath, filePath);
+        let resolved = path.resolve(this.basePath, normalizedInput);
         // Prevent directory traversal
         const relative = path.relative(this.basePath, resolved);
         if (relative.startsWith('..')) {
@@ -225,6 +315,46 @@ class FileSystemServiceBridge {
      */
     getBasePath() {
         return this.basePath;
+    }
+    _validateWriteSize(content) {
+        if (Buffer.byteLength(content, 'utf-8') > this.maxFileSize) {
+            throw new Error(`File too large: maximum ${this.maxFileSize} bytes`);
+        }
+    }
+    async _writeResolvedFile(fullPath, content, encoding) {
+        const dir = path.dirname(fullPath);
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(fullPath, content, encoding);
+    }
+    async _readExistingContent(fullPath, encoding) {
+        try {
+            return {
+                exists: true,
+                content: await fs.readFile(fullPath, encoding),
+            };
+        }
+        catch (error) {
+            if (error.code === 'ENOENT') {
+                return { exists: false, content: '' };
+            }
+            throw new Error(`Failed to read existing file for review: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    _relativePath(fullPath) {
+        return path.relative(this.basePath, fullPath).split(path.sep).join('/') || path.basename(fullPath);
+    }
+    _createDiff(relativePath, previousContent, nextContent, exists) {
+        const previousBytes = Buffer.byteLength(previousContent, 'utf-8');
+        const nextBytes = Buffer.byteLength(nextContent, 'utf-8');
+        if (previousBytes + nextBytes > MAX_DIFF_INPUT_BYTES) {
+            return [
+                `Large file change omitted from inline diff.`,
+                `Previous size: ${previousBytes} bytes`,
+                `New size: ${nextBytes} bytes`,
+            ].join('\n');
+        }
+        const oldLabel = exists ? `${relativePath} (current)` : `${relativePath} (new file)`;
+        return createTwoFilesPatch(oldLabel, `${relativePath} (proposed)`, previousContent, nextContent, '', '', { context: 3 }).trim();
     }
 }
 exports.FileSystemServiceBridge = FileSystemServiceBridge;

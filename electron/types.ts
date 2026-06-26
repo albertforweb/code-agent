@@ -17,6 +17,51 @@ export interface ToolExecuteResponse {
   toolId: string;
 }
 
+export interface ToolStartMessage {
+  toolId: string;
+  toolName: string;
+  args: Record<string, any>;
+  timestamp: number;
+}
+
+export interface FileWritePreview {
+  path: string;
+  absolutePath: string;
+  exists: boolean;
+  previousSizeBytes: number;
+  nextSizeBytes: number;
+  diff: string;
+}
+
+export interface FileWriteReviewRequest extends FileWritePreview {
+  requestId: string;
+  toolId: string;
+  createdAt: number;
+}
+
+export interface FileWriteReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
+export interface CommandReviewRequest {
+  requestId: string;
+  toolId: string;
+  command: string;
+  argv: string[];
+  cwd: string;
+  absoluteCwd: string;
+  timeoutMs: number;
+  createdAt: number;
+}
+
+export interface CommandReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
 export interface ToolResultMessage {
   toolId: string;
   data: any;
@@ -35,12 +80,29 @@ export interface ToolErrorMessage {
   stack?: string;
 }
 
+export type ToolPermissionMode = 'allow' | 'ask' | 'deny';
+
+export interface ToolPermissionReviewRequest {
+  requestId: string;
+  toolId: string;
+  toolName: string;
+  args: Record<string, any>;
+  createdAt: number;
+}
+
+export interface ToolPermissionReviewResponse {
+  requestId: string;
+  approved: boolean;
+  reason?: string;
+}
+
 export interface Tool {
   name: string;
   description: string;
   inputSchema: Record<string, any>;
   source?: 'bridge' | 'mcp' | 'cli';
   readOnly?: boolean;
+  category?: string;
 }
 
 export interface McpServerInfo {
@@ -56,6 +118,8 @@ export interface McpServerInfo {
 
 export interface McpToolInfo extends Tool {
   serverName: string;
+  serverScope?: string;
+  serverKey?: string;
   toolName: string;
 }
 
@@ -77,6 +141,8 @@ export interface ChatRequest {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  contextTokens?: number;
+  enableTools?: boolean;
 }
 
 export interface ChatResponse {
@@ -139,6 +205,16 @@ export interface FileListRequest {
   path: string;
 }
 
+export interface FilePathRequest {
+  path: string;
+}
+
+export interface FilePathActionResult {
+  ok: true;
+  path: string;
+  absolutePath: string;
+}
+
 export interface FileEntry {
   name: string;
   type: 'file' | 'directory';
@@ -168,6 +244,10 @@ export interface AppConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  contextTokens?: number;
+  enableLlmTools?: boolean;
+  disabledLlmTools?: string[];
+  toolPermissionPolicies?: Record<string, ToolPermissionMode>;
   theme?: 'light' | 'dark' | 'system';
   language?: string;
   [key: string]: any;
@@ -178,6 +258,7 @@ export interface AppInfo {
   platform: NodeJS.Platform;
   arch: string;
   isDev: boolean;
+  workspacePath: string;
 }
 
 export interface AppConfigChangedMessage {
@@ -200,9 +281,16 @@ export const IPC_CHANNELS = {
   // Tool channels
   'tool:execute': 'tool:execute',
   'tool:list': 'tool:list',
+  'tool:start': 'tool:start',
   'tool:result': 'tool:result',
   'tool:complete': 'tool:complete',
   'tool:error': 'tool:error',
+  'tool:fileWriteReview': 'tool:fileWriteReview',
+  'tool:fileWriteReviewResponse': 'tool:fileWriteReviewResponse',
+  'tool:commandReview': 'tool:commandReview',
+  'tool:commandReviewResponse': 'tool:commandReviewResponse',
+  'tool:permissionReview': 'tool:permissionReview',
+  'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
 
   // API channels
   'api:chat': 'api:chat',
@@ -221,6 +309,8 @@ export const IPC_CHANNELS = {
   'fs:read': 'fs:read',
   'fs:write': 'fs:write',
   'fs:list': 'fs:list',
+  'fs:open': 'fs:open',
+  'fs:reveal': 'fs:reveal',
 
   // Auth channels
   'auth:getToken': 'auth:getToken',

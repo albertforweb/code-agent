@@ -47,9 +47,14 @@ const bridge_1 = require("./bridge");
 const electron_store_1 = __importDefault(require("electron-store"));
 const services_bridge_1 = require("./services-bridge");
 const isDev = process.env.NODE_ENV === 'development';
+const shouldOpenDevTools = process.env.ELECTRON_OPEN_DEVTOOLS === '1';
+const shouldDisableGpu = process.env.ELECTRON_DISABLE_GPU === '1';
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
 const isLinux = process.platform === 'linux';
+if (shouldDisableGpu) {
+    electron_1.app.commandLine.appendSwitch('disable-gpu');
+}
 // ============================================================================
 // GLOBALS
 // ============================================================================
@@ -126,8 +131,9 @@ function createWindow() {
     const rendererFileUrl = `file://${path.join(__dirname, '../dist-renderer/index.html')}`;
     const startUrl = process.env.ELECTRON_RENDERER_URL ?? rendererFileUrl;
     mainWindow.loadURL(startUrl);
-    // Open dev tools in development
-    if (isDev) {
+    // Open DevTools only when explicitly requested. On some macOS/Electron
+    // combinations DevTools startup can crash natively before JS reports errors.
+    if (isDev && shouldOpenDevTools) {
         mainWindow.webContents.openDevTools();
     }
     // Save state on close

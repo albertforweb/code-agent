@@ -13,6 +13,15 @@ function createToolId() {
 function createChatRequestId() {
     return `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
+function createFileWriteReviewId() {
+    return `write-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+function createCommandReviewId() {
+    return `command-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+function createToolPermissionReviewId() {
+    return `tool-permission-review-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 function sendToRenderer(getMainWindow, channel, payload) {
     const window = getMainWindow();
     if (!window || window.isDestroyed()) {
@@ -21,19 +30,99 @@ function sendToRenderer(getMainWindow, channel, payload) {
     window.webContents.send(channel, payload);
 }
 function registerServiceBridges(ipcBridge, options) {
-    const apiService = new services_1.ApiServiceBridge();
-    const filesService = new services_1.FileSystemServiceBridge(options.cwd ?? process.cwd());
+    const workspacePath = options.cwd ?? process.cwd();
+    const pendingFileWriteReviews = new Map();
+    const pendingCommandReviews = new Map();
+    const pendingToolPermissionReviews = new Map();
+    function requestFileWriteReview(preview, toolId) {
+        const window = options.getMainWindow();
+        if (!window || window.isDestroyed()) {
+            throw new Error('File write review requires an active desktop window.');
+        }
+        const requestId = createFileWriteReviewId();
+        const payload = {
+            ...preview,
+            requestId,
+            toolId,
+            createdAt: Date.now(),
+        };
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                pendingFileWriteReviews.delete(requestId);
+                reject(new Error(`File write review timed out for ${preview.path}`));
+            }, 5 * 60 * 1000);
+            pendingFileWriteReviews.set(requestId, { resolve, reject, timeout });
+            window.webContents.send(types_1.IPC_CHANNELS['tool:fileWriteReview'], payload);
+        });
+    }
+    function requestCommandReview(preview, toolId) {
+        const window = options.getMainWindow();
+        if (!window || window.isDestroyed()) {
+            throw new Error('Command review requires an active desktop window.');
+        }
+        const requestId = createCommandReviewId();
+        const payload = {
+            ...preview,
+            requestId,
+            toolId,
+            createdAt: Date.now(),
+        };
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                pendingCommandReviews.delete(requestId);
+                reject(new Error(`Command review timed out for ${preview.command}`));
+            }, 5 * 60 * 1000);
+            pendingCommandReviews.set(requestId, { resolve, reject, timeout });
+            window.webContents.send(types_1.IPC_CHANNELS['tool:commandReview'], payload);
+        });
+    }
+    function requestToolPermissionReview(toolName, args, toolId) {
+        const window = options.getMainWindow();
+        if (!window || window.isDestroyed()) {
+            throw new Error('Tool permission review requires an active desktop window.');
+        }
+        const requestId = createToolPermissionReviewId();
+        const payload = {
+            requestId,
+            toolId,
+            toolName,
+            args,
+            createdAt: Date.now(),
+        };
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                pendingToolPermissionReviews.delete(requestId);
+                reject(new Error(`Tool permission review timed out for ${toolName}`));
+            }, 5 * 60 * 1000);
+            pendingToolPermissionReviews.set(requestId, { resolve, reject, timeout });
+            window.webContents.send(types_1.IPC_CHANNELS['tool:permissionReview'], payload);
+        });
+    }
+    function normalizePermissionMode(value) {
+        return value === 'allow' || value === 'ask' || value === 'deny' ? value : undefined;
+    }
+    const apiService = new services_1.ApiServiceBridge(undefined, workspacePath);
+    const filesService = new services_1.FileSystemServiceBridge(workspacePath);
     const authService = new services_1.AuthServiceBridge(options.keytar);
     const appStateService = new services_1.AppStateServiceBridge();
-    const mcpService = new services_1.McpServiceBridge(options.cwd ?? process.cwd());
+    const mcpService = new services_1.McpServiceBridge(workspacePath);
+    const commandService = new services_1.CommandServiceBridge(workspacePath);
+    const webService = new services_1.WebServiceBridge();
+    const financeService = new services_1.FinanceServiceBridge();
     const toolService = new services_1.ToolServiceBridge(createBridgeTools({
         apiService,
         filesService,
         appStateService,
         mcpService,
+        commandService,
+        webService,
+        financeService,
+        requestFileWriteReview,
+        requestCommandReview,
     }));
     apiService.setAuthTokenProvider(provider => authService.getToken(provider));
     apiService.setAppConfigProvider(() => appStateService.getConfig());
+    apiService.setToolProvider(() => toolService.getTools(), (toolName, args) => toolService.executeToolAndReturn(toolName, args, createToolId()));
     apiService.setBootstrapProvider(async () => {
         const [config, tools, mcpServers, mcpTools] = await Promise.all([
             appStateService.getConfig(),
@@ -47,6 +136,9 @@ function registerServiceBridges(ipcBridge, options) {
                     Boolean(await authService.getToken(config.llmProvider ?? 'anthropic')),
             },
             config,
+            workspace: {
+                path: workspacePath,
+            },
             features: {
                 desktopRuntime: true,
                 tools: tools.length > 0,
@@ -55,6 +147,14 @@ function registerServiceBridges(ipcBridge, options) {
                 buddy: false,
             },
         };
+    });
+    toolService.setStartHandler((toolId, toolName, args) => {
+        sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['tool:start'], {
+            toolId,
+            toolName,
+            args,
+            timestamp: Date.now(),
+        });
     });
     toolService.setResultHandler((toolId, data) => {
         sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['tool:result'], {
@@ -77,6 +177,14 @@ function registerServiceBridges(ipcBridge, options) {
             stack,
         });
     });
+    toolService.setPermissionPolicyProvider(async (tool) => {
+        const config = await appStateService.getConfig();
+        const policies = config.toolPermissionPolicies ?? {};
+        return normalizePermissionMode(policies[tool.name]) ?? 'allow';
+    });
+    toolService.setPermissionReviewHandler((tool, args, context) => {
+        return requestToolPermissionReview(tool.name, args, context.toolId);
+    });
     ipcBridge.registerToolHandler('execute', async (message) => {
         const toolId = message.toolId ?? createToolId();
         toolService.executeTool(message.toolName, message.args ?? {}, toolId).catch(error => {
@@ -86,6 +194,51 @@ function registerServiceBridges(ipcBridge, options) {
     });
     ipcBridge.registerToolHandler('list', async () => {
         return toolService.getTools();
+    });
+    ipcBridge.registerToolHandler('fileWriteReviewResponse', async (response) => {
+        const pending = pendingFileWriteReviews.get(response.requestId);
+        if (!pending) {
+            return { ok: false };
+        }
+        pendingFileWriteReviews.delete(response.requestId);
+        clearTimeout(pending.timeout);
+        if (response.approved) {
+            pending.resolve();
+        }
+        else {
+            pending.reject(new Error(response.reason || 'File write rejected by user.'));
+        }
+        return { ok: true };
+    });
+    ipcBridge.registerToolHandler('commandReviewResponse', async (response) => {
+        const pending = pendingCommandReviews.get(response.requestId);
+        if (!pending) {
+            return { ok: false };
+        }
+        pendingCommandReviews.delete(response.requestId);
+        clearTimeout(pending.timeout);
+        if (response.approved) {
+            pending.resolve();
+        }
+        else {
+            pending.reject(new Error(response.reason || 'Command rejected by user.'));
+        }
+        return { ok: true };
+    });
+    ipcBridge.registerToolHandler('permissionReviewResponse', async (response) => {
+        const pending = pendingToolPermissionReviews.get(response.requestId);
+        if (!pending) {
+            return { ok: false };
+        }
+        pendingToolPermissionReviews.delete(response.requestId);
+        clearTimeout(pending.timeout);
+        if (response.approved) {
+            pending.resolve();
+        }
+        else {
+            pending.reject(new Error(response.reason || 'Tool call rejected by user.'));
+        }
+        return { ok: true };
     });
     ipcBridge.registerApiHandler('chat', async (request) => {
         return apiService.chat(request);
@@ -128,6 +281,27 @@ function registerServiceBridges(ipcBridge, options) {
     ipcBridge.registerFsHandler('list', async (request) => {
         return filesService.listDirectory(request.path);
     });
+    ipcBridge.registerFsHandler('open', async (request) => {
+        const absolutePath = filesService.resolveWorkspacePath(request.path);
+        const error = await electron_1.shell.openPath(absolutePath);
+        if (error) {
+            throw new Error(error);
+        }
+        return {
+            ok: true,
+            path: request.path,
+            absolutePath,
+        };
+    });
+    ipcBridge.registerFsHandler('reveal', async (request) => {
+        const absolutePath = filesService.resolveWorkspacePath(request.path);
+        electron_1.shell.showItemInFolder(absolutePath);
+        return {
+            ok: true,
+            path: request.path,
+            absolutePath,
+        };
+    });
     ipcBridge.registerMcpHandler('listServers', async () => {
         return mcpService.listServers();
     });
@@ -152,6 +326,7 @@ function registerServiceBridges(ipcBridge, options) {
             platform: process.platform,
             arch: process.arch,
             isDev: options.isDev ?? false,
+            workspacePath,
         };
     });
     ipcBridge.registerAppHandler('getConfig', async () => {
@@ -180,11 +355,118 @@ function registerServiceBridges(ipcBridge, options) {
         mcpService,
     };
 }
-function createBridgeTools({ apiService, filesService, appStateService, mcpService, }) {
+function createBridgeTools({ apiService, filesService, appStateService, mcpService, commandService, webService, financeService, requestFileWriteReview, requestCommandReview, }) {
+    const workspacePath = filesService.getBasePath();
     return [
         {
+            name: 'time.now',
+            description: 'Get the current date and time for a requested IANA timezone. Use this for current time/date questions; do not write scripts or files to answer those questions.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    timezone: {
+                        type: 'string',
+                        description: 'IANA timezone such as America/New_York. Defaults to the local system timezone.',
+                    },
+                    locale: {
+                        type: 'string',
+                        description: 'Optional locale such as en-US.',
+                    },
+                },
+            },
+            execute: async (args) => formatCurrentTime(args.timezone, args.locale),
+        },
+        {
+            name: 'web.search',
+            description: 'Search the public web for current or external facts. This is a discovery tool that returns links/snippets. If the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Read-only.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string' },
+                    maxResults: { type: 'number' },
+                },
+                required: ['query'],
+            },
+            execute: args => webService.search(args),
+        },
+        {
+            name: 'web.research',
+            description: 'Research a public-web question by searching and fetching readable text from top results in one call. Use this for general current/external questions when a direct structured tool does not exist. Answer from the fetched source text instead of returning only links. Read-only.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string' },
+                    maxResults: { type: 'number' },
+                    maxCharsPerPage: { type: 'number' },
+                },
+                required: ['query'],
+            },
+            execute: args => webService.research(args),
+        },
+        {
+            name: 'web.fetch',
+            description: 'Fetch a public http/https URL and return readable text. Use after web.search when page details are needed, or use web.research to combine search and fetch. Read-only.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    url: { type: 'string' },
+                    maxChars: { type: 'number' },
+                },
+                required: ['url'],
+            },
+            execute: args => webService.fetchPage(args),
+        },
+        {
+            name: 'finance.quote',
+            description: 'Get a structured current/delayed quote for a stock, ETF, index, or Yahoo Finance-compatible symbol. Use this for stock price questions before web.search. Accepts ticker symbols like CSCO or company queries like Cisco. Read-only.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    symbol: {
+                        type: 'string',
+                        description: 'Ticker symbol or company query, for example CSCO or Cisco.',
+                    },
+                    query: {
+                        type: 'string',
+                        description: 'Alternative company/security search query if no ticker is known.',
+                    },
+                },
+            },
+            execute: args => financeService.quote(args),
+        },
+        {
+            name: 'bash.run',
+            description: `Run one approved non-interactive command inside the current workspace (${workspacePath}). Use for inspecting files, running tests, and checking project state. Do not use for simple time/date or public web questions. Shell operators, home-directory cwd paths, and destructive commands are blocked.`,
+            source: 'bridge',
+            readOnly: false,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    command: { type: 'string' },
+                    cwd: { type: 'string' },
+                    timeoutMs: { type: 'number' },
+                },
+                required: ['command'],
+            },
+            execute: async (args, context) => {
+                const preview = commandService.createRunPreview(args);
+                await requestCommandReview(preview, context.toolId);
+                return commandService.runCommand(args);
+            },
+        },
+        {
             name: 'fs.read',
-            description: 'Read a workspace file',
+            description: `Read a file inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
             source: 'bridge',
             readOnly: true,
             inputSchema: {
@@ -199,7 +481,7 @@ function createBridgeTools({ apiService, filesService, appStateService, mcpServi
         },
         {
             name: 'fs.write',
-            description: 'Write a workspace file',
+            description: `Write a file inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
             source: 'bridge',
             readOnly: false,
             inputSchema: {
@@ -211,11 +493,29 @@ function createBridgeTools({ apiService, filesService, appStateService, mcpServi
                 },
                 required: ['path', 'content'],
             },
-            execute: args => filesService.writeFile(String(args.path), String(args.content ?? ''), args.encoding),
+            execute: async (args, context) => {
+                const targetPath = String(args.path);
+                const content = String(args.content ?? '');
+                const encoding = args.encoding;
+                const preview = await filesService.createWritePreview(targetPath, content, encoding);
+                await requestFileWriteReview(preview, context.toolId);
+                return filesService.writeFileWithCheckpoint(targetPath, content, encoding);
+            },
+        },
+        {
+            name: 'fs.undoLastWrite',
+            description: `Restore the most recent desktop filesystem write checkpoint inside the current workspace (${workspacePath}). Use only when the user explicitly asks to undo the latest write.`,
+            source: 'bridge',
+            readOnly: false,
+            inputSchema: {
+                type: 'object',
+                properties: {},
+            },
+            execute: () => filesService.restoreLastWriteCheckpoint(),
         },
         {
             name: 'fs.list',
-            description: 'List a workspace directory',
+            description: `List a directory inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
             source: 'bridge',
             readOnly: true,
             inputSchema: {
@@ -262,7 +562,7 @@ function createBridgeTools({ apiService, filesService, appStateService, mcpServi
         },
         {
             name: 'mcp.listServers',
-            description: 'List configured MCP servers',
+            description: 'List configured MCP servers, including connection status and unsupported transport errors. Read-only.',
             source: 'bridge',
             readOnly: true,
             inputSchema: {
@@ -271,6 +571,66 @@ function createBridgeTools({ apiService, filesService, appStateService, mcpServi
             },
             execute: () => mcpService.listServers(),
         },
+        {
+            name: 'mcp.listTools',
+            description: 'List executable tools discovered from connected stdio MCP servers. Read-only.',
+            source: 'bridge',
+            readOnly: true,
+            inputSchema: {
+                type: 'object',
+                properties: {},
+            },
+            execute: () => mcpService.listTools(),
+        },
+        {
+            name: 'mcp.callTool',
+            description: 'Call a specific tool on a connected stdio MCP server. Use mcp.listTools first to identify serverName and toolName. Tool safety depends on the MCP server and requested tool.',
+            source: 'bridge',
+            readOnly: false,
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    serverName: {
+                        type: 'string',
+                        description: 'MCP server name, or scope:name when disambiguation is needed.',
+                    },
+                    toolName: {
+                        type: 'string',
+                        description: 'Tool name as reported by mcp.listTools.',
+                    },
+                    arguments: {
+                        type: 'object',
+                        description: 'Arguments to pass to the MCP tool.',
+                    },
+                },
+                required: ['serverName', 'toolName'],
+            },
+            execute: args => mcpService.callTool(String(args.serverName ?? ''), String(args.toolName ?? args.name ?? ''), args.arguments && typeof args.arguments === 'object' && !Array.isArray(args.arguments)
+                ? args.arguments
+                : {}),
+        },
     ];
+}
+function formatCurrentTime(timezone, locale = 'en-US') {
+    const now = new Date();
+    const resolvedTimezone = timezone?.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    let formatter;
+    try {
+        formatter = new Intl.DateTimeFormat(locale || 'en-US', {
+            timeZone: resolvedTimezone,
+            dateStyle: 'full',
+            timeStyle: 'long',
+        });
+    }
+    catch (error) {
+        throw new Error(`Invalid timezone or locale: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return {
+        timezone: resolvedTimezone,
+        locale: locale || 'en-US',
+        iso: now.toISOString(),
+        unixMs: now.getTime(),
+        formatted: formatter.format(now),
+    };
 }
 //# sourceMappingURL=services-bridge.js.map

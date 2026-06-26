@@ -238,20 +238,20 @@
           {
             Object.freeze(emptyObject);
           }
-          function Component(props, context, updater) {
+          function Component2(props, context, updater) {
             this.props = props;
             this.context = context;
             this.refs = emptyObject;
             this.updater = updater || ReactNoopUpdateQueue;
           }
-          Component.prototype.isReactComponent = {};
-          Component.prototype.setState = function(partialState, callback) {
+          Component2.prototype.isReactComponent = {};
+          Component2.prototype.setState = function(partialState, callback) {
             if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null) {
               throw new Error("setState(...): takes an object of state variables to update or a function which returns an object of state variables.");
             }
             this.updater.enqueueSetState(this, partialState, callback, "setState");
           };
-          Component.prototype.forceUpdate = function(callback) {
+          Component2.prototype.forceUpdate = function(callback) {
             this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
           };
           {
@@ -260,7 +260,7 @@
               replaceState: ["replaceState", "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."]
             };
             var defineDeprecationWarning = function(methodName, info) {
-              Object.defineProperty(Component.prototype, methodName, {
+              Object.defineProperty(Component2.prototype, methodName, {
                 get: function() {
                   warn("%s(...) is deprecated in plain JavaScript React classes. %s", info[0], info[1]);
                   return void 0;
@@ -275,18 +275,18 @@
           }
           function ComponentDummy() {
           }
-          ComponentDummy.prototype = Component.prototype;
-          function PureComponent(props, context, updater) {
+          ComponentDummy.prototype = Component2.prototype;
+          function PureComponent2(props, context, updater) {
             this.props = props;
             this.context = context;
             this.refs = emptyObject;
             this.updater = updater || ReactNoopUpdateQueue;
           }
-          var pureComponentPrototype = PureComponent.prototype = new ComponentDummy();
-          pureComponentPrototype.constructor = PureComponent;
-          assign(pureComponentPrototype, Component.prototype);
+          var pureComponentPrototype = PureComponent2.prototype = new ComponentDummy();
+          pureComponentPrototype.constructor = PureComponent2;
+          assign(pureComponentPrototype, Component2.prototype);
           pureComponentPrototype.isPureReactComponent = true;
-          function createRef() {
+          function createRef2() {
             var refObject = {
               current: null
             };
@@ -510,7 +510,7 @@
             }
             return element;
           };
-          function createElement(type, config, children) {
+          function createElement2(type, config, children) {
             var propName;
             var props = {};
             var key = null;
@@ -578,7 +578,7 @@
             var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
             return newElement;
           }
-          function cloneElement(element, config, children) {
+          function cloneElement2(element, config, children) {
             if (element === null || element === void 0) {
               throw new Error("React.cloneElement(...): The argument must be a React element, but you passed " + element + ".");
             }
@@ -626,7 +626,7 @@
             }
             return ReactElement(element.type, key, ref, self, source, owner, props);
           }
-          function isValidElement(object) {
+          function isValidElement2(object) {
             return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
           }
           var SEPARATOR = ".";
@@ -691,7 +691,7 @@
                   return c;
                 });
               } else if (mappedChild != null) {
-                if (isValidElement(mappedChild)) {
+                if (isValidElement2(mappedChild)) {
                   {
                     if (mappedChild.key && (!_child || _child.key !== mappedChild.key)) {
                       checkKeyStringCoercion(mappedChild.key);
@@ -779,12 +779,12 @@
             }) || [];
           }
           function onlyChild(children) {
-            if (!isValidElement(children)) {
+            if (!isValidElement2(children)) {
               throw new Error("React.Children.only expected to receive a single React element child.");
             }
             return children;
           }
-          function createContext(defaultValue) {
+          function createContext2(defaultValue) {
             var context = {
               $$typeof: REACT_CONTEXT_TYPE,
               // As a workaround to support multiple concurrent renderers, we categorize
@@ -926,7 +926,7 @@
               throw payload._result;
             }
           }
-          function lazy(ctor) {
+          function lazy2(ctor) {
             var payload = {
               // We use these fields to store the result.
               _status: Uninitialized,
@@ -971,7 +971,7 @@
             }
             return lazyType;
           }
-          function forwardRef(render) {
+          function forwardRef2(render) {
             {
               if (render != null && render.$$typeof === REACT_MEMO_TYPE) {
                 error("forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).");
@@ -1032,7 +1032,7 @@
             }
             return false;
           }
-          function memo(type, compare) {
+          function memo2(type, compare) {
             {
               if (!isValidElementType(type)) {
                 error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
@@ -1070,7 +1070,7 @@
             }
             return dispatcher;
           }
-          function useContext(Context) {
+          function useContext2(Context) {
             var dispatcher = resolveDispatcher();
             {
               if (Context._context !== void 0) {
@@ -1088,7 +1088,7 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useState(initialState);
           }
-          function useReducer(reducer, initialArg, init) {
+          function useReducer2(reducer, initialArg, init) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useReducer(reducer, initialArg, init);
           }
@@ -1100,15 +1100,15 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useEffect(create, deps);
           }
-          function useInsertionEffect(create, deps) {
+          function useInsertionEffect2(create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useInsertionEffect(create, deps);
           }
-          function useLayoutEffect(create, deps) {
+          function useLayoutEffect2(create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useLayoutEffect(create, deps);
           }
-          function useCallback(callback, deps) {
+          function useCallback2(callback, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useCallback(callback, deps);
           }
@@ -1116,29 +1116,29 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useMemo(create, deps);
           }
-          function useImperativeHandle(ref, create, deps) {
+          function useImperativeHandle2(ref, create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useImperativeHandle(ref, create, deps);
           }
-          function useDebugValue(value, formatterFn) {
+          function useDebugValue2(value, formatterFn) {
             {
               var dispatcher = resolveDispatcher();
               return dispatcher.useDebugValue(value, formatterFn);
             }
           }
-          function useTransition() {
+          function useTransition2() {
             var dispatcher = resolveDispatcher();
             return dispatcher.useTransition();
           }
-          function useDeferredValue(value) {
+          function useDeferredValue2(value) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useDeferredValue(value);
           }
-          function useId() {
+          function useId2() {
             var dispatcher = resolveDispatcher();
             return dispatcher.useId();
           }
-          function useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) {
+          function useSyncExternalStore2(subscribe, getSnapshot, getServerSnapshot) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
           }
@@ -1349,8 +1349,8 @@
               return describeNativeComponentFrame(fn, false);
             }
           }
-          function shouldConstruct(Component2) {
-            var prototype = Component2.prototype;
+          function shouldConstruct(Component3) {
+            var prototype = Component3.prototype;
             return !!(prototype && prototype.isReactComponent);
           }
           function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -1510,11 +1510,11 @@
             if (isArray(node)) {
               for (var i = 0; i < node.length; i++) {
                 var child = node[i];
-                if (isValidElement(child)) {
+                if (isValidElement2(child)) {
                   validateExplicitKey(child, parentType);
                 }
               }
-            } else if (isValidElement(node)) {
+            } else if (isValidElement2(node)) {
               if (node._store) {
                 node._store.validated = true;
               }
@@ -1525,7 +1525,7 @@
                   var iterator = iteratorFn.call(node);
                   var step;
                   while (!(step = iterator.next()).done) {
-                    if (isValidElement(step.value)) {
+                    if (isValidElement2(step.value)) {
                       validateExplicitKey(step.value, parentType);
                     }
                   }
@@ -1609,7 +1609,7 @@
                 error("React.createElement: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
               }
             }
-            var element = createElement.apply(this, arguments);
+            var element = createElement2.apply(this, arguments);
             if (element == null) {
               return element;
             }
@@ -1648,14 +1648,14 @@
             return validatedFactory;
           }
           function cloneElementWithValidation(element, props, children) {
-            var newElement = cloneElement.apply(this, arguments);
+            var newElement = cloneElement2.apply(this, arguments);
             for (var i = 2; i < arguments.length; i++) {
               validateChildKeys(arguments[i], newElement.type);
             }
             validatePropTypes(newElement);
             return newElement;
           }
-          function startTransition(scope, options) {
+          function startTransition2(scope, options) {
             var prevTransition = ReactCurrentBatchConfig.transition;
             ReactCurrentBatchConfig.transition = {};
             var currentTransition = ReactCurrentBatchConfig.transition;
@@ -1847,49 +1847,49 @@
           }
           var createElement$1 = createElementWithValidation;
           var cloneElement$1 = cloneElementWithValidation;
-          var createFactory = createFactoryWithValidation;
-          var Children = {
+          var createFactory2 = createFactoryWithValidation;
+          var Children2 = {
             map: mapChildren,
             forEach: forEachChildren,
             count: countChildren,
             toArray,
             only: onlyChild
           };
-          exports.Children = Children;
-          exports.Component = Component;
+          exports.Children = Children2;
+          exports.Component = Component2;
           exports.Fragment = REACT_FRAGMENT_TYPE;
           exports.Profiler = REACT_PROFILER_TYPE;
-          exports.PureComponent = PureComponent;
+          exports.PureComponent = PureComponent2;
           exports.StrictMode = REACT_STRICT_MODE_TYPE;
           exports.Suspense = REACT_SUSPENSE_TYPE;
           exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactSharedInternals;
           exports.act = act;
           exports.cloneElement = cloneElement$1;
-          exports.createContext = createContext;
+          exports.createContext = createContext2;
           exports.createElement = createElement$1;
-          exports.createFactory = createFactory;
-          exports.createRef = createRef;
-          exports.forwardRef = forwardRef;
-          exports.isValidElement = isValidElement;
-          exports.lazy = lazy;
-          exports.memo = memo;
-          exports.startTransition = startTransition;
+          exports.createFactory = createFactory2;
+          exports.createRef = createRef2;
+          exports.forwardRef = forwardRef2;
+          exports.isValidElement = isValidElement2;
+          exports.lazy = lazy2;
+          exports.memo = memo2;
+          exports.startTransition = startTransition2;
           exports.unstable_act = act;
-          exports.useCallback = useCallback;
-          exports.useContext = useContext;
-          exports.useDebugValue = useDebugValue;
-          exports.useDeferredValue = useDeferredValue;
+          exports.useCallback = useCallback2;
+          exports.useContext = useContext2;
+          exports.useDebugValue = useDebugValue2;
+          exports.useDeferredValue = useDeferredValue2;
           exports.useEffect = useEffect2;
-          exports.useId = useId;
-          exports.useImperativeHandle = useImperativeHandle;
-          exports.useInsertionEffect = useInsertionEffect;
-          exports.useLayoutEffect = useLayoutEffect;
+          exports.useId = useId2;
+          exports.useImperativeHandle = useImperativeHandle2;
+          exports.useInsertionEffect = useInsertionEffect2;
+          exports.useLayoutEffect = useLayoutEffect2;
           exports.useMemo = useMemo2;
-          exports.useReducer = useReducer;
+          exports.useReducer = useReducer2;
           exports.useRef = useRef2;
           exports.useState = useState2;
-          exports.useSyncExternalStore = useSyncExternalStore;
-          exports.useTransition = useTransition;
+          exports.useSyncExternalStore = useSyncExternalStore2;
+          exports.useTransition = useTransition2;
           exports.version = ReactVersion;
           if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === "function") {
             __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(new Error());
@@ -2434,12 +2434,12 @@
           var HostPortal = 4;
           var HostComponent = 5;
           var HostText = 6;
-          var Fragment = 7;
+          var Fragment2 = 7;
           var Mode = 8;
           var ContextConsumer = 9;
           var ContextProvider = 10;
           var ForwardRef = 11;
-          var Profiler = 12;
+          var Profiler2 = 12;
           var SuspenseComponent = 13;
           var MemoComponent = 14;
           var SimpleMemoComponent = 15;
@@ -3421,8 +3421,8 @@
               return describeNativeComponentFrame(fn, false);
             }
           }
-          function shouldConstruct(Component) {
-            var prototype = Component.prototype;
+          function shouldConstruct(Component2) {
+            var prototype = Component2.prototype;
             return !!(prototype && prototype.isReactComponent);
           }
           function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -3591,7 +3591,7 @@
                 return "DehydratedFragment";
               case ForwardRef:
                 return getWrappedName$1(type, type.render, "ForwardRef");
-              case Fragment:
+              case Fragment2:
                 return "Fragment";
               case HostComponent:
                 return type;
@@ -3610,7 +3610,7 @@
                 return "Mode";
               case OffscreenComponent:
                 return "Offscreen";
-              case Profiler:
+              case Profiler2:
                 return "Profiler";
               case ScopeComponent:
                 return "Scope";
@@ -9416,7 +9416,7 @@
               }
             }
           }
-          function createElement(type, props, rootContainerElement, parentNamespace) {
+          function createElement2(type, props, rootContainerElement, parentNamespace) {
             var isCustomComponentTag;
             var ownerDocument = getOwnerDocumentFromRootContainer(rootContainerElement);
             var domElement;
@@ -10286,7 +10286,7 @@
               }
               parentNamespace = hostContextDev.namespace;
             }
-            var domElement = createElement(type, props, rootContainerInstance, parentNamespace);
+            var domElement = createElement2(type, props, rootContainerInstance, parentNamespace);
             precacheFiberNode(internalInstanceHandle, domElement);
             updateFiberProps(domElement, props);
             return domElement;
@@ -10885,9 +10885,9 @@
           var contextStackCursor = createCursor(emptyContextObject);
           var didPerformWorkStackCursor = createCursor(false);
           var previousContext = emptyContextObject;
-          function getUnmaskedContext(workInProgress2, Component, didPushOwnContextIfProvider) {
+          function getUnmaskedContext(workInProgress2, Component2, didPushOwnContextIfProvider) {
             {
-              if (didPushOwnContextIfProvider && isContextProvider(Component)) {
+              if (didPushOwnContextIfProvider && isContextProvider(Component2)) {
                 return previousContext;
               }
               return contextStackCursor.current;
@@ -11024,8 +11024,8 @@
                   case HostRoot:
                     return node.stateNode.context;
                   case ClassComponent: {
-                    var Component = node.type;
-                    if (isContextProvider(Component)) {
+                    var Component2 = node.type;
+                    if (isContextProvider(Component2)) {
                       return node.stateNode.__reactInternalMemoizedMergedChildContext;
                     }
                     break;
@@ -12020,7 +12020,7 @@
               }
             }
             function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-              if (current2 === null || current2.tag !== Fragment) {
+              if (current2 === null || current2.tag !== Fragment2) {
                 var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
                 created.return = returnFiber;
                 return created;
@@ -12423,7 +12423,7 @@
                 if (child.key === key) {
                   var elementType = element.type;
                   if (elementType === REACT_FRAGMENT_TYPE) {
-                    if (child.tag === Fragment) {
+                    if (child.tag === Fragment2) {
                       deleteRemainingChildren(returnFiber, child.sibling);
                       var existing = useFiber(child, element.props.children);
                       existing.return = returnFiber;
@@ -13374,11 +13374,11 @@
           }
           function registerMutableSourceForHydration(root2, mutableSource) {
             var getVersion = mutableSource._getVersion;
-            var version = getVersion(mutableSource._source);
+            var version2 = getVersion(mutableSource._source);
             if (root2.mutableSourceEagerHydrationData == null) {
-              root2.mutableSourceEagerHydrationData = [mutableSource, version];
+              root2.mutableSourceEagerHydrationData = [mutableSource, version2];
             } else {
-              root2.mutableSourceEagerHydrationData.push(mutableSource, version);
+              root2.mutableSourceEagerHydrationData.push(mutableSource, version2);
             }
           }
           var ReactCurrentDispatcher$1 = ReactSharedInternals.ReactCurrentDispatcher, ReactCurrentBatchConfig$2 = ReactSharedInternals.ReactCurrentBatchConfig;
@@ -13479,7 +13479,7 @@
             }
             return true;
           }
-          function renderWithHooks(current2, workInProgress2, Component, props, secondArg, nextRenderLanes) {
+          function renderWithHooks(current2, workInProgress2, Component2, props, secondArg, nextRenderLanes) {
             renderLanes = nextRenderLanes;
             currentlyRenderingFiber$1 = workInProgress2;
             {
@@ -13499,7 +13499,7 @@
                 ReactCurrentDispatcher$1.current = HooksDispatcherOnMountInDEV;
               }
             }
-            var children = Component(props, secondArg);
+            var children = Component2(props, secondArg);
             if (didScheduleRenderPhaseUpdateDuringThisPass) {
               var numberOfReRenders = 0;
               do {
@@ -13519,7 +13519,7 @@
                   hookTypesUpdateIndexDev = -1;
                 }
                 ReactCurrentDispatcher$1.current = HooksDispatcherOnRerenderInDEV;
-                children = Component(props, secondArg);
+                children = Component2(props, secondArg);
               } while (didScheduleRenderPhaseUpdateDuringThisPass);
             }
             ReactCurrentDispatcher$1.current = ContextOnlyDispatcher;
@@ -14205,7 +14205,7 @@
               return value;
             }
           }
-          function startTransition(setPending, callback, options2) {
+          function startTransition2(setPending, callback, options2) {
             var previousPriority = getCurrentUpdatePriority();
             setCurrentUpdatePriority(higherEventPriority(previousPriority, ContinuousEventPriority));
             setPending(true);
@@ -14234,7 +14234,7 @@
           }
           function mountTransition() {
             var _mountState = mountState(false), isPending = _mountState[0], setPending = _mountState[1];
-            var start = startTransition.bind(null, setPending);
+            var start = startTransition2.bind(null, setPending);
             var hook = mountWorkInProgressHook();
             hook.memoizedState = start;
             return [isPending, start];
@@ -15272,7 +15272,7 @@
                     var root2 = parentFiber.stateNode;
                     root2.effectDuration += elapsedTime;
                     return;
-                  case Profiler:
+                  case Profiler2:
                     var parentStateNode = parentFiber.stateNode;
                     parentStateNode.effectDuration += elapsedTime;
                     return;
@@ -15294,7 +15294,7 @@
                       root2.passiveEffectDuration += elapsedTime;
                     }
                     return;
-                  case Profiler:
+                  case Profiler2:
                     var parentStateNode = parentFiber.stateNode;
                     if (parentStateNode !== null) {
                       parentStateNode.passiveEffectDuration += elapsedTime;
@@ -15318,10 +15318,10 @@
               child = child.sibling;
             }
           }
-          function resolveDefaultProps(Component, baseProps) {
-            if (Component && Component.defaultProps) {
+          function resolveDefaultProps(Component2, baseProps) {
+            if (Component2 && Component2.defaultProps) {
               var props = assign({}, baseProps);
-              var defaultProps = Component.defaultProps;
+              var defaultProps = Component2.defaultProps;
               for (var propName in defaultProps) {
                 if (props[propName] === void 0) {
                   props[propName] = defaultProps[propName];
@@ -16250,22 +16250,22 @@
             workInProgress2.child = reconcileChildFibers(workInProgress2, current2.child, null, renderLanes2);
             workInProgress2.child = reconcileChildFibers(workInProgress2, null, nextChildren, renderLanes2);
           }
-          function updateForwardRef(current2, workInProgress2, Component, nextProps, renderLanes2) {
+          function updateForwardRef(current2, workInProgress2, Component2, nextProps, renderLanes2) {
             {
               if (workInProgress2.type !== workInProgress2.elementType) {
-                var innerPropTypes = Component.propTypes;
+                var innerPropTypes = Component2.propTypes;
                 if (innerPropTypes) {
                   checkPropTypes(
                     innerPropTypes,
                     nextProps,
                     // Resolved props
                     "prop",
-                    getComponentNameFromType(Component)
+                    getComponentNameFromType(Component2)
                   );
                 }
               }
             }
-            var render2 = Component.render;
+            var render2 = Component2.render;
             var ref = workInProgress2.ref;
             var nextChildren;
             var hasId;
@@ -16303,11 +16303,11 @@
             reconcileChildren(current2, workInProgress2, nextChildren, renderLanes2);
             return workInProgress2.child;
           }
-          function updateMemoComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+          function updateMemoComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
             if (current2 === null) {
-              var type = Component.type;
-              if (isSimpleFunctionComponent(type) && Component.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
-              Component.defaultProps === void 0) {
+              var type = Component2.type;
+              if (isSimpleFunctionComponent(type) && Component2.compare === null && // SimpleMemoComponent codepath doesn't resolve outer props either.
+              Component2.defaultProps === void 0) {
                 var resolvedType = type;
                 {
                   resolvedType = resolveFunctionForHotReloading(type);
@@ -16330,7 +16330,7 @@
                     getComponentNameFromType(type)
                   );
                 }
-                if (Component.defaultProps !== void 0) {
+                if (Component2.defaultProps !== void 0) {
                   var componentName = getComponentNameFromType(type) || "Unknown";
                   if (!didWarnAboutDefaultPropsOnFunctionComponent[componentName]) {
                     error("%s: Support for defaultProps will be removed from memo components in a future major release. Use JavaScript default parameters instead.", componentName);
@@ -16338,14 +16338,14 @@
                   }
                 }
               }
-              var child = createFiberFromTypeAndProps(Component.type, null, nextProps, workInProgress2, workInProgress2.mode, renderLanes2);
+              var child = createFiberFromTypeAndProps(Component2.type, null, nextProps, workInProgress2, workInProgress2.mode, renderLanes2);
               child.ref = workInProgress2.ref;
               child.return = workInProgress2;
               workInProgress2.child = child;
               return child;
             }
             {
-              var _type = Component.type;
+              var _type = Component2.type;
               var _innerPropTypes = _type.propTypes;
               if (_innerPropTypes) {
                 checkPropTypes(
@@ -16361,7 +16361,7 @@
             var hasScheduledUpdateOrContext = checkScheduledUpdateOrContext(current2, renderLanes2);
             if (!hasScheduledUpdateOrContext) {
               var prevProps = currentChild.memoizedProps;
-              var compare = Component.compare;
+              var compare = Component2.compare;
               compare = compare !== null ? compare : shallowEqual;
               if (compare(prevProps, nextProps) && current2.ref === workInProgress2.ref) {
                 return bailoutOnAlreadyFinishedWork(current2, workInProgress2, renderLanes2);
@@ -16374,7 +16374,7 @@
             workInProgress2.child = newChild;
             return newChild;
           }
-          function updateSimpleMemoComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+          function updateSimpleMemoComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
             {
               if (workInProgress2.type !== workInProgress2.elementType) {
                 var outerMemoType = workInProgress2.elementType;
@@ -16414,7 +16414,7 @@
                 }
               }
             }
-            return updateFunctionComponent(current2, workInProgress2, Component, nextProps, renderLanes2);
+            return updateFunctionComponent(current2, workInProgress2, Component2, nextProps, renderLanes2);
           }
           function updateOffscreenComponent(current2, workInProgress2, renderLanes2) {
             var nextProps = workInProgress2.pendingProps;
@@ -16504,24 +16504,24 @@
               }
             }
           }
-          function updateFunctionComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+          function updateFunctionComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
             {
               if (workInProgress2.type !== workInProgress2.elementType) {
-                var innerPropTypes = Component.propTypes;
+                var innerPropTypes = Component2.propTypes;
                 if (innerPropTypes) {
                   checkPropTypes(
                     innerPropTypes,
                     nextProps,
                     // Resolved props
                     "prop",
-                    getComponentNameFromType(Component)
+                    getComponentNameFromType(Component2)
                   );
                 }
               }
             }
             var context;
             {
-              var unmaskedContext = getUnmaskedContext(workInProgress2, Component, true);
+              var unmaskedContext = getUnmaskedContext(workInProgress2, Component2, true);
               context = getMaskedContext(workInProgress2, unmaskedContext);
             }
             var nextChildren;
@@ -16533,12 +16533,12 @@
             {
               ReactCurrentOwner$1.current = workInProgress2;
               setIsRendering(true);
-              nextChildren = renderWithHooks(current2, workInProgress2, Component, nextProps, context, renderLanes2);
+              nextChildren = renderWithHooks(current2, workInProgress2, Component2, nextProps, context, renderLanes2);
               hasId = checkDidRenderIdHook();
               if (workInProgress2.mode & StrictLegacyMode) {
                 setIsStrictModeForDevtools(true);
                 try {
-                  nextChildren = renderWithHooks(current2, workInProgress2, Component, nextProps, context, renderLanes2);
+                  nextChildren = renderWithHooks(current2, workInProgress2, Component2, nextProps, context, renderLanes2);
                   hasId = checkDidRenderIdHook();
                 } finally {
                   setIsStrictModeForDevtools(false);
@@ -16560,7 +16560,7 @@
             reconcileChildren(current2, workInProgress2, nextChildren, renderLanes2);
             return workInProgress2.child;
           }
-          function updateClassComponent(current2, workInProgress2, Component, nextProps, renderLanes2) {
+          function updateClassComponent(current2, workInProgress2, Component2, nextProps, renderLanes2) {
             {
               switch (shouldError(workInProgress2)) {
                 case false: {
@@ -16583,20 +16583,20 @@
                 }
               }
               if (workInProgress2.type !== workInProgress2.elementType) {
-                var innerPropTypes = Component.propTypes;
+                var innerPropTypes = Component2.propTypes;
                 if (innerPropTypes) {
                   checkPropTypes(
                     innerPropTypes,
                     nextProps,
                     // Resolved props
                     "prop",
-                    getComponentNameFromType(Component)
+                    getComponentNameFromType(Component2)
                   );
                 }
               }
             }
             var hasContext;
-            if (isContextProvider(Component)) {
+            if (isContextProvider(Component2)) {
               hasContext = true;
               pushContextProvider(workInProgress2);
             } else {
@@ -16607,15 +16607,15 @@
             var shouldUpdate;
             if (instance === null) {
               resetSuspendedCurrentOnMountInLegacyMode(current2, workInProgress2);
-              constructClassInstance(workInProgress2, Component, nextProps);
-              mountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
+              constructClassInstance(workInProgress2, Component2, nextProps);
+              mountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
               shouldUpdate = true;
             } else if (current2 === null) {
-              shouldUpdate = resumeMountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
+              shouldUpdate = resumeMountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
             } else {
-              shouldUpdate = updateClassInstance(current2, workInProgress2, Component, nextProps, renderLanes2);
+              shouldUpdate = updateClassInstance(current2, workInProgress2, Component2, nextProps, renderLanes2);
             }
-            var nextUnitOfWork = finishClassComponent(current2, workInProgress2, Component, shouldUpdate, hasContext, renderLanes2);
+            var nextUnitOfWork = finishClassComponent(current2, workInProgress2, Component2, shouldUpdate, hasContext, renderLanes2);
             {
               var inst = workInProgress2.stateNode;
               if (shouldUpdate && inst.props !== nextProps) {
@@ -16627,19 +16627,19 @@
             }
             return nextUnitOfWork;
           }
-          function finishClassComponent(current2, workInProgress2, Component, shouldUpdate, hasContext, renderLanes2) {
+          function finishClassComponent(current2, workInProgress2, Component2, shouldUpdate, hasContext, renderLanes2) {
             markRef(current2, workInProgress2);
             var didCaptureError = (workInProgress2.flags & DidCapture) !== NoFlags;
             if (!shouldUpdate && !didCaptureError) {
               if (hasContext) {
-                invalidateContextProvider(workInProgress2, Component, false);
+                invalidateContextProvider(workInProgress2, Component2, false);
               }
               return bailoutOnAlreadyFinishedWork(current2, workInProgress2, renderLanes2);
             }
             var instance = workInProgress2.stateNode;
             ReactCurrentOwner$1.current = workInProgress2;
             var nextChildren;
-            if (didCaptureError && typeof Component.getDerivedStateFromError !== "function") {
+            if (didCaptureError && typeof Component2.getDerivedStateFromError !== "function") {
               nextChildren = null;
               {
                 stopProfilerTimerIfRunning();
@@ -16673,7 +16673,7 @@
             }
             workInProgress2.memoizedState = instance.state;
             if (hasContext) {
-              invalidateContextProvider(workInProgress2, Component, true);
+              invalidateContextProvider(workInProgress2, Component2, true);
             }
             return workInProgress2.child;
           }
@@ -16773,45 +16773,45 @@
             var lazyComponent = elementType;
             var payload = lazyComponent._payload;
             var init = lazyComponent._init;
-            var Component = init(payload);
-            workInProgress2.type = Component;
-            var resolvedTag = workInProgress2.tag = resolveLazyComponentTag(Component);
-            var resolvedProps = resolveDefaultProps(Component, props);
+            var Component2 = init(payload);
+            workInProgress2.type = Component2;
+            var resolvedTag = workInProgress2.tag = resolveLazyComponentTag(Component2);
+            var resolvedProps = resolveDefaultProps(Component2, props);
             var child;
             switch (resolvedTag) {
               case FunctionComponent: {
                 {
-                  validateFunctionComponentInDev(workInProgress2, Component);
-                  workInProgress2.type = Component = resolveFunctionForHotReloading(Component);
+                  validateFunctionComponentInDev(workInProgress2, Component2);
+                  workInProgress2.type = Component2 = resolveFunctionForHotReloading(Component2);
                 }
-                child = updateFunctionComponent(null, workInProgress2, Component, resolvedProps, renderLanes2);
+                child = updateFunctionComponent(null, workInProgress2, Component2, resolvedProps, renderLanes2);
                 return child;
               }
               case ClassComponent: {
                 {
-                  workInProgress2.type = Component = resolveClassForHotReloading(Component);
+                  workInProgress2.type = Component2 = resolveClassForHotReloading(Component2);
                 }
-                child = updateClassComponent(null, workInProgress2, Component, resolvedProps, renderLanes2);
+                child = updateClassComponent(null, workInProgress2, Component2, resolvedProps, renderLanes2);
                 return child;
               }
               case ForwardRef: {
                 {
-                  workInProgress2.type = Component = resolveForwardRefForHotReloading(Component);
+                  workInProgress2.type = Component2 = resolveForwardRefForHotReloading(Component2);
                 }
-                child = updateForwardRef(null, workInProgress2, Component, resolvedProps, renderLanes2);
+                child = updateForwardRef(null, workInProgress2, Component2, resolvedProps, renderLanes2);
                 return child;
               }
               case MemoComponent: {
                 {
                   if (workInProgress2.type !== workInProgress2.elementType) {
-                    var outerPropTypes = Component.propTypes;
+                    var outerPropTypes = Component2.propTypes;
                     if (outerPropTypes) {
                       checkPropTypes(
                         outerPropTypes,
                         resolvedProps,
                         // Resolved for outer only
                         "prop",
-                        getComponentNameFromType(Component)
+                        getComponentNameFromType(Component2)
                       );
                     }
                   }
@@ -16819,8 +16819,8 @@
                 child = updateMemoComponent(
                   null,
                   workInProgress2,
-                  Component,
-                  resolveDefaultProps(Component.type, resolvedProps),
+                  Component2,
+                  resolveDefaultProps(Component2.type, resolvedProps),
                   // The inner type can have defaults too
                   renderLanes2
                 );
@@ -16829,33 +16829,33 @@
             }
             var hint = "";
             {
-              if (Component !== null && typeof Component === "object" && Component.$$typeof === REACT_LAZY_TYPE) {
+              if (Component2 !== null && typeof Component2 === "object" && Component2.$$typeof === REACT_LAZY_TYPE) {
                 hint = " Did you wrap a component in React.lazy() more than once?";
               }
             }
-            throw new Error("Element type is invalid. Received a promise that resolves to: " + Component + ". " + ("Lazy element type must resolve to a class or function." + hint));
+            throw new Error("Element type is invalid. Received a promise that resolves to: " + Component2 + ". " + ("Lazy element type must resolve to a class or function." + hint));
           }
-          function mountIncompleteClassComponent(_current, workInProgress2, Component, nextProps, renderLanes2) {
+          function mountIncompleteClassComponent(_current, workInProgress2, Component2, nextProps, renderLanes2) {
             resetSuspendedCurrentOnMountInLegacyMode(_current, workInProgress2);
             workInProgress2.tag = ClassComponent;
             var hasContext;
-            if (isContextProvider(Component)) {
+            if (isContextProvider(Component2)) {
               hasContext = true;
               pushContextProvider(workInProgress2);
             } else {
               hasContext = false;
             }
             prepareToReadContext(workInProgress2, renderLanes2);
-            constructClassInstance(workInProgress2, Component, nextProps);
-            mountClassInstance(workInProgress2, Component, nextProps, renderLanes2);
-            return finishClassComponent(null, workInProgress2, Component, true, hasContext, renderLanes2);
+            constructClassInstance(workInProgress2, Component2, nextProps);
+            mountClassInstance(workInProgress2, Component2, nextProps, renderLanes2);
+            return finishClassComponent(null, workInProgress2, Component2, true, hasContext, renderLanes2);
           }
-          function mountIndeterminateComponent(_current, workInProgress2, Component, renderLanes2) {
+          function mountIndeterminateComponent(_current, workInProgress2, Component2, renderLanes2) {
             resetSuspendedCurrentOnMountInLegacyMode(_current, workInProgress2);
             var props = workInProgress2.pendingProps;
             var context;
             {
-              var unmaskedContext = getUnmaskedContext(workInProgress2, Component, false);
+              var unmaskedContext = getUnmaskedContext(workInProgress2, Component2, false);
               context = getMaskedContext(workInProgress2, unmaskedContext);
             }
             prepareToReadContext(workInProgress2, renderLanes2);
@@ -16865,8 +16865,8 @@
               markComponentRenderStarted(workInProgress2);
             }
             {
-              if (Component.prototype && typeof Component.prototype.render === "function") {
-                var componentName = getComponentNameFromType(Component) || "Unknown";
+              if (Component2.prototype && typeof Component2.prototype.render === "function") {
+                var componentName = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutBadClass[componentName]) {
                   error("The <%s /> component appears to have a render method, but doesn't extend React.Component. This is likely to cause errors. Change %s to extend React.Component instead.", componentName, componentName);
                   didWarnAboutBadClass[componentName] = true;
@@ -16877,7 +16877,7 @@
               }
               setIsRendering(true);
               ReactCurrentOwner$1.current = workInProgress2;
-              value = renderWithHooks(null, workInProgress2, Component, props, context, renderLanes2);
+              value = renderWithHooks(null, workInProgress2, Component2, props, context, renderLanes2);
               hasId = checkDidRenderIdHook();
               setIsRendering(false);
             }
@@ -16887,7 +16887,7 @@
             workInProgress2.flags |= PerformedWork;
             {
               if (typeof value === "object" && value !== null && typeof value.render === "function" && value.$$typeof === void 0) {
-                var _componentName = getComponentNameFromType(Component) || "Unknown";
+                var _componentName = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutModulePatternComponent[_componentName]) {
                   error("The <%s /> component appears to be a function component that returns a class instance. Change %s to a class that extends React.Component instead. If you can't use a class try assigning the prototype on the function as a workaround. `%s.prototype = React.Component.prototype`. Don't use an arrow function since it cannot be called with `new` by React.", _componentName, _componentName, _componentName);
                   didWarnAboutModulePatternComponent[_componentName] = true;
@@ -16900,7 +16900,7 @@
               typeof value === "object" && value !== null && typeof value.render === "function" && value.$$typeof === void 0
             ) {
               {
-                var _componentName2 = getComponentNameFromType(Component) || "Unknown";
+                var _componentName2 = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutModulePatternComponent[_componentName2]) {
                   error("The <%s /> component appears to be a function component that returns a class instance. Change %s to a class that extends React.Component instead. If you can't use a class try assigning the prototype on the function as a workaround. `%s.prototype = React.Component.prototype`. Don't use an arrow function since it cannot be called with `new` by React.", _componentName2, _componentName2, _componentName2);
                   didWarnAboutModulePatternComponent[_componentName2] = true;
@@ -16910,7 +16910,7 @@
               workInProgress2.memoizedState = null;
               workInProgress2.updateQueue = null;
               var hasContext = false;
-              if (isContextProvider(Component)) {
+              if (isContextProvider(Component2)) {
                 hasContext = true;
                 pushContextProvider(workInProgress2);
               } else {
@@ -16919,15 +16919,15 @@
               workInProgress2.memoizedState = value.state !== null && value.state !== void 0 ? value.state : null;
               initializeUpdateQueue(workInProgress2);
               adoptClassInstance(workInProgress2, value);
-              mountClassInstance(workInProgress2, Component, props, renderLanes2);
-              return finishClassComponent(null, workInProgress2, Component, true, hasContext, renderLanes2);
+              mountClassInstance(workInProgress2, Component2, props, renderLanes2);
+              return finishClassComponent(null, workInProgress2, Component2, true, hasContext, renderLanes2);
             } else {
               workInProgress2.tag = FunctionComponent;
               {
                 if (workInProgress2.mode & StrictLegacyMode) {
                   setIsStrictModeForDevtools(true);
                   try {
-                    value = renderWithHooks(null, workInProgress2, Component, props, context, renderLanes2);
+                    value = renderWithHooks(null, workInProgress2, Component2, props, context, renderLanes2);
                     hasId = checkDidRenderIdHook();
                   } finally {
                     setIsStrictModeForDevtools(false);
@@ -16939,16 +16939,16 @@
               }
               reconcileChildren(null, workInProgress2, value, renderLanes2);
               {
-                validateFunctionComponentInDev(workInProgress2, Component);
+                validateFunctionComponentInDev(workInProgress2, Component2);
               }
               return workInProgress2.child;
             }
           }
-          function validateFunctionComponentInDev(workInProgress2, Component) {
+          function validateFunctionComponentInDev(workInProgress2, Component2) {
             {
-              if (Component) {
-                if (Component.childContextTypes) {
-                  error("%s(...): childContextTypes cannot be defined on a function component.", Component.displayName || Component.name || "Component");
+              if (Component2) {
+                if (Component2.childContextTypes) {
+                  error("%s(...): childContextTypes cannot be defined on a function component.", Component2.displayName || Component2.name || "Component");
                 }
               }
               if (workInProgress2.ref !== null) {
@@ -16967,22 +16967,22 @@
                   error("Function components cannot be given refs. Attempts to access this ref will fail. Did you mean to use React.forwardRef()?%s", info);
                 }
               }
-              if (Component.defaultProps !== void 0) {
-                var componentName = getComponentNameFromType(Component) || "Unknown";
+              if (Component2.defaultProps !== void 0) {
+                var componentName = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutDefaultPropsOnFunctionComponent[componentName]) {
                   error("%s: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.", componentName);
                   didWarnAboutDefaultPropsOnFunctionComponent[componentName] = true;
                 }
               }
-              if (typeof Component.getDerivedStateFromProps === "function") {
-                var _componentName3 = getComponentNameFromType(Component) || "Unknown";
+              if (typeof Component2.getDerivedStateFromProps === "function") {
+                var _componentName3 = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutGetDerivedStateOnFunctionComponent[_componentName3]) {
                   error("%s: Function components do not support getDerivedStateFromProps.", _componentName3);
                   didWarnAboutGetDerivedStateOnFunctionComponent[_componentName3] = true;
                 }
               }
-              if (typeof Component.contextType === "object" && Component.contextType !== null) {
-                var _componentName4 = getComponentNameFromType(Component) || "Unknown";
+              if (typeof Component2.contextType === "object" && Component2.contextType !== null) {
+                var _componentName4 = getComponentNameFromType(Component2) || "Unknown";
                 if (!didWarnAboutContextTypeOnFunctionComponent[_componentName4]) {
                   error("%s: Function components do not support contextType.", _componentName4);
                   didWarnAboutContextTypeOnFunctionComponent[_componentName4] = true;
@@ -17744,8 +17744,8 @@
                 pushHostContext(workInProgress2);
                 break;
               case ClassComponent: {
-                var Component = workInProgress2.type;
-                if (isContextProvider(Component)) {
+                var Component2 = workInProgress2.type;
+                if (isContextProvider(Component2)) {
                   pushContextProvider(workInProgress2);
                 }
                 break;
@@ -17759,7 +17759,7 @@
                 pushProvider(workInProgress2, context, newValue);
                 break;
               }
-              case Profiler:
+              case Profiler2:
                 {
                   var hasChildWork = includesSomeLane(renderLanes2, workInProgress2.childLanes);
                   if (hasChildWork) {
@@ -17872,10 +17872,10 @@
                 return mountLazyComponent(current2, workInProgress2, elementType, renderLanes2);
               }
               case FunctionComponent: {
-                var Component = workInProgress2.type;
+                var Component2 = workInProgress2.type;
                 var unresolvedProps = workInProgress2.pendingProps;
-                var resolvedProps = workInProgress2.elementType === Component ? unresolvedProps : resolveDefaultProps(Component, unresolvedProps);
-                return updateFunctionComponent(current2, workInProgress2, Component, resolvedProps, renderLanes2);
+                var resolvedProps = workInProgress2.elementType === Component2 ? unresolvedProps : resolveDefaultProps(Component2, unresolvedProps);
+                return updateFunctionComponent(current2, workInProgress2, Component2, resolvedProps, renderLanes2);
               }
               case ClassComponent: {
                 var _Component = workInProgress2.type;
@@ -17899,11 +17899,11 @@
                 var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
                 return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
               }
-              case Fragment:
+              case Fragment2:
                 return updateFragment(current2, workInProgress2, renderLanes2);
               case Mode:
                 return updateMode(current2, workInProgress2, renderLanes2);
-              case Profiler:
+              case Profiler2:
                 return updateProfiler(current2, workInProgress2, renderLanes2);
               case ContextProvider:
                 return updateContextProvider(current2, workInProgress2, renderLanes2);
@@ -18171,16 +18171,16 @@
               case SimpleMemoComponent:
               case FunctionComponent:
               case ForwardRef:
-              case Fragment:
+              case Fragment2:
               case Mode:
-              case Profiler:
+              case Profiler2:
               case ContextConsumer:
               case MemoComponent:
                 bubbleProperties(workInProgress2);
                 return null;
               case ClassComponent: {
-                var Component = workInProgress2.type;
-                if (isContextProvider(Component)) {
+                var Component2 = workInProgress2.type;
+                if (isContextProvider(Component2)) {
                   popContext(workInProgress2);
                 }
                 bubbleProperties(workInProgress2);
@@ -18498,8 +18498,8 @@
             popTreeContext(workInProgress2);
             switch (workInProgress2.tag) {
               case ClassComponent: {
-                var Component = workInProgress2.type;
-                if (isContextProvider(Component)) {
+                var Component2 = workInProgress2.type;
+                if (isContextProvider(Component2)) {
                   popContext(workInProgress2);
                 }
                 var flags = workInProgress2.flags;
@@ -18910,7 +18910,7 @@
             {
               if ((finishedWork.flags & Update) !== NoFlags) {
                 switch (finishedWork.tag) {
-                  case Profiler: {
+                  case Profiler2: {
                     var passiveEffectDuration = finishedWork.stateNode.passiveEffectDuration;
                     var _finishedWork$memoize = finishedWork.memoizedProps, id = _finishedWork$memoize.id, onPostCommit = _finishedWork$memoize.onPostCommit;
                     var commitTime2 = getCommitTime();
@@ -18930,7 +18930,7 @@
                           var root2 = parentFiber.stateNode;
                           root2.passiveEffectDuration += passiveEffectDuration;
                           break outer;
-                        case Profiler:
+                        case Profiler2:
                           var parentStateNode = parentFiber.stateNode;
                           parentStateNode.passiveEffectDuration += passiveEffectDuration;
                           break outer;
@@ -19063,7 +19063,7 @@
                 case HostPortal: {
                   break;
                 }
-                case Profiler: {
+                case Profiler2: {
                   {
                     var _finishedWork$memoize2 = finishedWork.memoizedProps, onCommit = _finishedWork$memoize2.onCommit, onRender = _finishedWork$memoize2.onRender;
                     var effectDuration = finishedWork.stateNode.effectDuration;
@@ -19089,7 +19089,7 @@
                             var root2 = parentFiber.stateNode;
                             root2.effectDuration += effectDuration;
                             break outer;
-                          case Profiler:
+                          case Profiler2:
                             var parentStateNode = parentFiber.stateNode;
                             parentStateNode.effectDuration += effectDuration;
                             break outer;
@@ -22184,18 +22184,18 @@
           var createFiber = function(tag, pendingProps, key, mode) {
             return new FiberNode(tag, pendingProps, key, mode);
           };
-          function shouldConstruct$1(Component) {
-            var prototype = Component.prototype;
+          function shouldConstruct$1(Component2) {
+            var prototype = Component2.prototype;
             return !!(prototype && prototype.isReactComponent);
           }
           function isSimpleFunctionComponent(type) {
             return typeof type === "function" && !shouldConstruct$1(type) && type.defaultProps === void 0;
           }
-          function resolveLazyComponentTag(Component) {
-            if (typeof Component === "function") {
-              return shouldConstruct$1(Component) ? ClassComponent : FunctionComponent;
-            } else if (Component !== void 0 && Component !== null) {
-              var $$typeof = Component.$$typeof;
+          function resolveLazyComponentTag(Component2) {
+            if (typeof Component2 === "function") {
+              return shouldConstruct$1(Component2) ? ClassComponent : FunctionComponent;
+            } else if (Component2 !== void 0 && Component2 !== null) {
+              var $$typeof = Component2.$$typeof;
               if ($$typeof === REACT_FORWARD_REF_TYPE) {
                 return ForwardRef;
               }
@@ -22432,7 +22432,7 @@
             return fiber;
           }
           function createFiberFromFragment(elements, mode, lanes, key) {
-            var fiber = createFiber(Fragment, elements, key, mode);
+            var fiber = createFiber(Fragment2, elements, key, mode);
             fiber.lanes = lanes;
             return fiber;
           }
@@ -22442,7 +22442,7 @@
                 error('Profiler must specify an "id" of type `string` as a prop. Received the type `%s` instead.', typeof pendingProps.id);
               }
             }
-            var fiber = createFiber(Profiler, pendingProps, key, mode | ProfileMode);
+            var fiber = createFiber(Profiler2, pendingProps, key, mode | ProfileMode);
             fiber.elementType = REACT_PROFILER_TYPE;
             fiber.lanes = lanes;
             {
@@ -22636,9 +22636,9 @@
             var fiber = get(parentComponent);
             var parentContext = findCurrentUnmaskedContext(fiber);
             if (fiber.tag === ClassComponent) {
-              var Component = fiber.type;
-              if (isContextProvider(Component)) {
-                return processChildContext(fiber, Component, parentContext);
+              var Component2 = fiber.type;
+              if (isContextProvider(Component2)) {
+                return processChildContext(fiber, Component2, parentContext);
               }
             }
             return parentContext;
@@ -24205,10 +24205,10 @@
       var warn = (message, ...args) => {
         console.log(`WARN: ${message}`, ...args);
       };
-      var deprecated = (version2, message) => {
-        if (seenDeprecations[`${version2}/${message}`]) return;
-        console.log(`Deprecated as of ${version2}. ${message}`);
-        seenDeprecations[`${version2}/${message}`] = true;
+      var deprecated = (version3, message) => {
+        if (seenDeprecations[`${version3}/${message}`]) return;
+        console.log(`Deprecated as of ${version3}. ${message}`);
+        seenDeprecations[`${version3}/${message}`] = true;
       };
       var MultiClassError = new Error();
       function remapScopeNames(mode, regexes, { key }) {
@@ -24469,7 +24469,7 @@
         }
         return mode;
       }
-      var version = "11.11.1";
+      var version2 = "11.11.1";
       var HTMLInjectionError = class extends Error {
         constructor(reason, html) {
           super(reason);
@@ -25095,7 +25095,7 @@
         hljs.safeMode = function() {
           SAFE_MODE = true;
         };
-        hljs.versionString = version;
+        hljs.versionString = version2;
         hljs.regex = {
           concat,
           lookahead,
@@ -38024,8 +38024,8 @@
               return describeNativeComponentFrame(fn, false);
             }
           }
-          function shouldConstruct(Component) {
-            var prototype = Component.prototype;
+          function shouldConstruct(Component2) {
+            var prototype = Component2.prototype;
             return !!(prototype && prototype.isReactComponent);
           }
           function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
@@ -38321,7 +38321,7 @@
           {
             propTypesMisspellWarningShown = false;
           }
-          function isValidElement(object) {
+          function isValidElement2(object) {
             {
               return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
             }
@@ -38388,11 +38388,11 @@
               if (isArray(node)) {
                 for (var i = 0; i < node.length; i++) {
                   var child = node[i];
-                  if (isValidElement(child)) {
+                  if (isValidElement2(child)) {
                     validateExplicitKey(child, parentType);
                   }
                 }
-              } else if (isValidElement(node)) {
+              } else if (isValidElement2(node)) {
                 if (node._store) {
                   node._store.validated = true;
                 }
@@ -38403,7 +38403,7 @@
                     var iterator = iteratorFn.call(node);
                     var step;
                     while (!(step = iterator.next()).done) {
-                      if (isValidElement(step.value)) {
+                      if (isValidElement2(step.value)) {
                         validateExplicitKey(step.value, parentType);
                       }
                     }
@@ -38565,12 +38565,53 @@
     }
   });
 
-  // src/renderer/index.tsx
-  var import_react2 = __toESM(require_react(), 1);
-  var import_client = __toESM(require_client(), 1);
+  // node_modules/react/esm-wrapper.mjs
+  var import_index = __toESM(require_react(), 1);
+  var unsupported = (name) => () => {
+    throw new Error(`${name} is unavailable in the installed React runtime`);
+  };
+  var esm_wrapper_default = import_index.default;
+  var Children = import_index.default.Children;
+  var Component = import_index.default.Component;
+  var Fragment = import_index.default.Fragment;
+  var Profiler = import_index.default.Profiler;
+  var PureComponent = import_index.default.PureComponent;
+  var StrictMode = import_index.default.StrictMode;
+  var Suspense = import_index.default.Suspense;
+  var cloneElement = import_index.default.cloneElement;
+  var createContext = import_index.default.createContext;
+  var createElement = import_index.default.createElement;
+  var createFactory = import_index.default.createFactory;
+  var createRef = import_index.default.createRef;
+  var forwardRef = import_index.default.forwardRef;
+  var isValidElement = import_index.default.isValidElement;
+  var lazy = import_index.default.lazy;
+  var memo = import_index.default.memo;
+  var startTransition = import_index.default.startTransition;
+  var use = import_index.default.use ?? unsupported("React.use");
+  var useActionState = import_index.default.useActionState ?? unsupported("React.useActionState");
+  var useCallback = import_index.default.useCallback;
+  var useContext = import_index.default.useContext;
+  var useDebugValue = import_index.default.useDebugValue;
+  var useDeferredValue = import_index.default.useDeferredValue;
+  var useEffect = import_index.default.useEffect;
+  var useEffectEvent = import_index.default.useEffectEvent ?? ((fn) => fn);
+  var useId = import_index.default.useId;
+  var useImperativeHandle = import_index.default.useImperativeHandle;
+  var useInsertionEffect = import_index.default.useInsertionEffect ?? import_index.default.useLayoutEffect;
+  var useLayoutEffect = import_index.default.useLayoutEffect;
+  var useMemo = import_index.default.useMemo;
+  var useOptimistic = import_index.default.useOptimistic ?? ((value) => [value, () => {
+  }]);
+  var useReducer = import_index.default.useReducer;
+  var useRef = import_index.default.useRef;
+  var useState = import_index.default.useState;
+  var useSyncExternalStore = import_index.default.useSyncExternalStore;
+  var useTransition = import_index.default.useTransition;
+  var version = import_index.default.version;
 
-  // src/renderer/App.tsx
-  var import_react = __toESM(require_react(), 1);
+  // src/renderer/index.tsx
+  var import_client = __toESM(require_client(), 1);
 
   // node_modules/highlight.js/es/common.js
   var import_common = __toESM(require_common(), 1);
@@ -38611,6 +38652,18 @@
     settingsSummary: "App_settingsSummary",
     statsList: "App_statsList",
     runtimeList: "App_runtimeList",
+    toolActivityList: "App_toolActivityList",
+    toolActivityItem: "App_toolActivityItem",
+    toolActivityHeader: "App_toolActivityHeader",
+    toolActivityMeta: "App_toolActivityMeta",
+    toolName: "App_toolName",
+    toolStatus: "App_toolStatus",
+    toolStatus_running: "App_toolStatus_running",
+    toolStatus_succeeded: "App_toolStatus_succeeded",
+    toolStatus_failed: "App_toolStatus_failed",
+    toolActivityText: "App_toolActivityText",
+    toolActivityResult: "App_toolActivityResult",
+    toolActivityError: "App_toolActivityError",
     tagList: "App_tagList",
     tag: "App_tag",
     mutedText: "App_mutedText",
@@ -38619,8 +38672,89 @@
     secondaryButton: "App_secondaryButton",
     dangerButton: "App_dangerButton",
     textButton: "App_textButton",
+    navSidebar: "App_navSidebar",
+    brandBlock: "App_brandBlock",
+    sidebarFooter: "App_sidebarFooter",
+    brandMark: "App_brandMark",
+    statusDot: "App_statusDot",
+    statusDotBusy: "App_statusDotBusy",
+    newChatButton: "App_newChatButton",
+    navItem: "App_navItem",
+    navItemActive: "App_navItemActive",
+    recentItem: "App_recentItem",
+    recentItemActive: "App_recentItemActive",
+    navList: "App_navList",
+    recentList: "App_recentList",
+    recentSection: "App_recentSection",
+    sessionSearchInput: "App_sessionSearchInput",
+    recentTitle: "App_recentTitle",
+    recentMeta: "App_recentMeta",
+    sidebarBottom: "App_sidebarBottom",
+    sidebarSettingsButton: "App_sidebarSettingsButton",
+    sidebarSettingsButtonActive: "App_sidebarSettingsButtonActive",
+    appShell: "App_appShell",
+    headerTitle: "App_headerTitle",
+    runtimeStrip: "App_runtimeStrip",
+    runtimeCellButton: "App_runtimeCellButton",
+    commandPalette: "App_commandPalette",
+    commandPaletteItem: "App_commandPaletteItem",
+    statusPane: "App_statusPane",
+    statusPaneStatic: "App_statusPaneStatic",
+    workspaceDetail: "App_workspaceDetail",
+    detailView: "App_detailView",
+    detailHero: "App_detailHero",
+    detailToolbar: "App_detailToolbar",
+    detailEyebrow: "App_detailEyebrow",
+    detailGrid: "App_detailGrid",
+    toolsLayout: "App_toolsLayout",
+    detailPanel: "App_detailPanel",
+    panelActions: "App_panelActions",
+    inlineError: "App_inlineError",
+    inlineSuccess: "App_inlineSuccess",
+    fileBrowser: "App_fileBrowser",
+    fileEntry: "App_fileEntry",
+    fileEntryDirectory: "App_fileEntryDirectory",
+    fileEntryMain: "App_fileEntryMain",
+    fileEntryActions: "App_fileEntryActions",
+    detailList: "App_detailList",
+    toolCatalog: "App_toolCatalog",
+    toolCatalogGroup: "App_toolCatalogGroup",
+    toolsStack: "App_toolsStack",
+    commandRunner: "App_commandRunner",
+    toolRouterSummary: "App_toolRouterSummary",
+    toolRouterMessage: "App_toolRouterMessage",
+    toolExposureRow: "App_toolExposureRow",
+    toolRouterActions: "App_toolRouterActions",
+    toolPermissionRow: "App_toolPermissionRow",
+    toolExposureButton: "App_toolExposureButton",
+    toolExposureButtonOff: "App_toolExposureButtonOff",
+    toolCatalogItem: "App_toolCatalogItem",
+    toolStatusBadge: "App_toolStatusBadge",
+    toolStatusConnected: "App_toolStatusConnected",
+    toolStatusError: "App_toolStatusError",
+    toolActivityActions: "App_toolActivityActions",
     dialogBackdrop: "App_dialogBackdrop",
+    settingsView: "App_settingsView",
+    settingsPageForm: "App_settingsPageForm",
+    settingsPageSubtitle: "App_settingsPageSubtitle",
     dialogHeader: "App_dialogHeader",
+    settingsBody: "App_settingsBody",
+    settingsMenu: "App_settingsMenu",
+    settingsMenuItem: "App_settingsMenuItem",
+    settingsMenuItemActive: "App_settingsMenuItemActive",
+    settingsMenuSummary: "App_settingsMenuSummary",
+    settingsContent: "App_settingsContent",
+    settingsContentHeader: "App_settingsContentHeader",
+    reviewDialog: "App_reviewDialog",
+    reviewSubtitle: "App_reviewSubtitle",
+    reviewBadge: "App_reviewBadge",
+    reviewMeta: "App_reviewMeta",
+    diffBlock: "App_diffBlock",
+    commandBlock: "App_commandBlock",
+    diffHeaderLine: "App_diffHeaderLine",
+    diffAdded: "App_diffAdded",
+    diffRemoved: "App_diffRemoved",
+    diffMeta: "App_diffMeta",
     dialogFooter: "App_dialogFooter",
     dialogActions: "App_dialogActions",
     settingsGrid: "App_settingsGrid",
@@ -38643,7 +38777,10 @@
   var ipcClient = {
     tools: {
       execute: (toolName, args) => getApi().tools.execute(toolName, args),
-      list: () => getApi().tools.list()
+      list: () => getApi().tools.list(),
+      respondToFileWriteReview: (response) => getApi().tools.respondToFileWriteReview(response),
+      respondToCommandReview: (response) => getApi().tools.respondToCommandReview(response),
+      respondToToolPermissionReview: (response) => getApi().tools.respondToToolPermissionReview(response)
     },
     api: {
       chat: (request) => getApi().api.chat(request),
@@ -38658,7 +38795,9 @@
     fs: {
       read: (path, encoding) => getApi().fs.read(path, encoding),
       write: (path, content, encoding) => getApi().fs.write(path, content, encoding),
-      list: (path) => getApi().fs.list(path)
+      list: (path) => getApi().fs.list(path),
+      open: (path) => getApi().fs.open(path),
+      reveal: (path) => getApi().fs.reveal(path)
     },
     auth: {
       getToken: () => getApi().auth.getToken(),
@@ -38678,34 +38817,66 @@
       close: () => getApi().window.close(),
       openDevTools: () => getApi().window.openDevTools()
     },
+    onToolStart: (callback) => getApi().onToolStart(callback),
     onToolResult: (callback) => getApi().onToolResult(callback),
     onToolComplete: (callback) => getApi().onToolComplete(callback),
     onToolError: (callback) => getApi().onToolError(callback),
+    onToolPermissionReview: (callback) => getApi().onToolPermissionReview(callback),
+    onFileWriteReview: (callback) => getApi().onFileWriteReview(callback),
+    onCommandReview: (callback) => getApi().onCommandReview(callback),
     onChatDelta: (callback) => getApi().onChatDelta(callback),
     onChatComplete: (callback) => getApi().onChatComplete(callback),
     onChatError: (callback) => getApi().onChatError(callback),
     onConfigChanged: (callback) => getApi().onConfigChanged(callback),
-    onStateChanged: (callback) => getApi().onStateChanged(callback)
+    onStateChanged: (callback) => getApi().onStateChanged(callback),
+    onMenuOpenSettings: (callback) => getApi().onMenuOpenSettings(callback)
   };
 
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var DEFAULT_PROVIDER = "anthropic";
+  var MAX_TOOL_ACTIVITIES = 20;
+  var MAX_PERSISTED_MESSAGES = 80;
+  var MAX_RECENT_SESSIONS = 12;
+  var DESKTOP_SESSIONS_STATE_KEY = "desktopSessions";
+  var TOOL_PERMISSION_OPTIONS = [
+    { value: "allow", label: "Allow" },
+    { value: "ask", label: "Ask" },
+    { value: "deny", label: "Deny" }
+  ];
+  var TOOL_CATEGORY_ORDER = ["core", "research", "connectors", "mcp", "api", "other"];
+  var TOOL_CATEGORY_LABELS = {
+    core: "Core workspace",
+    research: "Research",
+    connectors: "Connector examples",
+    mcp: "MCP adapters",
+    api: "API bridge",
+    other: "Other"
+  };
   var PROVIDER_DEFAULTS = {
     anthropic: {
       label: "Anthropic",
       model: "claude-3-5-sonnet-20241022",
-      baseUrl: ""
+      baseUrl: "",
+      maxTokens: 4096,
+      contextTokens: 2e5,
+      enableLlmTools: false
     },
     openai: {
       label: "OpenAI",
       model: "gpt-4o-mini",
-      baseUrl: "https://api.openai.com/v1"
+      baseUrl: "https://api.openai.com/v1",
+      maxTokens: 4096,
+      contextTokens: 128e3,
+      enableLlmTools: false
     },
     "openai-compatible": {
       label: "OpenAI-compatible / LM Studio",
       model: "local-model",
-      baseUrl: "http://127.0.0.1:1234/v1"
+      baseUrl: "http://127.0.0.1:1234/v1",
+      maxTokens: 2048,
+      contextTokens: 8192,
+      enableLlmTools: false
     }
   };
   function getProviderDefault(provider) {
@@ -38713,6 +38884,29 @@
   }
   var PERMISSION_MODES = ["default", "acceptEdits", "plan", "bypassPermissions", "auto"];
   var SETTING_SOURCE_OPTIONS = ["user", "project", "local"];
+  var DESKTOP_COMMANDS = [
+    { command: "/help", description: "Show desktop commands" },
+    { command: "/status", description: "Show provider, runtime, tools, and MCP status" },
+    { command: "/pwd", description: "Show the current desktop workspace root" },
+    { command: "/workspace", description: "Show the current desktop workspace root" },
+    { command: "/login", description: "Open Settings for provider credentials" },
+    { command: "/login lmstudio", description: "Open Settings with LM Studio defaults" },
+    { command: "/settings", description: "Open Settings" },
+    { command: "/tools", description: "List bridge and MCP tools" },
+    { command: "/mcp", description: "Refresh and list MCP servers/tools" },
+    { command: "/sessions", description: "List saved desktop sessions" },
+    { command: "/config", description: "Show persisted desktop configuration" },
+    { command: "/run <tool> <json>", description: "Run a bridge tool manually" },
+    { command: "/clear", description: "Clear the visible chat" }
+  ];
+  var SETTINGS_MENU = [
+    { id: "model", title: "Model", description: "Provider, tokens, theme" },
+    { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs" },
+    { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety" },
+    { id: "workspace", title: "Workspace Context", description: "Prompts, MCP, directories" },
+    { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser" },
+    { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata" }
+  ];
   var ANSI_COLORS = {
     30: "#1f2937",
     31: "#b91c1c",
@@ -38752,6 +38946,110 @@
       ...overrides
     };
   }
+  function createReadyMessages() {
+    return [createMessage("assistant", "Ready.", { title: "Code Agent" })];
+  }
+  function createSessionId() {
+    return `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function getSessionTitle(messages) {
+    const firstUserMessage = messages.find((message) => message.role === "user" && message.content.trim());
+    return firstUserMessage ? formatSidebarLabel(firstUserMessage.content, 56) : "New chat";
+  }
+  function sanitizeMessage(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const message = value;
+    const role = message.role;
+    if (role !== "assistant" && role !== "user" && role !== "system" && role !== "tool" && role !== "error") {
+      return null;
+    }
+    return {
+      id: typeof message.id === "string" ? message.id : `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      role,
+      content: typeof message.content === "string" ? message.content : "",
+      createdAt: Number.isFinite(Number(message.createdAt)) ? Number(message.createdAt) : Date.now(),
+      status: message.status === "sending" || message.status === "failed" || message.status === "sent" ? message.status : void 0,
+      title: typeof message.title === "string" ? message.title : void 0,
+      usage: message.usage && typeof message.usage === "object" ? {
+        inputTokens: Number(message.usage?.inputTokens ?? 0),
+        outputTokens: Number(message.usage?.outputTokens ?? 0)
+      } : void 0
+    };
+  }
+  function sanitizeMessages(messages) {
+    if (!Array.isArray(messages)) {
+      return createReadyMessages();
+    }
+    const normalized = messages.map(sanitizeMessage).filter((message) => Boolean(message)).slice(-MAX_PERSISTED_MESSAGES).map((message) => message.status === "sending" ? { ...message, status: "sent" } : message);
+    return normalized.length > 0 ? normalized : createReadyMessages();
+  }
+  function createSessionSnapshot(id, messages, workspacePath, previous) {
+    const sanitizedMessages = sanitizeMessages(messages);
+    return {
+      id,
+      title: getSessionTitle(sanitizedMessages),
+      createdAt: previous?.createdAt ?? sanitizedMessages[0]?.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+      workspacePath,
+      messages: sanitizedMessages
+    };
+  }
+  function sortSessions(sessions) {
+    const seen = /* @__PURE__ */ new Set();
+    return sessions.filter((session) => {
+      if (!session.id || seen.has(session.id)) {
+        return false;
+      }
+      seen.add(session.id);
+      return true;
+    }).sort((left, right) => right.updatedAt - left.updatedAt).slice(0, MAX_RECENT_SESSIONS);
+  }
+  function upsertSession(sessions, session) {
+    return sortSessions([
+      session,
+      ...sessions.filter((candidate) => candidate.id !== session.id)
+    ]);
+  }
+  function createEmptySession(workspacePath) {
+    const id = createSessionId();
+    return createSessionSnapshot(id, createReadyMessages(), workspacePath);
+  }
+  function sanitizeSession(value, workspacePath) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const id = typeof raw.id === "string" && raw.id.trim() ? raw.id : createSessionId();
+    const messages = sanitizeMessages(raw.messages);
+    return {
+      id,
+      title: typeof raw.title === "string" && raw.title.trim() ? raw.title : getSessionTitle(messages),
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : messages[0]?.createdAt ?? Date.now(),
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : Date.now(),
+      workspacePath: typeof raw.workspacePath === "string" ? raw.workspacePath : workspacePath,
+      messages
+    };
+  }
+  function restoreSessionsFromState(state, workspacePath) {
+    const raw = state?.[DESKTOP_SESSIONS_STATE_KEY];
+    const restoredSessions = raw && typeof raw === "object" && Array.isArray(raw.sessions) ? raw.sessions.map((session) => sanitizeSession(session, workspacePath)).filter((session) => Boolean(session)) : [];
+    const sessions = sortSessions(restoredSessions);
+    if (sessions.length === 0) {
+      const emptySession = createEmptySession(workspacePath);
+      return {
+        currentSessionId: emptySession.id,
+        sessions: [emptySession]
+      };
+    }
+    const requestedCurrentId = raw && typeof raw === "object" && typeof raw.currentSessionId === "string" ? raw.currentSessionId : "";
+    const currentSessionId = sessions.some((session) => session.id === requestedCurrentId) ? requestedCurrentId : sessions[0].id;
+    return {
+      currentSessionId,
+      sessions
+    };
+  }
   function createSettingsDraft(config) {
     const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
     const providerDefault = getProviderDefault(llmProvider);
@@ -38762,7 +39060,9 @@
       model: config?.model || providerDefault.model,
       fallbackModel: readCliOption(config, "fallbackModel"),
       temperature: Number(config?.temperature ?? 0.7),
-      maxTokens: Number(config?.maxTokens ?? 4096),
+      maxTokens: Number(config?.maxTokens ?? providerDefault.maxTokens),
+      contextTokens: Number(config?.contextTokens ?? providerDefault.contextTokens),
+      enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
       theme: config?.theme || "system",
       memoryEnabled: Boolean(config?.memoryEnabled ?? true),
       pluginsEnabled: Boolean(config?.pluginsEnabled ?? true),
@@ -38943,6 +39243,209 @@
       return String(value);
     }
   }
+  function truncateText(value, maxLength = 220) {
+    if (value.length <= maxLength) {
+      return value;
+    }
+    return `${value.slice(0, maxLength - 1)}...`;
+  }
+  function summarizeToolValue(value) {
+    if (value === void 0) {
+      return "ok";
+    }
+    if (value === null || typeof value === "number" || typeof value === "boolean") {
+      return String(value);
+    }
+    if (typeof value === "string") {
+      return value.length > 80 ? `${value.length} chars` : `"${value}"`;
+    }
+    if (Array.isArray(value)) {
+      return `${value.length} items`;
+    }
+    if (typeof value === "object") {
+      const keys = Object.keys(value);
+      return keys.length > 0 ? `{${keys.slice(0, 4).join(", ")}}` : "{}";
+    }
+    return typeof value;
+  }
+  function summarizeToolArgs(args) {
+    const entries = Object.entries(args || {});
+    if (entries.length === 0) {
+      return "No arguments";
+    }
+    return truncateText(entries.map(([key, value]) => `${key}: ${summarizeToolValue(value)}`).join(", "), 180);
+  }
+  function summarizeToolResult(data) {
+    if (data === void 0) {
+      return "ok";
+    }
+    const compact = typeof data === "string" ? data.replace(/\s+/g, " ").trim() : formatJson(data).replace(/\s+/g, " ").trim();
+    return truncateText(compact || "ok", 220);
+  }
+  function formatSidebarLabel(content, maxLength = 42) {
+    const normalized = content.replace(/\s+/g, " ").trim();
+    return truncateText(normalized || "Untitled chat", maxLength);
+  }
+  function formatRelativeTime(timestamp) {
+    const deltaMs = Math.max(0, Date.now() - timestamp);
+    const minute = 60 * 1e3;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+    if (deltaMs < minute) {
+      return "just now";
+    }
+    if (deltaMs < hour) {
+      const minutes = Math.max(1, Math.round(deltaMs / minute));
+      return `${minutes}m ago`;
+    }
+    if (deltaMs < day) {
+      const hours = Math.max(1, Math.round(deltaMs / hour));
+      return `${hours}h ago`;
+    }
+    const days = Math.max(1, Math.round(deltaMs / day));
+    return `${days}d ago`;
+  }
+  function normalizeWorkspacePath(value) {
+    const normalized = value.replace(/\\/g, "/").split("/").filter((part) => part && part !== ".").join("/");
+    return normalized || ".";
+  }
+  function joinWorkspacePath(parent, child) {
+    return normalizeWorkspacePath(`${parent === "." ? "" : parent}/${child}`);
+  }
+  function getWorkspaceParentPath(value) {
+    const normalized = normalizeWorkspacePath(value);
+    if (normalized === ".") {
+      return ".";
+    }
+    const parts = normalized.split("/");
+    parts.pop();
+    return parts.length > 0 ? parts.join("/") : ".";
+  }
+  function sortFileEntries(entries) {
+    return [...entries].sort((left, right) => {
+      if (left.type !== right.type) {
+        return left.type === "directory" ? -1 : 1;
+      }
+      return left.name.localeCompare(right.name, void 0, { sensitivity: "base" });
+    });
+  }
+  function formatFileSize(size) {
+    if (typeof size !== "number" || !Number.isFinite(size)) {
+      return "";
+    }
+    if (size < 1024) {
+      return `${size} B`;
+    }
+    if (size < 1024 * 1024) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  function normalizeToolNameList(value) {
+    const rawValues = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
+    return Array.from(new Set(
+      rawValues.map((item) => String(item).trim()).filter(Boolean)
+    )).sort((left, right) => left.localeCompare(right));
+  }
+  function getDisabledModelToolSet(config) {
+    return new Set(normalizeToolNameList(config?.disabledLlmTools));
+  }
+  function isToolExposedToModel(tool, config) {
+    return !getDisabledModelToolSet(config).has(tool.name);
+  }
+  function getToolPermissionPolicy(tool, config) {
+    const configured = config?.toolPermissionPolicies?.[tool.name];
+    return configured === "allow" || configured === "ask" || configured === "deny" ? configured : "allow";
+  }
+  function getToolCategory(tool) {
+    if (tool.name.startsWith("fs.") || tool.name.startsWith("bash.") || tool.name.startsWith("time.")) {
+      return "core";
+    }
+    if (tool.name.startsWith("web.")) {
+      return "research";
+    }
+    if (tool.name.startsWith("finance.")) {
+      return "connectors";
+    }
+    if (tool.name.startsWith("mcp.")) {
+      return "mcp";
+    }
+    if (tool.name.startsWith("api.") || tool.name.startsWith("app.")) {
+      return "api";
+    }
+    return "other";
+  }
+  function groupToolsByCategory(tools) {
+    return TOOL_CATEGORY_ORDER.map((id) => ({
+      id,
+      label: TOOL_CATEGORY_LABELS[id],
+      tools: tools.filter((tool) => getToolCategory(tool) === id)
+    })).filter((group) => group.tools.length > 0);
+  }
+  function getToolResultPath(activity) {
+    if (!activity.toolName.startsWith("fs.") || !activity.result || typeof activity.result !== "object") {
+      return null;
+    }
+    const pathValue = activity.result.path;
+    return typeof pathValue === "string" && pathValue.trim() ? pathValue : null;
+  }
+  function matchesSessionSearch(session, query) {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return true;
+    }
+    const haystack = [
+      session.title,
+      session.workspacePath ?? "",
+      ...session.messages.map((message) => `${message.title ?? ""} ${message.content}`)
+    ].join("\n").toLowerCase();
+    return haystack.includes(normalizedQuery);
+  }
+  function filterDesktopCommands(input) {
+    if (!input.startsWith("/")) {
+      return [];
+    }
+    const query = input.trim().toLowerCase();
+    return DESKTOP_COMMANDS.filter((command) => {
+      if (!query || query === "/") {
+        return true;
+      }
+      return command.command.toLowerCase().startsWith(query) || command.description.toLowerCase().includes(query.slice(1));
+    }).slice(0, 8);
+  }
+  function formatDesktopError(rawError) {
+    const message = rawError instanceof Error ? rawError.message : String(rawError ?? "");
+    const lower = message.toLowerCase();
+    if (lower.includes("fetch failed") || lower.includes("econnrefused") || lower.includes("failed to fetch") || lower.includes("connect econnrefused")) {
+      return [
+        "The configured LLM endpoint is not reachable.",
+        "Check that LM Studio or your OpenAI-compatible server is running, then verify Settings -> Model base URL and model ID.",
+        `Details: ${message}`
+      ].join("\n");
+    }
+    if (lower.includes("context length") || lower.includes("context size") || lower.includes("n_ctx") || lower.includes("exceeds the available context") || lower.includes("tokens to keep")) {
+      return [
+        "The model context window is too small for this request.",
+        "Increase the model context length in LM Studio, reduce enabled tools in Tools, or lower Settings -> Model context tokens.",
+        `Details: ${message}`
+      ].join("\n");
+    }
+    if (lower.includes("misformatted") || lower.includes("malformed") || lower.includes("tool arguments must be a json object") || lower.includes("must contain a 'content' field")) {
+      return [
+        "The model or backend returned a malformed tool/chat payload.",
+        "Try the request again with fewer enabled tools. If this repeats with a local model, try a stronger tool-calling model or disable model tool calls.",
+        `Details: ${message}`
+      ].join("\n");
+    }
+    if (lower.includes("home-directory paths are not supported") || lower.includes("path traversal not allowed") || lower.includes("unsupported paths")) {
+      return [
+        "The requested path is outside the desktop workspace policy.",
+        "Use a workspace-relative path from the Projects view, or move the file into the current workspace.",
+        `Details: ${message}`
+      ].join("\n");
+    }
+    return message;
+  }
   function parseToolCommand(input) {
     const match = input.match(/^\/run\s+(\S+)(?:\s+([\s\S]+))?$/);
     if (!match) {
@@ -39008,31 +39511,43 @@
     return parseAnsiText(text).map((segment, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: segment.style, children: segment.text }, `${index}-${segment.text.slice(0, 8)}`));
   }
   function App() {
-    const [status, setStatus] = (0, import_react.useState)("Initializing");
-    const [appInfo, setAppInfo] = (0, import_react.useState)(null);
-    const [appConfig, setAppConfig] = (0, import_react.useState)(null);
-    const [appState, setAppState] = (0, import_react.useState)({});
-    const [viewportSize, setViewportSize] = (0, import_react.useState)(() => ({
+    const [status, setStatus] = useState("Initializing");
+    const [appInfo, setAppInfo] = useState(null);
+    const [appConfig, setAppConfig] = useState(null);
+    const [appState, setAppState] = useState({});
+    const [viewportSize, setViewportSize] = useState(() => ({
       width: window.innerWidth,
       height: window.innerHeight
     }));
-    const [tools, setTools] = (0, import_react.useState)([]);
-    const [mcpServers, setMcpServers] = (0, import_react.useState)([]);
-    const [mcpTools, setMcpTools] = (0, import_react.useState)([]);
-    const [messages, setMessages] = (0, import_react.useState)([
-      createMessage("assistant", "Ready.", { title: "Code Agent" })
-    ]);
-    const [input, setInput] = (0, import_react.useState)("");
-    const [isSending, setIsSending] = (0, import_react.useState)(false);
-    const [copiedMessageId, setCopiedMessageId] = (0, import_react.useState)(null);
-    const [isSettingsOpen, setIsSettingsOpen] = (0, import_react.useState)(false);
-    const [settingsDraft, setSettingsDraft] = (0, import_react.useState)(() => createSettingsDraft(null));
-    const [settingsMessage, setSettingsMessage] = (0, import_react.useState)("");
-    const [isSavingSettings, setIsSavingSettings] = (0, import_react.useState)(false);
-    const messageListRef = (0, import_react.useRef)(null);
-    const inputRef = (0, import_react.useRef)(null);
-    const streamMessageIds = (0, import_react.useRef)(/* @__PURE__ */ new Map());
-    const tokenUsage = (0, import_react.useMemo)(() => {
+    const [tools, setTools] = useState([]);
+    const [mcpServers, setMcpServers] = useState([]);
+    const [mcpTools, setMcpTools] = useState([]);
+    const [workspacePath, setWorkspacePath] = useState(".");
+    const [workspaceEntries, setWorkspaceEntries] = useState([]);
+    const [workspaceBrowserError, setWorkspaceBrowserError] = useState("");
+    const [workspaceActionMessage, setWorkspaceActionMessage] = useState("");
+    const [isLoadingWorkspaceEntries, setIsLoadingWorkspaceEntries] = useState(false);
+    const [toolActivities, setToolActivities] = useState([]);
+    const [fileWriteReviews, setFileWriteReviews] = useState([]);
+    const [commandReviews, setCommandReviews] = useState([]);
+    const [toolPermissionReviews, setToolPermissionReviews] = useState([]);
+    const [currentSessionId, setCurrentSessionId] = useState(() => createSessionId());
+    const [sessions, setSessions] = useState([]);
+    const [messages, setMessages] = useState(() => createReadyMessages());
+    const [input, setInput] = useState("");
+    const [sessionSearch, setSessionSearch] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const [copiedMessageId, setCopiedMessageId] = useState(null);
+    const [settingsDraft, setSettingsDraft] = useState(() => createSettingsDraft(null));
+    const [settingsMessage, setSettingsMessage] = useState("");
+    const [toolRouterMessage, setToolRouterMessage] = useState("");
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [activeView, setActiveView] = useState("chat");
+    const messageListRef = useRef(null);
+    const inputRef = useRef(null);
+    const streamMessageIds = useRef(/* @__PURE__ */ new Map());
+    const hasHydratedSessionsRef = useRef(false);
+    const tokenUsage = useMemo(() => {
       return messages.reduce(
         (totals, message) => ({
           inputTokens: totals.inputTokens + (message.usage?.inputTokens ?? 0),
@@ -39041,10 +39556,10 @@
         { inputTokens: 0, outputTokens: 0 }
       );
     }, [messages]);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
       initializeApp();
     }, []);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
       const handleResize = () => {
         setViewportSize({
           width: window.innerWidth,
@@ -39054,7 +39569,7 @@
       window.addEventListener("resize", handleResize);
       return () => window.removeEventListener("resize", handleResize);
     }, []);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
       const removers = [];
       try {
         removers.push(ipcClient.onChatDelta((data) => {
@@ -39084,9 +39599,9 @@
           const messageId = streamMessageIds.current.get(data.requestId);
           streamMessageIds.current.delete(data.requestId);
           if (messageId) {
-            setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: data.error, status: "failed", title: "Request failed", role: "error" } : message));
+            setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: formatDesktopError(data.error), status: "failed", title: "Request failed", role: "error" } : message));
           } else {
-            appendMessage(createMessage("error", data.error, {
+            appendMessage(createMessage("error", formatDesktopError(data.error), {
               title: "Request failed",
               status: "failed"
             }));
@@ -39095,7 +39610,11 @@
           setStatus("Error");
           inputRef.current?.focus();
         }));
+        removers.push(ipcClient.onToolStart((data) => {
+          recordToolStart(data);
+        }));
         removers.push(ipcClient.onToolResult((data) => {
+          recordToolResult(data);
           appendMessage(createMessage("tool", `\`\`\`json
 ${formatJson(data.data)}
 \`\`\``, {
@@ -39103,21 +39622,61 @@ ${formatJson(data.data)}
           }));
         }));
         removers.push(ipcClient.onToolComplete((data) => {
+          recordToolComplete(data);
           appendMessage(createMessage("tool", `${data.success ? "Completed" : "Failed"} in ${data.duration} ms`, {
             title: `Tool ${data.toolId}`
           }));
         }));
         removers.push(ipcClient.onToolError((data) => {
-          appendMessage(createMessage("error", data.error, {
+          recordToolError(data);
+          appendMessage(createMessage("error", formatDesktopError(data.error), {
             title: `Tool error ${data.toolId}`,
             status: "failed"
           }));
         }));
+        removers.push(ipcClient.onFileWriteReview((data) => {
+          setFileWriteReviews((current) => [
+            ...current.filter((review) => review.requestId !== data.requestId),
+            data
+          ]);
+          setStatus("Approval needed");
+          appendMessage(createMessage("system", `Review requested for ${data.path}`, {
+            title: "File write approval"
+          }));
+        }));
+        removers.push(ipcClient.onCommandReview((data) => {
+          setCommandReviews((current) => [
+            ...current.filter((review) => review.requestId !== data.requestId),
+            data
+          ]);
+          setStatus("Approval needed");
+          appendMessage(createMessage("system", `Review requested for command: ${data.command}`, {
+            title: "Command approval"
+          }));
+        }));
+        removers.push(ipcClient.onToolPermissionReview((data) => {
+          setToolPermissionReviews((current) => [
+            ...current.filter((review) => review.requestId !== data.requestId),
+            data
+          ]);
+          setStatus("Approval needed");
+          appendMessage(createMessage("system", `Review requested for tool: ${data.toolName}`, {
+            title: "Tool permission"
+          }));
+        }));
         removers.push(ipcClient.onConfigChanged((data) => {
           setAppConfig(data.config);
+          setSettingsDraft((current) => ({
+            ...createSettingsDraft(data.config),
+            apiKey: current.apiKey
+          }));
         }));
         removers.push(ipcClient.onStateChanged((data) => {
           setAppState(data.state);
+        }));
+        removers.push(ipcClient.onMenuOpenSettings(() => {
+          setSettingsMessage("");
+          setActiveView("settings");
         }));
       } catch (error) {
         setStatus("Startup error");
@@ -39132,18 +39691,46 @@ ${formatJson(data.data)}
         }
       };
     }, []);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
       messageListRef.current?.scrollTo({
         top: messageListRef.current.scrollHeight,
         behavior: "smooth"
       });
     }, [messages, isSending]);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
+      if (!hasHydratedSessionsRef.current || !currentSessionId) {
+        return;
+      }
+      setSessions((current) => {
+        const previous = current.find((session) => session.id === currentSessionId);
+        return upsertSession(
+          current,
+          createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous)
+        );
+      });
+    }, [messages, currentSessionId, appInfo?.workspacePath]);
+    useEffect(() => {
+      if (!hasHydratedSessionsRef.current || sessions.length === 0 || !currentSessionId) {
+        return;
+      }
+      const timeout = window.setTimeout(() => {
+        ipcClient.app.setState({
+          [DESKTOP_SESSIONS_STATE_KEY]: {
+            currentSessionId,
+            sessions
+          }
+        }).catch((error) => {
+          console.warn("Failed to persist desktop session state:", error);
+        });
+      }, 500);
+      return () => window.clearTimeout(timeout);
+    }, [sessions, currentSessionId]);
+    useEffect(() => {
       const theme = appConfig?.theme || "system";
       const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
       document.body.classList.toggle("dark", theme === "dark" || theme === "system" && prefersDark);
     }, [appConfig?.theme]);
-    (0, import_react.useEffect)(() => {
+    useEffect(() => {
       const textarea = inputRef.current;
       if (!textarea) {
         return;
@@ -39151,6 +39738,11 @@ ${formatJson(data.data)}
       textarea.style.height = "auto";
       textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`;
     }, [input]);
+    useEffect(() => {
+      if (activeView === "projects" && workspaceEntries.length === 0 && !isLoadingWorkspaceEntries) {
+        loadWorkspaceDirectory(workspacePath);
+      }
+    }, [activeView]);
     async function initializeApp() {
       try {
         const [info, config, state, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
@@ -39168,11 +39760,18 @@ ${formatJson(data.data)}
         setTools(bridgeTools);
         setMcpServers(servers);
         setMcpTools(discoveredMcpTools);
+        const restoredSessions = restoreSessionsFromState(state, info.workspacePath);
+        const activeSession2 = restoredSessions.sessions.find((session) => session.id === restoredSessions.currentSessionId) ?? restoredSessions.sessions[0];
+        setSessions(restoredSessions.sessions);
+        setCurrentSessionId(restoredSessions.currentSessionId);
+        setMessages(activeSession2?.messages ?? createReadyMessages());
+        hasHydratedSessionsRef.current = true;
         setStatus("Ready");
       } catch (error) {
         console.error("Failed to initialize app:", error);
+        hasHydratedSessionsRef.current = true;
         setStatus("Startup error");
-        appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
+        appendMessage(createMessage("error", formatDesktopError(error), {
           title: "Startup error",
           status: "failed"
         }));
@@ -39180,6 +39779,83 @@ ${formatJson(data.data)}
     }
     function appendMessage(message) {
       setMessages((current) => [...current, message]);
+    }
+    function startNewChat() {
+      const nextSession = createEmptySession(appInfo?.workspacePath);
+      setSessions((current) => {
+        const previous = current.find((session) => session.id === currentSessionId);
+        const withCurrent = currentSessionId ? upsertSession(current, createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous)) : current;
+        return upsertSession(withCurrent, nextSession);
+      });
+      setCurrentSessionId(nextSession.id);
+      setMessages(nextSession.messages);
+      setInput("");
+      setStatus("Ready");
+      setActiveView("chat");
+      inputRef.current?.focus();
+    }
+    function loadSession(sessionId) {
+      const session = sessions.find((candidate) => candidate.id === sessionId);
+      if (!session) {
+        return;
+      }
+      setCurrentSessionId(session.id);
+      setMessages(sanitizeMessages(session.messages));
+      setInput("");
+      setStatus("Ready");
+      setActiveView("chat");
+      inputRef.current?.focus();
+    }
+    function recordToolStart(data) {
+      const activity = {
+        id: data.toolId,
+        toolName: data.toolName,
+        args: data.args || {},
+        status: "running",
+        startedAt: data.timestamp
+      };
+      setToolActivities((current) => [
+        activity,
+        ...current.filter((activity2) => activity2.id !== data.toolId)
+      ].slice(0, MAX_TOOL_ACTIVITIES));
+    }
+    function updateToolActivity(toolId, update, fallbackName = "Tool") {
+      setToolActivities((current) => {
+        const existing = current.find((activity) => activity.id === toolId);
+        const updatedActivity = {
+          id: toolId,
+          toolName: existing?.toolName || fallbackName,
+          args: existing?.args || {},
+          status: existing?.status || "running",
+          startedAt: existing?.startedAt || Date.now(),
+          ...existing,
+          ...update
+        };
+        return [
+          updatedActivity,
+          ...current.filter((activity) => activity.id !== toolId)
+        ].slice(0, MAX_TOOL_ACTIVITIES);
+      });
+    }
+    function recordToolResult(data) {
+      updateToolActivity(data.toolId, {
+        resultPreview: summarizeToolResult(data.data),
+        result: data.data
+      });
+    }
+    function recordToolComplete(data) {
+      updateToolActivity(data.toolId, {
+        status: data.success ? "succeeded" : "failed",
+        duration: data.duration,
+        completedAt: Date.now()
+      });
+    }
+    function recordToolError(data) {
+      updateToolActivity(data.toolId, {
+        status: "failed",
+        error: data.error,
+        completedAt: Date.now()
+      });
     }
     function updateSettingsDraft(update) {
       setSettingsDraft((current) => ({ ...current, ...update }));
@@ -39194,6 +39870,152 @@ ${formatJson(data.data)}
       setMcpServers(servers);
       setMcpTools(discoveredMcpTools);
       return { bridgeTools, servers, discoveredMcpTools };
+    }
+    async function loadWorkspaceDirectory(nextPath = workspacePath) {
+      const normalizedPath = normalizeWorkspacePath(nextPath);
+      setIsLoadingWorkspaceEntries(true);
+      setWorkspaceBrowserError("");
+      try {
+        const entries = await ipcClient.fs.list(normalizedPath);
+        setWorkspacePath(normalizedPath);
+        setWorkspaceEntries(sortFileEntries(entries));
+      } catch (error) {
+        setWorkspaceBrowserError(error instanceof Error ? error.message : String(error));
+      } finally {
+        setIsLoadingWorkspaceEntries(false);
+      }
+    }
+    function openWorkspaceEntry(entry) {
+      if (entry.type !== "directory") {
+        return;
+      }
+      loadWorkspaceDirectory(joinWorkspacePath(workspacePath, entry.name));
+    }
+    function goToWorkspaceParent() {
+      loadWorkspaceDirectory(getWorkspaceParentPath(workspacePath));
+    }
+    async function openWorkspacePath(targetPath) {
+      setWorkspaceBrowserError("");
+      setWorkspaceActionMessage("");
+      try {
+        const result = await ipcClient.fs.open(normalizeWorkspacePath(targetPath));
+        setWorkspaceActionMessage(`Opened ${result.path}`);
+      } catch (error) {
+        setWorkspaceBrowserError(error instanceof Error ? error.message : String(error));
+      }
+    }
+    async function revealWorkspacePath(targetPath) {
+      setWorkspaceBrowserError("");
+      setWorkspaceActionMessage("");
+      try {
+        const result = await ipcClient.fs.reveal(normalizeWorkspacePath(targetPath));
+        setWorkspaceActionMessage(`Revealed ${result.path}`);
+      } catch (error) {
+        setWorkspaceBrowserError(error instanceof Error ? error.message : String(error));
+      }
+    }
+    async function updateDisabledModelTools(nextDisabledTools, message) {
+      const disabledLlmTools = normalizeToolNameList(nextDisabledTools);
+      setAppConfig((current) => ({
+        ...current ?? {},
+        disabledLlmTools
+      }));
+      setToolRouterMessage(message);
+      try {
+        await ipcClient.app.setConfig({ disabledLlmTools });
+      } catch (error) {
+        setToolRouterMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Tool routing error");
+      }
+    }
+    function setModelToolExposure(toolName, exposed) {
+      const disabled = getDisabledModelToolSet(appConfig);
+      if (exposed) {
+        disabled.delete(toolName);
+      } else {
+        disabled.add(toolName);
+      }
+      updateDisabledModelTools(
+        Array.from(disabled),
+        `${toolName} ${exposed ? "exposed to" : "hidden from"} model tool calls.`
+      );
+    }
+    function applyToolRouterPreset(preset) {
+      if (preset === "all") {
+        updateDisabledModelTools([], "All bridge tools are exposed to model tool calls.");
+        return;
+      }
+      const disabled = tools.filter((tool) => preset === "read-only" ? !tool.readOnly : !tool.readOnly).map((tool) => tool.name);
+      updateDisabledModelTools(
+        disabled,
+        preset === "read-only" ? "Only read-only bridge tools are exposed to model tool calls." : "Workspace-changing bridge tools are hidden from model tool calls."
+      );
+    }
+    async function updateToolPermissionPolicy(toolName, permission) {
+      const toolPermissionPolicies = {
+        ...appConfig?.toolPermissionPolicies ?? {},
+        [toolName]: permission
+      };
+      setAppConfig((current) => ({
+        ...current ?? {},
+        toolPermissionPolicies
+      }));
+      setToolRouterMessage(`${toolName} permission policy set to ${permission}.`);
+      try {
+        await ipcClient.app.setConfig({ toolPermissionPolicies });
+      } catch (error) {
+        setToolRouterMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Permission policy error");
+      }
+    }
+    function applyToolPermissionPreset(preset) {
+      const toolPermissionPolicies = {};
+      for (const tool of tools) {
+        if (preset === "allow-all") {
+          toolPermissionPolicies[tool.name] = "allow";
+        } else if (tool.readOnly) {
+          toolPermissionPolicies[tool.name] = "allow";
+        } else {
+          toolPermissionPolicies[tool.name] = preset === "ask-mutating" ? "ask" : "deny";
+        }
+      }
+      setAppConfig((current) => ({
+        ...current ?? {},
+        toolPermissionPolicies
+      }));
+      setToolRouterMessage(
+        preset === "allow-all" ? "All bridge tools are allowed by desktop permission policy." : preset === "ask-mutating" ? "Read-only tools are allowed and workspace-changing tools require approval." : "Read-only tools are allowed and workspace-changing tools are denied."
+      );
+      ipcClient.app.setConfig({ toolPermissionPolicies }).catch((error) => {
+        setToolRouterMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Permission policy error");
+      });
+    }
+    async function runWorkspaceCommand(command, cwd = ".") {
+      const trimmedCommand = command.trim();
+      if (!trimmedCommand) {
+        appendMessage(createMessage("error", "Enter a command to run.", {
+          title: "Command error",
+          status: "failed"
+        }));
+        return;
+      }
+      try {
+        const { toolId } = await ipcClient.tools.execute("bash.run", {
+          command: trimmedCommand,
+          cwd: cwd.trim() || "."
+        });
+        appendMessage(createMessage("tool", `Started workspace command: ${trimmedCommand}`, {
+          title: `Tool ${toolId}`
+        }));
+        setStatus("Approval needed");
+      } catch (error) {
+        appendMessage(createMessage("error", formatDesktopError(error), {
+          title: "Command error",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
     }
     async function submitPrompt() {
       const prompt = input.trim();
@@ -39216,7 +40038,7 @@ ${formatJson(data.data)}
         const activeProvider2 = appConfig?.llmProvider || DEFAULT_PROVIDER;
         const activeProviderDefault2 = getProviderDefault(activeProvider2);
         const assistantMessage = createMessage("assistant", "", {
-          title: `${PROVIDER_DEFAULTS[activeProvider2].label} / ${appConfig?.model || activeProviderDefault2.model}`,
+          title: `${activeProviderDefault2.label} / ${appConfig?.model || activeProviderDefault2.model}`,
           status: "sending"
         });
         streamMessageIds.current.set(requestId, assistantMessage.id);
@@ -39227,14 +40049,16 @@ ${formatJson(data.data)}
           provider: activeProvider2,
           baseUrl: appConfig?.baseUrl || activeProviderDefault2.baseUrl,
           model: appConfig?.model || activeProviderDefault2.model,
-          maxTokens: Number(appConfig?.maxTokens ?? 4096),
+          maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault2.maxTokens),
+          contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault2.contextTokens),
+          enableTools: Boolean(appConfig?.enableLlmTools ?? activeProviderDefault2.enableLlmTools),
           temperature: Number(appConfig?.temperature ?? 0.7)
         });
       } catch (error) {
         if (pendingStreamRequestId) {
           streamMessageIds.current.delete(pendingStreamRequestId);
         }
-        const message = error instanceof Error ? error.message : String(error);
+        const message = formatDesktopError(error);
         appendMessage(createMessage("error", message, {
           title: "Request failed",
           status: "failed"
@@ -39251,17 +40075,57 @@ ${formatJson(data.data)}
       if (!prompt.startsWith("/")) {
         return false;
       }
+      if (prompt === "/help" || prompt === "/?") {
+        appendMessage(createMessage("system", formatHelp(), { title: "Desktop commands" }));
+        return true;
+      }
+      if (prompt === "/status") {
+        appendMessage(createMessage("system", formatStatus(), { title: "Status" }));
+        return true;
+      }
+      if (prompt === "/pwd" || prompt === "/workspace") {
+        appendMessage(createMessage("system", appInfo?.workspacePath || "Workspace path is unavailable.", {
+          title: "Workspace"
+        }));
+        return true;
+      }
+      if (prompt === "/login" || prompt === "/settings") {
+        setSettingsMessage(prompt === "/login" ? "Select an LLM backend and save credentials or local endpoint settings." : "");
+        setActiveView("settings");
+        appendMessage(createMessage("system", "Opened Settings.", { title: prompt.slice(1) }));
+        return true;
+      }
+      if (prompt === "/login lmstudio" || prompt === "/login local") {
+        const localDefault = getProviderDefault("openai-compatible");
+        updateSettingsDraft({
+          llmProvider: "openai-compatible",
+          baseUrl: localDefault.baseUrl,
+          model: localDefault.model,
+          maxTokens: localDefault.maxTokens,
+          contextTokens: localDefault.contextTokens,
+          enableLlmTools: localDefault.enableLlmTools,
+          apiKey: ""
+        });
+        setSettingsMessage("Configured draft for LM Studio. Set the model ID, then Save.");
+        setActiveView("settings");
+        appendMessage(createMessage("system", "Opened Settings with LM Studio defaults.", { title: "login" }));
+        return true;
+      }
       if (prompt === "/clear") {
-        setMessages([createMessage("assistant", "Ready.", { title: "Code Agent" })]);
+        clearChat();
+        return true;
+      }
+      if (prompt === "/sessions") {
+        appendMessage(createMessage("system", formatSessions(sessions, currentSessionId), { title: "Sessions" }));
         return true;
       }
       if (prompt === "/tools") {
-        appendMessage(createMessage("system", formatTools(tools), { title: "Bridge tools" }));
+        appendMessage(createMessage("system", formatTools(tools, mcpTools), { title: "Tools" }));
         return true;
       }
       if (prompt === "/mcp") {
-        const { servers } = await refreshBridgeData();
-        appendMessage(createMessage("system", formatMcpServers(servers), { title: "MCP servers" }));
+        const { servers, discoveredMcpTools } = await refreshBridgeData();
+        appendMessage(createMessage("system", formatMcpStatus(servers, discoveredMcpTools), { title: "MCP" }));
         return true;
       }
       if (prompt === "/config") {
@@ -39286,17 +40150,79 @@ ${formatJson(appConfig)}
       }));
       return true;
     }
-    function formatTools(availableTools) {
-      if (availableTools.length === 0) {
-        return "No bridge tools are available.";
+    function formatHelp() {
+      return DESKTOP_COMMANDS.map((command) => `${command.command} - ${command.description}`).join("\n");
+    }
+    function formatStatus() {
+      const config = appConfig;
+      const provider = config?.llmProvider || DEFAULT_PROVIDER;
+      const providerDefault = getProviderDefault(provider);
+      const lines = [
+        `Provider: ${providerDefault.label}`,
+        `Model: ${config?.model || providerDefault.model}`,
+        `Base URL: ${config?.baseUrl || providerDefault.baseUrl || "(provider default)"}`,
+        `Max tokens: ${config?.maxTokens ?? providerDefault.maxTokens}`,
+        `Context tokens: ${config?.contextTokens ?? providerDefault.contextTokens}`,
+        `Model tool calls: ${config?.enableLlmTools ? "enabled" : "disabled"}`,
+        `Workspace: ${appInfo?.workspacePath || "unknown"}`,
+        `Bridge tools: ${tools.length}`,
+        `Bridge tools exposed to model: ${tools.filter((tool) => isToolExposedToModel(tool, config)).length}`,
+        `Bridge tools hidden from model: ${getDisabledModelToolSet(config).size}`,
+        `MCP servers: ${mcpServers.length}`,
+        `MCP tools: ${mcpTools.length}`,
+        `Runtime: ${appInfo ? `${appInfo.version} on ${appInfo.platform} ${appInfo.arch}` : "unknown"}`,
+        `Messages: ${messages.length}`,
+        `Saved sessions: ${sessions.length}`
+      ];
+      if (provider === "openai-compatible" && !config?.enableLlmTools) {
+        lines.push("Local tool schemas are off by default to protect 8k-context LM Studio models.");
       }
-      return availableTools.map((tool) => `- ${tool.name}${tool.readOnly ? " (read-only)" : ""}: ${tool.description}`).join("\n");
+      return lines.join("\n");
+    }
+    function formatTools(availableTools, availableMcpTools) {
+      const sections = [];
+      if (availableTools.length > 0) {
+        sections.push([
+          "Bridge tools:",
+          ...availableTools.map((tool) => {
+            const exposure = isToolExposedToModel(tool, appConfig) ? "model-exposed" : "model-hidden";
+            return `- ${tool.name}${tool.readOnly ? " (read-only)" : ""} [${exposure}]: ${tool.description}`;
+          })
+        ].join("\n"));
+      } else {
+        sections.push("Bridge tools: none");
+      }
+      if (availableMcpTools.length > 0) {
+        sections.push([
+          "MCP tools:",
+          ...availableMcpTools.map((tool) => `- ${tool.serverName}.${tool.toolName}: ${tool.description}`)
+        ].join("\n"));
+      } else {
+        sections.push("MCP tools: none");
+      }
+      return sections.join("\n\n");
     }
     function formatMcpServers(servers) {
       if (servers.length === 0) {
         return "No MCP servers are configured.";
       }
       return servers.map((server) => `- ${server.name} [${server.scope ?? "unknown"}]: ${server.status} (${server.type})`).join("\n");
+    }
+    function formatMcpStatus(servers, availableMcpTools) {
+      const serverText = formatMcpServers(servers);
+      const toolText = availableMcpTools.length > 0 ? availableMcpTools.map((tool) => `- ${tool.serverName}.${tool.toolName}: ${tool.description}`).join("\n") : "No MCP tools are discovered.";
+      return `${serverText}
+
+${toolText}`;
+    }
+    function formatSessions(availableSessions, activeSessionId) {
+      if (availableSessions.length === 0) {
+        return "No saved sessions.";
+      }
+      return sortSessions(availableSessions).map((session) => {
+        const marker = session.id === activeSessionId ? "*" : "-";
+        return `${marker} ${session.title} (${session.messages.length} messages, updated ${formatRelativeTime(session.updatedAt)})`;
+      }).join("\n");
     }
     function handleInputKeyDown(event) {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -39317,9 +40243,72 @@ ${formatJson(appConfig)}
       }
     }
     function clearChat() {
-      setMessages([createMessage("assistant", "Ready.", { title: "Code Agent" })]);
+      setMessages(createReadyMessages());
       setStatus("Ready");
       inputRef.current?.focus();
+    }
+    async function resolveFileWriteReview(review, approved) {
+      try {
+        await ipcClient.tools.respondToFileWriteReview({
+          requestId: review.requestId,
+          approved,
+          reason: approved ? void 0 : "Rejected in desktop review"
+        });
+        setFileWriteReviews((current) => current.filter((item) => item.requestId !== review.requestId));
+        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} write to ${review.path}.`, {
+          title: "File write review"
+        }));
+        setStatus("Ready");
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
+          title: "Review response failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
+    }
+    async function resolveCommandReview(review, approved) {
+      try {
+        await ipcClient.tools.respondToCommandReview({
+          requestId: review.requestId,
+          approved,
+          reason: approved ? void 0 : "Rejected in desktop review"
+        });
+        setCommandReviews((current) => current.filter((item) => item.requestId !== review.requestId));
+        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} command: ${review.command}`, {
+          title: "Command review"
+        }));
+        setStatus("Ready");
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
+          title: "Review response failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
+    }
+    async function resolveToolPermissionReview(review, approved) {
+      try {
+        await ipcClient.tools.respondToToolPermissionReview({
+          requestId: review.requestId,
+          approved,
+          reason: approved ? void 0 : "Rejected in desktop permission review"
+        });
+        setToolPermissionReviews((current) => current.filter((item) => item.requestId !== review.requestId));
+        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} tool call: ${review.toolName}.`, {
+          title: "Tool permission"
+        }));
+        setStatus("Ready");
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", error instanceof Error ? error.message : String(error), {
+          title: "Permission response failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
     }
     async function saveSettings(event) {
       event.preventDefault();
@@ -39332,6 +40321,8 @@ ${formatJson(appConfig)}
           model: settingsDraft.model,
           temperature: Number(settingsDraft.temperature),
           maxTokens: Number(settingsDraft.maxTokens),
+          contextTokens: Number(settingsDraft.contextTokens),
+          enableLlmTools: settingsDraft.enableLlmTools,
           theme: settingsDraft.theme,
           memoryEnabled: settingsDraft.memoryEnabled,
           pluginsEnabled: settingsDraft.pluginsEnabled,
@@ -39366,153 +40357,947 @@ ${formatJson(appConfig)}
     const statusLabel = isSending ? "Working" : status;
     const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
     const activeProviderDefault = getProviderDefault(activeProvider);
-    const activeProviderLabel = PROVIDER_DEFAULTS[activeProvider].label;
+    const activeProviderLabel = activeProviderDefault.label;
+    const activeModelName = appConfig?.model || activeProviderDefault.model;
+    const activeBaseUrl = appConfig?.baseUrl || activeProviderDefault.baseUrl;
+    const activeFileWriteReview = fileWriteReviews[0] ?? null;
+    const activeCommandReview = commandReviews[0] ?? null;
+    const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
+    const activeSession = sessions.find((session) => session.id === currentSessionId);
+    const conversationTitle = activeSession?.title || getSessionTitle(messages);
+    const recentSessions = sortSessions(sessions);
+    const visibleRecentSessions = recentSessions.filter((session) => matchesSessionSearch(session, sessionSearch));
+    const exposedBridgeToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
+    const connectedMcpServerCount = mcpServers.filter((server) => server.status === "connected").length;
+    const commandSuggestions = filterDesktopCommands(input);
+    const showCommandPalette = activeView === "chat" && commandSuggestions.length > 0 && !isSending;
+    const viewTitle = activeView === "chat" ? conversationTitle : activeView === "projects" ? "Projects" : activeView === "tools" ? "Tools" : "Settings";
+    const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activeView === "projects" ? appInfo?.workspacePath || "Workspace" : activeView === "tools" ? `${tools.length} bridge tools / ${mcpTools.length} MCP tools` : `${activeProviderLabel} / ${appConfig?.model || activeProviderDefault.model}`;
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.container, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { className: App_default.header, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: "Code Agent" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.subtitle, children: [
-            activeProviderLabel,
-            " / ",
-            appConfig?.model || activeProviderDefault.model
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.navSidebar, "aria-label": "Navigation", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: "*" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Code Agent" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activeProviderLabel })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.status} ${isSending ? App_default.statusBusy : ""}`, children: statusLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setIsSettingsOpen(true), children: "Settings" })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", onClick: startNewChat, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "+" }),
+          "New chat"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("nav", { className: App_default.navList, "aria-label": "Primary", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "chat" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("chat"), children: "Chats" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "projects" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("projects"), children: "Projects" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "tools" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("tools"), children: "Tools" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Recents" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "input",
+            {
+              className: App_default.sessionSearchInput,
+              type: "search",
+              value: sessionSearch,
+              onChange: (event) => setSessionSearch(event.target.value),
+              placeholder: "Search chats",
+              "aria-label": "Search chats"
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recentList, children: [
+            visibleRecentSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.recentItemActive, type: "button", onClick: () => setActiveView("chat"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: sessionSearch.trim() ? "No matches" : "New conversation" }) }),
+            visibleRecentSessions.map((session) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: session.id === currentSessionId ? App_default.recentItemActive : App_default.recentItem,
+                type: "button",
+                title: session.title,
+                onClick: () => loadSession(session.id),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: formatSidebarLabel(session.title) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.recentMeta, children: [
+                    session.messages.length,
+                    " messages \xB7 ",
+                    formatRelativeTime(session.updatedAt)
+                  ] })
+                ]
+              },
+              session.id
+            ))
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarBottom, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: activeView === "settings" ? App_default.sidebarSettingsButtonActive : App_default.sidebarSettingsButton,
+              type: "button",
+              onClick: () => {
+                setSettingsMessage("");
+                setActiveView("settings");
+              },
+              children: "Settings"
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarFooter, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.statusDot} ${isSending ? App_default.statusDotBusy : ""}` }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount} tools exposed` : "Chat mode" })
+            ] })
+          ] })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: App_default.workspace, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
-            messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              MessageItem,
-              {
-                message,
-                copied: copiedMessageId === message.id,
-                onCopy: () => copyMessage(message)
-              },
-              message.id
-            )),
-            isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.appShell, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { className: App_default.header, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.headerActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.status} ${isSending ? App_default.statusBusy : ""}`, children: statusLabel }) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""}`, children: [
+          activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.runtimeStrip, "aria-label": "Runtime status", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.runtimeCellButton,
+                  type: "button",
+                  title: `${activeProviderLabel}${activeBaseUrl ? ` / ${activeBaseUrl}` : ""}`,
+                  onClick: () => {
+                    setSettingsMessage("Provider and model settings.");
+                    setActiveView("settings");
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Provider" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: activeProviderLabel })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.runtimeCellButton,
+                  type: "button",
+                  title: activeModelName,
+                  onClick: () => {
+                    setSettingsMessage("Provider and model settings.");
+                    setActiveView("settings");
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: activeModelName })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.runtimeCellButton,
+                  type: "button",
+                  title: appInfo?.workspacePath || void 0,
+                  onClick: () => setActiveView("projects"),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 44) : "Unknown" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.runtimeCellButton,
+                  type: "button",
+                  onClick: () => setActiveView("tools"),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool mode" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount}/${tools.length} exposed` : "Chat only" })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.runtimeCellButton,
+                  type: "button",
+                  onClick: () => setActiveView("tools"),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "MCP" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                      connectedMcpServerCount,
+                      "/",
+                      mcpServers.length,
+                      " servers \xB7 ",
+                      mcpTools.length,
+                      " tools"
+                    ] })
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
+              messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                MessageItem,
+                {
+                  message,
+                  copied: copiedMessageId === message.id,
+                  onCopy: () => copyMessage(message)
+                },
+                message.id
+              )),
+              isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
+              event.preventDefault();
+              submitPrompt();
+            }, children: [
+              showCommandPalette && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.commandPalette, role: "listbox", "aria-label": "Desktop commands", children: commandSuggestions.map((command) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: App_default.commandPaletteItem,
+                  type: "button",
+                  onClick: () => {
+                    setInput(command.command.includes("<") ? command.command.split(" ")[0] : command.command);
+                    inputRef.current?.focus();
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: command.command }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: command.description })
+                  ]
+                },
+                command.command
+              )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "textarea",
+                {
+                  ref: inputRef,
+                  value: input,
+                  onChange: (event) => setInput(event.target.value),
+                  onKeyDown: handleInputKeyDown,
+                  placeholder: "Reply to Code Agent...",
+                  rows: 1,
+                  disabled: isSending,
+                  "aria-label": "Message"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: clearChat, title: "Clear chat", children: "Clear" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim(), title: "Send message", children: "Send" })
+              ] })
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
-            event.preventDefault();
-            submitPrompt();
-          }, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "textarea",
-              {
-                ref: inputRef,
-                value: input,
-                onChange: (event) => setInput(event.target.value),
-                onKeyDown: handleInputKeyDown,
-                placeholder: "Ask Code Agent",
-                rows: 1,
-                disabled: isSending,
-                "aria-label": "Message"
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: clearChat, children: "Clear" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim(), children: "Send" })
+          activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ProjectsView,
+            {
+              appInfo,
+              appConfig,
+              appState,
+              activeProviderLabel,
+              activeProviderDefault,
+              viewportSize,
+              tokenUsage,
+              currentSessionTitle: conversationTitle,
+              sessionCount: sessions.length,
+              workspacePath,
+              workspaceEntries,
+              workspaceBrowserError,
+              workspaceActionMessage,
+              isLoadingWorkspaceEntries,
+              onOpenWorkspaceEntry: openWorkspaceEntry,
+              onOpenWorkspacePath: openWorkspacePath,
+              onRevealWorkspacePath: revealWorkspacePath,
+              onGoToWorkspaceParent: goToWorkspaceParent,
+              onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
+              mcpServers,
+              mcpTools
+            }
+          ),
+          activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ToolsView,
+            {
+              tools,
+              mcpTools,
+              mcpServers,
+              appConfig,
+              routerMessage: toolRouterMessage,
+              toolActivities,
+              onToggleModelTool: setModelToolExposure,
+              onApplyToolPreset: applyToolRouterPreset,
+              onSetToolPermission: updateToolPermissionPolicy,
+              onApplyPermissionPreset: applyToolPermissionPreset,
+              onRunCommand: runWorkspaceCommand,
+              onOpenWorkspacePath: openWorkspacePath,
+              onRevealWorkspacePath: revealWorkspacePath,
+              onRefresh: refreshBridgeData,
+              onClearActivities: () => setToolActivities([])
+            }
+          ),
+          activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            SettingsView,
+            {
+              draft: settingsDraft,
+              message: settingsMessage,
+              saving: isSavingSettings,
+              tools,
+              mcpServers,
+              onChange: updateSettingsDraft,
+              onClearToken: clearToken,
+              onSubmit: saveSettings
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: App_default.footer, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("chat"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("projects"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : "Unknown" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("tools"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+              exposedBridgeToolCount,
+              "/",
+              tools.length,
+              " bridge / ",
+              mcpTools.length,
+              " MCP"
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+              tokenUsage.inputTokens,
+              " in / ",
+              tokenUsage.outputTokens,
+              " out"
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mode" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Agent" : "Chat" })
+          ] })
+        ] })
+      ] }),
+      activeFileWriteReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        FileWriteReviewDialog,
+        {
+          review: activeFileWriteReview,
+          queuedCount: fileWriteReviews.length,
+          onApprove: () => resolveFileWriteReview(activeFileWriteReview, true),
+          onReject: () => resolveFileWriteReview(activeFileWriteReview, false)
+        }
+      ),
+      activeCommandReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        CommandReviewDialog,
+        {
+          review: activeCommandReview,
+          queuedCount: commandReviews.length,
+          onApprove: () => resolveCommandReview(activeCommandReview, true),
+          onReject: () => resolveCommandReview(activeCommandReview, false)
+        }
+      ),
+      activeToolPermissionReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        ToolPermissionReviewDialog,
+        {
+          review: activeToolPermissionReview,
+          queuedCount: toolPermissionReviews.length,
+          onApprove: () => resolveToolPermissionReview(activeToolPermissionReview, true),
+          onReject: () => resolveToolPermissionReview(activeToolPermissionReview, false)
+        }
+      )
+    ] });
+  }
+  function ProjectsView({
+    appInfo,
+    appConfig,
+    appState,
+    activeProviderLabel,
+    activeProviderDefault,
+    viewportSize,
+    tokenUsage,
+    currentSessionTitle,
+    sessionCount,
+    workspacePath,
+    workspaceEntries,
+    workspaceBrowserError,
+    workspaceActionMessage,
+    isLoadingWorkspaceEntries,
+    onOpenWorkspaceEntry,
+    onOpenWorkspacePath,
+    onRevealWorkspacePath,
+    onGoToWorkspaceParent,
+    onRefreshWorkspace,
+    mcpServers,
+    mcpTools
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Projects", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.sidePanel, "aria-label": "Workspace status", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.panelSection, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Session" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: refreshBridgeData, children: "Refresh" })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Workspace State" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool calls" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.statsList, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+                viewportSize.width,
+                " x ",
+                viewportSize.height
+              ] })
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Files" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: appInfo?.workspacePath || void 0, children: workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries, children: "Up" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries, children: "Refresh" })
+          ] })
+        ] }),
+        workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineError, children: workspaceBrowserError }),
+        workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineSuccess, children: workspaceActionMessage }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileBrowser, "aria-label": "Workspace files", children: [
+          isLoadingWorkspaceEntries && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Loading files..." }),
+          !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No files in this directory" }),
+          !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+            const entryPath = joinWorkspacePath(workspacePath, entry.name);
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "div",
+              {
+                className: entry.type === "directory" ? App_default.fileEntryDirectory : App_default.fileEntry,
+                title: entry.name,
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      className: App_default.fileEntryMain,
+                      type: "button",
+                      onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath),
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.type === "directory" ? "Folder" : "File" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: entry.type === "directory" ? "Directory" : formatFileSize(entry.size) })
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileEntryActions, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath), children: "Open" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath), children: "Reveal" })
+                  ] })
+                ]
+              },
+              `${entry.type}-${entry.name}`
+            );
+          })
+        ] })
+      ] })
+    ] });
+  }
+  function ToolsView({
+    tools,
+    mcpTools,
+    mcpServers,
+    appConfig,
+    routerMessage,
+    toolActivities,
+    onToggleModelTool,
+    onApplyToolPreset,
+    onSetToolPermission,
+    onApplyPermissionPreset,
+    onRunCommand,
+    onOpenWorkspacePath,
+    onRevealWorkspacePath,
+    onRefresh,
+    onClearActivities
+  }) {
+    const exposedToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
+    const toolGroups = groupToolsByCategory(tools);
+    const policyCounts = tools.reduce(
+      (counts, tool) => {
+        counts[getToolPermissionPolicy(tool, appConfig)] += 1;
+        return counts;
+      },
+      { allow: 0, ask: 0, deny: 0 }
+    );
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Tools", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailToolbar, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Agent capabilities" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Tools" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: "Refresh" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsLayout, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Bridge Tools" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterSummary, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model exposure" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                exposedToolCount,
+                " / ",
+                tools.length
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool calls" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Ask policy" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.ask })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Denied" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.deny })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all"), children: "Expose all" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only"), children: "Read-only only" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off"), children: "Hide mutating" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: "Allow all" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: "Ask mutating" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: "Deny mutating" })
+          ] }),
+          routerMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.toolRouterMessage, children: routerMessage }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+            toolGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.toolCatalogGroup, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: group.label }),
+              group.tools.map((tool) => {
+                const exposed = isToolExposedToModel(tool, appConfig);
+                const permission = getToolPermissionPolicy(tool, appConfig);
+                return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tool.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tool.readOnly ? "Read-only" : "Can change workspace" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tool.description }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolExposureRow, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: exposed ? "Exposed to model" : "Hidden from model" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "button",
+                      {
+                        className: exposed ? App_default.toolExposureButton : App_default.toolExposureButtonOff,
+                        type: "button",
+                        onClick: () => onToggleModelTool(tool.name, !exposed),
+                        children: exposed ? "Hide" : "Expose"
+                      }
+                    )
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "select",
+                      {
+                        value: permission,
+                        onChange: (event) => onSetToolPermission(tool.name, event.target.value),
+                        children: TOOL_PERMISSION_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
+                      }
+                    )
+                  ] })
+                ] }, tool.name);
+              })
+            ] }, group.id)),
+            tools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No bridge tools available" })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsStack, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "MCP Registry" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Bridge tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tools.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Servers" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tools" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tokens" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens + tokenUsage.outputTokens })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Execution policy" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getToolPermissionPolicy({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig) })
               ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.panelSection, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Tools" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.tagList, children: [
-              tools.slice(0, 8).map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.tag, children: tool.name }, tool.name)),
-              tools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "None" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.panelSection, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Runtime" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.runtimeList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Version" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo?.version || "Unknown" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Platform" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-                  viewportSize.width,
-                  " x ",
-                  viewportSize.height
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+              mcpServers.map((server) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: server.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "span",
+                    {
+                      className: [
+                        App_default.toolStatusBadge,
+                        server.status === "connected" ? App_default.toolStatusConnected : "",
+                        server.status === "error" ? App_default.toolStatusError : ""
+                      ].filter(Boolean).join(" "),
+                      children: server.status
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                  server.type,
+                  server.scope ? ` \xB7 ${server.scope}` : "",
+                  server.error ? ` \xB7 ${server.error}` : ""
                 ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Theme" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.theme || "system" })
-              ] })
+              ] }, `${server.scope ?? "unknown"}-${server.name}`)),
+              mcpServers.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No MCP servers configured" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.tagList, children: [
+              mcpTools.slice(0, 12).map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.tag, children: [
+                tool.serverScope ? `${tool.serverScope}:` : "",
+                tool.serverName,
+                ".",
+                tool.toolName
+              ] }, `${tool.serverKey ?? tool.serverName}-${tool.toolName}`)),
+              mcpTools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No executable stdio MCP tools discovered yet" })
             ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PluginSkillPanel, { appConfig })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsStack, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RunCommandPanel, { onRunCommand }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ToolActivityPanel,
+            {
+              activities: toolActivities,
+              onClear: onClearActivities,
+              onOpenWorkspacePath,
+              onRevealWorkspacePath
+            }
+          )
+        ] })
+      ] })
+    ] });
+  }
+  function RunCommandPanel({
+    onRunCommand
+  }) {
+    const [command, setCommand] = useState("");
+    const [cwd, setCwd] = useState(".");
+    const helperCommands = [
+      { label: "Git status", command: "git status --short --branch" },
+      { label: "Git diff", command: "git diff --stat" },
+      { label: "Branch", command: "git branch --show-current" },
+      { label: "NPM scripts", command: "npm run" },
+      { label: "Dev servers", command: "lsof -iTCP -sTCP:LISTEN -P -n" }
+    ];
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Run Command" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Commands run through `bash.run`, stay inside the workspace, and require approval before execution." }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.commandRunner, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Command" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: command, onChange: (event) => setCommand(event.target.value), placeholder: "npm test" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Working directory" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: cwd, onChange: (event) => setCwd(event.target.value), placeholder: "." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: () => onRunCommand(command, cwd), children: "Review Run" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: helperCommands.map((helper) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "button",
+        {
+          className: App_default.secondaryButton,
+          type: "button",
+          onClick: () => setCommand(helper.command),
+          children: helper.label
+        },
+        helper.label
+      )) })
+    ] });
+  }
+  function PluginSkillPanel({ appConfig }) {
+    const pluginDirs = readCliOption(appConfig, "pluginDirs") || "Default plugin paths";
+    const agentsJson = readCliOption(appConfig, "agentsJson") || "Not configured";
+    const mcpConfig = readCliOption(appConfig, "mcpConfig") || "Default MCP config";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Plugins & Skills" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Plugin dirs" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: pluginDirs, children: pluginDirs })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Agents JSON" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: agentsJson, children: agentsJson })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP config" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: mcpConfig, children: mcpConfig })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above." })
+    ] });
+  }
+  function FileWriteReviewDialog({
+    review,
+    queuedCount,
+    onApprove,
+    onReject
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "file-write-review-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "file-write-review-title", children: "Review File Write" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
+            review.exists ? "Update existing file" : "Create new file",
+            queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.reviewBadge, children: "Approval required" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.reviewMeta, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Path" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.absolutePath, children: review.path })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Full path" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.absolutePath, children: review.absolutePath })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Size" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+            review.previousSizeBytes,
+            " ",
+            "->",
+            " ",
+            review.nextSizeBytes,
+            " bytes"
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: App_default.footer, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: statusLabel }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-          messages.length,
-          " messages"
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.diffBlock, "aria-label": "Proposed file diff", children: renderDiff(review.diff) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: "The file is not written until you approve this review." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: onReject, children: "Reject" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: onApprove, children: "Approve Write" })
+        ] })
+      ] })
+    ] }) });
+  }
+  function CommandReviewDialog({
+    review,
+    queuedCount,
+    onApprove,
+    onReject
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "command-review-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "command-review-title", children: "Review Command" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
+            "Non-interactive workspace command",
+            queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
+          ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-          tokenUsage.inputTokens,
-          " in / ",
-          tokenUsage.outputTokens,
-          " out"
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.reviewBadge, children: "Approval required" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.reviewMeta, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Command" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.command, children: review.command })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Working dir" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.absoluteCwd, children: review.cwd })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Timeout" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+            review.timeoutMs,
+            " ms"
+          ] })
         ] })
       ] }),
-      isSettingsOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        SettingsDialog,
-        {
-          draft: settingsDraft,
-          message: settingsMessage,
-          saving: isSavingSettings,
-          tools,
-          mcpServers,
-          onChange: updateSettingsDraft,
-          onClose: () => setIsSettingsOpen(false),
-          onClearToken: clearToken,
-          onSubmit: saveSettings
-        }
-      )
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.commandBlock, "aria-label": "Parsed command arguments", children: formatJson({
+        argv: review.argv,
+        cwd: review.absoluteCwd
+      }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: "The command is not executed until you approve this review." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: onReject, children: "Reject" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: onApprove, children: "Approve Run" })
+        ] })
+      ] })
+    ] }) });
+  }
+  function ToolPermissionReviewDialog({
+    review,
+    queuedCount,
+    onApprove,
+    onReject
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "tool-permission-review-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "tool-permission-review-title", children: "Review Tool Call" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
+            "Desktop permission policy requires approval",
+            queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.reviewBadge, children: "Approval required" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.reviewMeta, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.toolName, children: review.toolName })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Requested" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: new Date(review.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.commandBlock, "aria-label": "Tool arguments", children: formatJson(review.args) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: "The tool call is blocked until you approve it." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: onReject, children: "Reject" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: onApprove, children: "Approve Tool" })
+        ] })
+      ] })
+    ] }) });
+  }
+  function renderDiff(diff) {
+    if (!diff.trim()) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.diffMeta, children: "No textual changes." });
+    }
+    return diff.split("\n").map((line, index) => {
+      let className = App_default.diffMeta;
+      if (line.startsWith("+") && !line.startsWith("+++")) {
+        className = App_default.diffAdded;
+      } else if (line.startsWith("-") && !line.startsWith("---")) {
+        className = App_default.diffRemoved;
+      } else if (line.startsWith("@@") || line.startsWith("---") || line.startsWith("+++")) {
+        className = App_default.diffHeaderLine;
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className, children: [
+        line || " ",
+        "\n"
+      ] }, `${index}-${line.slice(0, 12)}`);
+    });
+  }
+  function ToolActivityPanel({
+    activities,
+    onClear,
+    onOpenWorkspacePath,
+    onRevealWorkspacePath
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.panelSection, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Tool activity" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: onClear, disabled: activities.length === 0, children: "Clear" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolActivityList, children: [
+        activities.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No tool calls yet" }),
+        activities.map((activity) => {
+          const filePath = getToolResultPath(activity);
+          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolActivityItem, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolActivityHeader, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.toolName, children: activity.toolName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.toolStatus} ${App_default[`toolStatus_${activity.status}`] || ""}`, children: activity.status })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolActivityMeta, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: new Date(activity.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }),
+              activity.duration !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                activity.duration,
+                " ms"
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.toolActivityText, children: summarizeToolArgs(activity.args) }),
+            activity.resultPreview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.toolActivityResult, children: activity.resultPreview }),
+            filePath && activity.status === "succeeded" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolActivityActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: filePath, children: filePath }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(filePath), children: "Open" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(filePath), children: "Reveal" })
+            ] }),
+            activity.error && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.toolActivityError, children: activity.error })
+          ] }, activity.id);
+        })
+      ] })
     ] });
   }
   function MessageItem({
@@ -39632,341 +41417,380 @@ ${formatJson(appConfig)}
     }
     return Array.from(next).join(",");
   }
-  function SettingsDialog({
+  function SettingsView({
     draft,
     message,
     saving,
     tools,
     mcpServers,
     onChange,
-    onClose,
     onClearToken,
     onSubmit
   }) {
+    const [activeSection, setActiveSection] = useState("model");
     const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
     const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
       value,
       label: option.label
     }));
+    const activeMenuItem = SETTINGS_MENU.find((item) => item.id === activeSection) ?? SETTINGS_MENU[0];
     function changeProvider(provider) {
       const providerDefault = getProviderDefault(provider);
       onChange({
         llmProvider: provider,
         baseUrl: providerDefault.baseUrl,
         model: providerDefault.model,
+        maxTokens: providerDefault.maxTokens,
+        contextTokens: providerDefault.contextTokens,
+        enableLlmTools: providerDefault.enableLlmTools,
         apiKey: ""
       });
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.settingsDialog, onSubmit, role: "dialog", "aria-modal": "true", "aria-labelledby": "settings-title", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Settings", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, onSubmit, "aria-labelledby": "settings-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "settings-title", children: "Settings" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: onClose, children: "Close" })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Model", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          SelectSetting,
-          {
-            label: "LLM backend",
-            value: draft.llmProvider,
-            options: providerOptions,
-            onChange: changeProvider
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
-            type: "password",
-            value: draft.apiKey,
-            onChange: (value) => onChange({ apiKey: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Base URL",
-            value: draft.baseUrl,
-            onChange: (value) => onChange({ baseUrl: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Model",
-            value: draft.model,
-            onChange: (value) => onChange({ model: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          SelectSetting,
-          {
-            label: "Theme",
-            value: draft.theme,
-            options: [
-              { value: "system", label: "System" },
-              { value: "light", label: "Light" },
-              { value: "dark", label: "Dark" }
-            ],
-            onChange: (value) => onChange({ theme: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Temperature",
-            type: "number",
-            value: draft.temperature,
-            onChange: (value) => onChange({ temperature: Number(value) })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Max tokens",
-            type: "number",
-            value: draft.maxTokens,
-            onChange: (value) => onChange({ maxTokens: Number(value) })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          SelectSetting,
-          {
-            label: "Thinking",
-            value: draft.thinkingMode,
-            options: [
-              { value: "adaptive", label: "Adaptive" },
-              { value: "enabled", label: "Enabled" },
-              { value: "disabled", label: "Disabled" }
-            ],
-            onChange: (value) => onChange({ thinkingMode: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          SelectSetting,
-          {
-            label: "Effort",
-            value: draft.effort,
-            options: [
-              { value: "low", label: "Low" },
-              { value: "medium", label: "Medium" },
-              { value: "high", label: "High" },
-              { value: "max", label: "Max" }
-            ],
-            onChange: (value) => onChange({ effort: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: "Configure model backends, agent tools, workspace context, and desktop compatibility options." })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsBody, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.settingsMenu, "aria-label": "Settings sections", children: [
+          SETTINGS_MENU.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
             {
-              label: "Output format",
-              value: draft.outputFormat,
-              options: [
-                { value: "text", label: "Text" },
-                { value: "json", label: "JSON" },
-                { value: "stream-json", label: "Stream JSON" }
-              ],
-              onChange: (value) => onChange({ outputFormat: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
-            {
-              label: "Input format",
-              value: draft.inputFormat,
-              options: [
-                { value: "text", label: "Text" },
-                { value: "stream-json", label: "Stream JSON" }
-              ],
-              onChange: (value) => onChange({ inputFormat: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug filter", value: draft.debugFilter, onChange: (value) => onChange({ debugFilter: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug file", value: draft.debugFile, onChange: (value) => onChange({ debugFile: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "JSON schema", value: draft.jsonSchema, onChange: (value) => onChange({ jsonSchema: value }), className: App_default.fieldWide })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Print mode", checked: draft.printMode, onChange: (checked) => onChange({ printMode: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include hook events", checked: draft.includeHookEvents, onChange: (checked) => onChange({ includeHookEvents: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include partial messages", checked: draft.includePartialMessages, onChange: (checked) => onChange({ includePartialMessages: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Replay user messages", checked: draft.replayUserMessages, onChange: (checked) => onChange({ replayUserMessages: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug", checked: draft.debugEnabled, onChange: (checked) => onChange({ debugEnabled: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug to stderr", checked: draft.debugToStderr, onChange: (checked) => onChange({ debugToStderr: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Verbose", checked: draft.verbose, onChange: (checked) => onChange({ verbose: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "MCP debug", checked: draft.mcpDebug, onChange: (checked) => onChange({ mcpDebug: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
-            {
-              label: "Startup mode",
-              value: draft.startupMode,
-              options: [
-                { value: "none", label: "None" },
-                { value: "init", label: "Init" },
-                { value: "init-only", label: "Init only" },
-                { value: "maintenance", label: "Maintenance" }
-              ],
-              onChange: (value) => onChange({ startupMode: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission mode" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.permissionMode, onChange: (event) => onChange({ permissionMode: event.target.value }), children: PERMISSION_MODES.map((mode) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: mode, children: mode }, mode)) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Permission prompt tool", value: draft.permissionPromptTool, onChange: (value) => onChange({ permissionPromptTool: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent", value: draft.agent, onChange: (value) => onChange({ agent: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Allowed tools", value: draft.allowedTools, onChange: (value) => onChange({ allowedTools: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Selected tools", value: draft.selectedTools, onChange: (value) => onChange({ selectedTools: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Disallowed tools", value: draft.disallowedTools, onChange: (value) => onChange({ disallowedTools: value }) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Memory", checked: draft.memoryEnabled, onChange: (checked) => onChange({ memoryEnabled: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plugins", checked: draft.pluginsEnabled, onChange: (checked) => onChange({ pluginsEnabled: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Disable slash commands", checked: draft.disableSlashCommands, onChange: (checked) => onChange({ disableSlashCommands: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Skip permissions", checked: draft.dangerouslySkipPermissions, onChange: (checked) => onChange({ dangerouslySkipPermissions: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "System prompt file", value: draft.systemPromptFile, onChange: (value) => onChange({ systemPromptFile: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Append prompt file", value: draft.appendSystemPromptFile, onChange: (value) => onChange({ appendSystemPromptFile: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "MCP config", value: draft.mcpConfig, onChange: (value) => onChange({ mcpConfig: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Settings file or JSON", value: draft.settingsSource, onChange: (value) => onChange({ settingsSource: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Additional directories", value: draft.addDirs, onChange: (value) => onChange({ addDirs: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Plugin directories", value: draft.pluginDirs, onChange: (value) => onChange({ pluginDirs: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Agents JSON", value: draft.agentsJson, onChange: (value) => onChange({ agentsJson: value }), className: App_default.fieldWide })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.checkboxGroup, children: [
-          SETTING_SOURCE_OPTIONS.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            ToggleSetting,
-            {
-              label: `${source} settings`,
-              checked: selectedSources.has(source),
-              onChange: (checked) => onChange({ settingSources: updateCsvValue(draft.settingSources, source, checked) })
+              className: item.id === activeSection ? App_default.settingsMenuItemActive : App_default.settingsMenuItem,
+              type: "button",
+              onClick: () => setActiveSection(item.id),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: item.title }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: item.description })
+              ]
             },
-            source
+            item.id
           )),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume at message", value: draft.resumeSessionAt, onChange: (value) => onChange({ resumeSessionAt: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Rewind files message", value: draft.rewindFilesMessageId, onChange: (value) => onChange({ rewindFilesMessageId: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session ID", value: draft.sessionId, onChange: (value) => onChange({ sessionId: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session name", value: draft.sessionName, onChange: (value) => onChange({ sessionName: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Prefill", value: draft.prefill, onChange: (value) => onChange({ prefill: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link repo", value: draft.deepLinkRepo, onChange: (value) => onChange({ deepLinkRepo: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link fetch ms", type: "number", value: draft.deepLinkLastFetch, onChange: (value) => onChange({ deepLinkLastFetch: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Worktree", value: draft.worktree, onChange: (value) => onChange({ worktree: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
-            {
-              label: "Tmux",
-              value: draft.tmuxMode,
-              options: [
-                { value: "off", label: "Off" },
-                { value: "default", label: "Default" },
-                { value: "classic", label: "Classic" }
-              ],
-              onChange: (value) => onChange({ tmuxMode: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
-            {
-              label: "Chrome",
-              value: draft.chromeIntegration,
-              options: [
-                { value: "default", label: "Default" },
-                { value: "enabled", label: "Enabled" },
-                { value: "disabled", label: "Disabled" }
-              ],
-              onChange: (value) => onChange({ chromeIntegration: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Advisor model", value: draft.advisorModel, onChange: (value) => onChange({ advisorModel: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "File specs", value: draft.fileSpecs, onChange: (value) => onChange({ fileSpecs: value }), className: App_default.fieldWide })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsMenuSummary, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Bridge tools" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tools.length })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "MCP servers" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: mcpServers.length })
+            ] })
+          ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Continue latest", checked: draft.continueSession, onChange: (checked) => onChange({ continueSession: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Development channels", value: draft.developmentChannelServers, onChange: (value) => onChange({ developmentChannelServers: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent ID", value: draft.agentId, onChange: (value) => onChange({ agentId: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent name", value: draft.agentName, onChange: (value) => onChange({ agentName: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Team name", value: draft.teamName, onChange: (value) => onChange({ teamName: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent color", value: draft.agentColor, onChange: (value) => onChange({ agentColor: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Parent session ID", value: draft.parentSessionId, onChange: (value) => onChange({ parentSessionId: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SelectSetting,
-            {
-              label: "Teammate mode",
-              value: draft.teammateMode,
-              options: [
-                { value: "auto", label: "Auto" },
-                { value: "tmux", label: "Tmux" },
-                { value: "in-process", label: "In process" }
-              ],
-              onChange: (value) => onChange({ teammateMode: value })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent type", value: draft.agentType, onChange: (value) => onChange({ agentType: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "SDK URL", value: draft.sdkUrl, onChange: (value) => onChange({ sdkUrl: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Teleport session", value: draft.teleportSession, onChange: (value) => onChange({ teleportSession: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote description", value: draft.remoteDescription, onChange: (value) => onChange({ remoteDescription: value }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote control name", value: draft.remoteControlName, onChange: (value) => onChange({ remoteControlName: value }) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Brief mode", checked: draft.briefMode, onChange: (checked) => onChange({ briefMode: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Assistant mode", checked: draft.assistantMode, onChange: (checked) => onChange({ assistantMode: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plan mode required", checked: draft.planModeRequired, onChange: (checked) => onChange({ planModeRequired: checked }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Hard fail", checked: draft.hardFail, onChange: (checked) => onChange({ hardFail: checked }) })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsSummary, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Bridge tools" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tools.length })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "MCP servers" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: mcpServers.length })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContentHeader, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Settings" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: activeMenuItem.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: activeMenuItem.description })
+          ] }),
+          activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "LLM backend",
+                  value: draft.llmProvider,
+                  options: providerOptions,
+                  onChange: changeProvider
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
+                  type: "password",
+                  value: draft.apiKey,
+                  onChange: (value) => onChange({ apiKey: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Base URL",
+                  value: draft.baseUrl,
+                  onChange: (value) => onChange({ baseUrl: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Model",
+                  value: draft.model,
+                  onChange: (value) => onChange({ model: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Theme",
+                  value: draft.theme,
+                  options: [
+                    { value: "system", label: "System" },
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" }
+                  ],
+                  onChange: (value) => onChange({ theme: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Temperature",
+                  type: "number",
+                  value: draft.temperature,
+                  onChange: (value) => onChange({ temperature: Number(value) })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Max tokens",
+                  type: "number",
+                  value: draft.maxTokens,
+                  onChange: (value) => onChange({ maxTokens: Number(value) })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Context tokens",
+                  type: "number",
+                  value: draft.contextTokens,
+                  onChange: (value) => onChange({ contextTokens: Number(value) })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Thinking",
+                  value: draft.thinkingMode,
+                  options: [
+                    { value: "adaptive", label: "Adaptive" },
+                    { value: "enabled", label: "Enabled" },
+                    { value: "disabled", label: "Disabled" }
+                  ],
+                  onChange: (value) => onChange({ thinkingMode: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Effort",
+                  value: draft.effort,
+                  options: [
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                    { value: "max", label: "Max" }
+                  ],
+                  onChange: (value) => onChange({ effort: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) })
+          ] }),
+          activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Output format",
+                  value: draft.outputFormat,
+                  options: [
+                    { value: "text", label: "Text" },
+                    { value: "json", label: "JSON" },
+                    { value: "stream-json", label: "Stream JSON" }
+                  ],
+                  onChange: (value) => onChange({ outputFormat: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Input format",
+                  value: draft.inputFormat,
+                  options: [
+                    { value: "text", label: "Text" },
+                    { value: "stream-json", label: "Stream JSON" }
+                  ],
+                  onChange: (value) => onChange({ inputFormat: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug filter", value: draft.debugFilter, onChange: (value) => onChange({ debugFilter: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug file", value: draft.debugFile, onChange: (value) => onChange({ debugFile: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "JSON schema", value: draft.jsonSchema, onChange: (value) => onChange({ jsonSchema: value }), className: App_default.fieldWide })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Print mode", checked: draft.printMode, onChange: (checked) => onChange({ printMode: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include hook events", checked: draft.includeHookEvents, onChange: (checked) => onChange({ includeHookEvents: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include partial messages", checked: draft.includePartialMessages, onChange: (checked) => onChange({ includePartialMessages: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Replay user messages", checked: draft.replayUserMessages, onChange: (checked) => onChange({ replayUserMessages: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug", checked: draft.debugEnabled, onChange: (checked) => onChange({ debugEnabled: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug to stderr", checked: draft.debugToStderr, onChange: (checked) => onChange({ debugToStderr: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Verbose", checked: draft.verbose, onChange: (checked) => onChange({ verbose: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "MCP debug", checked: draft.mcpDebug, onChange: (checked) => onChange({ mcpDebug: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
+            ] })
+          ] }),
+          activeSection === "tools-permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Startup mode",
+                  value: draft.startupMode,
+                  options: [
+                    { value: "none", label: "None" },
+                    { value: "init", label: "Init" },
+                    { value: "init-only", label: "Init only" },
+                    { value: "maintenance", label: "Maintenance" }
+                  ],
+                  onChange: (value) => onChange({ startupMode: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission mode" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.permissionMode, onChange: (event) => onChange({ permissionMode: event.target.value }), children: PERMISSION_MODES.map((mode) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: mode, children: mode }, mode)) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Permission prompt tool", value: draft.permissionPromptTool, onChange: (value) => onChange({ permissionPromptTool: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent", value: draft.agent, onChange: (value) => onChange({ agent: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Allowed tools", value: draft.allowedTools, onChange: (value) => onChange({ allowedTools: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Selected tools", value: draft.selectedTools, onChange: (value) => onChange({ selectedTools: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Disallowed tools", value: draft.disallowedTools, onChange: (value) => onChange({ disallowedTools: value }) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Memory", checked: draft.memoryEnabled, onChange: (checked) => onChange({ memoryEnabled: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plugins", checked: draft.pluginsEnabled, onChange: (checked) => onChange({ pluginsEnabled: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Disable slash commands", checked: draft.disableSlashCommands, onChange: (checked) => onChange({ disableSlashCommands: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Skip permissions", checked: draft.dangerouslySkipPermissions, onChange: (checked) => onChange({ dangerouslySkipPermissions: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
+            ] })
+          ] }),
+          activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "System prompt file", value: draft.systemPromptFile, onChange: (value) => onChange({ systemPromptFile: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Append prompt file", value: draft.appendSystemPromptFile, onChange: (value) => onChange({ appendSystemPromptFile: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "MCP config", value: draft.mcpConfig, onChange: (value) => onChange({ mcpConfig: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Settings file or JSON", value: draft.settingsSource, onChange: (value) => onChange({ settingsSource: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Additional directories", value: draft.addDirs, onChange: (value) => onChange({ addDirs: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Plugin directories", value: draft.pluginDirs, onChange: (value) => onChange({ pluginDirs: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Agents JSON", value: draft.agentsJson, onChange: (value) => onChange({ agentsJson: value }), className: App_default.fieldWide })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.checkboxGroup, children: [
+              SETTING_SOURCE_OPTIONS.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                ToggleSetting,
+                {
+                  label: `${source} settings`,
+                  checked: selectedSources.has(source),
+                  onChange: (checked) => onChange({ settingSources: updateCsvValue(draft.settingSources, source, checked) })
+                },
+                source
+              )),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
+            ] })
+          ] }),
+          activeSection === "sessions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume at message", value: draft.resumeSessionAt, onChange: (value) => onChange({ resumeSessionAt: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Rewind files message", value: draft.rewindFilesMessageId, onChange: (value) => onChange({ rewindFilesMessageId: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session ID", value: draft.sessionId, onChange: (value) => onChange({ sessionId: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session name", value: draft.sessionName, onChange: (value) => onChange({ sessionName: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Prefill", value: draft.prefill, onChange: (value) => onChange({ prefill: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link repo", value: draft.deepLinkRepo, onChange: (value) => onChange({ deepLinkRepo: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link fetch ms", type: "number", value: draft.deepLinkLastFetch, onChange: (value) => onChange({ deepLinkLastFetch: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Worktree", value: draft.worktree, onChange: (value) => onChange({ worktree: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Tmux",
+                  value: draft.tmuxMode,
+                  options: [
+                    { value: "off", label: "Off" },
+                    { value: "default", label: "Default" },
+                    { value: "classic", label: "Classic" }
+                  ],
+                  onChange: (value) => onChange({ tmuxMode: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Chrome",
+                  value: draft.chromeIntegration,
+                  options: [
+                    { value: "default", label: "Default" },
+                    { value: "enabled", label: "Enabled" },
+                    { value: "disabled", label: "Disabled" }
+                  ],
+                  onChange: (value) => onChange({ chromeIntegration: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Advisor model", value: draft.advisorModel, onChange: (value) => onChange({ advisorModel: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "File specs", value: draft.fileSpecs, onChange: (value) => onChange({ fileSpecs: value }), className: App_default.fieldWide })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Continue latest", checked: draft.continueSession, onChange: (checked) => onChange({ continueSession: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+            ] })
+          ] }),
+          activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Development channels", value: draft.developmentChannelServers, onChange: (value) => onChange({ developmentChannelServers: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent ID", value: draft.agentId, onChange: (value) => onChange({ agentId: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent name", value: draft.agentName, onChange: (value) => onChange({ agentName: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Team name", value: draft.teamName, onChange: (value) => onChange({ teamName: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent color", value: draft.agentColor, onChange: (value) => onChange({ agentColor: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Parent session ID", value: draft.parentSessionId, onChange: (value) => onChange({ parentSessionId: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SelectSetting,
+                {
+                  label: "Teammate mode",
+                  value: draft.teammateMode,
+                  options: [
+                    { value: "auto", label: "Auto" },
+                    { value: "tmux", label: "Tmux" },
+                    { value: "in-process", label: "In process" }
+                  ],
+                  onChange: (value) => onChange({ teammateMode: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent type", value: draft.agentType, onChange: (value) => onChange({ agentType: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "SDK URL", value: draft.sdkUrl, onChange: (value) => onChange({ sdkUrl: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Teleport session", value: draft.teleportSession, onChange: (value) => onChange({ teleportSession: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote description", value: draft.remoteDescription, onChange: (value) => onChange({ remoteDescription: value }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote control name", value: draft.remoteControlName, onChange: (value) => onChange({ remoteControlName: value }) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Brief mode", checked: draft.briefMode, onChange: (checked) => onChange({ briefMode: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Assistant mode", checked: draft.assistantMode, onChange: (checked) => onChange({ assistantMode: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plan mode required", checked: draft.planModeRequired, onChange: (checked) => onChange({ planModeRequired: checked }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Hard fail", checked: draft.hardFail, onChange: (checked) => onChange({ hardFail: checked }) })
+            ] })
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: message }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: onClearToken, children: "Clear auth" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onClose, children: "Cancel" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "submit", disabled: saving, children: saving ? "Saving" : "Save" })
         ] })
       ] })
@@ -39979,7 +41803,7 @@ ${formatJson(appConfig)}
     try {
       const root = import_client.default.createRoot(document.getElementById("root"));
       root.render(
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(import_react2.default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(App, {}) })
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(esm_wrapper_default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(App, {}) })
       );
     } catch (error) {
       console.error("Failed to initialize renderer:", error);

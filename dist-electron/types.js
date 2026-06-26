@@ -12,9 +12,16 @@ exports.IPC_CHANNELS = {
     // Tool channels
     'tool:execute': 'tool:execute',
     'tool:list': 'tool:list',
+    'tool:start': 'tool:start',
     'tool:result': 'tool:result',
     'tool:complete': 'tool:complete',
     'tool:error': 'tool:error',
+    'tool:fileWriteReview': 'tool:fileWriteReview',
+    'tool:fileWriteReviewResponse': 'tool:fileWriteReviewResponse',
+    'tool:commandReview': 'tool:commandReview',
+    'tool:commandReviewResponse': 'tool:commandReviewResponse',
+    'tool:permissionReview': 'tool:permissionReview',
+    'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
     // API channels
     'api:chat': 'api:chat',
     'api:chatStream': 'api:chatStream',
@@ -30,6 +37,8 @@ exports.IPC_CHANNELS = {
     'fs:read': 'fs:read',
     'fs:write': 'fs:write',
     'fs:list': 'fs:list',
+    'fs:open': 'fs:open',
+    'fs:reveal': 'fs:reveal',
     // Auth channels
     'auth:getToken': 'auth:getToken',
     'auth:logout': 'auth:logout',

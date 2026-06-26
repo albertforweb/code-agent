@@ -31,6 +31,10 @@ export class AppStateServiceBridge {
     model: 'claude-3-5-sonnet-20241022',
     temperature: 0.7,
     maxTokens: 4096,
+    contextTokens: 200000,
+    enableLlmTools: false,
+    disabledLlmTools: [],
+    toolPermissionPolicies: {},
     theme: 'system',
     language: 'en',
   };
@@ -149,6 +153,10 @@ export class AppStateServiceBridge {
       model: 'claude-3-5-sonnet-20241022',
       temperature: 0.7,
       maxTokens: 4096,
+      contextTokens: 200000,
+      enableLlmTools: false,
+      disabledLlmTools: [],
+      toolPermissionPolicies: {},
       theme: 'system',
       language: 'en',
     });
