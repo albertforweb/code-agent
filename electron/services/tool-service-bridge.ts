@@ -8,6 +8,7 @@ import type { Tool, ToolPermissionMode } from '../types';
 
 export interface BridgeToolDefinition extends Tool {
   execute: (args: Record<string, any>, context: ToolExecutionContext) => Promise<any>;
+  customReview?: boolean;
 }
 
 /**
@@ -19,6 +20,7 @@ export interface ToolExecutionContext {
   args: Record<string, any>;
   startTime: number;
   cancelled: boolean;
+  permissionMode?: ToolPermissionMode;
 }
 
 /**
@@ -144,11 +146,12 @@ export class ToolServiceBridge {
 
       this.onStart(toolId, toolName, args);
       const permissionMode = await this.permissionPolicyProvider(tool, args, context);
+      context.permissionMode = permissionMode;
       if (permissionMode === 'deny') {
         throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
       }
 
-      if (permissionMode === 'ask') {
+      if (permissionMode === 'ask' && !tool.customReview) {
         await this.permissionReviewHandler(tool, args, context);
       }
 

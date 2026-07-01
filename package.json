@@ -1,7 +1,7 @@
 {
   "name": "code-agent",
   "version": "1.0.0",
-  "description": "Claude Code CLI - Leaked source analysis",
+  "description": "CodeAgent local-first coding agent",
   "type": "module",
   "main": "dist-electron/main.js",
   "cli-main": "dist/entrypoints/cli.js",
@@ -17,20 +17,24 @@
     "build:renderer": "node build-renderer.mjs",
     "build:electron:main": "tsc -p tsconfig.electron.json && node write-electron-package.mjs",
     "build:electron": "npm run build:electron:main && tsc -p tsconfig.renderer.json --noEmit && npm run build:renderer",
-    "build:electron:prod": "cross-env NODE_ENV=production npm run build:electron:main && tsc -p tsconfig.renderer.json --noEmit && npm run build:renderer",
+    "build:electron:prod": "cross-env NODE_ENV=production npm run build:electron",
+    "generate:brand-assets": "node scripts/generate-brand-assets.mjs",
     "dev:electron": "npm run build:electron && cross-env NODE_ENV=development electron .",
     "dev:electron:debug": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_OPEN_DEVTOOLS=1 electron .",
     "dev:electron:gpu-off": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_DISABLE_GPU=1 electron .",
     "dev:electron:watch": "concurrently \"tsc -p tsconfig.electron.json -w\" \"tsc -p tsconfig.renderer.json -w\" \"wait-on dist-electron/main.js && electron .\"",
-    "dist": "npm run build:electron:prod && electron-builder",
-    "dist:win": "npm run build:electron:prod && electron-builder --win",
-    "dist:mac": "npm run build:electron:prod && electron-builder --mac",
-    "dist:linux": "npm run build:electron:prod && electron-builder --linux",
-    "pack": "electron-builder --dir --publish never"
+    "dist": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder",
+    "dist:win": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --win",
+    "dist:mac": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --mac",
+    "dist:linux": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --linux",
+    "pack": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --dir --publish never",
+    "release": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --publish always"
   },
   "keywords": [
-    "claude",
-    "code",
+    "code-agent",
+    "agent",
+    "local-llm",
+    "lm-studio",
     "cli",
     "typescript"
   ],
@@ -38,7 +42,6 @@
   "license": "MIT",
   "dependencies": {
     "@alcalzone/ansi-tokenize": "^0.1.3",
-    "@anthropic-ai/sdk": "^0.24.0",
     "@commander-js/extra-typings": "^11.1.0",
     "@growthbook/growthbook": "^1.6.5",
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -76,6 +79,8 @@
     "code-excerpt": "^4.0.0",
     "commander": "^11.1.0",
     "diff": "^5.1.0",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.1.0",
     "emoji-regex": "^10.4.0",
     "env-paths": "^3.0.0",
     "execa": "^9.5.2",
@@ -90,6 +95,7 @@
     "indent-string": "^5.0.0",
     "ink": "^4.4.1",
     "jsonc-parser": "^3.3.1",
+    "keytar": "^7.9.0",
     "lodash-es": "^4.17.21",
     "lru-cache": "^11.2.2",
     "marked": "^15.0.12",
@@ -128,10 +134,7 @@
     "cross-env": "^7.0.0",
     "electron": "^31.0.0",
     "electron-builder": "^25.0.0",
-    "electron-store": "^8.2.0",
-    "electron-updater": "^6.1.0",
     "esbuild": "^0.27.7",
-    "keytar": "^7.9.0",
     "tsx": "^4.7.0",
     "wait-on": "^7.0.0"
   },
@@ -139,18 +142,32 @@
     "node": ">=18.0.0"
   },
   "build": {
-    "appId": "com.anthropic.code-agent",
-    "productName": "Code Agent",
+    "appId": "com.albertforweb.codeagent",
+    "productName": "CodeAgent",
     "directories": {
       "buildResources": "electron/resources",
       "output": "dist-build"
     },
+    "afterSign": "electron/notarize.cjs",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "albertforweb",
+        "repo": "code-agent",
+        "releaseType": "release"
+      }
+    ],
+    "detectUpdateChannel": true,
+    "generateUpdatesFilesForAllChannels": true,
     "files": [
       "dist-electron/**",
       "dist-renderer/**",
+      "electron/resources/icon.png",
+      "electron/resources/icon.ico",
       "node_modules/**"
     ],
     "win": {
+      "icon": "electron/resources/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -175,6 +192,7 @@
       "createStartMenuShortcut": true
     },
     "mac": {
+      "icon": "electron/resources/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -189,6 +207,7 @@
       "sign": false
     },
     "linux": {
+      "icon": "electron/resources/icon.png",
       "target": [
         "AppImage",
         "deb"

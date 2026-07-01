@@ -1,346 +1,124 @@
-# Code-Agent Desktop App - Project Status Report
+# CodeAgent Desktop App - Project Status Report
 
-**Report Date**: June 23, 2026  
-**Project Stage**: Phase 1/7 Complete ✅  
-**Overall Progress**: 14% (1 of 7 phases complete)
-
----
-
-## 🎯 Project Goal
-
-Transform Claude Code CLI (512K+ LoC) into a cross-platform desktop application using Electron with feature parity to the terminal version.
+**Report Date**: July 1, 2026
+**Project Stage**: Phase 5 packaging and distribution in progress
+**Current Baseline**: Phase 4.5 local-first desktop workbench is complete in git history
 
 ---
 
-## 📊 Phase Progress
+## Project Goal
 
-```
-Phase 1: Electron Foundation        ████████████████████ 100% ✅ COMPLETE
-Phase 2: IPC Bridge & Services      ░░░░░░░░░░░░░░░░░░░░   0% (Next)
-Phase 3: UI Replacement             ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 4: Service Refactoring        ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 5: Packaging & Distribution   ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 6: Testing & Polish           ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 7: Documentation & Launch     ░░░░░░░░░░░░░░░░░░░░   0%
-
-Overall Progress:                    ██░░░░░░░░░░░░░░░░░░  14%
-```
+Transform the legacy CodeAgent CLI source tree into a local-first, cross-platform Electron desktop app with typed IPC, desktop-native services, local LLM support, automation workflows, and packageable release artifacts.
 
 ---
 
-## ✅ Phase 1: Completed Tasks
+## Phase Progress
 
-### 1️⃣ Electron Infrastructure
-- [x] Added 9 npm dependencies (Electron, Builder, Updater, etc.)
-- [x] Created 8 new build scripts in package.json
-- [x] Configured electron-builder for all platforms (Win/Mac/Linux)
-- [x] Set up code signing entitlements for macOS
-
-### 2️⃣ Process Architecture
-- [x] Created Main Process (`electron/main.ts`)
-  - Window creation and lifecycle management
-  - State persistence (size, position, maximized)
-  - Menu system with File/Edit/View/Help
-  - Single instance enforcement
-  - Theme detection
-
-- [x] Created Preload Script (`electron/preload.ts`)
-  - Secure context bridge with IPC API
-  - Type-safe window.api interface
-  - No direct Node.js access from renderer
-
-- [x] Created IPC Bridge (`electron/bridge.ts` + `electron/types.ts`)
-  - Complete channel definitions (tools, API, filesystem, auth, state)
-  - Ready for service integration
-
-### 3️⃣ Renderer (React DOM)
-- [x] Created React entry point (`src/renderer/index.tsx`)
-- [x] Created App component (`src/renderer/App.tsx`)
-- [x] Created global CSS with theme system (`src/renderer/styles/global.css`)
-- [x] Created component styles (`src/renderer/App.module.css`)
-- [x] Created HTML entry (`src/renderer/index.html`)
-
-### 4️⃣ Build Configuration
-- [x] Created `tsconfig.electron.json` for main/preload (CommonJS)
-- [x] Created `tsconfig.renderer.json` for renderer (ES2020 modules)
-- [x] Separate compilation targets for each process
-- [x] Separate output directories (dist-electron/, dist-renderer/)
-
----
-
-## 📁 Files Created (10 TypeScript + 3 Config)
-
-### Core Electron Files
 ```
-electron/
-├── main.ts                    380 lines - Main process & window management
-├── preload.ts                270 lines - Secure IPC API
-├── bridge.ts                 245 lines - IPC orchestration
-├── types.ts                  145 lines - Type definitions
-└── entitlements.mac.plist     30 lines - macOS code signing
-```
-
-### React Renderer Files
-```
-src/renderer/
-├── index.tsx                  35 lines - React DOM entry
-├── App.tsx                    60 lines - Main app component
-├── index.html                 25 lines - HTML shell
-└── styles/
-    ├── global.css            165 lines - Theme + globals
-    └── App.module.css        155 lines - Component styles
-```
-
-### Build Configuration
-```
-├── tsconfig.electron.json     35 lines - Electron build config
-├── tsconfig.renderer.json     40 lines - Renderer build config
-└── package.json (modified)    + 50 lines - Dependencies & scripts
+Phase 1: Electron Foundation             100% COMPLETE
+Phase 2: IPC Bridge & Services           100% COMPLETE
+Phase 3: Desktop UI Replacement          100% COMPLETE
+Phase 4: Service Refactor & Local LLM    100% COMPLETE
+Phase 4.5: Local-First Workbench         100% COMPLETE
+Phase 5: Packaging & Distribution         94% IN PROGRESS
+Phase 6: Testing & Polish                  0% PLANNED
+Phase 7: Documentation & Launch           35% IN PROGRESS
 ```
 
 ---
 
-## 🚀 What's Ready to Use
+## Current Verification
 
-### Build Commands
-```bash
-npm run build:electron          # Compile both processes
-npm run dev:electron            # Run development app
-npm run dev:electron:watch      # Watch & rebuild
-npm run dist                    # Build for all platforms
-npm run dist:win/mac/linux      # Platform-specific builds
-```
-
-### Architecture
-- ✅ Multi-process architecture (main + renderer)
-- ✅ Secure IPC communication layer
-- ✅ Window state persistence
-- ✅ Type-safe APIs
-- ✅ Application menu
-- ✅ Theme support (light/dark)
-- ✅ Dev tools in development mode
-
----
-
-## 📋 What's Next: Phase 2
-
-**Phase 2: IPC Bridge & Service Layer** (Est. June 24-26)
-
-### Key Tasks
-- [ ] Bridge existing Claude Code services to IPC
-- [ ] Implement tool execution via IPC
-- [ ] Implement API client wrapper
-- [ ] Implement file system operations
-- [ ] Implement authentication service
-- [ ] Handle streaming/real-time updates
-
-### Expected Deliverables
-- Service bridge layer in main process
-- IPC handlers for all service operations
-- Service integration tests
-- Ready for UI implementation
-
----
-
-## 📈 Metrics
-
-### Code Statistics
-| Metric | Count |
-|--------|-------|
-| Files Created | 13 |
-| Lines of TypeScript | ~750 |
-| Lines of CSS | ~320 |
-| Lines of HTML | 25 |
-| Total New Code | ~1,200 |
-| Dependencies Added | 9 |
-| Build Scripts Added | 8 |
-| Type Definitions | 15+ types |
-
-### Repository Impact
-| Item | Before | After | Change |
-|------|--------|-------|--------|
-| devDependencies | 1 | 10 | +9 |
-| npm scripts | 5 | 13 | +8 |
-| TypeScript configs | 1 | 3 | +2 |
-| Electron code | 0 | 5 files | +5 |
-| React components | 0 | 1 | +1 |
-
----
-
-## 📝 Documentation Created
-
-1. **ImprovementPlan.md** (Detailed 7-phase roadmap)
-   - Comprehensive task breakdown
-   - Success criteria for each phase
-   - Risk mitigation strategies
-   - Timeline and metrics
-
-2. **PHASE_1_COMPLETE.md** (Phase 1 summary)
-   - Detailed completion report
-   - Architecture overview
-   - File-by-file documentation
-   - Testing checklist
-
-3. **BUILD_STATUS.md** (This file)
-   - Visual progress tracking
-   - Metrics and statistics
-   - Quick reference guide
-
----
-
-## 🔍 Verification Checklist
-
-Before proceeding to Phase 2:
+Validated on July 1, 2026:
 
 ```bash
-# ✅ Dependencies installed
-npm install
-
-# ✅ Compile electron process
-npx tsc -p tsconfig.electron.json
-ls -la dist-electron/main.js         # Should exist
-
-# ✅ Compile renderer process
-npx tsc -p tsconfig.renderer.json
-ls -la dist-renderer/index.js        # Should exist
-
-# ✅ Full build
 npm run build:electron
-
-# ✅ Development mode (should open a window)
-npm run dev:electron
+npm run generate:brand-assets
+npm run pack
 ```
 
----
+Results:
 
-## 🎯 Success Criteria (Phase 1)
-
-- [x] Electron infrastructure created
-- [x] Multi-process architecture established
-- [x] IPC bridge scaffolding complete
-- [x] Build system configured
-- [x] React DOM renderer initialized
-- [x] Main process window management working
-- [x] TypeScript compilation working
-- [x] All code documented
-- [x] Ready for Phase 2
-
-**Phase 1 Status**: ✅ **ALL CRITERIA MET**
+- `npm run build:electron` passed: Electron main/preload/services compile, renderer typecheck passes, and renderer assets bundle successfully.
+- `npm run generate:brand-assets` passed outside the restricted sandbox. In the sandbox, macOS `iconutil` incorrectly reported valid iconsets as invalid.
+- `npm run pack` passed outside the restricted sandbox and produced `dist-build/mac-arm64/CodeAgent.app`.
+- Local packaging rebuilt native dependencies, packaged the macOS arm64 app, signed it with the available local identity, and skipped notarization because Apple notarization credentials are not configured.
+- The packageable desktop surface and generated packaged app scan clean for inherited provider SDK package names and provider branding terms.
+- Targeted source, generated output, and packaged app scans are clean for removed provider package namespaces, old SDK/runtime identifiers, old account/update command copy, old deep-link protocol text, old bundle IDs, and old GitHub action/marketplace identifiers.
+- The legacy provider package namespace reports an empty npm dependency tree.
+- All legacy provider-package imports and installed packages have been removed from the source tree and `node_modules`.
+- Local CodeAgent-owned LLM message/tool types, API error classes, stream helper, MCPB manifest helper, and sandbox runtime compatibility layer replace the actual SDK references that were still used.
+- CodeAgent-owned config and install surfaces are now primary: `CODEAGENT_CONFIG_DIR`, `~/.code-agent`, `code-agent://`, `code-agent` local wrapper, `code-agent` user-agent tokens, and `com.codeagent.*` app/telemetry identifiers. Legacy names are retained only where needed as compatibility fallbacks.
 
 ---
 
-## 📅 Timeline & Milestones
+## Implemented Capabilities
 
-| Phase | Duration | Start | End | Status |
-|-------|----------|-------|-----|--------|
-| Phase 1 | 1 day | Jun 23 | Jun 23 | ✅ COMPLETE |
-| Phase 2 | 3 days | Jun 24 | Jun 26 | 🔄 Next |
-| Phase 3 | 4 days | Jun 27 | Jun 30 | ⏳ Planned |
-| Phase 4 | 4 days | Jul 1  | Jul 4  | ⏳ Planned |
-| Phase 5 | 4 days | Jul 5  | Jul 8  | ⏳ Planned |
-| Phase 6 | 3 days | Jul 9  | Jul 11 | ⏳ Planned |
-| Phase 7 | 2 days | Jul 12 | Jul 14 | ⏳ Planned |
-| **Total** | **21 days** | **Jun 23** | **Jul 14** | — |
+### Desktop Shell
 
-**Estimated Launch**: July 21, 2026 (1 week buffer)
+- Electron main process, preload script, renderer bundle, app menu, window state persistence, app identity, and CodeAgent branding.
+- Secure context bridge with typed IPC between renderer and main process.
+- Production renderer builds omit source maps.
 
----
+### Service Bridge
 
-## 🚨 Critical Path
+- Tool, API, filesystem, auth, app-state, MCP, command, web, finance, automation, and local-history service bridges are registered from the Electron main process.
+- Renderer-side IPC client exposes typed desktop APIs.
+- Tool activity, permissions, safe file write review, checkpoint undo, and command execution workflows are wired into the desktop UI.
 
-The critical path to desktop app launch is:
+### Local-First Workbench
 
-```
-Phase 1 (Complete)
-    ↓
-Phase 2 (Services Integration) ← YOU ARE HERE
-    ↓
-Phase 3 (UI Implementation)
-    ↓
-Phase 5 (Packaging)
-    ↓
-LAUNCH
-```
+- Desktop navigation covers chat, projects, tools, automation, history, and settings.
+- Local sessions, transcript search, workspace file browsing, MCP registry views, tool routing controls, and status panes are available in the renderer.
+- Local history stores chat sessions, tool events, automation runs, and project events.
 
-Phases 4 & 6 can run in parallel with other phases if needed.
+### Automation
 
----
+- Workspace skill discovery and skill policy state.
+- Scheduled task definitions, run history, retry/missed-run/notification policy state.
+- Local-network remote control with pairing, device revocation, rate limits, audit events, and narrowed remote APIs.
+- Virtual team blueprints, bounded team iterations, milestones, run artifacts, and transcripts.
+- Project automation export/import separates shareable workspace state from local-only state.
 
-## 💡 Key Decisions Made
+### Packaging And Release
 
-1. **Electron 31** - Latest stable version with good TypeScript support
-2. **React DOM** - Reuse existing component patterns with DOM renderer
-3. **CommonJS for main process** - Standard Node.js compatibility
-4. **Secure IPC bridge** - Context isolation + preload script for security
-5. **electron-builder** - Standard for cross-platform packaging
-6. **Separate tsconfigs** - Clean separation of main vs renderer builds
-7. **TypeScript-first** - All new code is properly typed
+- `electron-builder` configuration for macOS, Windows, and Linux targets.
+- CodeAgent app id, product name, icons, resources, and runtime metadata.
+- GitHub Releases publish metadata and semver prerelease channel detection.
+- Guarded `electron-updater` startup and manual update checks for packaged builds.
+- macOS notarization hook that skips cleanly when credentials are absent.
+- GitHub Actions release workflow and release packaging documentation.
+- Packageable desktop provider support is OpenAI/OpenAI-compatible only; local LM Studio remains the default path.
 
 ---
 
-## 🔧 Technical Highlights
+## Remaining Work
 
-### Architecture Diagram
-```
-┌─ ELECTRON APPLICATION ────────────────────────────────┐
-│                                                        │
-│  Main Process              Renderer Process            │
-│  (Node.js)                 (Browser/React)            │
-│                                                        │
-│  ┌──────────────────┐  ┌──────────────────┐          │
-│  │  main.ts         │  │  React Components│          │
-│  │ • Window         │◄─┤ • UI             │          │
-│  │ • App Lifecycle  │  │ • User Input     │          │
-│  │ • IPC Handler    │─►│ • window.api     │          │
-│  └──────────────────┘  └──────────────────┘          │
-│          ▲                                             │
-│          │ IPC (Types + Bridge)                       │
-│          │                                             │
-│  ┌──────┴────────────────────────────────────────┐   │
-│  │  Services (Phase 2)                          │   │
-│  │  • API Client (Anthropic SDK)                │   │
-│  │  • Tool Registry                             │   │
-│  │  • Auth Service                              │   │
-│  │  • MCP Integration                           │   │
-│  │  • File System                               │   │
-│  │  • State Management                          │   │
-│  └────────────────────────────────────────────────┘   │
-│                                                        │
-└────────────────────────────────────────────────────────┘
-```
+Phase 5:
+
+- Validate signed and notarized release artifacts with real Apple and Windows signing secrets.
+- Verify auto-update download and install against a published GitHub release.
+- Verify Windows and Linux installers from CI artifacts.
+- Add release notes automation or a repeatable release checklist if needed.
+- Finish the controlled inherited terminal CLI compatibility migration tracked in `ImprovementPlan.md`; the remaining surface includes compatibility env vars, provider/model identifiers, OAuth/provider helper names, hosted remote flows, generated telemetry types, and legacy filenames/import paths.
+
+Phase 6:
+
+- Add broader integration tests for automation, local history, remote control, and packaged app startup.
+- Run cross-platform manual smoke tests.
+- Tighten renderer polish and error-state coverage.
+
+Phase 7:
+
+- Keep README, release docs, storage ownership docs, and security notes aligned with the packaged desktop baseline.
+- Prepare launch documentation after the first signed release is validated.
 
 ---
 
-## 📚 Related Documentation
+## Important Notes
 
-- [ImprovementPlan.md](ImprovementPlan.md) - Full 7-phase roadmap
-- [PHASE_1_COMPLETE.md](PHASE_1_COMPLETE.md) - Detailed Phase 1 report
-- [package.json](package.json) - Dependencies and scripts
-- [electron/types.ts](electron/types.ts) - IPC type definitions
-- [electron/main.ts](electron/main.ts) - Main process implementation
-
----
-
-## ✨ Summary
-
-**Phase 1 successfully establishes the Electron foundation for a desktop app.**
-
-- Electron infrastructure ✅
-- Multi-process architecture ✅
-- IPC communication layer ✅
-- React DOM renderer ✅
-- Build system ✅
-- TypeScript configuration ✅
-
-**Ready to proceed to Phase 2: Service Bridge Implementation**
-
-### Next Steps
-1. `npm install` - Install dependencies
-2. `npm run build:electron` - Test build
-3. Start Phase 2 - Bridge existing CLI services to IPC
-
----
-
-**Status**: 🟢 **ON TRACK**  
-**Completion**: ✅ **PHASE 1 COMPLETE**  
-**Next Phase**: Phase 2 - IPC Bridge & Services (June 24-26)
+- `dist-build/` is ignored and is expected to be regenerated locally or in CI.
+- `dist-electron/` and `dist-renderer/` are generated build outputs currently present in the working tree.
+- `.code-agent/local/` is local-only state and must not be committed.
+- `BUILD_INSTRUCTIONS.md` describes the current desktop build path. The old CLI-wide TypeScript build remains a legacy path and is not the validation target for the Electron app.
+- The inherited terminal CLI source tree still contains legacy provider/model identifiers and compatibility helper names. Those are now isolated from the targeted package/branding cleanup scans and remain a separate compatibility migration.

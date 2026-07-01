@@ -42,7 +42,7 @@ const result = await window.api.tools.execute('bash', { command: 'ls' });
 
 **What They Do**:
 - **ToolServiceBridge**: Execute tools with streaming results
-- **ApiServiceBridge**: Call Anthropic Claude API
+- **ApiServiceBridge**: Call LlmProvider CodeAgent API
 - **FileSystemServiceBridge**: Safe file read/write/list
 - **AuthServiceBridge**: Manage tokens and OAuth
 - **AppStateServiceBridge**: Persist config and state
@@ -191,7 +191,7 @@ const result = await window.api.tools.execute('bash', { command: 'ls' });
 │            BUSINESS LOGIC (Node.js APIs)                    │
 │                                                             │
 │  ├─ Tool: CLI tool registry & execution                   │
-│  ├─ API: Anthropic SDK                                    │
+│  ├─ API: CodeAgent API                                    │
 │  ├─ FS: Node.js fs module (sandboxed)                     │
 │  ├─ Auth: OAuth2 + keychain                               │
 │  └─ AppState: electron-store                              │

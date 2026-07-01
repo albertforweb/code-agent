@@ -3,7 +3,6 @@
  * Bridges LLM provider operations to IPC channels.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import type {
   AppConfig,
   AuthToken,
@@ -32,6 +31,7 @@ interface LlmRuntimeConfig {
   temperature?: number;
   apiKey?: string;
   enableTools: boolean;
+  maxToolRounds: number;
   disabledTools: Set<string>;
 }
 
@@ -66,30 +66,27 @@ interface OpenAiChatMessage {
 }
 
 const DEFAULT_MODELS: Record<LlmProviderType, string> = {
-  anthropic: 'claude-3-5-sonnet-20241022',
   openai: 'gpt-4o-mini',
   'openai-compatible': 'local-model',
 };
 
 const DEFAULT_BASE_URLS: Record<LlmProviderType, string> = {
-  anthropic: '',
   openai: 'https://api.openai.com/v1',
   'openai-compatible': 'http://127.0.0.1:1234/v1',
 };
 
 const DEFAULT_CONTEXT_TOKENS: Record<LlmProviderType, number> = {
-  anthropic: 200_000,
   openai: 128_000,
   'openai-compatible': 8_192,
 };
 
 const DEFAULT_MAX_TOKENS: Record<LlmProviderType, number> = {
-  anthropic: 4096,
   openai: 4096,
   'openai-compatible': 2048,
 };
 
-const MAX_TOOL_ROUNDS = 4;
+const DEFAULT_MAX_TOOL_ROUNDS = 4;
+const MAX_ALLOWED_TOOL_ROUNDS = 16;
 
 /**
  * API Service Bridge - bridges API operations to IPC.
@@ -118,10 +115,6 @@ export class ApiServiceBridge {
     const config = await this.resolveRuntimeConfig(request);
 
     try {
-      if (config.provider === 'anthropic') {
-        return this.chatAnthropic(request, config);
-      }
-
       return this.chatOpenAiCompatible(request, config);
     } catch (error) {
       throw new Error(`API Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -135,10 +128,6 @@ export class ApiServiceBridge {
     const config = await this.resolveRuntimeConfig(request);
 
     try {
-      if (config.provider === 'anthropic') {
-        return this.streamAnthropic(request, config, handlers);
-      }
-
       return this.streamOpenAiCompatible(request, config, handlers);
     } catch (error) {
       throw new Error(`API Stream Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -169,10 +158,10 @@ export class ApiServiceBridge {
   }
 
   /**
-   * Build system prompt for Code Agent.
+   * Build system prompt for CodeAgent.
    */
   private buildSystemPrompt(): string {
-    return `You are Code Agent, a powerful AI assistant for software development.
+    return `You are CodeAgent, a powerful AI assistant for software development.
 
 You have access to multiple tools and can execute code, analyze files, and help with various programming tasks.
 
@@ -250,56 +239,6 @@ Always be helpful, thorough, and provide clear explanations.`;
     };
   }
 
-  private async chatAnthropic(request: ChatRequest, config: LlmRuntimeConfig): Promise<ChatResponse> {
-    const client = this.getAnthropicClient(config);
-    const response = await client.messages.create({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      system: this.buildSystemPrompt(),
-      messages: request.messages,
-      temperature: config.temperature,
-    });
-
-    return {
-      content: this.extractAnthropicTextContent(response),
-      model: response.model,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
-    };
-  }
-
-  private async streamAnthropic(
-    request: ChatRequest,
-    config: LlmRuntimeConfig,
-    handlers: ChatStreamHandlers,
-  ): Promise<ChatResponse> {
-    const client = this.getAnthropicClient(config);
-    const stream = client.messages.stream({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      system: this.buildSystemPrompt(),
-      messages: request.messages,
-      temperature: config.temperature,
-    });
-
-    stream.on('text', (textDelta: string) => {
-      handlers.onDelta?.(textDelta);
-    });
-
-    const response = await stream.finalMessage();
-
-    return {
-      content: this.extractAnthropicTextContent(response),
-      model: response.model,
-      usage: {
-        inputTokens: response.usage.input_tokens,
-        outputTokens: response.usage.output_tokens,
-      },
-    };
-  }
-
   private async chatOpenAiCompatible(
     request: ChatRequest,
     config: LlmRuntimeConfig,
@@ -310,7 +249,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     let outputTokens = 0;
     let lastModel = config.model;
 
-    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+    for (let round = 0; round <= config.maxToolRounds; round += 1) {
       const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
         method: 'POST',
         headers: this.getOpenAiHeaders(config),
@@ -336,7 +275,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         };
       }
 
-      if (round === MAX_TOOL_ROUNDS) {
+      if (round === config.maxToolRounds) {
         return {
           content: 'Stopped after reaching the desktop tool-call round limit.',
           model: lastModel,
@@ -371,7 +310,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     let outputTokens = 0;
     let lastModel = config.model;
 
-    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
+    for (let round = 0; round <= config.maxToolRounds; round += 1) {
       const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
         method: 'POST',
         headers: this.getOpenAiHeaders(config),
@@ -403,7 +342,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         };
       }
 
-      if (round === MAX_TOOL_ROUNDS) {
+      if (round === config.maxToolRounds) {
         const limitMessage = '\n\nStopped after reaching the desktop tool-call round limit.';
         content += limitMessage;
         handlers.onDelta?.(limitMessage);
@@ -499,7 +438,7 @@ Always be helpful, thorough, and provide clear explanations.`;
 
   private async resolveRuntimeConfig(request: ChatRequest): Promise<LlmRuntimeConfig> {
     const appConfig = await this.appConfigProvider?.();
-    const provider = (request.provider || appConfig?.llmProvider || 'anthropic') as LlmProviderType;
+    const provider = this.normalizeProvider(request.provider || appConfig?.llmProvider);
     const token = await this.authTokenProvider?.(provider);
     const baseUrl = request.baseUrl || appConfig?.baseUrl || this.getDefaultBaseUrl(provider);
     const contextTokens = this.resolveContextTokens(provider, request.contextTokens ?? appConfig?.contextTokens);
@@ -523,29 +462,18 @@ Always be helpful, thorough, and provide clear explanations.`;
       temperature: request.temperature ?? appConfig?.temperature,
       apiKey,
       enableTools: this.shouldEnableTools(provider, request.enableTools ?? appConfig?.enableLlmTools),
+      maxToolRounds: this.resolveMaxToolRounds(request.maxToolRounds ?? appConfig?.maxToolRounds),
       disabledTools: this.normalizeToolNameSet(appConfig?.disabledLlmTools),
     };
   }
 
-  private getAnthropicClient(config: LlmRuntimeConfig): any {
-    if (this.apiClient && config.provider === 'anthropic') {
-      return this.apiClient;
+  private resolveMaxToolRounds(value: unknown): number {
+    const parsed = Number(value ?? DEFAULT_MAX_TOOL_ROUNDS);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      return DEFAULT_MAX_TOOL_ROUNDS;
     }
 
-    if (!config.apiKey) {
-      throw new Error('API client not initialized: configure an API key for Anthropic first');
-    }
-
-    return new Anthropic({ apiKey: config.apiKey });
-  }
-
-  private extractAnthropicTextContent(response: any): string {
-    return Array.isArray(response.content)
-      ? response.content
-        .filter((block: any) => block?.type === 'text')
-        .map((block: any) => block.text)
-        .join('')
-      : '';
+    return Math.min(Math.floor(parsed), MAX_ALLOWED_TOOL_ROUNDS);
   }
 
   private buildOpenAiPayload(
@@ -836,6 +764,10 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private async formatOpenAiError(response: Response): Promise<string> {
+    return this.formatProviderError(response);
+  }
+
+  private async formatProviderError(response: Response): Promise<string> {
     const text = await response.text();
     if (!text) {
       return `${response.status} ${response.statusText}`;
@@ -860,10 +792,6 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private getEnvironmentApiKey(provider: LlmProviderType): string | undefined {
-    if (provider === 'anthropic') {
-      return process.env.ANTHROPIC_API_KEY;
-    }
-
     if (provider === 'openai') {
       return process.env.OPENAI_API_KEY;
     }
@@ -876,12 +804,12 @@ Always be helpful, thorough, and provide clear explanations.`;
       return 'OpenAI-compatible';
     }
 
-    return provider === 'openai' ? 'OpenAI' : 'Anthropic';
+    return 'OpenAI';
   }
 
   private async buildLocalBootstrapData(): Promise<BootstrapData> {
     const config = await this.appConfigProvider?.();
-    const provider = (config?.llmProvider || 'anthropic') as LlmProviderType;
+    const provider = this.normalizeProvider(config?.llmProvider);
     const token = await this.authTokenProvider?.(provider);
 
     return {
@@ -904,5 +832,9 @@ Always be helpful, thorough, and provide clear explanations.`;
         buddy: false,
       },
     };
+  }
+
+  private normalizeProvider(value: unknown): LlmProviderType {
+    return value === 'openai' ? 'openai' : 'openai-compatible';
   }
 }

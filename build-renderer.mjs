@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(rootDir, 'dist-renderer');
+const isProduction = process.env.NODE_ENV === 'production';
 
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
@@ -17,7 +18,7 @@ await build({
   outfile: path.join(outDir, 'index.js'),
   platform: 'browser',
   format: 'iife',
-  sourcemap: true,
+  sourcemap: !isProduction,
   target: ['chrome120'],
   loader: {
     '.css': 'css',

@@ -44,7 +44,7 @@
    - Tool cancellation support
 
 2. **ApiServiceBridge** (135 lines)
-   - Anthropic SDK integration
+   - CodeAgent API integration
    - Chat message handling
    - Bootstrap data fetching
    - Response caching (1-hour TTL)

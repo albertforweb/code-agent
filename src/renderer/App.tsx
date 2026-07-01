@@ -21,15 +21,32 @@ import {
   type ToolPermissionMode,
   type ToolPermissionReviewRequest,
   type LlmProviderType,
+  type AutomationProjectExport,
+  type LocalHistoryRecord,
+  type LocalHistoryRecordType,
+  type LocalHistoryStorageInfo,
   type McpServerInfo,
   type McpToolInfo,
+  type AutomationRunRecord,
+  type AutomationSchedulerStatus,
+  type RemoteControlState,
+  type ScheduledTask,
+  type SkillManifest,
   type Tool,
+  type VirtualTeamBlueprint,
+  type VirtualTeamMember,
+  type VirtualTeamPermissionMode,
+  type VirtualTeamRunRecord,
 } from './ipc-client';
 
 type MessageRole = 'assistant' | 'user' | 'system' | 'tool' | 'error';
 type MessageStatus = 'sent' | 'sending' | 'failed';
 type ToolActivityStatus = 'running' | 'succeeded' | 'failed';
-type AppView = 'chat' | 'projects' | 'tools' | 'settings';
+type AppView = 'chat' | 'projects' | 'tools' | 'automation' | 'history' | 'settings';
+type ProjectsSectionId = 'overview' | 'files' | 'session' | 'runtime';
+type ToolsSectionId = 'bridge' | 'mcp' | 'command' | 'activity' | 'plugins';
+type AutomationSectionId = 'skills' | 'tasks' | 'remote' | 'team' | 'permissions';
+type HistorySectionId = 'overview' | 'chats' | 'tools' | 'automation' | 'events' | 'export';
 type SettingsSectionId =
   | 'model'
   | 'io-debug'
@@ -37,6 +54,11 @@ type SettingsSectionId =
   | 'workspace'
   | 'sessions'
   | 'advanced';
+type NavigationChildItem<T extends string> = {
+  id: T;
+  title: string;
+  description: string;
+};
 
 interface UiMessage {
   id: string;
@@ -189,11 +211,12 @@ interface SettingsDraft {
   hardFail: boolean;
 }
 
-const DEFAULT_PROVIDER: LlmProviderType = 'anthropic';
+const DEFAULT_PROVIDER: LlmProviderType = 'openai-compatible';
 const MAX_TOOL_ACTIVITIES = 20;
 const MAX_PERSISTED_MESSAGES = 80;
 const MAX_RECENT_SESSIONS = 12;
 const DESKTOP_SESSIONS_STATE_KEY = 'desktopSessions';
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codeAgentSidebarCollapsed';
 const TOOL_PERMISSION_OPTIONS: Array<{ value: ToolPermissionMode; label: string }> = [
   { value: 'allow', label: 'Allow' },
   { value: 'ask', label: 'Ask' },
@@ -209,6 +232,24 @@ const TOOL_CATEGORY_LABELS: Record<ToolCategoryId, string> = {
   api: 'API bridge',
   other: 'Other',
 };
+const EMPTY_REMOTE_CONTROL: RemoteControlState = {
+  enabled: false,
+  mode: 'disabled',
+  localNetworkUrls: [],
+  approvedDevices: [],
+  pendingApprovals: [],
+  pendingActions: [],
+  auditLog: [],
+};
+const EMPTY_SCHEDULER_STATUS: AutomationSchedulerStatus = {
+  running: false,
+  intervalMs: 30_000,
+  runningTaskIds: [],
+};
+const EMPTY_HISTORY_STORAGE: LocalHistoryStorageInfo = {
+  storagePath: '',
+  recordCount: 0,
+};
 const PROVIDER_DEFAULTS: Record<LlmProviderType, {
   label: string;
   model: string;
@@ -217,14 +258,6 @@ const PROVIDER_DEFAULTS: Record<LlmProviderType, {
   contextTokens: number;
   enableLlmTools: boolean;
 }> = {
-  anthropic: {
-    label: 'Anthropic',
-    model: 'claude-3-5-sonnet-20241022',
-    baseUrl: '',
-    maxTokens: 4096,
-    contextTokens: 200000,
-    enableLlmTools: false,
-  },
   openai: {
     label: 'OpenAI',
     model: 'gpt-4o-mini',
@@ -247,6 +280,14 @@ function getProviderDefault(provider: LlmProviderType) {
   return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
 }
 
+function readStoredSidebarCollapsed(): boolean {
+  try {
+    return window.localStorage?.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'auto'];
 const SETTING_SOURCE_OPTIONS = ['user', 'project', 'local'];
 const DESKTOP_COMMANDS: DesktopCommand[] = [
@@ -259,16 +300,44 @@ const DESKTOP_COMMANDS: DesktopCommand[] = [
   { command: '/settings', description: 'Open Settings' },
   { command: '/tools', description: 'List bridge and MCP tools' },
   { command: '/mcp', description: 'Refresh and list MCP servers/tools' },
+  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and virtual teams' },
+  { command: '/skills', description: 'Open local skills and automation extensions' },
+  { command: '/tasks', description: 'Open scheduled automation tasks' },
+  { command: '/remote', description: 'Open remote-control setup' },
+  { command: '/team', description: 'Open virtual team blueprints' },
+  { command: '/history', description: 'Open local history and export records' },
   { command: '/sessions', description: 'List saved desktop sessions' },
   { command: '/config', description: 'Show persisted desktop configuration' },
   { command: '/run <tool> <json>', description: 'Run a bridge tool manually' },
   { command: '/clear', description: 'Clear the visible chat' },
 ];
-const SETTINGS_MENU: Array<{
-  id: SettingsSectionId;
-  title: string;
+const PRIMARY_NAV: Array<{
+  id: AppView;
+  label: string;
   description: string;
+  glyph: string;
 }> = [
+  { id: 'chat', label: 'Chats', description: 'Conversation workspace', glyph: 'C' },
+  { id: 'projects', label: 'Projects', description: 'Workspace files and project state', glyph: 'P' },
+  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', glyph: 'T' },
+  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, teams', glyph: 'A' },
+  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', glyph: 'H' },
+  { id: 'settings', label: 'Settings', description: 'Model, tools, workspace, sessions', glyph: 'S' },
+];
+const PROJECTS_MENU: Array<NavigationChildItem<ProjectsSectionId>> = [
+  { id: 'overview', title: 'Overview', description: 'Workspace and model context' },
+  { id: 'files', title: 'Files', description: 'Browse, open, and reveal files' },
+  { id: 'session', title: 'Session', description: 'Current chat and token usage' },
+  { id: 'runtime', title: 'Runtime', description: 'App, platform, MCP state' },
+];
+const TOOLS_MENU: Array<NavigationChildItem<ToolsSectionId>> = [
+  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions' },
+  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools' },
+  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands' },
+  { id: 'activity', title: 'Activity', description: 'Tool-call timeline' },
+  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths' },
+];
+const SETTINGS_MENU: Array<NavigationChildItem<SettingsSectionId>> = [
   { id: 'model', title: 'Model', description: 'Provider, tokens, theme' },
   { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs' },
   { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety' },
@@ -276,6 +345,27 @@ const SETTINGS_MENU: Array<{
   { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser' },
   { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata' },
 ];
+const AUTOMATION_MENU: Array<NavigationChildItem<AutomationSectionId>> = [
+  { id: 'skills', title: 'Skills', description: 'Workspace extensions' },
+  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history' },
+  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals' },
+  { id: 'team', title: 'Virtual Team', description: 'Members, roles, workspaces' },
+  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy' },
+];
+const HISTORY_MENU: Array<NavigationChildItem<HistorySectionId>> = [
+  { id: 'overview', title: 'Overview', description: 'Storage and record counts' },
+  { id: 'chats', title: 'Chats', description: 'Saved conversations' },
+  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records' },
+  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history' },
+  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events' },
+  { id: 'export', title: 'Export', description: 'Download or copy local history' },
+];
+const AUTOMATION_PERMISSION_TOOLS = [
+  'bash.run',
+  'fs.write',
+  'fs.undoLastWrite',
+  'mcp.callTool',
+] as const;
 const ANSI_COLORS: Record<number, string> = {
   30: '#1f2937',
   31: '#b91c1c',
@@ -325,7 +415,7 @@ function createMessage(
 }
 
 function createReadyMessages(): UiMessage[] {
-  return [createMessage('assistant', 'Ready.', { title: 'Code Agent' })];
+  return [createMessage('assistant', 'Ready.', { title: 'CodeAgent' })];
 }
 
 function createSessionId(): string {
@@ -468,6 +558,29 @@ function restoreSessionsFromState(state: Record<string, any>, workspacePath?: st
 
   return {
     currentSessionId,
+    sessions,
+  };
+}
+
+function restoreSessionsFromHistory(
+  records: LocalHistoryRecord[],
+  workspacePath?: string,
+): PersistedSessionsState | null {
+  const sessions = sortSessions(records
+    .map(record => {
+      const payload = record.data && typeof record.data === 'object'
+        ? (record.data as { session?: unknown })
+        : {};
+      return sanitizeSession(payload.session ?? record.data, workspacePath);
+    })
+    .filter((session: PersistedChatSession | null): session is PersistedChatSession => Boolean(session)));
+
+  if (sessions.length === 0) {
+    return null;
+  }
+
+  return {
+    currentSessionId: sessions[0].id,
     sessions,
   };
 }
@@ -756,6 +869,69 @@ function formatRelativeTime(timestamp: number): string {
   return `${days}d ago`;
 }
 
+function getHistoryRecordTypeLabel(type: LocalHistoryRecordType): string {
+  switch (type) {
+    case 'chat-session':
+      return 'Chat';
+    case 'tool-event':
+      return 'Tool';
+    case 'automation-run':
+      return 'Automation';
+    case 'project-event':
+      return 'Project';
+    default:
+      return type;
+  }
+}
+
+function getHistoryRecordTitle(record: LocalHistoryRecord): string {
+  if (record.title) {
+    return record.title;
+  }
+
+  if (record.type === 'chat-session') {
+    const session = (record.data as { session?: PersistedChatSession } | undefined)?.session;
+    return session?.title ?? 'Chat session';
+  }
+
+  if (record.type === 'tool-event') {
+    const data = record.data as { toolName?: string; toolId?: string } | undefined;
+    return data?.toolName ?? data?.toolId ?? 'Tool event';
+  }
+
+  if (record.type === 'automation-run') {
+    const data = record.data as { name?: string; teamName?: string; taskName?: string } | undefined;
+    return data?.teamName ?? data?.taskName ?? data?.name ?? 'Automation run';
+  }
+
+  return 'Project event';
+}
+
+function getHistoryRecordSummary(record: LocalHistoryRecord): string {
+  const data = record.data && typeof record.data === 'object'
+    ? record.data as Record<string, any>
+    : {};
+
+  if (record.type === 'chat-session') {
+    const session = data.session as PersistedChatSession | undefined;
+    return session
+      ? `${session.messages.length} messages / updated ${formatRelativeTime(session.updatedAt)}`
+      : 'Saved conversation';
+  }
+
+  if (record.type === 'tool-event') {
+    const status = data.status ?? (data.success === false ? 'failed' : data.success === true ? 'succeeded' : 'recorded');
+    return `${data.toolName ?? data.toolId ?? 'Tool'} / ${status}`;
+  }
+
+  if (record.type === 'automation-run') {
+    const status = data.status ?? data.lastStatus ?? 'recorded';
+    return data.summary ?? data.lastResult ?? data.error ?? `Automation status: ${status}`;
+  }
+
+  return data.event ? String(data.event) : 'Project event';
+}
+
 function normalizeWorkspacePath(value: string): string {
   const normalized = value
     .replace(/\\/g, '/')
@@ -845,7 +1021,7 @@ function getToolCategory(tool: Tool): ToolCategoryId {
     return 'research';
   }
 
-  if (tool.name.startsWith('finance.')) {
+  if (tool.name.startsWith('finance.') || tool.name.startsWith('automation.')) {
     return 'connectors';
   }
 
@@ -1068,6 +1244,22 @@ export function App() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerInfo[]>([]);
   const [mcpTools, setMcpTools] = useState<McpToolInfo[]>([]);
+  const [skills, setSkills] = useState<SkillManifest[]>([]);
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+  const [taskRuns, setTaskRuns] = useState<AutomationRunRecord[]>([]);
+  const [remoteControl, setRemoteControl] = useState<RemoteControlState>(EMPTY_REMOTE_CONTROL);
+  const [virtualTeams, setVirtualTeams] = useState<VirtualTeamBlueprint[]>([]);
+  const [teamRuns, setTeamRuns] = useState<VirtualTeamRunRecord[]>([]);
+  const [runningTeamIds, setRunningTeamIds] = useState<Set<string>>(() => new Set());
+  const runningTeamIdsRef = useRef<Set<string>>(new Set());
+  const [schedulerStatus, setSchedulerStatus] = useState<AutomationSchedulerStatus>(EMPTY_SCHEDULER_STATUS);
+  const [automationMessage, setAutomationMessage] = useState('');
+  const [historyRecords, setHistoryRecords] = useState<LocalHistoryRecord[]>([]);
+  const [historyStorageInfo, setHistoryStorageInfo] = useState<LocalHistoryStorageInfo>(EMPTY_HISTORY_STORAGE);
+  const [historyMessage, setHistoryMessage] = useState('');
+  const [historyExportText, setHistoryExportText] = useState('');
+  const [automationExportText, setAutomationExportText] = useState('');
+  const [automationImportText, setAutomationImportText] = useState('');
   const [workspacePath, setWorkspacePath] = useState('.');
   const [workspaceEntries, setWorkspaceEntries] = useState<FileEntry[]>([]);
   const [workspaceBrowserError, setWorkspaceBrowserError] = useState('');
@@ -1089,6 +1281,12 @@ export function App() {
   const [toolRouterMessage, setToolRouterMessage] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [activeView, setActiveView] = useState<AppView>('chat');
+  const [activeProjectsSection, setActiveProjectsSection] = useState<ProjectsSectionId>('overview');
+  const [activeToolsSection, setActiveToolsSection] = useState<ToolsSectionId>('bridge');
+  const [activeAutomationSection, setActiveAutomationSection] = useState<AutomationSectionId>('tasks');
+  const [activeHistorySection, setActiveHistorySection] = useState<HistorySectionId>('overview');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('model');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1108,6 +1306,14 @@ export function App() {
   useEffect(() => {
     initializeApp();
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage?.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
+    } catch {
+      // Non-critical preference persistence.
+    }
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -1300,6 +1506,7 @@ export function App() {
     }
 
     const timeout = window.setTimeout(() => {
+      const activeSession = sessions.find(session => session.id === currentSessionId);
       ipcClient.app.setState({
         [DESKTOP_SESSIONS_STATE_KEY]: {
           currentSessionId,
@@ -1308,10 +1515,27 @@ export function App() {
       }).catch(error => {
         console.warn('Failed to persist desktop session state:', error);
       });
+
+      if (activeSession) {
+        ipcClient.history.saveRecord({
+          id: `chat-session-${activeSession.id}`,
+          type: 'chat-session',
+          workspacePath: activeSession.workspacePath ?? appInfo?.workspacePath,
+          title: activeSession.title,
+          data: {
+            currentSessionId,
+            session: activeSession,
+          },
+          createdAt: activeSession.createdAt,
+          updatedAt: activeSession.updatedAt,
+        }).catch(error => {
+          console.warn('Failed to persist desktop session history:', error);
+        });
+      }
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [sessions, currentSessionId]);
+  }, [sessions, currentSessionId, appInfo?.workspacePath]);
 
   useEffect(() => {
     const theme = appConfig?.theme || 'system';
@@ -1337,13 +1561,40 @@ export function App() {
 
   async function initializeApp() {
     try {
-      const [info, config, state, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
+      const [
+        info,
+        config,
+        state,
+        bridgeTools,
+        servers,
+        discoveredMcpTools,
+        discoveredSkills,
+        tasks,
+        runs,
+        remote,
+        teams,
+        teamRunHistory,
+        scheduler,
+        historySessions,
+        allHistoryRecords,
+        storageInfo,
+      ] = await Promise.all([
         ipcClient.app.info(),
         ipcClient.app.getConfig(),
         ipcClient.app.getState(),
         ipcClient.tools.list(),
         ipcClient.mcp.listServers(),
         ipcClient.mcp.listTools(),
+        ipcClient.automation.listSkills(),
+        ipcClient.automation.listTasks(),
+        ipcClient.automation.listTaskRuns(),
+        ipcClient.automation.getRemoteControl(),
+        ipcClient.automation.listTeams(),
+        ipcClient.automation.listTeamRuns(),
+        ipcClient.automation.getSchedulerStatus(),
+        ipcClient.history.listRecords({ type: 'chat-session', limit: MAX_RECENT_SESSIONS }),
+        ipcClient.history.listRecords({ limit: 500 }),
+        ipcClient.history.getStorageInfo(),
       ]);
 
       setAppInfo(info);
@@ -1353,7 +1604,20 @@ export function App() {
       setTools(bridgeTools);
       setMcpServers(servers);
       setMcpTools(discoveredMcpTools);
-      const restoredSessions = restoreSessionsFromState(state, info.workspacePath);
+      setSkills(discoveredSkills);
+      setScheduledTasks(tasks);
+      setTaskRuns(runs);
+      setRemoteControl(remote);
+      setVirtualTeams(teams);
+      setTeamRuns(teamRunHistory);
+      setSchedulerStatus(scheduler);
+      setHistoryRecords(allHistoryRecords);
+      setHistoryStorageInfo(storageInfo);
+      const hasLegacySessions = Boolean(state?.[DESKTOP_SESSIONS_STATE_KEY]);
+      const restoredSessions = hasLegacySessions
+        ? restoreSessionsFromState(state, info.workspacePath)
+        : restoreSessionsFromHistory(historySessions, info.workspacePath)
+          ?? restoreSessionsFromState(state, info.workspacePath);
       const activeSession = restoredSessions.sessions.find(session => session.id === restoredSessions.currentSessionId)
         ?? restoredSessions.sessions[0];
       setSessions(restoredSessions.sessions);
@@ -1485,6 +1749,246 @@ export function App() {
     setMcpTools(discoveredMcpTools);
 
     return { bridgeTools, servers, discoveredMcpTools };
+  }
+
+  async function refreshAutomationData() {
+    const [discoveredSkills, tasks, runs, remote, teams, teamRunHistory, scheduler] = await Promise.all([
+      ipcClient.automation.refreshSkills(),
+      ipcClient.automation.listTasks(),
+      ipcClient.automation.listTaskRuns(),
+      ipcClient.automation.getRemoteControl(),
+      ipcClient.automation.listTeams(),
+      ipcClient.automation.listTeamRuns(),
+      ipcClient.automation.getSchedulerStatus(),
+    ]);
+
+    setSkills(discoveredSkills);
+    setScheduledTasks(tasks);
+    setTaskRuns(runs);
+    setRemoteControl(remote);
+    setVirtualTeams(teams);
+    setTeamRuns(teamRunHistory);
+    setSchedulerStatus(scheduler);
+    return { discoveredSkills, tasks, runs, remote, teams, teamRunHistory, scheduler };
+  }
+
+  async function refreshHistoryData() {
+    const [records, storageInfo] = await Promise.all([
+      ipcClient.history.listRecords({ limit: 500 }),
+      ipcClient.history.getStorageInfo(),
+    ]);
+    setHistoryRecords(records);
+    setHistoryStorageInfo(storageInfo);
+    return { records, storageInfo };
+  }
+
+  async function deleteHistoryRecord(recordId: string) {
+    setHistoryMessage('');
+    try {
+      await ipcClient.history.deleteRecord(recordId);
+      await refreshHistoryData();
+      setHistoryMessage('Deleted history record.');
+    } catch (error) {
+      setHistoryMessage(formatDesktopError(error));
+    }
+  }
+
+  async function restoreChatFromHistory(record: LocalHistoryRecord) {
+    const restored = restoreSessionsFromHistory([record], appInfo?.workspacePath);
+    const session = restored?.sessions[0];
+    if (!session) {
+      setHistoryMessage('This history record does not contain a restorable chat session.');
+      return;
+    }
+
+    setSessions(current => upsertSession(current, session));
+    setCurrentSessionId(session.id);
+    setMessages(session.messages);
+    setActiveView('chat');
+    setHistoryMessage(`Restored chat "${session.title}".`);
+  }
+
+  async function exportHistoryRecords(type?: LocalHistoryRecordType) {
+    setHistoryMessage('');
+    try {
+      const exported = await ipcClient.history.exportRecords({ type, limit: 1000 });
+      setHistoryExportText(JSON.stringify(exported, null, 2));
+      setHistoryMessage(`Exported ${exported.records.length} history record(s).`);
+    } catch (error) {
+      setHistoryMessage(formatDesktopError(error));
+    }
+  }
+
+  async function exportAutomationProject(includeRuns: boolean) {
+    setAutomationMessage('');
+    try {
+      const bundle = await ipcClient.automation.exportProjectState({ includeRuns });
+      setAutomationExportText(JSON.stringify(bundle, null, 2));
+      await refreshHistoryData();
+      setAutomationMessage(`Exported ${bundle.tasks.length} task(s) and ${bundle.teams.length} team(s).`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function importAutomationProject() {
+    setAutomationMessage('');
+    try {
+      const bundle = JSON.parse(automationImportText) as Partial<AutomationProjectExport>;
+      const result = await ipcClient.automation.importProjectState(bundle);
+      await refreshAutomationData();
+      await refreshHistoryData();
+      setAutomationMessage(`Imported ${result.imported.tasks} task(s), ${result.imported.teams} team(s), and ${result.imported.skillPolicies} skill policy entry(ies).`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function saveScheduledTask(task: Partial<ScheduledTask>) {
+    setAutomationMessage('');
+    try {
+      const saved = await ipcClient.automation.saveTask(task);
+      await refreshAutomationData();
+      setAutomationMessage(`Saved scheduled task "${saved.name}".`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function runScheduledTask(taskId: string) {
+    setAutomationMessage('');
+    try {
+      const task = await ipcClient.automation.runTask(taskId);
+      await refreshAutomationData();
+      setAutomationMessage(`Ran scheduled task "${task.name}" with status ${task.lastStatus ?? 'unknown'}.`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function deleteScheduledTask(taskId: string) {
+    setAutomationMessage('');
+    try {
+      await ipcClient.automation.deleteTask(taskId);
+      await refreshAutomationData();
+      setAutomationMessage('Deleted scheduled task.');
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function updateRemoteControl(update: Partial<RemoteControlState>) {
+    setAutomationMessage('');
+    try {
+      const remote = await ipcClient.automation.updateRemoteControl(update);
+      await refreshAutomationData();
+      setAutomationMessage('Updated remote control settings.');
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function createRemotePairingCode(deviceName?: string) {
+    setAutomationMessage('');
+    try {
+      const remote = await ipcClient.automation.createRemotePairingCode(deviceName);
+      await refreshAutomationData();
+      setAutomationMessage('Created a remote-control pairing code.');
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function revokeRemoteDevice(deviceId: string) {
+    setAutomationMessage('');
+    try {
+      const remote = await ipcClient.automation.revokeRemoteDevice(deviceId);
+      setRemoteControl(remote);
+      await refreshAutomationData();
+      await refreshHistoryData();
+      setAutomationMessage('Revoked remote device.');
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function createDefaultVirtualTeam(objective: string) {
+    setAutomationMessage('');
+    try {
+      const team = await ipcClient.automation.createDefaultTeam(objective);
+      await refreshAutomationData();
+      setAutomationMessage(`Created virtual team "${team.name}".`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function saveVirtualTeam(team: Partial<VirtualTeamBlueprint>) {
+    setAutomationMessage('');
+    try {
+      const saved = await ipcClient.automation.saveTeam(team);
+      await refreshAutomationData();
+      setAutomationMessage(`Saved virtual team "${saved.name}".`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function deleteVirtualTeam(teamId: string) {
+    setAutomationMessage('');
+    try {
+      await ipcClient.automation.deleteTeam(teamId);
+      await refreshAutomationData();
+      setAutomationMessage('Deleted virtual team.');
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function setSkillEnabled(skillId: string, enabled: boolean) {
+    setAutomationMessage('');
+    try {
+      const skill = await ipcClient.automation.setSkillEnabled(skillId, enabled);
+      await refreshAutomationData();
+      setAutomationMessage(`${enabled ? 'Enabled' : 'Disabled'} skill "${skill.name}".`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function setScheduledTaskEnabled(taskId: string, enabled: boolean) {
+    setAutomationMessage('');
+    try {
+      const task = await ipcClient.automation.setTaskEnabled(taskId, enabled);
+      await refreshAutomationData();
+      setAutomationMessage(`${enabled ? 'Enabled' : 'Disabled'} scheduled task "${task.name}".`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    }
+  }
+
+  async function runVirtualTeam(teamId: string) {
+    if (runningTeamIdsRef.current.has(teamId)) {
+      return;
+    }
+
+    setAutomationMessage('');
+    runningTeamIdsRef.current.add(teamId);
+    setRunningTeamIds(current => new Set(current).add(teamId));
+    try {
+      const run = await ipcClient.automation.runTeam(teamId);
+      await refreshAutomationData();
+      setAutomationMessage(`Virtual team run ${run.status}: ${run.summary ?? run.error ?? run.id}`);
+    } catch (error) {
+      setAutomationMessage(formatDesktopError(error));
+    } finally {
+      runningTeamIdsRef.current.delete(teamId);
+      setRunningTeamIds(current => {
+        const next = new Set(current);
+        next.delete(teamId);
+        return next;
+      });
+    }
   }
 
   async function loadWorkspaceDirectory(nextPath = workspacePath) {
@@ -1753,6 +2257,7 @@ export function App() {
       setSettingsMessage(prompt === '/login'
         ? 'Select an LLM backend and save credentials or local endpoint settings.'
         : '');
+      setActiveSettingsSection('model');
       setActiveView('settings');
       appendMessage(createMessage('system', 'Opened Settings.', { title: prompt.slice(1) }));
       return true;
@@ -1770,6 +2275,7 @@ export function App() {
         apiKey: '',
       });
       setSettingsMessage('Configured draft for LM Studio. Set the model ID, then Save.');
+      setActiveSettingsSection('model');
       setActiveView('settings');
       appendMessage(createMessage('system', 'Opened Settings with LM Studio defaults.', { title: 'login' }));
       return true;
@@ -1785,13 +2291,40 @@ export function App() {
       return true;
     }
 
+    if (prompt === '/history') {
+      await refreshHistoryData();
+      setActiveHistorySection('overview');
+      setActiveView('history');
+      appendMessage(createMessage('system', 'Opened History.', { title: 'History' }));
+      return true;
+    }
+
     if (prompt === '/tools') {
+      setActiveToolsSection('bridge');
       appendMessage(createMessage('system', formatTools(tools, mcpTools), { title: 'Tools' }));
+      return true;
+    }
+
+    if (prompt === '/automation' || prompt === '/skills' || prompt === '/tasks' || prompt === '/remote' || prompt === '/team') {
+      await refreshAutomationData();
+      if (prompt === '/skills') {
+        setActiveAutomationSection('skills');
+      } else if (prompt === '/tasks') {
+        setActiveAutomationSection('tasks');
+      } else if (prompt === '/remote') {
+        setActiveAutomationSection('remote');
+      } else if (prompt === '/team') {
+        setActiveAutomationSection('team');
+      }
+      setActiveView('automation');
+      appendMessage(createMessage('system', 'Opened Automation.', { title: prompt.slice(1) }));
       return true;
     }
 
     if (prompt === '/mcp') {
       const { servers, discoveredMcpTools } = await refreshBridgeData();
+      setActiveToolsSection('mcp');
+      setActiveView('tools');
       appendMessage(createMessage('system', formatMcpStatus(servers, discoveredMcpTools), { title: 'MCP' }));
       return true;
     }
@@ -2058,12 +2591,74 @@ export function App() {
     setSettingsMessage('Authentication cleared');
   }
 
+  function openPrimaryView(view: AppView) {
+    if (view === 'settings') {
+      setSettingsMessage('');
+    } else if (view === 'history') {
+      setHistoryMessage('');
+    }
+    setActiveView(view);
+  }
+
+  function getActiveChildMenu(): Array<NavigationChildItem<string>> {
+    if (activeView === 'projects') {
+      return PROJECTS_MENU;
+    }
+    if (activeView === 'tools') {
+      return TOOLS_MENU;
+    }
+    if (activeView === 'automation') {
+      return AUTOMATION_MENU;
+    }
+    if (activeView === 'history') {
+      return HISTORY_MENU;
+    }
+    if (activeView === 'settings') {
+      return SETTINGS_MENU;
+    }
+    return [];
+  }
+
+  function getActiveChildId(): string {
+    if (activeView === 'projects') {
+      return activeProjectsSection;
+    }
+    if (activeView === 'tools') {
+      return activeToolsSection;
+    }
+    if (activeView === 'automation') {
+      return activeAutomationSection;
+    }
+    if (activeView === 'history') {
+      return activeHistorySection;
+    }
+    if (activeView === 'settings') {
+      return activeSettingsSection;
+    }
+    return '';
+  }
+
+  function openChildRoute(view: AppView, childId: string) {
+    if (view === 'projects') {
+      setActiveProjectsSection(childId as ProjectsSectionId);
+    } else if (view === 'tools') {
+      setActiveToolsSection(childId as ToolsSectionId);
+    } else if (view === 'automation') {
+      setActiveAutomationSection(childId as AutomationSectionId);
+    } else if (view === 'history') {
+      setActiveHistorySection(childId as HistorySectionId);
+      setHistoryMessage('');
+    } else if (view === 'settings') {
+      setActiveSettingsSection(childId as SettingsSectionId);
+      setSettingsMessage('');
+    }
+    setActiveView(view);
+  }
+
   const statusLabel = isSending ? 'Working' : status;
   const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
   const activeProviderDefault = getProviderDefault(activeProvider);
   const activeProviderLabel = activeProviderDefault.label;
-  const activeModelName = appConfig?.model || activeProviderDefault.model;
-  const activeBaseUrl = appConfig?.baseUrl || activeProviderDefault.baseUrl;
   const activeFileWriteReview = fileWriteReviews[0] ?? null;
   const activeCommandReview = commandReviews[0] ?? null;
   const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
@@ -2072,44 +2667,97 @@ export function App() {
   const recentSessions = sortSessions(sessions);
   const visibleRecentSessions = recentSessions.filter(session => matchesSessionSearch(session, sessionSearch));
   const exposedBridgeToolCount = tools.filter(tool => isToolExposedToModel(tool, appConfig)).length;
-  const connectedMcpServerCount = mcpServers.filter(server => server.status === 'connected').length;
   const commandSuggestions = filterDesktopCommands(input);
   const showCommandPalette = activeView === 'chat' && commandSuggestions.length > 0 && !isSending;
+  const activeProjectsMenuItem = PROJECTS_MENU.find(item => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
+  const activeToolsMenuItem = TOOLS_MENU.find(item => item.id === activeToolsSection) ?? TOOLS_MENU[0];
+  const activeAutomationMenuItem = AUTOMATION_MENU.find(item => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
+  const activeHistoryMenuItem = HISTORY_MENU.find(item => item.id === activeHistorySection) ?? HISTORY_MENU[0];
+  const activeSettingsMenuItem = SETTINGS_MENU.find(item => item.id === activeSettingsSection) ?? SETTINGS_MENU[0];
+  const activeChildMenu = getActiveChildMenu();
+  const activeChildId = getActiveChildId();
   const viewTitle = activeView === 'chat'
     ? conversationTitle
     : activeView === 'projects'
-      ? 'Projects'
+      ? activeProjectsMenuItem.title
       : activeView === 'tools'
-        ? 'Tools'
-        : 'Settings';
+        ? activeToolsMenuItem.title
+        : activeView === 'automation'
+          ? activeAutomationMenuItem.title
+          : activeView === 'history'
+            ? activeHistoryMenuItem.title
+            : activeSettingsMenuItem.title;
   const viewSubtitle = activeView === 'chat'
     ? appConfig?.model || activeProviderDefault.model
     : activeView === 'projects'
-      ? appInfo?.workspacePath || 'Workspace'
+      ? activeProjectsMenuItem.description
       : activeView === 'tools'
-        ? `${tools.length} bridge tools / ${mcpTools.length} MCP tools`
-        : `${activeProviderLabel} / ${appConfig?.model || activeProviderDefault.model}`;
+        ? activeToolsMenuItem.description
+        : activeView === 'automation'
+          ? activeAutomationMenuItem.description
+          : activeView === 'history'
+            ? activeHistoryMenuItem.description
+            : activeSettingsMenuItem.description;
 
   return (
-    <div className={styles.container}>
-      <aside className={styles.navSidebar} aria-label="Navigation">
+    <div className={`${styles.container} ${sidebarCollapsed ? styles.containerCollapsed : ''}`}>
+      <aside className={`${styles.navSidebar} ${sidebarCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
         <div className={styles.brandBlock}>
           <span className={styles.brandMark}>*</span>
           <div>
-            <strong>Code Agent</strong>
+            <strong>CodeAgent</strong>
             <span>{activeProviderLabel}</span>
           </div>
+          <button
+            className={styles.navCollapseButton}
+            type="button"
+            title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            onClick={() => setSidebarCollapsed(value => !value)}
+          >
+            {sidebarCollapsed ? '>' : '<'}
+          </button>
         </div>
 
-        <button className={styles.newChatButton} type="button" onClick={startNewChat}>
-          <span>+</span>
-          New chat
+        <button className={styles.newChatButton} type="button" title="New chat" onClick={startNewChat}>
+          <span className={styles.navGlyph}>+</span>
+          <span className={styles.navLabel}>New chat</span>
         </button>
 
         <nav className={styles.navList} aria-label="Primary">
-          <button className={activeView === 'chat' ? styles.navItemActive : styles.navItem} type="button" onClick={() => setActiveView('chat')}>Chats</button>
-          <button className={activeView === 'projects' ? styles.navItemActive : styles.navItem} type="button" onClick={() => setActiveView('projects')}>Projects</button>
-          <button className={activeView === 'tools' ? styles.navItemActive : styles.navItem} type="button" onClick={() => setActiveView('tools')}>Tools</button>
+          {PRIMARY_NAV.map(item => (
+            <div className={styles.navGroup} key={item.id}>
+              <button
+                className={activeView === item.id ? styles.navItemActive : styles.navItem}
+                type="button"
+                title={item.description}
+                onClick={() => openPrimaryView(item.id)}
+              >
+                <span className={styles.navGlyph}>{item.glyph}</span>
+                <span className={styles.navLabel}>{item.label}</span>
+              </button>
+
+              {activeView === item.id && activeChildMenu.length > 0 && (
+                <div className={styles.navSubList} aria-label={`${item.label} sections`}>
+                  {activeChildMenu.map(child => (
+                    <button
+                      className={child.id === activeChildId ? styles.navChildItemActive : styles.navChildItem}
+                      type="button"
+                      key={child.id}
+                      title={`${child.title}: ${child.description}`}
+                      onClick={() => openChildRoute(item.id, child.id)}
+                    >
+                      <span className={styles.navChildGlyph}>{child.title.charAt(0)}</span>
+                      <span className={styles.navChildLabel}>
+                        <strong>{child.title}</strong>
+                        <span>{child.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </nav>
 
         <section className={styles.recentSection}>
@@ -2124,7 +2772,7 @@ export function App() {
           />
           <div className={styles.recentList}>
             {visibleRecentSessions.length === 0 && (
-              <button className={styles.recentItemActive} type="button" onClick={() => setActiveView('chat')}>
+              <button className={styles.recentItemActive} type="button" onClick={() => openPrimaryView('chat')}>
                 <span className={styles.recentTitle}>{sessionSearch.trim() ? 'No matches' : 'New conversation'}</span>
               </button>
             )}
@@ -2146,17 +2794,7 @@ export function App() {
         </section>
 
         <div className={styles.sidebarBottom}>
-          <button
-            className={activeView === 'settings' ? styles.sidebarSettingsButtonActive : styles.sidebarSettingsButton}
-            type="button"
-            onClick={() => {
-              setSettingsMessage('');
-              setActiveView('settings');
-            }}
-          >
-            Settings
-          </button>
-          <div className={styles.sidebarFooter}>
+          <div className={styles.sidebarFooter} title={statusLabel}>
             <span className={`${styles.statusDot} ${isSending ? styles.statusDotBusy : ''}`} />
             <div>
               <strong>{statusLabel}</strong>
@@ -2174,65 +2812,11 @@ export function App() {
               {viewSubtitle}
             </span>
           </div>
-          <div className={styles.headerActions}>
-            <span className={`${styles.status} ${isSending ? styles.statusBusy : ''}`}>{statusLabel}</span>
-          </div>
         </header>
 
         <main className={`${styles.workspace} ${activeView !== 'chat' ? styles.workspaceDetail : ''}`}>
           {activeView === 'chat' && (
             <section className={styles.chatPanel} aria-label="Chat">
-              <div className={styles.runtimeStrip} aria-label="Runtime status">
-                <button
-                  className={styles.runtimeCellButton}
-                  type="button"
-                  title={`${activeProviderLabel}${activeBaseUrl ? ` / ${activeBaseUrl}` : ''}`}
-                  onClick={() => {
-                    setSettingsMessage('Provider and model settings.');
-                    setActiveView('settings');
-                  }}
-                >
-                  <span>Provider</span>
-                  <strong>{activeProviderLabel}</strong>
-                </button>
-                <button
-                  className={styles.runtimeCellButton}
-                  type="button"
-                  title={activeModelName}
-                  onClick={() => {
-                    setSettingsMessage('Provider and model settings.');
-                    setActiveView('settings');
-                  }}
-                >
-                  <span>Model</span>
-                  <strong>{activeModelName}</strong>
-                </button>
-                <button
-                  className={styles.runtimeCellButton}
-                  type="button"
-                  title={appInfo?.workspacePath || undefined}
-                  onClick={() => setActiveView('projects')}
-                >
-                  <span>Workspace</span>
-                  <strong>{appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 44) : 'Unknown'}</strong>
-                </button>
-                <button
-                  className={styles.runtimeCellButton}
-                  type="button"
-                  onClick={() => setActiveView('tools')}
-                >
-                  <span>Tool mode</span>
-                  <strong>{appConfig?.enableLlmTools ? `${exposedBridgeToolCount}/${tools.length} exposed` : 'Chat only'}</strong>
-                </button>
-                <button
-                  className={styles.runtimeCellButton}
-                  type="button"
-                  onClick={() => setActiveView('tools')}
-                >
-                  <span>MCP</span>
-                  <strong>{connectedMcpServerCount}/{mcpServers.length} servers · {mcpTools.length} tools</strong>
-                </button>
-              </div>
               <div className={styles.messageList} ref={messageListRef}>
                 {messages.map(message => (
                   <MessageItem
@@ -2278,7 +2862,7 @@ export function App() {
                   value={input}
                   onChange={event => setInput(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  placeholder="Reply to Code Agent..."
+                  placeholder="Reply to CodeAgent..."
                   rows={1}
                   disabled={isSending}
                   aria-label="Message"
@@ -2297,6 +2881,7 @@ export function App() {
 
           {activeView === 'projects' && (
             <ProjectsView
+              activeSection={activeProjectsSection}
               appInfo={appInfo}
               appConfig={appConfig}
               appState={appState}
@@ -2323,6 +2908,7 @@ export function App() {
 
           {activeView === 'tools' && (
             <ToolsView
+              activeSection={activeToolsSection}
               tools={tools}
               mcpTools={mcpTools}
               mcpServers={mcpServers}
@@ -2341,13 +2927,75 @@ export function App() {
             />
           )}
 
+          {activeView === 'automation' && (
+            <AutomationView
+              activeSection={activeAutomationSection}
+              skills={skills}
+              tasks={scheduledTasks}
+              taskRuns={taskRuns}
+              schedulerStatus={schedulerStatus}
+              remoteControl={remoteControl}
+              teams={virtualTeams}
+              teamRuns={teamRuns}
+              runningTeamIds={runningTeamIds}
+              appConfig={appConfig}
+              workspacePath={appInfo?.workspacePath ?? workspacePath}
+              message={automationMessage}
+              exportText={automationExportText}
+              importText={automationImportText}
+              onRefresh={refreshAutomationData}
+              onSetSkillEnabled={setSkillEnabled}
+              onExportProject={exportAutomationProject}
+              onImportTextChange={setAutomationImportText}
+              onImportProject={importAutomationProject}
+              onSaveTask={saveScheduledTask}
+              onRunTask={runScheduledTask}
+              onSetTaskEnabled={setScheduledTaskEnabled}
+              onDeleteTask={deleteScheduledTask}
+              onUpdateRemoteControl={updateRemoteControl}
+              onCreatePairingCode={createRemotePairingCode}
+              onRevokeRemoteDevice={revokeRemoteDevice}
+              onCreateDefaultTeam={createDefaultVirtualTeam}
+              onSaveTeam={saveVirtualTeam}
+              onRunTeam={runVirtualTeam}
+              onDeleteTeam={deleteVirtualTeam}
+              onSetToolPermission={(toolName, mode) => {
+                void updateToolPermissionPolicy(toolName, mode);
+                setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
+              }}
+              onApplyPermissionPreset={preset => {
+                applyToolPermissionPreset(preset);
+                setAutomationMessage(
+                  preset === 'allow-all'
+                    ? 'All bridge tools are allowed for unattended automation.'
+                    : preset === 'ask-mutating'
+                      ? 'Read-only tools are allowed and mutating tools require approval.'
+                      : 'Read-only tools are allowed and mutating tools are denied.',
+                );
+              }}
+            />
+          )}
+
+          {activeView === 'history' && (
+            <HistoryView
+              activeSection={activeHistorySection}
+              records={historyRecords}
+              storageInfo={historyStorageInfo}
+              message={historyMessage}
+              exportText={historyExportText}
+              onRefresh={refreshHistoryData}
+              onDeleteRecord={deleteHistoryRecord}
+              onRestoreChat={restoreChatFromHistory}
+              onExportRecords={exportHistoryRecords}
+            />
+          )}
+
           {activeView === 'settings' && (
             <SettingsView
+              activeSection={activeSettingsSection}
               draft={settingsDraft}
               message={settingsMessage}
               saving={isSavingSettings}
-              tools={tools}
-              mcpServers={mcpServers}
               onChange={updateSettingsDraft}
               onClearToken={clearToken}
               onSubmit={saveSettings}
@@ -2360,13 +3008,49 @@ export function App() {
             <span>Status</span>
             <strong>{statusLabel}</strong>
           </button>
-          <button className={styles.statusPane} type="button" onClick={() => setActiveView('projects')}>
+          <button
+            className={styles.statusPane}
+            type="button"
+            onClick={() => {
+              setActiveProjectsSection('files');
+              setActiveView('projects');
+            }}
+          >
             <span>Workspace</span>
             <strong title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : 'Unknown'}</strong>
           </button>
-          <button className={styles.statusPane} type="button" onClick={() => setActiveView('tools')}>
+          <button
+            className={styles.statusPane}
+            type="button"
+            onClick={() => {
+              setActiveToolsSection('bridge');
+              setActiveView('tools');
+            }}
+          >
             <span>Tools</span>
             <strong>{exposedBridgeToolCount}/{tools.length} bridge / {mcpTools.length} MCP</strong>
+          </button>
+          <button
+            className={styles.statusPane}
+            type="button"
+            onClick={() => {
+              setActiveAutomationSection('tasks');
+              setActiveView('automation');
+            }}
+          >
+            <span>Automation</span>
+            <strong>{scheduledTasks.length} tasks / {virtualTeams.length} teams</strong>
+          </button>
+          <button
+            className={styles.statusPane}
+            type="button"
+            onClick={() => {
+              setActiveHistorySection('overview');
+              setActiveView('history');
+            }}
+          >
+            <span>History</span>
+            <strong>{historyStorageInfo.recordCount} records</strong>
           </button>
           <span className={styles.statusPaneStatic}>
             <span>Tokens</span>
@@ -2410,6 +3094,7 @@ export function App() {
 }
 
 function ProjectsView({
+  activeSection,
   appInfo,
   appConfig,
   appState,
@@ -2432,6 +3117,7 @@ function ProjectsView({
   mcpServers,
   mcpTools,
 }: {
+  activeSection: ProjectsSectionId;
   appInfo: AppInfo | null;
   appConfig: AppConfig | null;
   appState: Record<string, any>;
@@ -2454,59 +3140,144 @@ function ProjectsView({
   mcpServers: McpServerInfo[];
   mcpTools: McpToolInfo[];
 }) {
+  const activeMenuItem = PROJECTS_MENU.find(item => item.id === activeSection) ?? PROJECTS_MENU[0];
+  const workspaceTitle = appInfo?.workspacePath?.split('/').filter(Boolean).pop() || 'Workspace';
+
   return (
     <section className={styles.detailView} aria-label="Projects">
-      <div className={styles.detailHero}>
-        <span className={styles.detailEyebrow}>Current workspace</span>
-        <h2>{appInfo?.workspacePath?.split('/').filter(Boolean).pop() || 'Workspace'}</h2>
-        <p title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath || 'Workspace path unavailable'}</p>
+      <div className={styles.detailToolbar}>
+        <div>
+          <span className={styles.detailEyebrow}>Projects</span>
+          <h2>{activeMenuItem.title}</h2>
+          <p className={styles.settingsPageSubtitle}>{activeMenuItem.description}</p>
+        </div>
       </div>
 
-      <div className={styles.detailGrid}>
-        <section className={styles.detailPanel}>
-          <h3>Model</h3>
-          <dl className={styles.detailList}>
-            <div>
-              <dt>Provider</dt>
-              <dd>{activeProviderLabel}</dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd>{appConfig?.model || activeProviderDefault.model}</dd>
-            </div>
-            <div>
-              <dt>Base URL</dt>
-              <dd>{appConfig?.baseUrl || activeProviderDefault.baseUrl || 'Provider default'}</dd>
-            </div>
-            <div>
-              <dt>Context</dt>
-              <dd>{appConfig?.contextTokens ?? activeProviderDefault.contextTokens}</dd>
-            </div>
-          </dl>
-        </section>
+      {activeSection === 'overview' && (
+        <>
+          <div className={styles.detailHero}>
+            <span className={styles.detailEyebrow}>Current workspace</span>
+            <h2>{workspaceTitle}</h2>
+            <p title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath || 'Workspace path unavailable'}</p>
+          </div>
 
-        <section className={styles.detailPanel}>
-          <h3>Workspace State</h3>
-          <dl className={styles.detailList}>
-            <div>
-              <dt>Tool calls</dt>
-              <dd>{appConfig?.enableLlmTools ? 'Enabled' : 'Disabled'}</dd>
-            </div>
-            <div>
-              <dt>MCP servers</dt>
-              <dd>{mcpServers.length}</dd>
-            </div>
-            <div>
-              <dt>MCP tools</dt>
-              <dd>{mcpTools.length}</dd>
-            </div>
-            <div>
-              <dt>State keys</dt>
-              <dd>{Object.keys(appState).length}</dd>
-            </div>
-          </dl>
-        </section>
+          <div className={styles.detailGrid}>
+            <section className={styles.detailPanel}>
+              <h3>Model</h3>
+              <dl className={styles.detailList}>
+                <div>
+                  <dt>Provider</dt>
+                  <dd>{activeProviderLabel}</dd>
+                </div>
+                <div>
+                  <dt>Model</dt>
+                  <dd>{appConfig?.model || activeProviderDefault.model}</dd>
+                </div>
+                <div>
+                  <dt>Base URL</dt>
+                  <dd>{appConfig?.baseUrl || activeProviderDefault.baseUrl || 'Provider default'}</dd>
+                </div>
+                <div>
+                  <dt>Context</dt>
+                  <dd>{appConfig?.contextTokens ?? activeProviderDefault.contextTokens}</dd>
+                </div>
+              </dl>
+            </section>
 
+            <section className={styles.detailPanel}>
+              <h3>Workspace State</h3>
+              <dl className={styles.detailList}>
+                <div>
+                  <dt>Tool calls</dt>
+                  <dd>{appConfig?.enableLlmTools ? 'Enabled' : 'Disabled'}</dd>
+                </div>
+                <div>
+                  <dt>MCP servers</dt>
+                  <dd>{mcpServers.length}</dd>
+                </div>
+                <div>
+                  <dt>MCP tools</dt>
+                  <dd>{mcpTools.length}</dd>
+                </div>
+                <div>
+                  <dt>State keys</dt>
+                  <dd>{Object.keys(appState).length}</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+        </>
+      )}
+
+      {activeSection === 'files' && (
+        <section className={styles.detailPanel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <h3>Files</h3>
+              <span title={appInfo?.workspacePath || undefined}>
+                {workspacePath === '.' ? appInfo?.workspacePath || '.' : workspacePath}
+              </span>
+            </div>
+            <div className={styles.panelActions}>
+              <button className={styles.secondaryButton} type="button" onClick={onGoToWorkspaceParent} disabled={workspacePath === '.' || isLoadingWorkspaceEntries}>
+                Up
+              </button>
+              <button className={styles.secondaryButton} type="button" onClick={onRefreshWorkspace} disabled={isLoadingWorkspaceEntries}>
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {workspaceBrowserError && (
+            <span className={styles.inlineError}>{workspaceBrowserError}</span>
+          )}
+          {workspaceActionMessage && !workspaceBrowserError && (
+            <span className={styles.inlineSuccess}>{workspaceActionMessage}</span>
+          )}
+
+          <div className={styles.fileBrowser} aria-label="Workspace files">
+            {isLoadingWorkspaceEntries && (
+              <span className={styles.mutedText}>Loading files...</span>
+            )}
+
+            {!isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && (
+              <span className={styles.mutedText}>No files in this directory</span>
+            )}
+
+            {!isLoadingWorkspaceEntries && workspaceEntries.map(entry => {
+              const entryPath = joinWorkspacePath(workspacePath, entry.name);
+
+              return (
+                <div
+                  className={entry.type === 'directory' ? styles.fileEntryDirectory : styles.fileEntry}
+                  key={`${entry.type}-${entry.name}`}
+                  title={entry.name}
+                >
+                  <button
+                    className={styles.fileEntryMain}
+                    type="button"
+                    onClick={() => entry.type === 'directory' ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)}
+                  >
+                    <span>{entry.type === 'directory' ? 'Folder' : 'File'}</span>
+                    <strong>{entry.name}</strong>
+                    <em>{entry.type === 'directory' ? 'Directory' : formatFileSize(entry.size)}</em>
+                  </button>
+                  <div className={styles.fileEntryActions}>
+                    <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(entryPath)}>
+                      Open
+                    </button>
+                    <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(entryPath)}>
+                      Reveal
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {activeSection === 'session' && (
         <section className={styles.detailPanel}>
           <h3>Session</h3>
           <dl className={styles.detailList}>
@@ -2526,88 +3297,47 @@ function ProjectsView({
               <dt>Output tokens</dt>
               <dd>{tokenUsage.outputTokens}</dd>
             </div>
+          </dl>
+        </section>
+      )}
+
+      {activeSection === 'runtime' && (
+        <section className={styles.detailPanel}>
+          <h3>Runtime</h3>
+          <dl className={styles.detailList}>
             <div>
-              <dt>Runtime</dt>
+              <dt>App</dt>
               <dd>{appInfo ? `${appInfo.platform} ${appInfo.arch}` : 'Unknown'}</dd>
+            </div>
+            <div>
+              <dt>Mode</dt>
+              <dd>{appInfo?.isDev ? 'Development' : 'Production'}</dd>
             </div>
             <div>
               <dt>Viewport</dt>
               <dd>{viewportSize.width} x {viewportSize.height}</dd>
             </div>
+            <div>
+              <dt>State keys</dt>
+              <dd>{Object.keys(appState).length}</dd>
+            </div>
+            <div>
+              <dt>MCP servers</dt>
+              <dd>{mcpServers.length}</dd>
+            </div>
+            <div>
+              <dt>MCP tools</dt>
+              <dd>{mcpTools.length}</dd>
+            </div>
           </dl>
         </section>
-      </div>
-
-      <section className={styles.detailPanel}>
-        <div className={styles.panelHeader}>
-          <div>
-            <h3>Files</h3>
-            <span title={appInfo?.workspacePath || undefined}>
-              {workspacePath === '.' ? appInfo?.workspacePath || '.' : workspacePath}
-            </span>
-          </div>
-          <div className={styles.panelActions}>
-            <button className={styles.secondaryButton} type="button" onClick={onGoToWorkspaceParent} disabled={workspacePath === '.' || isLoadingWorkspaceEntries}>
-              Up
-            </button>
-            <button className={styles.secondaryButton} type="button" onClick={onRefreshWorkspace} disabled={isLoadingWorkspaceEntries}>
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        {workspaceBrowserError && (
-          <span className={styles.inlineError}>{workspaceBrowserError}</span>
-        )}
-        {workspaceActionMessage && !workspaceBrowserError && (
-          <span className={styles.inlineSuccess}>{workspaceActionMessage}</span>
-        )}
-
-        <div className={styles.fileBrowser} aria-label="Workspace files">
-          {isLoadingWorkspaceEntries && (
-            <span className={styles.mutedText}>Loading files...</span>
-          )}
-
-          {!isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && (
-            <span className={styles.mutedText}>No files in this directory</span>
-          )}
-
-          {!isLoadingWorkspaceEntries && workspaceEntries.map(entry => {
-            const entryPath = joinWorkspacePath(workspacePath, entry.name);
-
-            return (
-              <div
-                className={entry.type === 'directory' ? styles.fileEntryDirectory : styles.fileEntry}
-                key={`${entry.type}-${entry.name}`}
-                title={entry.name}
-              >
-                <button
-                  className={styles.fileEntryMain}
-                  type="button"
-                  onClick={() => entry.type === 'directory' ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)}
-                >
-                  <span>{entry.type === 'directory' ? 'Folder' : 'File'}</span>
-                  <strong>{entry.name}</strong>
-                  <em>{entry.type === 'directory' ? 'Directory' : formatFileSize(entry.size)}</em>
-                </button>
-                <div className={styles.fileEntryActions}>
-                  <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(entryPath)}>
-                    Open
-                  </button>
-                  <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(entryPath)}>
-                    Reveal
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      )}
     </section>
   );
 }
 
 function ToolsView({
+  activeSection,
   tools,
   mcpTools,
   mcpServers,
@@ -2624,6 +3354,7 @@ function ToolsView({
   onRefresh,
   onClearActivities,
 }: {
+  activeSection: ToolsSectionId;
   tools: Tool[];
   mcpTools: McpToolInfo[];
   mcpServers: McpServerInfo[];
@@ -2649,20 +3380,24 @@ function ToolsView({
     },
     { allow: 0, ask: 0, deny: 0 },
   );
+  const activeMenuItem = TOOLS_MENU.find(item => item.id === activeSection) ?? TOOLS_MENU[0];
 
   return (
     <section className={styles.detailView} aria-label="Tools">
       <div className={styles.detailToolbar}>
         <div>
           <span className={styles.detailEyebrow}>Agent capabilities</span>
-          <h2>Tools</h2>
+          <h2>{activeMenuItem.title}</h2>
+          <p className={styles.settingsPageSubtitle}>{activeMenuItem.description}</p>
         </div>
-        <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
-          Refresh
-        </button>
+        {(activeSection === 'bridge' || activeSection === 'mcp') && (
+          <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+            Refresh
+          </button>
+        )}
       </div>
 
-      <div className={styles.toolsLayout}>
+      {activeSection === 'bridge' && (
         <section className={styles.detailPanel}>
           <h3>Bridge Tools</h3>
           <div className={styles.toolRouterSummary}>
@@ -2748,70 +3483,1171 @@ function ToolsView({
             {tools.length === 0 && <span className={styles.mutedText}>No bridge tools available</span>}
           </div>
         </section>
+      )}
 
-        <div className={styles.toolsStack}>
-          <section className={styles.detailPanel}>
-            <h3>MCP Registry</h3>
-            <dl className={styles.detailList}>
-              <div>
-                <dt>Servers</dt>
-                <dd>{mcpServers.length}</dd>
-              </div>
-              <div>
-                <dt>Tools</dt>
-                <dd>{mcpTools.length}</dd>
-              </div>
-              <div>
-                <dt>Execution policy</dt>
-                <dd>{getToolPermissionPolicy({ name: 'mcp.callTool', description: '', inputSchema: {} }, appConfig)}</dd>
-              </div>
-            </dl>
-
-            <div className={styles.toolCatalog}>
-              {mcpServers.map(server => (
-                <article className={styles.toolCatalogItem} key={`${server.scope ?? 'unknown'}-${server.name}`}>
-                  <div>
-                    <strong>{server.name}</strong>
-                    <span className={[
-                      styles.toolStatusBadge,
-                      server.status === 'connected' ? styles.toolStatusConnected : '',
-                      server.status === 'error' ? styles.toolStatusError : '',
-                    ].filter(Boolean).join(' ')}
-                    >
-                      {server.status}
-                    </span>
-                  </div>
-                  <p>
-                    {server.type}
-                    {server.scope ? ` · ${server.scope}` : ''}
-                    {server.error ? ` · ${server.error}` : ''}
-                  </p>
-                </article>
-              ))}
-              {mcpServers.length === 0 && <span className={styles.mutedText}>No MCP servers configured</span>}
+      {activeSection === 'mcp' && (
+        <section className={styles.detailPanel}>
+          <h3>MCP Registry</h3>
+          <dl className={styles.detailList}>
+            <div>
+              <dt>Servers</dt>
+              <dd>{mcpServers.length}</dd>
             </div>
-
-            <div className={styles.tagList}>
-              {mcpTools.slice(0, 12).map(tool => (
-                <span className={styles.tag} key={`${tool.serverKey ?? tool.serverName}-${tool.toolName}`}>
-                  {tool.serverScope ? `${tool.serverScope}:` : ''}{tool.serverName}.{tool.toolName}
-                </span>
-              ))}
-              {mcpTools.length === 0 && <span className={styles.mutedText}>No executable stdio MCP tools discovered yet</span>}
+            <div>
+              <dt>Tools</dt>
+              <dd>{mcpTools.length}</dd>
             </div>
-          </section>
+            <div>
+              <dt>Execution policy</dt>
+              <dd>{getToolPermissionPolicy({ name: 'mcp.callTool', description: '', inputSchema: {} }, appConfig)}</dd>
+            </div>
+          </dl>
 
-          <PluginSkillPanel appConfig={appConfig} />
+          <div className={styles.toolCatalog}>
+            {mcpServers.map(server => (
+              <article className={styles.toolCatalogItem} key={`${server.scope ?? 'unknown'}-${server.name}`}>
+                <div>
+                  <strong>{server.name}</strong>
+                  <span className={[
+                    styles.toolStatusBadge,
+                    server.status === 'connected' ? styles.toolStatusConnected : '',
+                    server.status === 'error' ? styles.toolStatusError : '',
+                  ].filter(Boolean).join(' ')}
+                  >
+                    {server.status}
+                  </span>
+                </div>
+                <p>
+                  {server.type}
+                  {server.scope ? ` / ${server.scope}` : ''}
+                  {server.error ? ` / ${server.error}` : ''}
+                </p>
+              </article>
+            ))}
+            {mcpServers.length === 0 && <span className={styles.mutedText}>No MCP servers configured</span>}
+          </div>
+
+          <div className={styles.tagList}>
+            {mcpTools.map(tool => (
+              <span className={styles.tag} key={`${tool.serverKey ?? tool.serverName}-${tool.toolName}`}>
+                {tool.serverScope ? `${tool.serverScope}:` : ''}{tool.serverName}.{tool.toolName}
+              </span>
+            ))}
+            {mcpTools.length === 0 && <span className={styles.mutedText}>No executable stdio MCP tools discovered yet</span>}
+          </div>
+        </section>
+      )}
+
+      {activeSection === 'command' && (
+        <RunCommandPanel onRunCommand={onRunCommand} />
+      )}
+
+      {activeSection === 'activity' && (
+        <ToolActivityPanel
+          activities={toolActivities}
+          onClear={onClearActivities}
+          onOpenWorkspacePath={onOpenWorkspacePath}
+          onRevealWorkspacePath={onRevealWorkspacePath}
+        />
+      )}
+
+      {activeSection === 'plugins' && (
+        <PluginSkillPanel appConfig={appConfig} />
+      )}
+    </section>
+  );
+}
+
+function HistoryView({
+  activeSection,
+  records,
+  storageInfo,
+  message,
+  exportText,
+  onRefresh,
+  onDeleteRecord,
+  onRestoreChat,
+  onExportRecords,
+}: {
+  activeSection: HistorySectionId;
+  records: LocalHistoryRecord[];
+  storageInfo: LocalHistoryStorageInfo;
+  message: string;
+  exportText: string;
+  onRefresh: () => void;
+  onDeleteRecord: (recordId: string) => void;
+  onRestoreChat: (record: LocalHistoryRecord) => void;
+  onExportRecords: (type?: LocalHistoryRecordType) => void;
+}) {
+  const activeMenuItem = HISTORY_MENU.find(item => item.id === activeSection) ?? HISTORY_MENU[0];
+  const chatRecords = records.filter(record => record.type === 'chat-session');
+  const toolRecords = records.filter(record => record.type === 'tool-event');
+  const automationRecords = records.filter(record => record.type === 'automation-run');
+  const projectEventRecords = records.filter(record => record.type === 'project-event');
+  const visibleRecords = activeSection === 'chats'
+    ? chatRecords
+    : activeSection === 'tools'
+      ? toolRecords
+      : activeSection === 'automation'
+        ? automationRecords
+        : activeSection === 'events'
+          ? projectEventRecords
+          : records;
+
+  async function copyExportText() {
+    if (exportText) {
+      await navigator.clipboard.writeText(exportText);
+    }
+  }
+
+  function downloadExportText() {
+    if (!exportText) {
+      return;
+    }
+
+    const blob = new Blob([exportText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `code-agent-history-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className={styles.settingsView} aria-label="History">
+      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-labelledby="history-title">
+        <div className={styles.dialogHeader}>
+          <div>
+            <h2 id="history-title">History</h2>
+            <p className={styles.settingsPageSubtitle}>Browse local chat, tool, automation, and project-event records stored outside shareable project files.</p>
+          </div>
+          <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+            Refresh
+          </button>
         </div>
 
-        <div className={styles.toolsStack}>
-          <RunCommandPanel onRunCommand={onRunCommand} />
-          <ToolActivityPanel
-            activities={toolActivities}
-            onClear={onClearActivities}
-            onOpenWorkspacePath={onOpenWorkspacePath}
-            onRevealWorkspacePath={onRevealWorkspacePath}
-          />
+        <div className={styles.settingsContent}>
+          <div className={styles.settingsContentHeader}>
+            <span className={styles.detailEyebrow}>Local history store</span>
+            <h3>{activeMenuItem.title}</h3>
+            <p>{activeMenuItem.description}</p>
+          </div>
+
+          {message && <p className={styles.inlineSuccess}>{message}</p>}
+
+          {activeSection === 'overview' && (
+            <>
+              <SettingsSection title="Storage">
+                <dl className={styles.detailList}>
+                  <div>
+                    <dt>Records</dt>
+                    <dd>{storageInfo.recordCount}</dd>
+                  </div>
+                  <div>
+                    <dt>Chats</dt>
+                    <dd>{chatRecords.length}</dd>
+                  </div>
+                  <div>
+                    <dt>Tool events</dt>
+                    <dd>{toolRecords.length}</dd>
+                  </div>
+                  <div>
+                    <dt>Automation</dt>
+                    <dd>{automationRecords.length}</dd>
+                  </div>
+                  <div>
+                    <dt>Project events</dt>
+                    <dd>{projectEventRecords.length}</dd>
+                  </div>
+                </dl>
+                <p className={styles.mutedText} title={storageInfo.storagePath}>Storage path: {storageInfo.storagePath || 'Unavailable'}</p>
+              </SettingsSection>
+              <HistoryRecordList
+                records={records.slice(0, 12)}
+                onDeleteRecord={onDeleteRecord}
+                onRestoreChat={onRestoreChat}
+              />
+            </>
+          )}
+
+          {(activeSection === 'chats' || activeSection === 'tools' || activeSection === 'automation' || activeSection === 'events') && (
+            <HistoryRecordList
+              records={visibleRecords}
+              onDeleteRecord={onDeleteRecord}
+              onRestoreChat={onRestoreChat}
+            />
+          )}
+
+          {activeSection === 'export' && (
+            <>
+              <SettingsSection title="Export History">
+                <p className={styles.mutedText}>Exports are local JSON snapshots. They do not include provider API keys.</p>
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords()}>
+                    Export All
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('chat-session')}>
+                    Export Chats
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('tool-event')}>
+                    Export Tool Events
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('automation-run')}>
+                    Export Automation
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('project-event')}>
+                    Export Project Events
+                  </button>
+                </div>
+              </SettingsSection>
+
+              <SettingsSection title="Export Data">
+                <textarea value={exportText} readOnly rows={14} placeholder="Choose an export option above." />
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={copyExportText}>
+                    Copy JSON
+                  </button>
+                  <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={downloadExportText}>
+                    Download JSON
+                  </button>
+                </div>
+              </SettingsSection>
+            </>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HistoryRecordList({
+  records,
+  onDeleteRecord,
+  onRestoreChat,
+}: {
+  records: LocalHistoryRecord[];
+  onDeleteRecord: (recordId: string) => void;
+  onRestoreChat: (record: LocalHistoryRecord) => void;
+}) {
+  return (
+    <SettingsSection title="Records">
+      <div className={styles.toolCatalog}>
+        {records.map(record => (
+          <article className={styles.toolCatalogItem} key={record.id}>
+            <div>
+              <strong>{getHistoryRecordTitle(record)}</strong>
+              <span>{getHistoryRecordTypeLabel(record.type)}</span>
+            </div>
+            <p>{getHistoryRecordSummary(record)}</p>
+            <p>{new Date(record.updatedAt).toLocaleString()}</p>
+            {record.workspacePath && <p title={record.workspacePath}>Workspace: {record.workspacePath}</p>}
+            <div className={styles.toolRouterActions}>
+              {record.type === 'chat-session' && (
+                <button className={styles.secondaryButton} type="button" onClick={() => onRestoreChat(record)}>
+                  Restore Chat
+                </button>
+              )}
+              <button className={styles.dangerButton} type="button" onClick={() => onDeleteRecord(record.id)}>
+                Delete
+              </button>
+            </div>
+          </article>
+        ))}
+        {records.length === 0 && <span className={styles.mutedText}>No history records in this section.</span>}
+      </div>
+    </SettingsSection>
+  );
+}
+
+function createAutomationDraftId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getDefaultTeamGoal(role: string): string {
+  const normalizedRole = role.toLowerCase();
+  if (normalizedRole.includes('supervisor')) {
+    return 'Coordinate the team, keep work aligned to the project objective, and decide the next handoff.';
+  }
+  if (normalizedRole.includes('manager')) {
+    return 'Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.';
+  }
+  if (normalizedRole.includes('qa') || normalizedRole.includes('test')) {
+    return 'Validate the implementation plan, propose tests, and call out release blockers.';
+  }
+  if (normalizedRole.includes('review')) {
+    return 'Review the work for correctness, maintainability, security, and missing verification.';
+  }
+  return 'Implement the assigned work, use tools conservatively, and report concrete results.';
+}
+
+function getDefaultTeamTools(role: string): string[] {
+  const normalizedRole = role.toLowerCase();
+  if (normalizedRole.includes('supervisor') || normalizedRole.includes('manager')) {
+    return ['automation.listTeams', 'automation.listTeamRuns', 'fs.read'];
+  }
+  if (normalizedRole.includes('qa') || normalizedRole.includes('test')) {
+    return ['fs.read', 'bash.run'];
+  }
+  return ['fs.read', 'fs.write', 'bash.run'];
+}
+
+function createVirtualTeamMemberDraft(role = 'Developer'): VirtualTeamMember {
+  return {
+    id: createAutomationDraftId('member'),
+    name: role,
+    role,
+    goal: getDefaultTeamGoal(role),
+    tools: getDefaultTeamTools(role),
+  };
+}
+
+function createVirtualTeamDraft(workspacePath: string): VirtualTeamBlueprint {
+  const members = [
+    createVirtualTeamMemberDraft('Supervisor'),
+    createVirtualTeamMemberDraft('Project Manager'),
+    createVirtualTeamMemberDraft('Developer'),
+    createVirtualTeamMemberDraft('QA'),
+  ];
+  const now = Date.now();
+
+  return {
+    id: createAutomationDraftId('team'),
+    name: 'Autonomous project team',
+    objective: 'Build and validate the software project from the human blueprint.',
+    workspacePath,
+    permissionMode: 'full-access',
+    maxIterations: 1,
+    requireQaSignoff: true,
+    supervisorId: members[0].id,
+    members,
+    status: 'draft',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function cloneVirtualTeamForDraft(team: VirtualTeamBlueprint, workspacePath: string): VirtualTeamBlueprint {
+  const members = team.members.map(member => ({
+    ...member,
+    tools: [...member.tools],
+  }));
+  const supervisorId = members.some(member => member.id === team.supervisorId)
+    ? team.supervisorId
+    : members[0]?.id ?? '';
+
+  return {
+    ...team,
+    workspacePath: team.workspacePath ?? workspacePath,
+    permissionMode: team.permissionMode ?? 'full-access',
+    maxIterations: team.maxIterations ?? 1,
+    requireQaSignoff: Boolean(team.requireQaSignoff),
+    supervisorId,
+    members,
+  };
+}
+
+function getTeamPermissionLabel(mode?: VirtualTeamPermissionMode): string {
+  return mode === 'supervised' ? 'Supervised' : 'Full access';
+}
+
+function formatTeamTools(tools: string[]): string {
+  return tools.join(', ');
+}
+
+function createPermissionTool(toolName: string): Tool {
+  const readOnly = !['bash.run', 'fs.write', 'fs.undoLastWrite', 'mcp.callTool'].includes(toolName);
+  return {
+    name: toolName,
+    description: '',
+    inputSchema: {},
+    readOnly,
+  };
+}
+
+function AutomationView({
+  activeSection,
+  skills,
+  tasks,
+  taskRuns,
+  schedulerStatus,
+  remoteControl,
+  teams,
+  teamRuns,
+  runningTeamIds,
+  appConfig,
+  workspacePath,
+  message,
+  exportText,
+  importText,
+  onRefresh,
+  onSetSkillEnabled,
+  onExportProject,
+  onImportTextChange,
+  onImportProject,
+  onSaveTask,
+  onRunTask,
+  onSetTaskEnabled,
+  onDeleteTask,
+  onUpdateRemoteControl,
+  onCreatePairingCode,
+  onRevokeRemoteDevice,
+  onCreateDefaultTeam,
+  onSaveTeam,
+  onRunTeam,
+  onDeleteTeam,
+  onSetToolPermission,
+  onApplyPermissionPreset,
+}: {
+  activeSection: AutomationSectionId;
+  skills: SkillManifest[];
+  tasks: ScheduledTask[];
+  taskRuns: AutomationRunRecord[];
+  schedulerStatus: AutomationSchedulerStatus;
+  remoteControl: RemoteControlState;
+  teams: VirtualTeamBlueprint[];
+  teamRuns: VirtualTeamRunRecord[];
+  runningTeamIds: Set<string>;
+  appConfig: AppConfig | null;
+  workspacePath: string;
+  message: string;
+  exportText: string;
+  importText: string;
+  onRefresh: () => void;
+  onSetSkillEnabled: (skillId: string, enabled: boolean) => void;
+  onExportProject: (includeRuns: boolean) => void;
+  onImportTextChange: (value: string) => void;
+  onImportProject: () => void;
+  onSaveTask: (task: Partial<ScheduledTask>) => void;
+  onRunTask: (taskId: string) => void;
+  onSetTaskEnabled: (taskId: string, enabled: boolean) => void;
+  onDeleteTask: (taskId: string) => void;
+  onUpdateRemoteControl: (update: Partial<RemoteControlState>) => void;
+  onCreatePairingCode: (deviceName?: string) => void;
+  onRevokeRemoteDevice: (deviceId: string) => void;
+  onCreateDefaultTeam: (objective: string) => void;
+  onSaveTeam: (team: Partial<VirtualTeamBlueprint>) => void;
+  onRunTeam: (teamId: string) => void;
+  onDeleteTeam: (teamId: string) => void;
+  onSetToolPermission: (toolName: string, mode: ToolPermissionMode) => void;
+  onApplyPermissionPreset: (preset: 'allow-all' | 'ask-mutating' | 'deny-mutating') => void;
+}) {
+  const [taskName, setTaskName] = useState('Daily project check');
+  const [taskPrompt, setTaskPrompt] = useState('Summarize git status, failing tests, and next actions for this workspace.');
+  const [taskInterval, setTaskInterval] = useState(1440);
+  const [taskRetryEnabled, setTaskRetryEnabled] = useState(false);
+  const [taskMaxRetries, setTaskMaxRetries] = useState(1);
+  const [taskRetryDelay, setTaskRetryDelay] = useState(15);
+  const [taskNotifySuccess, setTaskNotifySuccess] = useState(false);
+  const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
+  const [taskNotificationChannel, setTaskNotificationChannel] = useState<'desktop' | 'remote' | 'none'>('desktop');
+  const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState<'run-once' | 'skip'>('run-once');
+  const [deviceName, setDeviceName] = useState('Phone');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [teamDraft, setTeamDraft] = useState<VirtualTeamBlueprint>(() => createVirtualTeamDraft(workspacePath));
+  const activeMenuItem = AUTOMATION_MENU.find(item => item.id === activeSection) ?? AUTOMATION_MENU[0];
+  const selectedTeam = teams.find(team => team.id === selectedTeamId);
+  const recentTeamRuns = selectedTeamId
+    ? teamRuns.filter(run => run.teamId === selectedTeamId)
+    : teamRuns;
+
+  useEffect(() => {
+    if (!selectedTeamId && teams[0]) {
+      setSelectedTeamId(teams[0].id);
+      setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
+    }
+  }, [selectedTeamId, teams, workspacePath]);
+
+  function startNewTeamDraft() {
+    const draft = createVirtualTeamDraft(workspacePath);
+    setSelectedTeamId('');
+    setTeamDraft(draft);
+  }
+
+  function selectTeam(team: VirtualTeamBlueprint) {
+    setSelectedTeamId(team.id);
+    setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
+  }
+
+  function updateTeamDraft(update: Partial<VirtualTeamBlueprint>) {
+    setTeamDraft(current => ({
+      ...current,
+      ...update,
+      updatedAt: Date.now(),
+    }));
+  }
+
+  function updateTeamMember(index: number, update: Partial<VirtualTeamMember>) {
+    setTeamDraft(current => {
+      const members = current.members.map((member, memberIndex) => (
+        memberIndex === index ? { ...member, ...update } : member
+      ));
+      const supervisorId = members.some(member => member.id === current.supervisorId)
+        ? current.supervisorId
+        : members[0]?.id ?? '';
+
+      return {
+        ...current,
+        members,
+        supervisorId,
+        updatedAt: Date.now(),
+      };
+    });
+  }
+
+  function addTeamMember(role = 'Developer') {
+    setTeamDraft(current => {
+      const member = createVirtualTeamMemberDraft(role);
+      return {
+        ...current,
+        members: [...current.members, member],
+        supervisorId: current.supervisorId || member.id,
+        updatedAt: Date.now(),
+      };
+    });
+  }
+
+  function deleteTeamMember(memberId: string) {
+    setTeamDraft(current => {
+      const members = current.members.filter(member => member.id !== memberId);
+      return {
+        ...current,
+        members,
+        supervisorId: current.supervisorId === memberId ? members[0]?.id ?? '' : current.supervisorId,
+        updatedAt: Date.now(),
+      };
+    });
+  }
+
+  function saveTeamDraft() {
+    onSaveTeam({
+      ...teamDraft,
+      permissionMode: teamDraft.permissionMode ?? 'full-access',
+      maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
+      requireQaSignoff: Boolean(teamDraft.requireQaSignoff),
+      members: teamDraft.members.map(member => ({
+        ...member,
+        name: member.name.trim() || member.role.trim() || 'Team member',
+        role: member.role.trim() || 'Contributor',
+        goal: member.goal.trim() || getDefaultTeamGoal(member.role),
+        tools: normalizeToolNameList(member.tools),
+      })),
+    });
+  }
+
+  async function copyAutomationExportText() {
+    if (exportText) {
+      await navigator.clipboard.writeText(exportText);
+    }
+  }
+
+  function downloadAutomationExportText() {
+    if (!exportText) {
+      return;
+    }
+
+    const blob = new Blob([exportText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `code-agent-automation-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className={styles.settingsView} aria-label="Automation">
+      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-labelledby="automation-title">
+        <div className={styles.dialogHeader}>
+          <div>
+            <h2 id="automation-title">Automation</h2>
+            <p className={styles.settingsPageSubtitle}>Manage skills, scheduled work, remote approvals, virtual teams, and unattended execution policy.</p>
+          </div>
+          <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+            Refresh
+          </button>
+        </div>
+
+        <div className={styles.settingsContent}>
+            <div className={styles.settingsContentHeader}>
+              <span className={styles.detailEyebrow}>Local automation platform</span>
+              <h3>{activeMenuItem.title}</h3>
+              <p>{activeMenuItem.description}</p>
+            </div>
+
+            {message && <p className={styles.inlineSuccess}>{message}</p>}
+
+            {activeSection === 'skills' && (
+              <>
+                <SettingsSection title="Workspace Skills">
+                  <p className={styles.mutedText}>Workspace skills are discovered from `.code-agent/skills` and `skills`.</p>
+                  <div className={styles.toolCatalog}>
+                    {skills.map(skill => (
+                      <article className={styles.toolCatalogItem} key={skill.id}>
+                        <div>
+                          <strong>{skill.name}</strong>
+                          <span>{skill.enabled ? 'Enabled' : 'Disabled'} / {skill.source}</span>
+                        </div>
+                        <p>{skill.description || 'No description provided.'}</p>
+                        <p title={skill.path}>{skill.path}</p>
+                        <div className={styles.toolRouterActions}>
+                          <button className={styles.secondaryButton} type="button" onClick={() => onSetSkillEnabled(skill.id, !skill.enabled)}>
+                            {skill.enabled ? 'Disable' : 'Enable'}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                    {skills.length === 0 && <span className={styles.mutedText}>No workspace skills found yet.</span>}
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Shareable Project Bundle">
+                  <p className={styles.mutedText}>Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included.</p>
+                  <div className={styles.toolRouterActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onExportProject(false)}>
+                      Export Config
+                    </button>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onExportProject(true)}>
+                      Export With Runs
+                    </button>
+                    <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={copyAutomationExportText}>
+                      Copy Export
+                    </button>
+                    <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={downloadAutomationExportText}>
+                      Download Export
+                    </button>
+                    <button className={styles.primaryButton} type="button" onClick={onImportProject} disabled={!importText.trim()}>
+                      Import JSON
+                    </button>
+                  </div>
+                  <div className={styles.settingsGrid}>
+                    <label className={`${styles.field} ${styles.fieldWide}`}>
+                      <span>Export JSON</span>
+                      <textarea value={exportText} readOnly rows={8} placeholder="Exported automation JSON appears here." />
+                    </label>
+                    <label className={`${styles.field} ${styles.fieldWide}`}>
+                      <span>Import JSON</span>
+                      <textarea value={importText} onChange={event => onImportTextChange(event.target.value)} rows={8} placeholder="Paste a CodeAgent automation export JSON object." />
+                    </label>
+                  </div>
+                </SettingsSection>
+              </>
+            )}
+
+            {activeSection === 'tasks' && (
+              <>
+                <SettingsSection title="Scheduler">
+                  <dl className={styles.detailList}>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{schedulerStatus.running ? 'Running' : 'Stopped'}</dd>
+                    </div>
+                    <div>
+                      <dt>Tick</dt>
+                      <dd>{Math.round(schedulerStatus.intervalMs / 1000)}s</dd>
+                    </div>
+                    <div>
+                      <dt>Active tasks</dt>
+                      <dd>{schedulerStatus.runningTaskIds.length}</dd>
+                    </div>
+                  </dl>
+                  <p className={styles.mutedText}>Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the Team Editor when trusted autonomous work should not pause for approvals.</p>
+                </SettingsSection>
+
+                <SettingsSection title="Create Task">
+                  <div className={styles.settingsGrid}>
+                    <label className={styles.field}>
+                      <span>Name</span>
+                      <input value={taskName} onChange={event => setTaskName(event.target.value)} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Interval minutes</span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={taskInterval}
+                        onChange={event => setTaskInterval(Math.max(1, Number(event.target.value) || 1))}
+                      />
+                    </label>
+                    <label className={`${styles.field} ${styles.fieldWide}`}>
+                      <span>Prompt</span>
+                      <textarea value={taskPrompt} onChange={event => setTaskPrompt(event.target.value)} rows={4} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Retry failed runs</span>
+                      <select value={taskRetryEnabled ? 'enabled' : 'disabled'} onChange={event => setTaskRetryEnabled(event.target.value === 'enabled')}>
+                        <option value="disabled">Disabled</option>
+                        <option value="enabled">Enabled</option>
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Max retries</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={10}
+                        value={taskMaxRetries}
+                        onChange={event => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Retry delay minutes</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={1440}
+                        value={taskRetryDelay}
+                        onChange={event => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Notify on success</span>
+                      <select value={taskNotifySuccess ? 'yes' : 'no'} onChange={event => setTaskNotifySuccess(event.target.value === 'yes')}>
+                        <option value="no">No</option>
+                        <option value="yes">Yes</option>
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Notify on failure</span>
+                      <select value={taskNotifyFailure ? 'yes' : 'no'} onChange={event => setTaskNotifyFailure(event.target.value === 'yes')}>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Notification channel</span>
+                      <select value={taskNotificationChannel} onChange={event => setTaskNotificationChannel(event.target.value as 'desktop' | 'remote' | 'none')}>
+                        <option value="desktop">Desktop</option>
+                        <option value="remote">Remote</option>
+                        <option value="none">None</option>
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Missed runs</span>
+                      <select value={taskMissedRunPolicy} onChange={event => setTaskMissedRunPolicy(event.target.value as 'run-once' | 'skip')}>
+                        <option value="run-once">Run once after restart</option>
+                        <option value="skip">Skip and resume schedule</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className={styles.toolRouterActions}>
+                    <button
+                      className={styles.primaryButton}
+                      type="button"
+                      onClick={() => onSaveTask({
+                        name: taskName,
+                        prompt: taskPrompt,
+                        intervalMinutes: taskInterval,
+                        enabled: true,
+                        retryPolicy: {
+                          enabled: taskRetryEnabled,
+                          maxRetries: taskMaxRetries,
+                          retryDelayMinutes: taskRetryDelay,
+                        },
+                        notificationPolicy: {
+                          onSuccess: taskNotifySuccess,
+                          onFailure: taskNotifyFailure,
+                          channel: taskNotificationChannel,
+                        },
+                        missedRunPolicy: taskMissedRunPolicy,
+                      })}
+                    >
+                      Save Task
+                    </button>
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Configured Tasks">
+                  <div className={styles.toolCatalog}>
+                    {tasks.map(task => (
+                      <article className={styles.toolCatalogItem} key={task.id}>
+                        <div>
+                          <strong>{task.name}</strong>
+                          <span>{task.enabled ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                        <p>{task.prompt}</p>
+                        <p>Every {task.intervalMinutes} min / next {new Date(task.nextRunAt).toLocaleString()}</p>
+                        <p>Status: {task.lastStatus ?? 'never run'}</p>
+                        <p>Retry: {task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} after ${task.retryPolicy.retryDelayMinutes} min` : 'disabled'}</p>
+                        <p>Notify: {task.notificationPolicy?.channel ?? 'desktop'} / success {task.notificationPolicy?.onSuccess ? 'on' : 'off'} / failure {task.notificationPolicy?.onFailure !== false ? 'on' : 'off'}</p>
+                        <p>Missed runs: {task.missedRunPolicy === 'skip' ? 'skip and resume schedule' : 'run once after restart'}</p>
+                        {task.lastResult && <p>{task.lastResult}</p>}
+                        <div className={styles.toolRouterActions}>
+                          <button className={styles.secondaryButton} type="button" onClick={() => onRunTask(task.id)}>
+                            Run Now
+                          </button>
+                          <button className={styles.secondaryButton} type="button" onClick={() => onSetTaskEnabled(task.id, !task.enabled)}>
+                            {task.enabled ? 'Disable' : 'Enable'}
+                          </button>
+                          <button className={styles.dangerButton} type="button" onClick={() => onDeleteTask(task.id)}>
+                            Delete
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                    {tasks.length === 0 && <span className={styles.mutedText}>No scheduled tasks configured.</span>}
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Recent Task Runs">
+                  <div className={styles.toolCatalog}>
+                    {taskRuns.slice(0, 8).map(run => (
+                      <article className={styles.toolCatalogItem} key={run.id}>
+                        <div>
+                          <strong>{run.taskName}</strong>
+                          <span>{run.status}</span>
+                        </div>
+                        <p>{run.result ?? run.error ?? 'Running...'}</p>
+                        <p>{new Date(run.startedAt).toLocaleString()}</p>
+                      </article>
+                    ))}
+                    {taskRuns.length === 0 && <span className={styles.mutedText}>No task runs yet.</span>}
+                  </div>
+                </SettingsSection>
+              </>
+            )}
+
+            {activeSection === 'remote' && (
+              <>
+                <SettingsSection title="Remote Access">
+                  <dl className={styles.detailList}>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{remoteControl.enabled ? 'Enabled' : 'Disabled'}</dd>
+                    </div>
+                    <div>
+                      <dt>Mode</dt>
+                      <dd>{remoteControl.mode}</dd>
+                    </div>
+                    <div>
+                      <dt>Devices</dt>
+                      <dd>{remoteControl.approvedDevices.length}</dd>
+                    </div>
+                    <div>
+                      <dt>Pending approvals</dt>
+                      <dd>{remoteControl.pendingActions?.length ?? 0}</dd>
+                    </div>
+                  </dl>
+                  <div className={styles.settingsGrid}>
+                    <label className={styles.field}>
+                      <span>Device name</span>
+                      <input value={deviceName} onChange={event => setDeviceName(event.target.value)} />
+                    </label>
+                  </div>
+                  <div className={styles.toolRouterActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? 'disabled' : 'local-network' })}>
+                      {remoteControl.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                    <button className={styles.primaryButton} type="button" onClick={() => onCreatePairingCode(deviceName)}>
+                      Pair Device
+                    </button>
+                  </div>
+                </SettingsSection>
+
+                {remoteControl.pairingCode && (
+                  <SettingsSection title="Pairing Code">
+                    <div className={styles.pairingCode}>
+                      <span>Pairing code</span>
+                      <strong>{remoteControl.pairingCode}</strong>
+                      {remoteControl.pairingExpiresAt && <em>Expires {new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()}</em>}
+                    </div>
+                  </SettingsSection>
+                )}
+
+                {(remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && (
+                  <SettingsSection title="Remote URL">
+                    <div className={styles.pairingCode}>
+                      <span>Remote URL</span>
+                      <strong>{remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl}</strong>
+                      {remoteControl.serverUrl && <em>{remoteControl.serverUrl}</em>}
+                    </div>
+                  </SettingsSection>
+                )}
+
+                <SettingsSection title="Approved Devices">
+                  <div className={styles.toolCatalog}>
+                    {remoteControl.approvedDevices.map(device => (
+                      <article className={styles.toolCatalogItem} key={device.id}>
+                        <div>
+                          <strong>{device.name}</strong>
+                          <span>{device.lastSeenAt ? 'Seen recently' : 'Paired'}</span>
+                        </div>
+                        <p>Paired {new Date(device.createdAt).toLocaleString()}</p>
+                        {device.lastSeenAt && <p>Last seen {new Date(device.lastSeenAt).toLocaleString()}</p>}
+                        <div className={styles.toolRouterActions}>
+                          <button className={styles.dangerButton} type="button" onClick={() => onRevokeRemoteDevice(device.id)}>
+                            Revoke
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                    {remoteControl.approvedDevices.length === 0 && <span className={styles.mutedText}>No approved remote devices.</span>}
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Remote Audit Log">
+                  <div className={styles.toolCatalog}>
+                    {(remoteControl.auditLog ?? []).slice(0, 12).map(event => (
+                      <article className={styles.toolCatalogItem} key={event.id}>
+                        <div>
+                          <strong>{event.message}</strong>
+                          <span>{event.type}</span>
+                        </div>
+                        <p>{new Date(event.createdAt).toLocaleString()}</p>
+                        {event.deviceName && <p>Device: {event.deviceName}</p>}
+                      </article>
+                    ))}
+                    {(remoteControl.auditLog ?? []).length === 0 && <span className={styles.mutedText}>No remote-control audit events yet.</span>}
+                  </div>
+                </SettingsSection>
+              </>
+            )}
+
+            {activeSection === 'team' && (
+              <>
+                <SettingsSection title="Team Blueprints">
+                  <div className={styles.toolRouterActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={startNewTeamDraft}>
+                      New Team
+                    </button>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onCreateDefaultTeam(teamDraft.objective)}>
+                      Add Default Template
+                    </button>
+                  </div>
+                  <div className={styles.toolCatalog}>
+                    {teams.map(team => {
+                      const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === 'running';
+                      return (
+                        <article className={team.id === selectedTeamId ? `${styles.toolCatalogItem} ${styles.toolCatalogItemSelected}` : styles.toolCatalogItem} key={team.id}>
+                          <div>
+                            <strong>{team.name}</strong>
+                            <span>{teamIsRunning ? 'running' : team.status}</span>
+                          </div>
+                          <p>{team.objective}</p>
+                          <p title={team.workspacePath ?? workspacePath}>Workspace: {team.workspacePath ?? workspacePath}</p>
+                          <p>Permissions: {getTeamPermissionLabel(team.permissionMode)}</p>
+                          <p>Governance: {team.maxIterations ?? 1} iteration(s) / QA {team.requireQaSignoff ? 'required' : 'optional'}</p>
+                          <div className={styles.tagList}>
+                            {team.members.map(member => (
+                              <span className={styles.tag} key={member.id}>{member.role}</span>
+                            ))}
+                          </div>
+                          {team.lastResult && <p>{team.lastResult}</p>}
+                          <div className={styles.toolRouterActions}>
+                            <button className={styles.secondaryButton} type="button" onClick={() => selectTeam(team)} disabled={teamIsRunning}>
+                              Edit
+                            </button>
+                            <button className={styles.secondaryButton} type="button" onClick={() => onRunTeam(team.id)} disabled={teamIsRunning}>
+                              {teamIsRunning ? 'Running...' : 'Run Team'}
+                            </button>
+                            <button className={styles.dangerButton} type="button" onClick={() => onDeleteTeam(team.id)} disabled={teamIsRunning}>
+                              Delete
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                    {teams.length === 0 && <span className={styles.mutedText}>No virtual team blueprints configured.</span>}
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Team Editor">
+                  <div className={styles.settingsGrid}>
+                    <label className={styles.field}>
+                      <span>Team name</span>
+                      <input value={teamDraft.name} onChange={event => updateTeamDraft({ name: event.target.value })} />
+                    </label>
+                    <label className={styles.field}>
+                      <span>Supervisor</span>
+                      <select value={teamDraft.supervisorId} onChange={event => updateTeamDraft({ supervisorId: event.target.value })}>
+                        {teamDraft.members.map(member => (
+                          <option value={member.id} key={member.id}>{member.name || member.role}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Execution permissions</span>
+                      <select
+                        value={teamDraft.permissionMode ?? 'full-access'}
+                        onChange={event => updateTeamDraft({ permissionMode: event.target.value as VirtualTeamPermissionMode })}
+                      >
+                        <option value="full-access">Full access, no approval popups</option>
+                        <option value="supervised">Supervised, ask for risky tools</option>
+                      </select>
+                    </label>
+                    <label className={styles.field}>
+                      <span>Max iterations</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={5}
+                        value={teamDraft.maxIterations ?? 1}
+                        onChange={event => updateTeamDraft({
+                          maxIterations: Math.max(1, Math.min(5, Math.floor(Number(event.target.value) || 1))),
+                        })}
+                      />
+                    </label>
+                    <label className={styles.field}>
+                      <span>QA/reviewer signoff</span>
+                      <select
+                        value={teamDraft.requireQaSignoff ? 'required' : 'optional'}
+                        onChange={event => updateTeamDraft({ requireQaSignoff: event.target.value === 'required' })}
+                      >
+                        <option value="required">Required before success</option>
+                        <option value="optional">Optional</option>
+                      </select>
+                    </label>
+                    <label className={`${styles.field} ${styles.fieldWide}`}>
+                      <span>Project objective</span>
+                      <textarea value={teamDraft.objective} onChange={event => updateTeamDraft({ objective: event.target.value })} rows={4} />
+                    </label>
+                    <label className={`${styles.field} ${styles.fieldWide}`}>
+                      <span>Team workspace path</span>
+                      <input value={teamDraft.workspacePath ?? workspacePath} onChange={event => updateTeamDraft({ workspacePath: event.target.value })} />
+                    </label>
+                  </div>
+
+                  <div className={styles.toolRouterActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('Developer')}>
+                      Add Developer
+                    </button>
+                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('QA')}>
+                      Add QA
+                    </button>
+                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('Reviewer')}>
+                      Add Reviewer
+                    </button>
+                    <button className={styles.primaryButton} type="button" onClick={saveTeamDraft}>
+                      Save Team
+                    </button>
+                  </div>
+
+                  <div className={styles.toolCatalog}>
+                    {teamDraft.members.map((member, index) => (
+                      <article className={styles.toolCatalogItem} key={member.id}>
+                        <div>
+                          <strong>{member.name || member.role || 'Team member'}</strong>
+                          <span>{member.id === teamDraft.supervisorId ? 'Supervisor' : 'Member'}</span>
+                        </div>
+                        <div className={styles.settingsGrid}>
+                          <label className={styles.field}>
+                            <span>Name</span>
+                            <input value={member.name} onChange={event => updateTeamMember(index, { name: event.target.value })} />
+                          </label>
+                          <label className={styles.field}>
+                            <span>Role</span>
+                            <input value={member.role} onChange={event => updateTeamMember(index, { role: event.target.value })} />
+                          </label>
+                          <label className={`${styles.field} ${styles.fieldWide}`}>
+                            <span>Goal</span>
+                            <textarea value={member.goal} onChange={event => updateTeamMember(index, { goal: event.target.value })} rows={3} />
+                          </label>
+                          <label className={styles.field}>
+                            <span>Model override</span>
+                            <input value={member.model ?? ''} onChange={event => updateTeamMember(index, { model: event.target.value || undefined })} />
+                          </label>
+                          <label className={styles.field}>
+                            <span>Tools</span>
+                            <input value={formatTeamTools(member.tools)} onChange={event => updateTeamMember(index, { tools: normalizeToolNameList(event.target.value) })} />
+                          </label>
+                        </div>
+                        <div className={styles.toolRouterActions}>
+                          <button className={styles.secondaryButton} type="button" onClick={() => updateTeamDraft({ supervisorId: member.id })}>
+                            Make Supervisor
+                          </button>
+                          <button className={styles.dangerButton} type="button" onClick={() => deleteTeamMember(member.id)} disabled={teamDraft.members.length <= 1}>
+                            Delete Member
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Team Communication">
+                  <p className={styles.mutedText}>
+                    {selectedTeam ? `Showing runs for ${selectedTeam.name}.` : 'Showing recent runs across all teams.'}
+                  </p>
+                  <div className={styles.toolCatalog}>
+                    {recentTeamRuns.slice(0, 6).map(run => (
+                      <article className={styles.toolCatalogItem} key={run.id}>
+                        <div>
+                          <strong>{run.teamName}</strong>
+                          <span>{run.status}</span>
+                        </div>
+                        <p>{run.summary ?? run.error ?? 'Running...'}</p>
+                        <p title={run.workspacePath ?? workspacePath}>Workspace: {run.workspacePath ?? workspacePath}</p>
+                        {run.artifactPath && <p title={run.artifactPath}>Artifact: {run.artifactPath}</p>}
+                        {(run.milestones?.length ?? 0) > 0 && (
+                          <div className={styles.teamTranscript}>
+                            {run.milestones?.map(milestone => (
+                              <section className={styles.teamTranscriptStep} key={`${run.id}-${milestone.id}`}>
+                                <div>
+                                  <strong>{milestone.title}</strong>
+                                  <span>{milestone.status}</span>
+                                </div>
+                                {milestone.summary && <p>{milestone.summary}</p>}
+                              </section>
+                            ))}
+                          </div>
+                        )}
+                        <div className={styles.teamTranscript}>
+                          {run.steps.map((step, index) => (
+                            <section className={styles.teamTranscriptStep} key={`${run.id}-${step.memberId}-${index}`}>
+                              <div>
+                                <strong>{step.iteration ? `Iteration ${step.iteration} / ` : ''}{step.role} / {step.memberName}</strong>
+                                <span>{step.status}</span>
+                              </div>
+                              <p>{step.output ?? step.error ?? 'Waiting for output.'}</p>
+                            </section>
+                          ))}
+                          {run.steps.length === 0 && <span className={styles.mutedText}>No team messages yet.</span>}
+                        </div>
+                        <p>{run.steps.length} step(s) / {new Date(run.startedAt).toLocaleString()}</p>
+                      </article>
+                    ))}
+                    {recentTeamRuns.length === 0 && <span className={styles.mutedText}>No team runs yet.</span>}
+                  </div>
+                </SettingsSection>
+              </>
+            )}
+
+            {activeSection === 'permissions' && (
+              <>
+                <SettingsSection title="Unattended Execution Policy">
+                  <p className={styles.mutedText}>Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries.</p>
+                  <div className={styles.toolRouterActions}>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('allow-all')}>
+                      Allow All Tools
+                    </button>
+                    <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('ask-mutating')}>
+                      Ask Before Changes
+                    </button>
+                    <button className={styles.dangerButton} type="button" onClick={() => onApplyPermissionPreset('deny-mutating')}>
+                      Deny Mutating Tools
+                    </button>
+                  </div>
+                </SettingsSection>
+
+                <SettingsSection title="Key Automation Tools">
+                  <div className={styles.toolCatalog}>
+                    {AUTOMATION_PERMISSION_TOOLS.map(toolName => {
+                      const permission = getToolPermissionPolicy(createPermissionTool(toolName), appConfig);
+                      return (
+                        <label className={styles.toolPermissionRow} key={toolName}>
+                          <span>{toolName}</span>
+                          <select value={permission} onChange={event => onSetToolPermission(toolName, event.target.value as ToolPermissionMode)}>
+                            <option value="allow">Allow</option>
+                            <option value="ask">Ask</option>
+                            <option value="deny">Deny</option>
+                          </select>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </SettingsSection>
+              </>
+            )}
         </div>
       </div>
     </section>
@@ -3348,25 +5184,22 @@ function updateCsvValue(value: string, entry: string, enabled: boolean): string 
 }
 
 function SettingsView({
+  activeSection,
   draft,
   message,
   saving,
-  tools,
-  mcpServers,
   onChange,
   onClearToken,
   onSubmit,
 }: {
+  activeSection: SettingsSectionId;
   draft: SettingsDraft;
   message: string;
   saving: boolean;
-  tools: Tool[];
-  mcpServers: McpServerInfo[];
   onChange: (update: Partial<SettingsDraft>) => void;
   onClearToken: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
-  const [activeSection, setActiveSection] = useState<SettingsSectionId>('model');
   const selectedSources = new Set(draft.settingSources.split(',').map(source => source.trim()).filter(Boolean));
   const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
     value: value as LlmProviderType,
@@ -3397,33 +5230,7 @@ function SettingsView({
           </div>
         </div>
 
-        <div className={styles.settingsBody}>
-          <aside className={styles.settingsMenu} aria-label="Settings sections">
-            {SETTINGS_MENU.map(item => (
-              <button
-                className={item.id === activeSection ? styles.settingsMenuItemActive : styles.settingsMenuItem}
-                type="button"
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-              >
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </button>
-            ))}
-
-            <div className={styles.settingsMenuSummary}>
-              <section>
-                <span>Bridge tools</span>
-                <strong>{tools.length}</strong>
-              </section>
-              <section>
-                <span>MCP servers</span>
-                <strong>{mcpServers.length}</strong>
-              </section>
-            </div>
-          </aside>
-
-          <div className={styles.settingsContent}>
+        <div className={styles.settingsContent}>
             <div className={styles.settingsContentHeader}>
               <span className={styles.detailEyebrow}>Settings</span>
               <h3>{activeMenuItem.title}</h3>
@@ -3708,7 +5515,6 @@ function SettingsView({
           </div>
         </SettingsSection>
         )}
-          </div>
         </div>
 
         <div className={styles.dialogFooter}>

@@ -46,12 +46,19 @@ const path = __importStar(require("path"));
 const bridge_1 = require("./bridge");
 const electron_store_1 = __importDefault(require("electron-store"));
 const services_bridge_1 = require("./services-bridge");
+const updater_1 = require("./updater");
 const isDev = process.env.NODE_ENV === 'development';
 const shouldOpenDevTools = process.env.ELECTRON_OPEN_DEVTOOLS === '1';
 const shouldDisableGpu = process.env.ELECTRON_DISABLE_GPU === '1';
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
 const isLinux = process.platform === 'linux';
+const APP_NAME = 'CodeAgent';
+const APP_ID = 'com.albertforweb.codeagent';
+electron_1.app.setName(APP_NAME);
+if (isWin) {
+    electron_1.app.setAppUserModelId(APP_ID);
+}
 if (shouldDisableGpu) {
     electron_1.app.commandLine.appendSwitch('disable-gpu');
 }
@@ -64,6 +71,13 @@ const store = new electron_store_1.default();
 const ipcBridge = new bridge_1.IpcBridge();
 exports.ipcBridge = ipcBridge;
 let serviceBridges = null;
+let autoUpdaterController = null;
+function getResourcePath(filename) {
+    return path.join(__dirname, '../electron/resources', filename);
+}
+function getWindowIconPath() {
+    return getResourcePath(isWin ? 'icon.ico' : 'icon.png');
+}
 // ============================================================================
 // WINDOW MANAGEMENT
 // ============================================================================
@@ -104,6 +118,7 @@ function saveWindowState() {
 function createWindow() {
     const windowState = getWindowState();
     exports.mainWindow = mainWindow = new electron_1.BrowserWindow({
+        title: APP_NAME,
         width: windowState.width,
         height: windowState.height,
         x: windowState.x,
@@ -114,7 +129,7 @@ function createWindow() {
             sandbox: true,
             nodeIntegration: false,
         },
-        icon: isMac ? undefined : path.join(__dirname, '../electron/resources/icon.ico'),
+        icon: isMac ? undefined : getWindowIconPath(),
     });
     mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
         console.error(`Preload failed: ${preloadPath}`, error);
@@ -154,14 +169,22 @@ function createWindow() {
  * Initialize app
  */
 async function initializeApp() {
+    electron_1.app.setAboutPanelOptions({
+        applicationName: APP_NAME,
+        applicationVersion: electron_1.app.getVersion(),
+        version: electron_1.app.getVersion(),
+        iconPath: getResourcePath('icon.png'),
+    });
     // Setup IPC handlers
     setupIpcHandlers();
     // Create window
     createWindow();
+    autoUpdaterController = (0, updater_1.setupAutoUpdater)({
+        getMainWindow: () => mainWindow,
+        isDev,
+    });
     // Setup menu
     setupMenu();
-    // Setup updater (future)
-    // setupAutoUpdater();
 }
 /**
  * App ready
@@ -205,7 +228,7 @@ else {
 function setupMenu() {
     const template = [
         {
-            label: isMac ? 'Code Agent' : 'File',
+            label: isMac ? APP_NAME : 'File',
             submenu: [
                 {
                     label: 'Settings',
@@ -242,7 +265,7 @@ function setupMenu() {
             submenu: [
                 { role: 'reload' },
                 { role: 'forceReload' },
-                { role: 'toggleDevTools' },
+                ...(isDev ? [{ role: 'toggleDevTools' }] : []),
                 { type: 'separator' },
                 { role: 'resetZoom' },
                 { role: 'zoomIn' },
@@ -255,13 +278,23 @@ function setupMenu() {
             label: 'Help',
             submenu: [
                 {
+                    label: 'Check for Updates...',
+                    enabled: autoUpdaterController?.canCheckForUpdates() ?? false,
+                    click: () => {
+                        autoUpdaterController?.checkForUpdates(true).catch(error => {
+                            console.warn('Manual update check failed:', error);
+                        });
+                    },
+                },
+                { type: 'separator' },
+                {
                     label: 'About',
                     click: () => {
                         electron_1.dialog.showMessageBox(mainWindow, {
                             type: 'info',
-                            title: 'About Code Agent',
-                            message: 'Code Agent',
-                            detail: 'Claude Code desktop application\nVersion 1.0.0',
+                            title: `About ${APP_NAME}`,
+                            message: APP_NAME,
+                            detail: `Local-first coding agent\nVersion ${electron_1.app.getVersion()}`,
                         });
                     },
                 },

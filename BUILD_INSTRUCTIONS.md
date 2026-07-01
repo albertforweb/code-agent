@@ -1,119 +1,151 @@
-# Building Code-Agent
+# Building CodeAgent
 
-This project has been set up with a complete TypeScript build configuration.
+This repository now has two different build realities:
+
+- The active desktop app build uses Electron, TypeScript project references, and a renderer bundle.
+- The inherited legacy CLI source tree is still present and is not the primary validation path for desktop work.
+
+Use the Electron commands below when validating the desktop app.
+
+---
 
 ## Prerequisites
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **npm** 9+ (included with Node.js)
-- **Git** (for version control)
+- Node.js 18 or newer. Node.js 20 is recommended because the release workflow uses it.
+- npm.
+- Git.
+- macOS only: `iconutil` is required for generating `.icns` assets.
 
-## Quick Start
-
-### Option 1: Using npm (Recommended)
+Install dependencies:
 
 ```bash
-# Install dependencies
 npm install
-
-# Build the project
-npm run build
-
-# Watch mode (auto-rebuild on changes)
-npm run build:watch
-
-# Clean build artifacts
-npm run clean
 ```
 
-### Option 2: Using build scripts
+---
 
-**On Windows:**
-```cmd
-build.bat
-```
+## Development Build
 
-**On macOS/Linux:**
+Build Electron main/preload/services and the renderer:
+
 ```bash
-chmod +x build.sh
-./build.sh
+npm run build:electron
 ```
 
-## Project Structure
+Run the desktop app in development mode:
 
-```
-c:\git\code-agent/
-├── main.tsx                 # Main entry point
-├── package.json             # Dependencies & scripts
-├── tsconfig.json            # TypeScript configuration
-├── build.bat                # Windows build script
-├── build.sh                 # Unix build script
-├── dist/                    # Compiled output (created after build)
-│   ├── main.js
-│   ├── *.d.ts               # Type definitions
-│   └── ...
-└── [source files]           # TypeScript/TSX files throughout repo
+```bash
+npm run dev:electron
 ```
 
-## Build Configuration
+Useful variants:
 
-### `tsconfig.json`
-- **Target**: ES2020
-- **Module**: ES2020 (ESM)
-- **JSX**: React JSX Automatic
-- **Declaration**: Enabled (`.d.ts` files)
-- **Source Maps**: Disabled for production
-- **Strict Mode**: Enabled
+```bash
+npm run dev:electron:debug
+npm run dev:electron:gpu-off
+```
 
-### Key Build Scripts
+---
 
-| Command | Purpose |
-|---------|---------|
-| `npm run build` | Compile TypeScript to JavaScript |
-| `npm run build:watch` | Auto-rebuild on file changes |
-| `npm run clean` | Remove dist/ directory |
-| `npm run dev` | Run with tsx (dev mode) |
+## Production Build
 
-## Dependencies
+Build production desktop assets:
 
-The project includes essential dependencies for running Claude Code:
+```bash
+npm run build:electron:prod
+```
 
-- **@commander-js/extra-typings**: CLI argument parsing
-- **chalk**: Terminal colors
-- **react** & **ink**: Terminal UI rendering
-- **lodash-es**: Utility functions
-- **typescript**: Language & compiler
+Generate app icons and brand assets:
 
-## Output
+```bash
+npm run generate:brand-assets
+```
 
-After building, compiled files are available in the `dist/` directory:
-- **Main bundle**: `dist/main.js`
-- **Type definitions**: `dist/**/*.d.ts`
-- **Source maps** are disabled (not included in output)
+Create an unpacked local app directory:
+
+```bash
+npm run pack
+```
+
+On macOS, the packaged app is written under:
+
+```text
+dist-build/mac-arm64/CodeAgent.app
+```
+
+Create installer artifacts for the current host:
+
+```bash
+npm run dist
+```
+
+Publish release artifacts when GitHub credentials and signing credentials are configured:
+
+```bash
+npm run release
+```
+
+---
+
+## Build Outputs
+
+```text
+dist-electron/   Electron main, preload, and service output
+dist-renderer/   Renderer HTML, CSS, and JavaScript bundle
+dist-build/      electron-builder package output, ignored by git
+```
+
+Production renderer builds omit source maps. Development builds may emit renderer source maps.
+
+---
+
+## Release Packaging
+
+Release packaging uses `electron-builder`.
+
+Configured targets:
+
+- macOS: `dmg` and `zip`
+- Windows: `nsis`
+- Linux: `AppImage` and `deb`
+
+Release metadata is configured for GitHub Releases under `albertforweb/code-agent`. Update channels are inferred from semver prerelease suffixes.
+
+See `docs/release-packaging.md` for release flow and required signing/notarization secrets.
+
+---
 
 ## Troubleshooting
 
-### "npm: command not found"
-- Install Node.js from https://nodejs.org/
-- Restart your terminal after installation
+### `iconutil` reports `Invalid Iconset`
 
-### "Module not found" errors during build
-- Run `npm install` to reinstall dependencies
-- Delete `node_modules/` and `package-lock.json`, then reinstall
+The generated iconset can be valid while `iconutil` fails inside a restricted execution sandbox. Run the brand asset or packaging command outside that sandbox:
 
-### Build output looks wrong
-- Run `npm run clean` then `npm run build` for a fresh build
-- Check that `tsconfig.json` exists and is valid
+```bash
+npm run generate:brand-assets
+npm run pack
+```
 
-## Next Steps
+### Packaged macOS build skips notarization
 
-1. ✅ **Setup complete** - Build configuration is ready
-2. 📦 **Install dependencies** - Run `npm install`
-3. 🔨 **Build the project** - Run `npm run build`
-4. 🧪 **Test the build** - Check output in `dist/` directory
+This is expected unless Apple notarization credentials are configured:
 
-## Notes
+- `APPLE_ID`
+- `APPLE_APP_SPECIFIC_PASSWORD`
+- `APPLE_TEAM_ID`
 
-- This project originally used Bun as the runtime. The build configuration uses Node.js/npm with standard TypeScript compilation.
-- Source maps are disabled to protect sensitive information.
-- The project structure contains 1,900+ TypeScript files from the leaked Claude Code source.
+Unsigned or locally signed builds are useful for smoke testing. Public releases should be signed and notarized.
+
+### Legacy `npm run build` has many TypeScript errors
+
+The inherited CLI source tree still contains Bun-specific and internal-source assumptions. For desktop validation, use `npm run build:electron`.
+
+---
+
+## Last Validated
+
+June 29, 2026:
+
+- `npm run build:electron` passed.
+- `npm run generate:brand-assets` passed outside the restricted sandbox.
+- `npm run pack` passed and produced `dist-build/mac-arm64/CodeAgent.app`.

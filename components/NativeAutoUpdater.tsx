@@ -186,7 +186,7 @@ export function NativeAutoUpdater({
         </Text>}
       {maxVersionIssue && "external" === 'ant' && <Text color="warning">
           ⚠ Known issue: {maxVersionIssue} &middot; Run{' '}
-          <Text bold>claude rollback --safe</Text> to downgrade
+          <Text bold>codeAgent rollback --safe</Text> to downgrade
         </Text>}
     </Box>;
 }

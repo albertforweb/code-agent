@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { isBridgeEnabled } from '../bridge/bridgeEnabled.js';
 import { Box, Text } from '../ink.js';
-import { getClaudeAIOAuthTokens } from '../utils/auth.js';
+import { getSubscriptionOAuthTokens } from '../utils/auth.js';
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js';
 import type { OptionWithDescription } from './CustomSelect/select.js';
 import { Select } from './CustomSelect/select.js';
@@ -34,7 +34,7 @@ export function RemoteCallout({
   }, []);
   const options: OptionWithDescription<RemoteCalloutSelection>[] = [{
     label: 'Enable Remote Control for this session',
-    description: 'Opens a secure connection to claude.ai.',
+    description: 'Opens the legacy hosted remote session bridge.',
     value: 'enable'
   }, {
     label: 'Never mind',
@@ -45,9 +45,9 @@ export function RemoteCallout({
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Box marginBottom={1} flexDirection="column">
           <Text>
-            Remote Control lets you access this CLI session from the web
-            (claude.ai/code) or the Claude app, so you can pick up where you
-            left off on any device.
+            Hosted Remote Control is a legacy cloud bridge. CodeAgent's
+            supported remote-control direction is the local Automation Remote
+            Control workbench in the desktop app.
           </Text>
           <Text> </Text>
           <Text>
@@ -69,7 +69,7 @@ export function shouldShowRemoteCallout(): boolean {
   const config = getGlobalConfig();
   if (config.remoteDialogSeen) return false;
   if (!isBridgeEnabled()) return false;
-  const tokens = getClaudeAIOAuthTokens();
+  const tokens = getSubscriptionOAuthTokens();
   if (!tokens?.accessToken) return false;
   return true;
 }

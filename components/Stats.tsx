@@ -19,7 +19,7 @@ import { formatDuration, formatNumber } from '../utils/format.js';
 import { generateHeatmap } from '../utils/heatmap.js';
 import { renderModelName } from '../utils/model/model.js';
 import { copyAnsiToClipboard } from '../utils/screenshotClipboard.js';
-import { aggregateClaudeCodeStatsForRange, type ClaudeCodeStats, type DailyModelTokens, type StatsDateRange } from '../utils/stats.js';
+import { aggregateCodeAgentCodeStatsForRange, type CodeAgentCodeStats, type DailyModelTokens, type StatsDateRange } from '../utils/stats.js';
 import { resolveThemeSetting } from '../utils/systemTheme.js';
 import { getTheme, themeColorToAnsi } from '../utils/theme.js';
 import { Pane } from './design-system/Pane.js';
@@ -39,7 +39,7 @@ type Props = {
 };
 type StatsResult = {
   type: 'success';
-  data: ClaudeCodeStats;
+  data: CodeAgentCodeStats;
 } | {
   type: 'error';
   message: string;
@@ -62,7 +62,7 @@ function getNextDateRange(current: StatsDateRange): StatsDateRange {
  * Always loads all-time stats for the heatmap.
  */
 function createAllTimeStatsPromise(): Promise<StatsResult> {
-  return aggregateClaudeCodeStatsForRange('all').then((data): StatsResult => {
+  return aggregateCodeAgentCodeStatsForRange('all').then((data): StatsResult => {
     if (!data || data.totalSessions === 0) {
       return {
         type: 'empty'
@@ -95,7 +95,7 @@ export function Stats(t0) {
   const allTimePromise = t1;
   let t2;
   if ($[1] === Symbol.for("react.memo_cache_sentinel")) {
-    t2 = <Box marginTop={1}><Spinner /><Text> Loading your Claude Code stats…</Text></Box>;
+    t2 = <Box marginTop={1}><Spinner /><Text> Loading your CodeAgent stats…</Text></Box>;
     $[1] = t2;
   } else {
     t2 = $[1];
@@ -156,7 +156,7 @@ function StatsContent(t0) {
       }
       let cancelled = false;
       setIsLoadingFiltered(true);
-      aggregateClaudeCodeStatsForRange(dateRange).then(data => {
+      aggregateCodeAgentCodeStatsForRange(dateRange).then(data => {
         if (!cancelled) {
           setStatsCache(prev => ({
             ...prev,
@@ -259,7 +259,7 @@ function StatsContent(t0) {
   if (allTimeResult.type === "empty") {
     let t7;
     if ($[15] === Symbol.for("react.memo_cache_sentinel")) {
-      t7 = <Box marginTop={1}><Text color="warning">No stats available yet. Start using Claude Code!</Text></Box>;
+      t7 = <Box marginTop={1}><Text color="warning">No stats available yet. Start using CodeAgent!</Text></Box>;
       $[15] = t7;
     } else {
       t7 = $[15];
@@ -299,7 +299,7 @@ function StatsContent(t0) {
   }
   let t9;
   if ($[26] !== t7 || $[27] !== t8) {
-    t9 = <Box flexDirection="row" gap={1} marginBottom={1}><Tabs title="" color="claude" defaultTab="Overview">{t7}{t8}</Tabs></Box>;
+    t9 = <Box flexDirection="row" gap={1} marginBottom={1}><Tabs title="" color="codeAgent" defaultTab="Overview">{t7}{t8}</Tabs></Box>;
     $[26] = t7;
     $[27] = t8;
     $[28] = t9;
@@ -317,7 +317,7 @@ function StatsContent(t0) {
   }
   let t12;
   if ($[31] !== t11 || $[32] !== t9) {
-    t12 = <Pane color="claude">{t9}{t11}</Pane>;
+    t12 = <Pane color="codeAgent">{t9}{t11}</Pane>;
     $[31] = t11;
     $[32] = t9;
     $[33] = t12;
@@ -337,7 +337,7 @@ function DateRangeSelector(t0) {
   } = t0;
   let t1;
   if ($[0] !== dateRange) {
-    t1 = DATE_RANGE_ORDER.map((range, i) => <Text key={range}>{i > 0 && <Text dimColor={true}> · </Text>}{range === dateRange ? <Text bold={true} color="claude">{DATE_RANGE_LABELS[range]}</Text> : <Text dimColor={true}>{DATE_RANGE_LABELS[range]}</Text>}</Text>);
+    t1 = DATE_RANGE_ORDER.map((range, i) => <Text key={range}>{i > 0 && <Text dimColor={true}> · </Text>}{range === dateRange ? <Text bold={true} color="codeAgent">{DATE_RANGE_LABELS[range]}</Text> : <Text dimColor={true}>{DATE_RANGE_LABELS[range]}</Text>}</Text>);
     $[0] = dateRange;
     $[1] = t1;
   } else {
@@ -376,8 +376,8 @@ function OverviewTab({
   dateRange,
   isLoading
 }: {
-  stats: ClaudeCodeStats;
-  allTimeStats: ClaudeCodeStats;
+  stats: CodeAgentCodeStats;
+  allTimeStats: CodeAgentCodeStats;
   dateRange: StatsDateRange;
   isLoading: boolean;
 }): React.ReactNode {
@@ -459,7 +459,7 @@ function OverviewTab({
         <Box flexDirection="column" width={28}>
           {favoriteModel && <Text wrap="truncate">
               Favorite model:{' '}
-              <Text color="claude" bold>
+              <Text color="codeAgent" bold>
                 {renderModelName(favoriteModel[0])}
               </Text>
             </Text>}
@@ -467,7 +467,7 @@ function OverviewTab({
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
             Total tokens:{' '}
-            <Text color="claude">{formatNumber(totalTokens)}</Text>
+            <Text color="codeAgent">{formatNumber(totalTokens)}</Text>
           </Text>
         </Box>
       </Box>
@@ -477,13 +477,13 @@ function OverviewTab({
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
             Sessions:{' '}
-            <Text color="claude">{formatNumber(stats.totalSessions)}</Text>
+            <Text color="codeAgent">{formatNumber(stats.totalSessions)}</Text>
           </Text>
         </Box>
         <Box flexDirection="column" width={28}>
           {stats.longestSession && <Text wrap="truncate">
               Longest session:{' '}
-              <Text color="claude">
+              <Text color="codeAgent">
                 {formatDuration(stats.longestSession.duration)}
               </Text>
             </Text>}
@@ -494,14 +494,14 @@ function OverviewTab({
       <Box flexDirection="row" gap={4}>
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
-            Active days: <Text color="claude">{stats.activeDays}</Text>
+            Active days: <Text color="codeAgent">{stats.activeDays}</Text>
             <Text color="subtle">/{rangeDays}</Text>
           </Text>
         </Box>
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
             Longest streak:{' '}
-            <Text color="claude" bold>
+            <Text color="codeAgent" bold>
               {stats.streaks.longestStreak}
             </Text>{' '}
             {stats.streaks.longestStreak === 1 ? 'day' : 'days'}
@@ -514,13 +514,13 @@ function OverviewTab({
         <Box flexDirection="column" width={28}>
           {stats.peakActivityDay && <Text wrap="truncate">
               Most active day:{' '}
-              <Text color="claude">{formatPeakDay(stats.peakActivityDay)}</Text>
+              <Text color="codeAgent">{formatPeakDay(stats.peakActivityDay)}</Text>
             </Text>}
         </Box>
         <Box flexDirection="column" width={28}>
           <Text wrap="truncate">
             Current streak:{' '}
-            <Text color="claude" bold>
+            <Text color="codeAgent" bold>
               {allTimeStats.streaks.currentStreak}
             </Text>{' '}
             {allTimeStats.streaks.currentStreak === 1 ? 'day' : 'days'}
@@ -533,7 +533,7 @@ function OverviewTab({
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 Speculation saved:{' '}
-                <Text color="claude">
+                <Text color="codeAgent">
                   {formatDuration(stats.totalSpeculationTimeSavedMs)}
                 </Text>
               </Text>
@@ -549,14 +549,14 @@ function OverviewTab({
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 {shotStatsData.buckets[0]!.label}:{' '}
-                <Text color="claude">{shotStatsData.buckets[0]!.count}</Text>
+                <Text color="codeAgent">{shotStatsData.buckets[0]!.count}</Text>
                 <Text color="subtle"> ({shotStatsData.buckets[0]!.pct}%)</Text>
               </Text>
             </Box>
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 {shotStatsData.buckets[1]!.label}:{' '}
-                <Text color="claude">{shotStatsData.buckets[1]!.count}</Text>
+                <Text color="codeAgent">{shotStatsData.buckets[1]!.count}</Text>
                 <Text color="subtle"> ({shotStatsData.buckets[1]!.pct}%)</Text>
               </Text>
             </Box>
@@ -565,14 +565,14 @@ function OverviewTab({
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 {shotStatsData.buckets[2]!.label}:{' '}
-                <Text color="claude">{shotStatsData.buckets[2]!.count}</Text>
+                <Text color="codeAgent">{shotStatsData.buckets[2]!.count}</Text>
                 <Text color="subtle"> ({shotStatsData.buckets[2]!.pct}%)</Text>
               </Text>
             </Box>
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 {shotStatsData.buckets[3]!.label}:{' '}
-                <Text color="claude">{shotStatsData.buckets[3]!.count}</Text>
+                <Text color="codeAgent">{shotStatsData.buckets[3]!.count}</Text>
                 <Text color="subtle"> ({shotStatsData.buckets[3]!.pct}%)</Text>
               </Text>
             </Box>
@@ -581,7 +581,7 @@ function OverviewTab({
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 Avg/session:{' '}
-                <Text color="claude">{shotStatsData.avgShots}</Text>
+                <Text color="codeAgent">{shotStatsData.avgShots}</Text>
               </Text>
             </Box>
           </Box>
@@ -702,7 +702,7 @@ const TIME_COMPARISONS = [{
   name: 'a full night of sleep',
   minutes: 480
 }];
-function generateFunFactoid(stats: ClaudeCodeStats, totalTokens: number): string {
+function generateFunFactoid(stats: CodeAgentCodeStats, totalTokens: number): string {
   const factoids: string[] = [];
   if (totalTokens > 0) {
     const matchingBooks = BOOK_COMPARISONS.filter(book => totalTokens >= book.tokens);
@@ -1073,7 +1073,7 @@ function generateXAxisLabels(data: DailyModelTokens[], _chartWidth: number, yAxi
 }
 
 // Screenshot functionality
-async function handleScreenshot(stats: ClaudeCodeStats, activeTab: 'Overview' | 'Models', setStatus: (status: string | null) => void): Promise<void> {
+async function handleScreenshot(stats: CodeAgentCodeStats, activeTab: 'Overview' | 'Models', setStatus: (status: string | null) => void): Promise<void> {
   setStatus('copying…');
   const ansiText = renderStatsToAnsi(stats, activeTab);
   const result = await copyAnsiToClipboard(ansiText);
@@ -1082,7 +1082,7 @@ async function handleScreenshot(stats: ClaudeCodeStats, activeTab: 'Overview' | 
   // Clear status after 2 seconds
   setTimeout(setStatus, 2000, null);
 }
-function renderStatsToAnsi(stats: ClaudeCodeStats, activeTab: 'Overview' | 'Models'): string {
+function renderStatsToAnsi(stats: CodeAgentCodeStats, activeTab: 'Overview' | 'Models'): string {
   const lines: string[] = [];
   if (activeTab === 'Overview') {
     lines.push(...renderOverviewToAnsi(stats));
@@ -1109,10 +1109,10 @@ function renderStatsToAnsi(stats: ClaudeCodeStats, activeTab: 'Overview' | 'Mode
   }
   return lines.join('\n');
 }
-function renderOverviewToAnsi(stats: ClaudeCodeStats): string[] {
+function renderOverviewToAnsi(stats: CodeAgentCodeStats): string[] {
   const lines: string[] = [];
   const theme = getTheme(resolveThemeSetting(getGlobalConfig().theme));
-  const h = (text: string) => applyColor(text, theme.claude as Color);
+  const h = (text: string) => applyColor(text, theme.codeAgent as Color);
 
   // Two-column helper with fixed spacing
   // Column 1: label (18 chars) + value + padding to reach col 2
@@ -1205,7 +1205,7 @@ function renderOverviewToAnsi(stats: ClaudeCodeStats): string[] {
   lines.push(chalk.gray(`Stats from the last ${stats.totalDays} days`));
   return lines;
 }
-function renderModelsToAnsi(stats: ClaudeCodeStats): string[] {
+function renderModelsToAnsi(stats: CodeAgentCodeStats): string[] {
   const lines: string[] = [];
   const modelEntries = Object.entries(stats.modelUsage).sort(([, a], [, b]) => b.inputTokens + b.outputTokens - (a.inputTokens + a.outputTokens));
   if (modelEntries.length === 0) {

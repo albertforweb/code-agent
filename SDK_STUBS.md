@@ -2,7 +2,7 @@
 
 ## What We Did
 
-We created **stub implementations** for all missing Anthropic SDK and internal modules. This allows the TypeScript compiler to resolve all imports and produce JavaScript output.
+We created **stub implementations** for all missing external SDK and internal modules. This allows the TypeScript compiler to resolve all imports and produce JavaScript output.
 
 ## Stubs Created
 
@@ -41,9 +41,8 @@ Created or updated the following:
 **`types/sdk-stubs.d.ts`** (NEW)
 - TypeScript declaration stubs for external modules:
   - `@modelcontextprotocol/sdk/types.js`
-  - `@anthropic-ai/sdk/resources/beta/messages/messages.mjs`
-  - `@anthropic-ai/sdk/resources/messages.mjs`
-  - `@anthropic-ai/claude-agent-sdk`
+- LLM message/tool block types now live in `types/llm.ts`
+- Permission mode types now live in `types/permissions.ts`
 
 ### 4. Missing Utility Modules
 

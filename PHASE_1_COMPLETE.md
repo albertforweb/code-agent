@@ -39,7 +39,7 @@ Phase 1 establishes the foundational Electron infrastructure for converting Code
 ```
 
 **electron-builder Configuration**:
-- App ID: `com.anthropic.code-agent`
+- App ID: `com.codeagent.app`
 - Product name: `Code Agent`
 - Targets: Windows (NSIS + portable), macOS (DMG + zip), Linux (AppImage + deb)
 - Output directory: `dist-build`
@@ -194,7 +194,7 @@ npx tsc -p tsconfig.renderer.json  # Should compile src/renderer/ to dist-render
 │          │                                         │
 │  ┌──────┴──────────────────────────────────────┐  │
 │  │   Services (Phase 2)                        │  │
-│  │   • API Client (Anthropic SDK)              │  │
+│  │   • API Client (CodeAgent API)              │  │
 │  │   • Tool Registry                           │  │
 │  │   • Auth Service                            │  │
 │  │   • MCP Integration                         │  │

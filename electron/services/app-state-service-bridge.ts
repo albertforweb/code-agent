@@ -26,12 +26,12 @@ export class AppStateServiceBridge {
   private stateVersion: number = 0;
   private writeQueue: Promise<void> = Promise.resolve();
   private appConfig: AppConfig = {
-    llmProvider: 'anthropic',
-    baseUrl: '',
-    model: 'claude-3-5-sonnet-20241022',
+    llmProvider: 'openai-compatible',
+    baseUrl: 'http://127.0.0.1:1234/v1',
+    model: 'local-model',
     temperature: 0.7,
-    maxTokens: 4096,
-    contextTokens: 200000,
+    maxTokens: 2048,
+    contextTokens: 8192,
     enableLlmTools: false,
     disabledLlmTools: [],
     toolPermissionPolicies: {},
@@ -148,12 +148,12 @@ export class AppStateServiceBridge {
    */
   async resetConfig(): Promise<AppConfigChangedMessage> {
     return this.setConfig({
-      llmProvider: 'anthropic',
-      baseUrl: '',
-      model: 'claude-3-5-sonnet-20241022',
+      llmProvider: 'openai-compatible',
+      baseUrl: 'http://127.0.0.1:1234/v1',
+      model: 'local-model',
       temperature: 0.7,
-      maxTokens: 4096,
-      contextTokens: 200000,
+      maxTokens: 2048,
+      contextTokens: 8192,
       enableLlmTools: false,
       disabledLlmTools: [],
       toolPermissionPolicies: {},

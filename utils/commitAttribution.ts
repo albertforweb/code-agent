@@ -22,56 +22,55 @@ import { sequential } from './sequential.js'
  * Includes both SSH and HTTPS URL formats.
  *
  * NOTE: This is intentionally a repo allowlist, not an org-wide check.
- * The anthropics and anthropic-experimental orgs contain PUBLIC repos
- * (e.g. anthropics/claude-code, anthropic-experimental/sandbox-runtime).
+ * Some upstream organizations contain public repos with internal-looking names.
  * Undercover mode must stay ON in those to prevent codename leaks.
  * Only add repos here that are confirmed PRIVATE.
  */
 const INTERNAL_MODEL_REPOS = [
-  'github.com:anthropics/claude-cli-internal',
-  'github.com/anthropics/claude-cli-internal',
-  'github.com:anthropics/anthropic',
-  'github.com/anthropics/anthropic',
-  'github.com:anthropics/apps',
-  'github.com/anthropics/apps',
-  'github.com:anthropics/casino',
-  'github.com/anthropics/casino',
-  'github.com:anthropics/dbt',
-  'github.com/anthropics/dbt',
-  'github.com:anthropics/dotfiles',
-  'github.com/anthropics/dotfiles',
-  'github.com:anthropics/terraform-config',
-  'github.com/anthropics/terraform-config',
-  'github.com:anthropics/hex-export',
-  'github.com/anthropics/hex-export',
-  'github.com:anthropics/feedback-v2',
-  'github.com/anthropics/feedback-v2',
-  'github.com:anthropics/labs',
-  'github.com/anthropics/labs',
-  'github.com:anthropics/argo-rollouts',
-  'github.com/anthropics/argo-rollouts',
-  'github.com:anthropics/starling-configs',
-  'github.com/anthropics/starling-configs',
-  'github.com:anthropics/ts-tools',
-  'github.com/anthropics/ts-tools',
-  'github.com:anthropics/ts-capsules',
-  'github.com/anthropics/ts-capsules',
-  'github.com:anthropics/feldspar-testing',
-  'github.com/anthropics/feldspar-testing',
-  'github.com:anthropics/trellis',
-  'github.com/anthropics/trellis',
-  'github.com:anthropics/claude-for-hiring',
-  'github.com/anthropics/claude-for-hiring',
-  'github.com:anthropics/forge-web',
-  'github.com/anthropics/forge-web',
-  'github.com:anthropics/infra-manifests',
-  'github.com/anthropics/infra-manifests',
-  'github.com:anthropics/mycro_manifests',
-  'github.com/anthropics/mycro_manifests',
-  'github.com:anthropics/mycro_configs',
-  'github.com/anthropics/mycro_configs',
-  'github.com:anthropics/mobile-apps',
-  'github.com/anthropics/mobile-apps',
+  'github.com:llmProviders/codeAgent-cli-internal',
+  'github.com/llmProviders/codeAgent-cli-internal',
+  'github.com:llmProviders/llmProvider',
+  'github.com/llmProviders/llmProvider',
+  'github.com:llmProviders/apps',
+  'github.com/llmProviders/apps',
+  'github.com:llmProviders/casino',
+  'github.com/llmProviders/casino',
+  'github.com:llmProviders/dbt',
+  'github.com/llmProviders/dbt',
+  'github.com:llmProviders/dotfiles',
+  'github.com/llmProviders/dotfiles',
+  'github.com:llmProviders/terraform-config',
+  'github.com/llmProviders/terraform-config',
+  'github.com:llmProviders/hex-export',
+  'github.com/llmProviders/hex-export',
+  'github.com:llmProviders/feedback-v2',
+  'github.com/llmProviders/feedback-v2',
+  'github.com:llmProviders/labs',
+  'github.com/llmProviders/labs',
+  'github.com:llmProviders/argo-rollouts',
+  'github.com/llmProviders/argo-rollouts',
+  'github.com:llmProviders/starling-configs',
+  'github.com/llmProviders/starling-configs',
+  'github.com:llmProviders/ts-tools',
+  'github.com/llmProviders/ts-tools',
+  'github.com:llmProviders/ts-capsules',
+  'github.com/llmProviders/ts-capsules',
+  'github.com:llmProviders/feldspar-testing',
+  'github.com/llmProviders/feldspar-testing',
+  'github.com:llmProviders/trellis',
+  'github.com/llmProviders/trellis',
+  'github.com:llmProviders/codeAgent-for-hiring',
+  'github.com/llmProviders/codeAgent-for-hiring',
+  'github.com:llmProviders/forge-web',
+  'github.com/llmProviders/forge-web',
+  'github.com:llmProviders/infra-manifests',
+  'github.com/llmProviders/infra-manifests',
+  'github.com:llmProviders/mycro_manifests',
+  'github.com/llmProviders/mycro_manifests',
+  'github.com:llmProviders/mycro_configs',
+  'github.com/llmProviders/mycro_configs',
+  'github.com:llmProviders/mobile-apps',
+  'github.com/llmProviders/mobile-apps',
 ]
 
 /**
@@ -153,22 +152,22 @@ export function sanitizeSurfaceKey(surfaceKey: string): string {
  */
 export function sanitizeModelName(shortName: string): string {
   // Map internal variants to public equivalents based on model family
-  if (shortName.includes('opus-4-6')) return 'claude-opus-4-6'
-  if (shortName.includes('opus-4-5')) return 'claude-opus-4-5'
-  if (shortName.includes('opus-4-1')) return 'claude-opus-4-1'
-  if (shortName.includes('opus-4')) return 'claude-opus-4'
-  if (shortName.includes('sonnet-4-6')) return 'claude-sonnet-4-6'
-  if (shortName.includes('sonnet-4-5')) return 'claude-sonnet-4-5'
-  if (shortName.includes('sonnet-4')) return 'claude-sonnet-4'
-  if (shortName.includes('sonnet-3-7')) return 'claude-sonnet-3-7'
-  if (shortName.includes('haiku-4-5')) return 'claude-haiku-4-5'
-  if (shortName.includes('haiku-3-5')) return 'claude-haiku-3-5'
+  if (shortName.includes('opus-4-6')) return 'codeAgent-opus-4-6'
+  if (shortName.includes('opus-4-5')) return 'codeAgent-opus-4-5'
+  if (shortName.includes('opus-4-1')) return 'codeAgent-opus-4-1'
+  if (shortName.includes('opus-4')) return 'codeAgent-opus-4'
+  if (shortName.includes('sonnet-4-6')) return 'codeAgent-sonnet-4-6'
+  if (shortName.includes('sonnet-4-5')) return 'codeAgent-sonnet-4-5'
+  if (shortName.includes('sonnet-4')) return 'codeAgent-sonnet-4'
+  if (shortName.includes('sonnet-3-7')) return 'codeAgent-sonnet-3-7'
+  if (shortName.includes('haiku-4-5')) return 'codeAgent-haiku-4-5'
+  if (shortName.includes('haiku-3-5')) return 'codeAgent-haiku-3-5'
   // Unknown models get a generic name
-  return 'claude'
+  return 'codeAgent'
 }
 
 /**
- * Attribution state for tracking Claude's contributions to files.
+ * Attribution state for tracking CodeAgent's contributions to files.
  */
 export type AttributionState = {
   // File states keyed by relative path (from cwd)
@@ -192,11 +191,11 @@ export type AttributionState = {
 }
 
 /**
- * Summary of Claude's contribution for a commit.
+ * Summary of CodeAgent's contribution for a commit.
  */
 export type AttributionSummary = {
-  claudePercent: number
-  claudeChars: number
+  codeAgentPercent: number
+  codeAgentChars: number
   humanChars: number
   surfaces: string[]
 }
@@ -205,7 +204,7 @@ export type AttributionSummary = {
  * Per-file attribution details for git notes.
  */
 export type FileAttribution = {
-  claudeChars: number
+  codeAgentChars: number
   humanChars: number
   percent: number
   surface: string
@@ -218,7 +217,7 @@ export type AttributionData = {
   version: 1
   summary: AttributionSummary
   files: Record<string, FileAttribution>
-  surfaceBreakdown: Record<string, { claudeChars: number; percent: number }>
+  surfaceBreakdown: Record<string, { codeAgentChars: number; percent: number }>
   excludedGenerated: string[]
   sessions: string[]
 }
@@ -227,12 +226,12 @@ export type AttributionData = {
  * Get the current client surface from environment.
  */
 export function getClientSurface(): string {
-  return process.env.CLAUDE_CODE_ENTRYPOINT ?? 'cli'
+  return process.env.CODE_AGENT_ENTRYPOINT ?? 'cli'
 }
 
 /**
  * Build a surface key that includes the model name.
- * Format: "surface/model" (e.g., "cli/claude-sonnet")
+ * Format: "surface/model" (e.g., "cli/codeAgent-sonnet")
  */
 export function buildSurfaceKey(surface: string, model: ModelName): string {
   return `${surface}/${getCanonicalName(model)}`
@@ -332,12 +331,12 @@ function computeFileModificationState(
   const normalizedPath = normalizeFilePath(filePath)
 
   try {
-    // Calculate Claude's character contribution
-    let claudeContribution: number
+    // Calculate CodeAgent's character contribution
+    let codeAgentContribution: number
 
     if (oldContent === '' || newContent === '') {
       // New file or full deletion - contribution is the content length
-      claudeContribution =
+      codeAgentContribution =
         oldContent === '' ? newContent.length : oldContent.length
     } else {
       // Find actual changed region via common prefix/suffix matching.
@@ -361,16 +360,16 @@ function computeFileModificationState(
       }
       const oldChangedLen = oldContent.length - prefixEnd - suffixLen
       const newChangedLen = newContent.length - prefixEnd - suffixLen
-      claudeContribution = Math.max(oldChangedLen, newChangedLen)
+      codeAgentContribution = Math.max(oldChangedLen, newChangedLen)
     }
 
     // Get current file state if it exists
     const existingState = existingFileStates.get(normalizedPath)
-    const existingContribution = existingState?.claudeContribution ?? 0
+    const existingContribution = existingState?.codeAgentContribution ?? 0
 
     return {
       contentHash: computeContentHash(newContent),
-      claudeContribution: existingContribution + claudeContribution,
+      codeAgentContribution: existingContribution + codeAgentContribution,
       mtime,
     }
   } catch (error) {
@@ -396,7 +395,7 @@ export async function getFileMtime(filePath: string): Promise<number> {
 }
 
 /**
- * Track a file modification by Claude.
+ * Track a file modification by CodeAgent.
  * Called after Edit/Write tool completes.
  */
 export function trackFileModification(
@@ -423,7 +422,7 @@ export function trackFileModification(
   newFileStates.set(normalizedPath, newFileState)
 
   logForDebugging(
-    `Attribution: Tracked ${newFileState.claudeContribution} chars for ${normalizedPath}`,
+    `Attribution: Tracked ${newFileState.codeAgentContribution} chars for ${normalizedPath}`,
   )
 
   return {
@@ -433,8 +432,8 @@ export function trackFileModification(
 }
 
 /**
- * Track a file creation by Claude (e.g., via bash command).
- * Used when Claude creates a new file through a non-tracked mechanism.
+ * Track a file creation by CodeAgent (e.g., via bash command).
+ * Used when CodeAgent creates a new file through a non-tracked mechanism.
  */
 export function trackFileCreation(
   state: AttributionState,
@@ -447,8 +446,8 @@ export function trackFileCreation(
 }
 
 /**
- * Track a file deletion by Claude (e.g., via bash rm command).
- * Used when Claude deletes a file through a non-tracked mechanism.
+ * Track a file deletion by CodeAgent (e.g., via bash rm command).
+ * Used when CodeAgent deletes a file through a non-tracked mechanism.
  */
 export function trackFileDeletion(
   state: AttributionState,
@@ -457,12 +456,12 @@ export function trackFileDeletion(
 ): AttributionState {
   const normalizedPath = normalizeFilePath(filePath)
   const existingState = state.fileStates.get(normalizedPath)
-  const existingContribution = existingState?.claudeContribution ?? 0
+  const existingContribution = existingState?.codeAgentContribution ?? 0
   const deletedChars = oldContent.length
 
   const newFileState: FileAttributionState = {
     contentHash: '', // Empty hash for deleted files
-    claudeContribution: existingContribution + deletedChars,
+    codeAgentContribution: existingContribution + deletedChars,
     mtime: Date.now(),
   }
 
@@ -470,7 +469,7 @@ export function trackFileDeletion(
   newFileStates.set(normalizedPath, newFileState)
 
   logForDebugging(
-    `Attribution: Tracked deletion of ${normalizedPath} (${deletedChars} chars removed, total contribution: ${newFileState.claudeContribution})`,
+    `Attribution: Tracked deletion of ${normalizedPath} (${deletedChars} chars removed, total contribution: ${newFileState.codeAgentContribution})`,
   )
 
   return {
@@ -504,12 +503,12 @@ export function trackBulkFileChanges(
     if (change.type === 'deleted') {
       const normalizedPath = normalizeFilePath(change.path)
       const existingState = newFileStates.get(normalizedPath)
-      const existingContribution = existingState?.claudeContribution ?? 0
+      const existingContribution = existingState?.codeAgentContribution ?? 0
       const deletedChars = change.oldContent.length
 
       newFileStates.set(normalizedPath, {
         contentHash: '',
-        claudeContribution: existingContribution + deletedChars,
+        codeAgentContribution: existingContribution + deletedChars,
         mtime,
       })
 
@@ -529,7 +528,7 @@ export function trackBulkFileChanges(
         newFileStates.set(normalizedPath, newFileState)
 
         logForDebugging(
-          `Attribution: Tracked ${newFileState.claudeContribution} chars for ${normalizedPath}`,
+          `Attribution: Tracked ${newFileState.codeAgentContribution} chars for ${normalizedPath}`,
         )
       }
     }
@@ -557,7 +556,7 @@ export async function calculateCommitAttribution(
   const surfaces = new Set<string>()
   const surfaceCounts: Record<string, number> = {}
 
-  let totalClaudeChars = 0
+  let totalCodeAgentChars = 0
   let totalHumanChars = 0
 
   // Merge file states from all sessions
@@ -604,8 +603,8 @@ export async function calculateCommitAttribution(
       if (existing) {
         mergedFileStates.set(path, {
           ...fileState,
-          claudeContribution:
-            existing.claudeContribution + fileState.claudeContribution,
+          codeAgentContribution:
+            existing.codeAgentContribution + fileState.codeAgentContribution,
         })
       } else {
         mergedFileStates.set(path, fileState)
@@ -628,7 +627,7 @@ export async function calculateCommitAttribution(
       // Get the surface for this file
       const fileSurface = states[0]!.surface
 
-      let claudeChars = 0
+      let codeAgentChars = 0
       let humanChars = 0
 
       // Check if file was deleted
@@ -637,8 +636,8 @@ export async function calculateCommitAttribution(
       if (deleted) {
         // File was deleted
         if (fileState) {
-          // Claude deleted this file (tracked deletion)
-          claudeChars = fileState.claudeContribution
+          // CodeAgent deleted this file (tracked deletion)
+          codeAgentChars = fileState.codeAgentContribution
           humanChars = 0
         } else {
           // Human deleted this file (untracked deletion)
@@ -655,14 +654,14 @@ export async function calculateCommitAttribution(
 
           if (fileState) {
             // We have tracked modifications for this file
-            claudeChars = fileState.claudeContribution
+            codeAgentChars = fileState.codeAgentContribution
             humanChars = 0
           } else if (baseline) {
             // File was modified but not tracked - human modification
             const diffSize = await getGitDiffSize(file)
             humanChars = diffSize > 0 ? diffSize : stats.size
           } else {
-            // New file not created by Claude
+            // New file not created by CodeAgent
             humanChars = stats.size
           }
         } catch {
@@ -672,16 +671,16 @@ export async function calculateCommitAttribution(
       }
 
       // Ensure non-negative values
-      claudeChars = Math.max(0, claudeChars)
+      codeAgentChars = Math.max(0, codeAgentChars)
       humanChars = Math.max(0, humanChars)
 
-      const total = claudeChars + humanChars
-      const percent = total > 0 ? Math.round((claudeChars / total) * 100) : 0
+      const total = codeAgentChars + humanChars
+      const percent = total > 0 ? Math.round((codeAgentChars / total) * 100) : 0
 
       return {
         type: 'file' as const,
         file,
-        claudeChars,
+        codeAgentChars,
         humanChars,
         percent,
         surface: fileSurface,
@@ -699,39 +698,39 @@ export async function calculateCommitAttribution(
     }
 
     files[result.file] = {
-      claudeChars: result.claudeChars,
+      codeAgentChars: result.codeAgentChars,
       humanChars: result.humanChars,
       percent: result.percent,
       surface: result.surface,
     }
 
-    totalClaudeChars += result.claudeChars
+    totalCodeAgentChars += result.codeAgentChars
     totalHumanChars += result.humanChars
 
     surfaceCounts[result.surface] =
-      (surfaceCounts[result.surface] ?? 0) + result.claudeChars
+      (surfaceCounts[result.surface] ?? 0) + result.codeAgentChars
   }
 
-  const totalChars = totalClaudeChars + totalHumanChars
-  const claudePercent =
-    totalChars > 0 ? Math.round((totalClaudeChars / totalChars) * 100) : 0
+  const totalChars = totalCodeAgentChars + totalHumanChars
+  const codeAgentPercent =
+    totalChars > 0 ? Math.round((totalCodeAgentChars / totalChars) * 100) : 0
 
   // Calculate surface breakdown (percentage of total content per surface)
   const surfaceBreakdown: Record<
     string,
-    { claudeChars: number; percent: number }
+    { codeAgentChars: number; percent: number }
   > = {}
   for (const [surface, chars] of Object.entries(surfaceCounts)) {
     // Calculate what percentage of TOTAL content this surface contributed
     const percent = totalChars > 0 ? Math.round((chars / totalChars) * 100) : 0
-    surfaceBreakdown[surface] = { claudeChars: chars, percent }
+    surfaceBreakdown[surface] = { codeAgentChars: chars, percent }
   }
 
   return {
     version: 1,
     summary: {
-      claudePercent,
-      claudeChars: totalClaudeChars,
+      codeAgentPercent,
+      codeAgentChars: totalCodeAgentChars,
       humanChars: totalHumanChars,
       surfaces: Array.from(surfaces),
     },

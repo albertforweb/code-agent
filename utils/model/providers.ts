@@ -5,11 +5,11 @@ import { isOpenAICompatibleProvider } from './openaiCompatible.js'
 export type APIProvider = 'firstParty' | 'bedrock' | 'vertex' | 'foundry'
 
 export function getAPIProvider(): APIProvider {
-  return isEnvTruthy(process.env.CLAUDE_CODE_USE_BEDROCK)
+  return isEnvTruthy(process.env.CODE_AGENT_USE_BEDROCK)
     ? 'bedrock'
-    : isEnvTruthy(process.env.CLAUDE_CODE_USE_VERTEX)
+    : isEnvTruthy(process.env.CODE_AGENT_USE_VERTEX)
       ? 'vertex'
-      : isEnvTruthy(process.env.CLAUDE_CODE_USE_FOUNDRY)
+      : isEnvTruthy(process.env.CODE_AGENT_USE_FOUNDRY)
         ? 'foundry'
         : 'firstParty'
 }
@@ -19,24 +19,24 @@ export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS
 }
 
 /**
- * Check if ANTHROPIC_BASE_URL is a first-party Anthropic API URL.
- * Returns true if not set (default API) or points to api.anthropic.com
- * (or api-staging.anthropic.com for ant users).
+ * Check if LLM_PROVIDER_BASE_URL is a first-party LlmProvider API URL.
+ * Returns true if not set (default API) or points to api.llmProvider.com
+ * (or api-staging.llmProvider.com for ant users).
  */
-export function isFirstPartyAnthropicBaseUrl(): boolean {
+export function isFirstPartyLlmProviderBaseUrl(): boolean {
   if (isOpenAICompatibleProvider()) {
     return false
   }
 
-  const baseUrl = process.env.ANTHROPIC_BASE_URL
+  const baseUrl = process.env.LLM_PROVIDER_BASE_URL
   if (!baseUrl) {
     return true
   }
   try {
     const host = new URL(baseUrl).host
-    const allowedHosts = ['api.anthropic.com']
+    const allowedHosts = ['api.llmProvider.com']
     if (process.env.USER_TYPE === 'ant') {
-      allowedHosts.push('api-staging.anthropic.com')
+      allowedHosts.push('api-staging.llmProvider.com')
     }
     return allowedHosts.includes(host)
   } catch {

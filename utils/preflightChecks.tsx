@@ -17,7 +17,7 @@ export interface PreflightCheckResult {
   sslHint?: string;
 }
 function getPreflightTimeoutMs(): number {
-  const configured = Number(process.env.CLAUDE_CODE_PREFLIGHT_TIMEOUT_MS);
+  const configured = Number(process.env.CODE_AGENT_PREFLIGHT_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_PREFLIGHT_TIMEOUT_MS;
 }
 async function checkEndpoints(): Promise<PreflightCheckResult> {
@@ -153,7 +153,7 @@ export function PreflightStep(t0) {
   useEffect(t3, t4);
   let t5;
   if ($[6] !== isChecking || $[7] !== result || $[8] !== showSpinner) {
-    t5 = isChecking ? <Box paddingLeft={1}>{showSpinner && <Spinner />}<Text>Checking connectivity...</Text></Box> : !result?.success && !isChecking && <Box flexDirection="column" gap={1}><Text color="error">Unable to connect to Anthropic services</Text><Text color="error">{result?.error}</Text>{result?.sslHint ? <Box flexDirection="column" gap={1}><Text>{result.sslHint}</Text><Text color="suggestion">See https://code.claude.com/docs/en/network-config</Text></Box> : <Box flexDirection="column" gap={1}><Text>Please check your internet connection and network settings.</Text><Text>Note: Claude Code might not be available in your country. Check supported countries at{" "}<Text color="suggestion">https://anthropic.com/supported-countries</Text></Text></Box>}<Text dimColor={true}>Continuing setup...</Text></Box>;
+    t5 = isChecking ? <Box paddingLeft={1}>{showSpinner && <Spinner />}<Text>Checking connectivity...</Text></Box> : !result?.success && !isChecking && <Box flexDirection="column" gap={1}><Text color="error">Unable to connect to model provider services</Text><Text color="error">{result?.error}</Text>{result?.sslHint ? <Box flexDirection="column" gap={1}><Text>{result.sslHint}</Text><Text color="suggestion">See https://github.com/albertforweb/code-agent</Text></Box> : <Box flexDirection="column" gap={1}><Text>Please check your internet connection and network settings.</Text><Text>Note: CodeAgent might not be available in your country or through your configured provider.</Text></Box>}<Text dimColor={true}>Continuing setup...</Text></Box>;
     $[6] = isChecking;
     $[7] = result;
     $[8] = showSpinner;

@@ -114,7 +114,7 @@ With the shims in place:
 - **Static analysis** - Can understand the code structure
 
 ### What's Still Missing
-- **Internal Anthropic modules** - These reference internal files
+- **Internal LlmProvider modules** - These reference internal files
 - **Full SDK compatibility** - Some SDK exports changed
 
 ## Alternative: Keep Using Bun

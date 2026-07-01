@@ -1,6 +1,6 @@
 # Code-Agent Desktop App Improvement Plan
 
-**Project Goal**: Transform Claude Code CLI into a standalone desktop application using Electron
+**Project Goal**: Transform CodeAgent CLI into a standalone desktop application using Electron
 
 **Current State**: Terminal UI + CLI (Ink React + Commander.js)  
 **Target State**: Cross-platform desktop app with native window, auto-update, packaging  
@@ -232,12 +232,12 @@ on: 'tool:error' → { toolId, error }
 - [x] Create IPC listeners that delegate to service bridge adapters
 - [x] Handle async operations and streaming tool result events
 - [x] Wire `ToolServiceBridge` to an executable Electron bridge tool registry
-- [x] Initialize `ApiServiceBridge` with lazy real Anthropic SDK/auth client setup
+- [x] Initialize `ApiServiceBridge` with provider HTTP/keychain setup
 - [x] Wire MCP/session/state services beyond placeholder adapters
 
 **Services to Bridge**:
 - [x] ToolRegistry (execute tools) - executable bridge registry with service-backed tools
-- [x] ApiClient (Anthropic SDK) - lazy SDK initialization from auth service or `ANTHROPIC_API_KEY`
+- [x] API client - OpenAI-compatible HTTP provider path with provider-scoped auth
 - [x] MCP service - project/user config discovery plus server/tool metadata IPC
 - [x] Auth service - keychain-aware bridge with environment-token fallback
 - [x] Session/state management - app config/state persistence bridge exists
@@ -254,7 +254,7 @@ on: 'tool:error' → { toolId, error }
 - [x] Fixed stale service TypeScript issues (`electron-store` typing, `fetch().json()` casting, filesystem encodings).
 - [x] Replaced placeholder tool execution with concrete bridge tools for filesystem, API, config, and MCP discovery operations.
 - [x] Added MCP IPC channels for server listing, tool listing, and refresh.
-- [x] Added real API/auth bootstrap path using keychain token lookup or `ANTHROPIC_API_KEY`.
+- [x] Added real API/auth bootstrap path using keychain token lookup or provider environment keys.
 - [x] Terminal-specific CLI ToolRegistry parity remains in Phase 4 refactoring because those tools still depend on CLI-only execution context.
 
 ---
@@ -446,19 +446,19 @@ window.api = {
 - [x] Can run with or without TTY
 
 **Status Update (June 24, 2026)**:
-- [x] Refactored the Electron API bridge behind provider adapters for Anthropic, OpenAI, and OpenAI-compatible backends.
+- [x] Refactored the Electron API bridge behind provider adapters for OpenAI and OpenAI-compatible backends.
 - [x] Added OpenAI-compatible `/chat/completions` normal and streaming support for local backends such as LM Studio.
 - [x] Verified OpenAI-compatible normal and streaming chat with a local mock server.
 - [x] Extracted provider-scoped keychain storage from the auth bridge into `electron/keychain.ts`.
 - [x] Added desktop runtime feature marker in bootstrap data for runtime-aware service branching.
 - [x] Added renderer ANSI escape parsing to DOM/CSS spans and viewport sizing from browser window dimensions.
 - [x] Confirmed Electron/renderer service paths do not depend on direct `stdin`, `stdout`, TTY, or terminal dimension APIs.
-- [x] Restored compiled Node CLI startup compatibility while preserving desktop entrypoints: CLI now runs through `dist/entrypoints/cli.js`, supports compiled lazy `require(...)` paths, restores React Compiler memo-cache behavior, handles the installed Anthropic SDK message namespace, and keeps Ink rendering compatible with the installed reconciler.
-- [x] Hardened CLI onboarding for Node runtime use: Anthropic preflight is opt-in, preflight has a bounded timeout, Ink host refs use `forwardRef`, native structured diff rendering falls back safely, and embedded theme picker no longer swallows onboarding Ctrl+C handling.
+- [x] Restored compiled Node CLI startup compatibility while preserving desktop entrypoints: CLI now runs through `dist/entrypoints/cli.js`, supports compiled lazy `require(...)` paths, restores React Compiler memo-cache behavior, handles the inherited message namespace, and keeps Ink rendering compatible with the installed reconciler.
+- [x] Hardened CLI onboarding for Node runtime use: hosted-provider preflight is opt-in, preflight has a bounded timeout, Ink host refs use `forwardRef`, native structured diff rendering falls back safely, and embedded theme picker no longer swallows onboarding Ctrl+C handling.
 - [x] Fixed compiled CLI onboarding theme picker layout so the setup screen renders the title, help text, and all six theme choices under `node dist/entrypoints/cli.js`.
 - [x] Fixed compiled CLI OAuth onboarding so login-method selection advances to browser sign-in instead of stalling on the startup spinner: replaced the shared select dependency with local input handling, added bounded OAuth startup retry behavior, and committed OAuth URL state through Ink discrete updates.
-- [x] Added a CLI onboarding skip option for users without Claude, Anthropic Console, Bedrock, Foundry, or Vertex AI accounts, with guidance to configure LM Studio/OpenAI-compatible backends in the desktop app.
-- [x] Verified CLI smoke paths: `--version`, `--help`, `mcp list`, `auth login --claudeai` URL emission, `-p "hello" --bare --output-format text` (expected login error without credentials), interactive setup screen rendering, OAuth login-method selection, OAuth skip path, third-party platform setup rendering, arrow-key response, and Ctrl+C exit hint without React stack traces.
+- [x] Added a CLI onboarding skip option for users without hosted provider accounts, with guidance to configure LM Studio/OpenAI-compatible backends in the desktop app.
+- [x] Verified CLI smoke paths: `--version`, `--help`, `mcp list`, hosted auth URL emission, `-p "hello" --bare --output-format text` expected no-credentials handling, interactive setup screen rendering, OAuth login-method selection, OAuth skip path, third-party platform setup rendering, arrow-key response, and Ctrl+C exit hint without React stack traces.
 
 **Status Update (June 25, 2026)**:
 - [x] Fixed the compiled CLI post-trust exit/crash chain after skip-login onboarding.
@@ -473,9 +473,9 @@ window.api = {
 - [x] Added React 18 reconciler event-priority compatibility and discrete state wrapping for async local JSX overlays so `/login` dialog updates do not fail after command loading.
 - [x] Fixed LM Studio setup text-input cursor handling and fresh-model placeholder behavior so custom model IDs save without appending to fallback text.
 - [x] Added LM Studio-safe local context defaults: local OpenAI-compatible requests now cap output tokens to 2048 and omit tool schemas/tool-search metadata by default to fit 8k context windows; `CODE_AGENT_ENABLE_TOOLS=1` and `CODE_AGENT_MAX_OUTPUT_TOKENS` opt back into larger-context tool testing.
-- [x] Added an Anthropic-compatible CLI adapter over OpenAI `/chat/completions`, including streaming text, streamed tool-call mapping, tool-result history mapping, local token estimation, and local model listing.
-- [x] Ensured OpenAI-compatible CLI sessions bypass Anthropic auth setup, first-party-only betas, global prompt-cache markers, and bootstrap fetches.
-- [x] Updated CLI auth/status UI so local OpenAI-compatible sessions do not show Anthropic "Not logged in" messaging and `/status` reports the configured local backend.
+- [x] Added a CLI adapter over OpenAI `/chat/completions`, including streaming text, streamed tool-call mapping, tool-result history mapping, local token estimation, and local model listing.
+- [x] Ensured OpenAI-compatible CLI sessions bypass hosted-provider auth setup, first-party-only betas, global prompt-cache markers, and bootstrap fetches.
+- [x] Updated CLI auth/status UI so local OpenAI-compatible sessions do not show hosted-provider "Not logged in" messaging and `/status` reports the configured local backend.
 - [x] Verified fresh-profile onboarding smoke: theme selection → skip login → security notes → workspace trust → main prompt remained alive → clean double-Ctrl+C exit.
 - [x] Verified fresh `/login` LM Studio setup persists `CODE_AGENT_LLM_PROVIDER=openai-compatible`, `CODE_AGENT_BASE_URL=http://127.0.0.1:1234/v1`, and `CODE_AGENT_MODEL=qwen/qwen3-coder-30b`.
 - [x] Verified compiled CLI against a mock LM Studio `/v1/chat/completions` server: default request sends no `tools`, caps `max_tokens` to 2048, and streams a response; opt-in `CODE_AGENT_ENABLE_TOOLS=1` restores tool schemas.
@@ -535,7 +535,7 @@ window.api = {
 **Scope Completed (June 25, 2026)**:
 - [x] Added desktop-safe local provider defaults matching the CLI LM Studio path: 8192 context tokens, 2048 max output tokens, and model tool schemas disabled by default.
 - [x] Exposed context tokens and model tool-call enablement in the desktop Settings UI.
-- [x] Added provider-aware Settings defaults so Anthropic, OpenAI, and OpenAI-compatible backends switch model/base URL/token settings together.
+- [x] Added provider-aware Settings defaults so OpenAI and OpenAI-compatible backends switch model/base URL/token settings together.
 - [x] Added `/help`, `/status`, `/login`, `/login lmstudio`, `/settings`, `/tools`, `/mcp`, `/config`, `/run`, and `/clear` desktop command equivalents.
 - [x] Fixed the desktop menu Settings action by forwarding the menu event through preload to the renderer.
 - [x] Added an Electron OpenAI-compatible tool-call loop over desktop bridge tools, including streamed tool-call parsing, tool-name sanitization for OpenAI function names, tool-result feedback, and bounded tool-call rounds.
@@ -555,12 +555,12 @@ window.api = {
 ---
 
 ### 4.5 Local-First Desktop Agent UX ✅ COMPLETE
-**Objective**: Turn the working desktop chat/tool bridge into a usable local agent workbench inspired by Claude Desktop/Claude Code, without chasing proprietary cloud-only parity.
+**Objective**: Turn the working desktop chat/tool bridge into a usable local agent workbench with a modern assistant-console UX, without chasing proprietary cloud-only parity.
 
 **Direction Decision (June 25, 2026)**:
-- [x] Keep Anthropic/OpenAI/LM Studio provider flexibility as a core product direction.
+- [x] Keep OpenAI, OpenAI-compatible, and LM Studio provider flexibility as a core product direction.
 - [x] Prioritize local LM Studio/OpenAI-compatible agent reliability before packaging.
-- [x] Use current Claude Desktop/Claude Code UX patterns as reference points, but implement only the pieces that fit this codebase and local-first execution model.
+- [x] Use modern desktop assistant UX patterns as reference points, but implement only the pieces that fit this codebase and local-first execution model.
 - [x] Defer cloud-specific features such as hosted background agents, managed connectors, scheduled cloud tasks, and proprietary PR monitoring until the local desktop foundation is solid.
 - [x] Keep the built-in agent core small and generic: filesystem, Bash, web research, time, app config, and MCP discovery/execution.
 - [x] Treat specialized services such as finance quotes as built-in connector examples for common structured data, not as the pattern for every possible topic.
@@ -595,12 +595,15 @@ window.api = {
 - [x] Add session list/recent activity so desktop restarts do not lose chat history.
 - [x] Add command palette/slash-command UI polish for `/login`, `/settings`, `/status`, `/tools`, `/mcp`, `/workspace`, and future commands.
 - [x] Add clear empty/loading/error states for LM Studio unavailable, model context overflow, bad tool-call JSON, and unsupported paths such as `~/...`.
-- [x] Polish the desktop shell toward a Claude-like workbench: left navigation, recents, warm neutral canvas, centered chat column, rounded composer, and quieter context rail.
+- [x] Polish the desktop shell toward a modern assistant-console workbench: left navigation, recents, warm neutral canvas, centered chat column, rounded composer, and quieter context rail.
 - [x] Make the left navigation functional: Chats returns to the conversation, Projects opens workspace context, and Tools opens tool catalog/activity.
 - [x] Remove the always-visible right context rail from the chat view and move compact context into clickable footer/status panes.
 - [x] Convert Settings from modal/drawer treatment into a first-class main workspace view.
 - [x] Rework Settings into a sectioned main view with left-side groups and one selected configuration form at a time.
 - [x] Move the Settings entry point out of the top header and into the lower-left sidebar status area.
+- [x] Promote Settings, Automation, Projects, and Tools section navigation into the global left sidebar so workbench pages render one focused child page instead of nested tab/sidebar panels.
+- [x] Add a collapsible left navigation rail for a SaaS-console style layout.
+- [x] Remove duplicate chat-header status in favor of the persistent footer/status bar.
 - [x] Add executable stdio MCP support: discover configured stdio servers, list their tools, and call selected MCP tools through the audited bridge tool path.
 - [x] Keep HTTP/WebSocket MCP servers visible but explicitly mark them as not executable until those transports are added.
 
@@ -611,7 +614,7 @@ window.api = {
 - [x] Added checkpointed desktop writes plus `fs.undoLastWrite` to restore the latest write checkpoint.
 - [x] Verified filesystem preview/checkpoint/undo service behavior for both new-file and existing-file writes.
 - [x] Made Electron DevTools opt-in during development after a native Electron 31/macOS crash report showed `SIGSEGV` in Chromium font/GPU code while DevTools was opening; added a GPU-off development script for local crash isolation.
-- [x] Reworked the renderer UI into a more polished desktop assistant shell inspired by Claude Desktop patterns: left sidebar, recent prompts, centered conversation, subtle message styling, refined composer, and less debug-heavy context panels.
+- [x] Reworked the renderer UI into a more polished desktop assistant shell: left sidebar, recent prompts, centered conversation, subtle message styling, refined composer, and less debug-heavy context panels.
 - [x] Follow-up UI polish: left-panel Projects/Tools now switch to real views, operational context moved into status panes, and Settings is a main workspace view.
 - [x] Added `time.now`, `web.search`, and `web.fetch` as read-only desktop bridge tools, plus prompt policy directing models to use them before filesystem or Bash workarounds.
 - [x] Added `web.research` as a generic search+fetch+extract tool so broad external/current questions can produce direct source-grounded answers without hardcoded topic services.
@@ -632,6 +635,13 @@ window.api = {
 - [x] Added built-in workspace helper commands for git status/diff/branch, npm script discovery, and dev-server/listening-port awareness.
 - [x] Added applied filesystem result actions in the tool activity timeline so completed writes/undo operations can be opened or revealed from the UI.
 
+**Progress Update (June 26, 2026)**:
+- [x] Reworked global navigation into parent/child sidebar routes for Settings and Automation.
+- [x] Removed nested Settings/Automation section menus from the main content cards.
+- [x] Added persisted sidebar collapse/expand behavior for a more console-like layout.
+- [x] Extended parent/child sidebar navigation to Projects and Tools, splitting each into focused child pages.
+- [x] Removed the duplicate top status pill from the chat header because status already appears in the footer bar.
+
 **Acceptance Criteria Before Packaging**:
 - [x] A user can configure LM Studio, start a desktop chat, ask for a file change, review the proposed diff, approve it, and see the file created/edited in the real workspace. Implementation is complete; full manual regression moves to Phase 6 testing.
 - [x] The app never claims `/workspace` or another invented path; workspace-relative and absolute paths are shown consistently.
@@ -641,6 +651,165 @@ window.api = {
 - [x] Bash command execution is gated by user approval and scoped to the workspace.
 - [x] A restarted desktop app can show recent sessions and recover the last session state.
 - [x] MCP execution is implemented for local stdio MCP servers, with UI that distinguishes configured servers from executable tools. HTTP/WebSocket MCP execution remains deferred.
+
+---
+
+### 4.6 Extensibility, Automation, Remote Control, and Virtual Teams 🚧 FUNCTIONAL LOCAL MVP
+**Objective**: Add a local-first automation layer that lets the agent grow beyond single chat sessions while preserving user control and workspace safety.
+
+**Product Direction (June 25, 2026)**:
+- [x] Treat skills/automations as a first-class extension path for both CLI and desktop, not as hidden prompt files.
+- [x] Add scheduled tasks for repeated local workflows such as daily summaries, repo checks, dependency scans, and recurring report generation.
+- [x] Add remote control so a human can approve, pause, resume, or inspect long-running agent work from a phone when away from the main workstation.
+- [x] Add virtual autonomous team blueprints where a supervisor agent coordinates role-specific agents such as project manager, developer, QA, and reviewer.
+- [x] Keep the first implementation local-first and auditable: project state lives in the workspace, every dangerous tool remains permission-gated, and cloud/relay features are opt-in future work.
+
+**Architecture Decision**:
+- [x] Use a shared automation service bridge so the CLI and desktop app operate on the same project-local data model.
+- [x] Persist automation state under `.code-agent` using shareable project files for skills/tasks/teams/runs and ignored local files for device/private remote-control state, instead of mixing it with provider credentials or global desktop preferences.
+- [x] Keep skill discovery read-only in the first pass by scanning workspace skill directories for `SKILL.md`/Markdown manifests.
+- [x] Expose automation state to the model as read-only bridge tools first; execution and mutation stay behind explicit UI/CLI commands until scheduler and approval policies are complete.
+
+**Skills / Automations**:
+- [x] Add local skill discovery for `.code-agent/skills` and `skills`.
+- [x] Surface discovered skills in the desktop Automation view.
+- [x] Add CLI listing through `automation skills`.
+- [x] Add skill enable/disable state and initial per-skill policy storage.
+- [x] Add skill execution hooks that safely contribute enabled skill context to scheduled tasks and virtual-team runs.
+- [x] Add skill/project automation packaging import/export UX through shareable `.code-agent` project bundles.
+
+**Scheduled Tasks**:
+- [x] Add persisted scheduled task definitions with name, prompt, interval, enabled state, next run, last run, and last status.
+- [x] Add desktop create/list/run/delete task controls.
+- [x] Add CLI commands for task list/add/run/delete.
+- [x] Add read-only model visibility through `automation.listTasks`, `automation.listTaskRuns`, and `automation.schedulerStatus`.
+- [x] Implement the background scheduler loop in the main process.
+- [x] Route scheduled task execution through the same desktop chat/tool permission pipeline as manual sessions.
+- [x] Add task run history and visible status/result tracking.
+- [x] Add desktop/CLI controls for enable/disable and one-shot scheduled runs.
+- [x] Add Automation workbench permission controls so unattended scheduled runs can be explicitly configured without hunting through Settings.
+- [x] Add retry policy and notification-state fields for scheduled tasks, including bounded retry attempts and visible policy state in the desktop UI.
+- [x] Add desktop notification delivery for scheduled task success/failure policies.
+- [x] Add missed-run handling with explicit run-once/skip policy and visible skipped run history.
+- [ ] Add remote/mobile push-style notification delivery.
+
+**Remote Control**:
+- [x] Add persisted remote-control state with enablement, mode, pairing code, approved devices, and pending approvals.
+- [x] Add desktop status, enable/disable, and pairing-code controls.
+- [x] Add CLI status/pairing commands.
+- [x] Add read-only model visibility through `automation.remoteStatus`.
+- [x] Implement a secure local-network control endpoint for paired devices.
+- [x] Add mobile-friendly approval UI for pending tool calls, scheduled tasks, and virtual-team runs.
+- [x] Add relay mode design notes for access outside the home/office network.
+- [ ] Implement relay mode for access outside the home/office network.
+- [x] Add device revocation UI and durable remote-control audit log.
+- [x] Add local-network remote-control request rate limits.
+- [x] Document relay-mode security requirements and token-hardening boundaries.
+- [ ] Add relay-grade token hardening.
+
+**Virtual Autonomous Team**:
+- [x] Add virtual team blueprint model with objective, supervisor, members, roles, goals, tools, and status.
+- [x] Add a default software-delivery team template: Supervisor, Project Manager, Developer, and QA.
+- [x] Add desktop create/list/delete team controls.
+- [x] Add desktop edit controls for team name, objective, workspace path, supervisor, members, roles, goals, model override, and allowed tools.
+- [x] Add CLI commands for team list/create-default/delete.
+- [x] Add read-only model visibility through `automation.listTeams` and `automation.listTeamRuns`.
+- [x] Add a local supervisor-style orchestration loop that runs team members in role order with previous-step context.
+- [x] Add per-run artifacts, progress summaries, and handoff messages.
+- [x] Add desktop team communication transcript display showing each member handoff/output in recent team runs.
+- [x] Add human approval policy for risky tool actions through the existing desktop/remote permission flow.
+- [x] Add per-run tool workspace scoping so filesystem and Bash tools execute against the team workspace instead of only the app launch workspace.
+- [x] Add bounded team iteration controls and QA/reviewer sign-off gating.
+- [x] Add structured per-run milestones for every team member and iteration, including pending/running/succeeded/failed transitions.
+- [ ] Add project completion policy beyond linear member iteration.
+
+**Progress Update (June 25, 2026)**:
+- [x] Added `AutomationServiceBridge` as the shared local automation store and service API.
+- [x] Added typed Electron IPC, preload, renderer client, and bridge-tool wiring for automation.
+- [x] Added the desktop Automation main view with Skills, Scheduled Tasks, Remote Control, and Virtual Team panels.
+- [x] Added `/automation`, `/skills`, `/tasks`, `/remote`, and `/team` desktop slash-command entry points.
+- [x] Added CLI `automation`/`auto` commands for skills, tasks, remote pairing/status, and team blueprints.
+- [x] Added read-only automation bridge tools so models can inspect skills, tasks, remote status, and virtual teams without mutating state.
+- [x] Added scheduler execution, task run history, local mobile remote-control server, shared approval queue, CLI OpenAI-compatible automation execution, and virtual-team run artifacts.
+
+**Progress Update (June 26, 2026)**:
+- [x] Reworked the desktop Automation workbench from a crowded multi-panel grid into a Settings-style section layout.
+- [x] Added an Automation Permissions section for unattended scheduled tasks and virtual-team runs.
+- [x] Added a full virtual-team editor for member add/edit/delete, role editing, supervisor selection, model override, allowed tools, and team workspace path.
+- [x] Added visible team-run communication transcripts so member handoffs are inspectable in the desktop UI.
+- [x] Added virtual-team execution permission modes so trusted teams can run with full access without desktop approval popups, while supervised teams still use approval gates.
+- [x] Added duplicate-run guards so Run Team is disabled while a team run is already active.
+- [x] Persist team workspace path on blueprints and run records, including team-run artifacts.
+- [x] Finished per-run workspace scoping for virtual-team filesystem writes, Bash execution, and team-run artifacts.
+- [x] Seed virtual-team workspaces with visible README and persisted blueprint metadata before running members, so a configured workspace is created even if the local model only returns planning text.
+- [x] Treat desktop tool-call round-limit exhaustion as failed automation output instead of successful team/task completion, and raise virtual-team tool-call budget for multi-step local-model runs.
+- [x] Added project bundle export/import for shareable automation state, excluding provider keys and remote-control pairing secrets.
+- [x] Added scheduled-task retry and notification policy controls with bounded retry attempts.
+- [x] Added remote device revocation and a durable remote-control audit log.
+- [x] Added native desktop notification delivery for scheduled task success/failure policies, with notification events recorded to local history.
+- [x] Added local-network request rate limits to the remote-control HTTP endpoint.
+- [x] Added virtual-team max-iteration and QA/reviewer sign-off controls, persisted on team blueprints and displayed in the Team Editor.
+- [x] Added missed-run policy controls for scheduled tasks, including skipped run records when overdue runs are intentionally skipped.
+- [x] Added structured virtual-team milestones to run records, team artifacts, and the Team Communication UI.
+- [x] Added `docs/remote-control-security.md` to document relay-mode identity, encryption, rate-limit, token-rotation, and push-notification requirements.
+
+**Acceptance Criteria Before Calling Phase 4.6 Complete**:
+- [x] A user can add a scheduled task, quit/restart the app, and the app executes it at the configured interval with visible history.
+- [x] A remote phone can pair with the workstation and approve or reject pending tool calls without exposing arbitrary filesystem or command access.
+- [x] A virtual team can take a project blueprint, produce a task plan, execute bounded development/QA work, and either run with full access or stop at human approval gates in supervised mode.
+- [x] Skills can be installed or discovered, enabled/disabled, and used to add safe workflows without changing core code.
+- [x] CLI and desktop remain consistent over the shared automation store and permission model.
+
+---
+
+### 4.7 Shareable Storage and Sync Foundation 🚧 IN PROGRESS
+**Objective**: Make chats, projects, automation, team blueprints, and run history portable and sync-ready without putting credentials or device secrets into shareable project files.
+
+**Direction Decision (June 26, 2026)**:
+- [x] Use project-shareable `.code-agent` files for configuration and blueprints that should travel with a repo or workspace.
+- [x] Keep API keys in OS keychain and machine-private state under ignored local storage.
+- [x] Keep high-volume history behind a service API so the JSON-file local MVP can be replaced with SQLite or cloud sync without changing the renderer.
+- [x] Treat cloud sync as a later optional provider, not a dependency for local automation and LM Studio testing.
+
+**Project-Shareable Files**:
+- [x] Add `.code-agent/project.json` as the project automation manifest.
+- [x] Split skill policy state into `.code-agent/skill-policies.json`.
+- [x] Split scheduled tasks into `.code-agent/tasks/*.json`.
+- [x] Split scheduled task run records into `.code-agent/runs/tasks/*.json`.
+- [x] Split virtual team blueprints into `.code-agent/teams/*.json`.
+- [x] Split virtual team run records into `.code-agent/runs/teams/*.json`.
+- [x] Migrate legacy `.code-agent/automation.json` on first read into the split layout.
+
+**Machine-Private Files**:
+- [x] Add `.code-agent/.gitignore` entries for `local/` and `history/`.
+- [x] Move remote-control pairing/device state to `.code-agent/local/remote-control.json`.
+- [x] Preserve local remote-control token hashes on disk while continuing to sanitize them from renderer/API responses.
+
+**Local History Store**:
+- [x] Add a `LocalHistoryServiceBridge` with typed records for `chat-session`, `tool-event`, `automation-run`, and `project-event`.
+- [x] Store local history under Electron user data as per-record JSON files for the MVP.
+- [x] Add typed IPC/preload/renderer client APIs for saving, listing, reading, deleting, exporting, and inspecting local history.
+- [x] Mirror active desktop chat sessions into local history while keeping existing app-state restore compatibility.
+- [x] Record tool activity and manual automation/team runs into local history for audit and future sync/export.
+- [x] Add a full History/Activity UI for browsing, exporting, deleting, and restoring records.
+- [ ] Replace or augment JSON history storage with SQLite when query volume and sync conflict handling require it.
+- [x] Add import/export UX for project-shareable `.code-agent` bundles.
+- [ ] Add optional cloud sync provider abstraction for chats, projects, teams, tasks, and history records.
+- [ ] Add account/device identity, conflict resolution, encryption-at-rest, and sync audit metadata before enabling cloud sync.
+
+**Progress Update (June 26, 2026)**:
+- [x] Added a first-class History workbench with Overview, Chats, Tool Events, Automation Runs, Project Events, and Export pages.
+- [x] Added history browse/delete/export and chat restore actions in the desktop UI.
+- [x] Added automation project export/import IPC and desktop UX for shareable tasks, teams, runs, and skill policies.
+- [x] Added remote device revocation and durable audit events for pairing, approvals, server lifecycle, settings, and revocation.
+- [x] Added scheduled-task retry and notification policy fields, desktop controls, and bounded retry scheduling after failures.
+- [x] Added storage ownership documentation in `docs/storage-ownership.md`, covering workspace-shareable state, local-private state, user profile history, and secrets.
+
+**Acceptance Criteria Before Calling Phase 4.7 Complete**:
+- [x] A team/task configuration can be copied with a workspace and loaded on another machine without copying credentials or device pairing state.
+- [x] A user can browse and export local chat/tool/automation history from the desktop app.
+- [x] App state, automation state, and history state have clear ownership boundaries documented in the plan and code.
+- [x] The storage API supports a future SQLite/cloud backend without renderer-side data-model churn.
 
 ---
 
@@ -657,8 +826,9 @@ window.api = {
 - [x] macOS: .dmg + zip targets configured
 - [x] Linux: .AppImage + .deb targets configured
 - [x] macOS hardened-runtime entitlements file is valid for local signing
-- [ ] macOS notarization options/credentials
-- [ ] Auto-update channels (stable, beta)
+- [x] macOS notarization hook configured; skips safely unless Apple credentials are present
+- [x] Auto-update channels configured through electron-builder GitHub publish metadata and semver prerelease channel detection
+- [x] Production renderer builds disable source maps before packaging
 
 **Scripts to Add**:
 ```json
@@ -675,56 +845,105 @@ window.api = {
 **Success Criteria**:
 - [x] `npm run pack` creates a signed macOS directory app locally
 - [ ] `npm run dist` creates installers for all platforms
-- [ ] Apps are signed and notarized for release distribution
-- [ ] Auto-update works correctly
+- [ ] Apps are signed and notarized for release distribution after signing/notarization secrets are configured
+- [ ] Auto-update works correctly against a published GitHub release
 
 **Progress Update (June 25, 2026)**:
 - [x] Existing `package.json` electron-builder config includes app id, product name, output directories, mac/win/linux targets, and build scripts.
 - [x] Replaced malformed macOS entitlements file with a valid LF-normalized hardened-runtime plist.
 - [x] Verified `npm run pack` on macOS arm64. Packaging and signing succeeded; notarization was skipped because notarization options were not configured.
 
+**Progress Update (June 26, 2026)**:
+- [x] Added `electron/updater.ts` and wired startup/manual update checks through the Help menu.
+- [x] Configured GitHub Releases publishing for `albertforweb/code-agent`, update channel detection, and update metadata generation.
+- [x] Added `electron/notarize.cjs` after-sign hook for macOS notarization when Apple credentials are available.
+- [x] Changed production renderer builds to omit source maps and changed `pack` to build fresh production assets before packaging.
+- [x] Added release workflow and release packaging documentation.
+- [x] Revalidated `npm run pack` after updater/release changes; local macOS arm64 app directory packaging and signing succeeded, notarization skipped without Apple credentials.
+- [x] Added generated CodeAgent brand assets under `electron/resources` (`codeagent-logo.svg`, `icon.icns`, `icon.ico`, `icon.png`) and wired them into runtime/packaged app metadata.
+- [x] Fixed packaged app startup by moving Electron runtime modules (`electron-store`, `electron-updater`, `keytar`) from dev-only dependencies into production dependencies.
+- [x] Revalidated packaged macOS arm64 app startup smoke test and confirmed `electron-store`, `electron-updater`, and unpacked native `keytar.node` are present in the packaged app.
+- [x] Rebranded primary desktop and CLI surfaces from inherited labels to CodeAgent, including app metadata, menus, updater dialogs, renderer startup, CLI welcome/logo/help/version, and automation prompts.
+- [x] Revalidated `npm run pack`; the generated macOS app reports `CFBundleDisplayName=CodeAgent`, `CFBundleIdentifier=com.albertforweb.codeagent`, and `CFBundleIconFile=icon.icns`.
+
 ---
 
-### 5.2 Set Up Auto-Update ✅ PENDING
+### 5.2 Set Up Auto-Update 🚧 PARTIAL
 **Objective**: Implement automatic app updates
 
 **Implementation**:
-- Use `electron-updater`
-- Create GitHub Releases for distribution
-- Configure update channels (stable, beta)
-- Add manual check-for-updates menu item
+- [x] Use `electron-updater`
+- [x] Create GitHub Releases publishing configuration for distribution
+- [x] Configure update channels (stable, beta) through semver prerelease detection
+- [x] Add manual check-for-updates menu item
+- [ ] Verify update download/install against a real published release
 
 **Files to Create/Modify**:
-- `electron/updater.ts` - Auto-update logic
-- `electron/main.ts` - Initialize updater
+- [x] `electron/updater.ts` - Auto-update logic
+- [x] `electron/main.ts` - Initialize updater and expose Help menu action
 
 **Success Criteria**:
-- App checks for updates on startup
-- User can manually check for updates
-- Updates download and install automatically
-- Can roll back if needed
+- [x] App checks for updates on startup in packaged builds
+- [x] User can manually check for updates
+- [x] Updates download and install after user confirmation
+- [ ] Rollback policy documented and tested after first real release
 
 ---
 
-### 5.3 Create Distribution & Release Pipeline ✅ PENDING
+### 5.3 Create Distribution & Release Pipeline 🚧 PARTIAL
 **Objective**: Automate releases and distribution
 
 **Implementation**:
-- [ ] GitHub Actions workflow for building releases
-- [ ] Automated code signing
-- [ ] Automated notarization (macOS)
+- [x] GitHub Actions workflow for building releases
+- [ ] Automated code signing after secrets are configured
+- [x] Automated notarization hook for macOS when secrets are configured
 - [ ] Release notes generation
-- [ ] Upload to release servers
+- [x] Upload to GitHub Releases through electron-builder
 
 **Files to Create**:
-- `.github/workflows/release.yml` - CI/CD pipeline
-- `scripts/release.js` - Release script
+- [x] `.github/workflows/release.yml` - CI/CD pipeline
+- [ ] `scripts/release.js` - Release script
+- [x] `docs/release-packaging.md` - Release packaging notes and required secrets
 
 **Success Criteria**:
-- `npm run release` creates and publishes release
-- All platforms built automatically
-- All signatures and notarizations applied
-- Release notes generated automatically
+- [x] `npm run release` creates and publishes release when run with GitHub credentials
+- [x] All platforms are configured for automated builds in GitHub Actions
+- [ ] All signatures and notarizations applied after secrets are configured
+- [ ] Release notes generated automatically
+
+---
+
+### 5.4 Brand & Vendor Decoupling 🚧 TARGETED BRANDING CLEAN, COMPATIBILITY MIGRATION REMAINS
+**Objective**: Make CodeAgent stand on its own as a product while keeping provider integrations explicit and maintainable.
+
+**Completed**:
+- [x] Replaced the root README with CodeAgent-focused product, setup, provider, desktop, CLI, automation, and status documentation.
+- [x] Removed exact inherited upstream product text from non-build source/docs and regenerated build outputs.
+- [x] Reworked primary CLI and desktop identity text to say CodeAgent.
+- [x] Removed third-party provider SDK imports from the packageable Electron desktop path and use OpenAI-compatible HTTP calls instead.
+- [x] Removed all legacy provider-package imports and installed packages from the source tree and dependency graph.
+- [x] Replaced actual legacy SDK usage with CodeAgent-owned LLM message/tool/result types, API error classes, stream helper, MCPB manifest helper, and sandbox runtime compatibility.
+- [x] Revalidated `npm run build:electron`, `npm run pack`, source scans, packaged app scans, node_modules namespace scan, and npm dependency-tree scan.
+- [x] Made CodeAgent config/install surfaces primary: `CODEAGENT_CONFIG_DIR`, `~/.code-agent`, `code-agent://`, local `code-agent` wrapper, CodeAgent user-agent tokens, and `com.codeagent.*` app/telemetry identifiers.
+- [x] Replaced targeted inherited user-facing strings for updater guidance, login/logout copy, subscription labels, diagnostics, deep-link protocol text, GitHub action templates, marketplace names, feedback/release URLs, and packaged app scans.
+- [x] Reworded key runtime prompts and built-in agent prompts so CodeAgent is described as a local-first coding agent, not a third-party-provider-owned product.
+- [x] Removed old internal feedback-channel instructions from the bundled stuck diagnostic skill.
+- [x] Repointed the CodeAgent product URL to the CodeAgent repository and relabeled inherited hosted GitHub Action text as a third-party hosted integration.
+- [x] Repointed inherited product documentation links to the CodeAgent repository in user-facing surfaces.
+- [x] Replaced the legacy CLI desktop handoff surface with CodeAgent Desktop startup guidance instead of launching the upstream desktop product.
+- [x] Confirmed Electron app metadata, renderer title, build product name, and generated icon assets use CodeAgent branding.
+
+**Remaining Compatibility Migration**:
+- [ ] Introduce CodeAgent-owned environment variable aliases and migrate away from direct `CODE_AGENT_*` names without breaking existing user configs. Primary config/install aliases are in place; broader runtime env aliases remain.
+- [ ] Add first-class `CODEAGENT.md` or `AGENTS.md` instruction-file support before de-emphasizing inherited instruction-file loading.
+- [x] Replace legacy CLI runtime imports from provider SDK packages with CodeAgent-owned message/tool/result types where practical.
+- [ ] Complete controlled legacy compatibility migration across the inherited CLI source tree; do not use a blind global rename because it crosses env vars, provider/model IDs, OAuth helper names, generated telemetry types, hosted remote flows, and filename/import boundaries.
+- [x] Rename or wrap CodeAgent-owned telemetry/user-agent identifiers that still used inherited upstream names.
+- [ ] Disable or rehome legacy hosted remote-session flows; keep the local Automation Remote Control path as the CodeAgent-supported remote feature.
+
+**Policy**:
+- Provider names such as OpenAI and OpenAI-compatible remain acceptable only when describing actual supported model providers.
+- Do not rename third-party packages or APIs in a way that misrepresents ownership; wrap them behind CodeAgent interfaces instead.
 
 ---
 
@@ -888,18 +1107,20 @@ window.api = {
 - **Phase 2** (IPC Bridge): 100% ✅ COMPLETE - IPC/preload/client, service registration, executable bridge tools, API/auth bootstrap, and MCP metadata bridge complete
 - **Phase 3** (UI Replacement): 100% ✅ COMPLETE - React DOM shell, streaming chat, message rendering, tool feedback, and full settings/configuration UI complete
 - **Phase 4** (Service Refactoring): 100% ✅ COMPLETE - LLM provider abstraction, provider-scoped keychain storage, main/renderer state sync, terminal-decoupled service paths, CLI local-provider support, and desktop CLI-parity foundation complete
-- **Phase 4.5** (Local-First Desktop Agent UX): 100% ✅ COMPLETE - roadmap documented, utility tools, guarded Bash, permission policies, command runner, git/dev helpers, tool activity timeline, safe file-write review, applied-change actions, checkpoint undo, Claude-like shell polish, sectioned Settings, slash-command palette, runtime status strip, stdio MCP execution, registry clarity, persisted sessions, transcript search, workspace file browser, Open/Reveal actions, tool-router controls, and common error-state guidance complete
-- **Phase 5** (Packaging): 20% 🚧 IN PROGRESS - electron-builder config/scripts are present, macOS entitlements fixed, and `npm run pack` validates a signed macOS directory app; notarization, installers, auto-update, and release automation remain
+- **Phase 4.5** (Local-First Desktop Agent UX): 100% ✅ COMPLETE - roadmap documented, utility tools, guarded Bash, permission policies, command runner, git/dev helpers, tool activity timeline, safe file-write review, applied-change actions, checkpoint undo, assistant-console shell polish, global parent/child sidebar navigation, collapsible nav rail, sectioned Settings, slash-command palette, footer status panes, stdio MCP execution, registry clarity, persisted sessions, transcript search, workspace file browser, Open/Reveal actions, tool-router controls, and common error-state guidance complete
+- **Phase 4.6** (Extensibility, Automation, Remote Control, Virtual Teams): 99% 🚧 HARDENED LOCAL MVP - shared automation store, skill discovery/toggles, scheduled-task execution/history/retry/missed-run policies, desktop notification delivery, local mobile remote control, shared approval queue, device revocation/audit, remote endpoint rate limits, virtual-team runs/artifacts/transcripts, editable team blueprints, seeded/scoped team workspaces, full-access/supervised team permissions, bounded iterations, QA/reviewer sign-off gates, structured run milestones, duplicate-run guards, Automation permission controls, CLI automation commands, and read-only model visibility are in place; relay mode, remote push notifications, relay-grade token hardening, and richer project completion policy remain
+- **Phase 4.7** (Shareable Storage and Sync Foundation): 85% 🚧 LOCAL MVP COMPLETE - automation state is split into project-shareable `.code-agent` files plus ignored local remote-control state, legacy automation storage migrates forward, local history IPC/service APIs are in place, desktop chats/tool/automation events mirror into local history, History UI supports browse/export/delete/chat restore, project-shareable automation bundles can be exported/imported, and storage ownership boundaries are documented; SQLite/cloud backend, conflict handling, and encryption/sync security remain
+- **Phase 5** (Packaging): 94% 🚧 IN PROGRESS - electron-builder config/scripts, production builds without renderer source maps, GitHub publish metadata, update-channel detection, guarded electron-updater startup/manual checks, macOS notarization hook, release workflow, release docs, CodeAgent app icons, packaged runtime dependency fix, primary app/CLI rebranding, README replacement, product URL/doc-link cleanup, legacy desktop handoff neutralization, packageable desktop provider SDK removal, full legacy provider-package dependency/import removal, CodeAgent config/install/deep-link/user-agent identifiers, and targeted user-facing branding cleanup are in place; controlled compatibility env-var/provider/model/OAuth helper migration, signed/notarized release validation, real update testing, release notes automation, and cross-platform installer verification remain
 - **Phase 6** (Testing): 0% - Not Started
 - **Phase 7** (Documentation): 0% - Not Started
 
 ### Timeline
 - **Target Completion**: 3-4 weeks from start
-- **Current Date**: June 25, 2026
-- **Target Launch**: ~July 21, 2026
+- **Current Date**: June 26, 2026
+- **Target Launch**: ~July 21, 2026 for packaged desktop baseline; automation/team features may extend beyond the initial package if not complete
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
-- **Latest Update**: June 25, 2026 - completed Phase 4.5 local-first desktop agent UX with permission policies, command runner, git/dev helpers, connector grouping, applied-change actions, session/search/workspace/tool-router/runtime-status polish, fixed macOS entitlements, and verified `npm run pack` for a signed macOS directory app.
-- **Next Focus**: Phase 5 notarization/release packaging, auto-update wiring, and release automation.
+- **Latest Update**: July 1, 2026 - removed all legacy provider-package source imports and dependency graph entries, replaced actual SDK surfaces with CodeAgent-owned compatibility modules, added CodeAgent-owned config/install/deep-link/user-agent identifiers, cleaned targeted user-facing inherited branding surfaces, revalidated Electron build and packaging, and scoped the remaining compatibility/provider migration.
+- **Next Focus**: migrate compatibility identifiers behind CodeAgent-owned aliases, then configure signing/notarization secrets and test signed/notarized installers.
 
 ---
 
@@ -913,6 +1134,9 @@ window.api = {
 | Cross-platform issues | Medium | Delay release | Test on all platforms continuously |
 | Large codebase complexity | High | Onboarding issues | Document well, refactor incrementally |
 | Service integration issues | Medium | Feature gaps | Create adapters, maintain compatibility |
+| Remote-control security mistakes | Medium | Unauthorized access | Pairing, device revocation, audit logs, least-privilege APIs, and no arbitrary remote shell |
+| Autonomous team runaway work | Medium | Unwanted file/command changes | Supervisor checkpoints, permission gates, bounded iterations, and human approval policies |
+| Scheduled tasks surprise users | Medium | Unwanted background actions | Disabled-by-default risky tools, visible run history, pause/resume, and notification controls |
 
 ---
 
@@ -921,6 +1145,8 @@ window.api = {
 - ✅ Standalone desktop app shell (no terminal required for core UI)
 - 🚧 CLI feature parity: local provider setup, chat, status/help commands, settings, bridge tools, local permission workflow, and MCP stdio execution are in place; full CLI resume/fork semantics and terminal-only registry parity remain follow-up work
 - ✅ Local-first desktop agent UX: LM Studio chat, bridge tool calls, safe file write review, guarded Bash, web/finance/time tools, stdio MCP execution, session persistence, workspace browser, command runner, and applied-change review are in place
+- 🚧 Automation foundation: shared skill/task/remote/team store, scheduler runtime, retry/missed-run policy state, desktop notifications, local mobile remote control, rate limits, device revocation/audit, sectioned desktop Automation workbench, unattended permission controls, CLI automation commands, virtual-team run artifacts/transcripts/milestones, scoped team workspaces, bounded team iterations, QA/reviewer gates, and read-only automation tools are in place; relay, remote push notifications, packaging, and advanced project-completion governance remain follow-up work
+- 🚧 Shareable storage foundation: project-shareable `.code-agent` files, local-only remote-control state, local history records, History UI, automation import/export, and storage ownership docs are in place; SQLite/cloud sync, encryption, and conflict resolution remain follow-up work
 - ⏳ Cross-platform packages (Windows, macOS, Linux)
 - ⏳ Auto-update working
 - ⏳ < 3 second startup time

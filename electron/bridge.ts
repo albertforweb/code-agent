@@ -25,6 +25,21 @@ import type {
   Tool,
   McpServerInfo,
   McpToolInfo,
+  SkillManifest,
+  SkillDetail,
+  ScheduledTask,
+  AutomationRunRecord,
+  AutomationSchedulerStatus,
+  RemoteControlState,
+  VirtualTeamBlueprint,
+  VirtualTeamRunRecord,
+  AutomationProjectExport,
+  AutomationProjectImportResult,
+  LocalHistoryRecord,
+  LocalHistoryRecordInput,
+  LocalHistoryFilter,
+  LocalHistoryExport,
+  LocalHistoryStorageInfo,
 } from './types';
 import { IPC_CHANNELS } from './types';
 
@@ -35,6 +50,8 @@ export class IpcBridge {
   private authHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private appHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private mcpHandlers: Map<string, (args: any) => Promise<any>> = new Map();
+  private automationHandlers: Map<string, (args: any) => Promise<any>> = new Map();
+  private historyHandlers: Map<string, (args: any) => Promise<any>> = new Map();
 
   constructor() {
     this.setupChannelHandlers();
@@ -60,6 +77,41 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
     ipcMain.handle(IPC_CHANNELS['mcp:listTools'], this.handleMcpListTools.bind(this));
     ipcMain.handle(IPC_CHANNELS['mcp:refresh'], this.handleMcpRefresh.bind(this));
+
+    // Automation channels
+    ipcMain.handle(IPC_CHANNELS['automation:listSkills'], this.handleAutomationListSkills.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:refreshSkills'], this.handleAutomationRefreshSkills.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:getSkill'], this.handleAutomationGetSkill.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:setSkillEnabled'], this.handleAutomationSetSkillEnabled.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:listTasks'], this.handleAutomationListTasks.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:listTaskRuns'], this.handleAutomationListTaskRuns.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:saveTask'], this.handleAutomationSaveTask.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:setTaskEnabled'], this.handleAutomationSetTaskEnabled.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:deleteTask'], this.handleAutomationDeleteTask.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:runTask'], this.handleAutomationRunTask.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:getSchedulerStatus'], this.handleAutomationGetSchedulerStatus.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:getRemoteControl'], this.handleAutomationGetRemoteControl.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:updateRemoteControl'], this.handleAutomationUpdateRemoteControl.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:createRemotePairingCode'], this.handleAutomationCreateRemotePairingCode.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:startRemoteControl'], this.handleAutomationStartRemoteControl.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:stopRemoteControl'], this.handleAutomationStopRemoteControl.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:listTeams'], this.handleAutomationListTeams.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:listTeamRuns'], this.handleAutomationListTeamRuns.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:saveTeam'], this.handleAutomationSaveTeam.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:deleteTeam'], this.handleAutomationDeleteTeam.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:createDefaultTeam'], this.handleAutomationCreateDefaultTeam.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:runTeam'], this.handleAutomationRunTeam.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:revokeRemoteDevice'], this.handleAutomationRevokeRemoteDevice.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:exportProjectState'], this.handleAutomationExportProjectState.bind(this));
+    ipcMain.handle(IPC_CHANNELS['automation:importProjectState'], this.handleAutomationImportProjectState.bind(this));
+
+    // Local history channels
+    ipcMain.handle(IPC_CHANNELS['history:saveRecord'], this.handleHistorySaveRecord.bind(this));
+    ipcMain.handle(IPC_CHANNELS['history:getRecord'], this.handleHistoryGetRecord.bind(this));
+    ipcMain.handle(IPC_CHANNELS['history:listRecords'], this.handleHistoryListRecords.bind(this));
+    ipcMain.handle(IPC_CHANNELS['history:deleteRecord'], this.handleHistoryDeleteRecord.bind(this));
+    ipcMain.handle(IPC_CHANNELS['history:exportRecords'], this.handleHistoryExportRecords.bind(this));
+    ipcMain.handle(IPC_CHANNELS['history:getStorageInfo'], this.handleHistoryGetStorageInfo.bind(this));
 
     // File system channels
     ipcMain.handle(IPC_CHANNELS['fs:read'], this.handleFileRead.bind(this));
@@ -287,6 +339,181 @@ export class IpcBridge {
     return handler({});
   }
 
+  // ============================================================================
+  // AUTOMATION HANDLERS
+  // ============================================================================
+
+  private async handleAutomationListSkills(): Promise<SkillManifest[]> {
+    return this.getAutomationHandler('listSkills')({});
+  }
+
+  private async handleAutomationRefreshSkills(): Promise<SkillManifest[]> {
+    return this.getAutomationHandler('refreshSkills')({});
+  }
+
+  private async handleAutomationGetSkill(_event: any, skillId: string): Promise<SkillDetail> {
+    return this.getAutomationHandler('getSkill')(skillId);
+  }
+
+  private async handleAutomationSetSkillEnabled(
+    _event: any,
+    request: { skillId: string; enabled: boolean },
+  ): Promise<SkillManifest> {
+    return this.getAutomationHandler('setSkillEnabled')(request);
+  }
+
+  private async handleAutomationListTasks(): Promise<ScheduledTask[]> {
+    return this.getAutomationHandler('listTasks')({});
+  }
+
+  private async handleAutomationListTaskRuns(_event: any, taskId?: string): Promise<AutomationRunRecord[]> {
+    return this.getAutomationHandler('listTaskRuns')(taskId);
+  }
+
+  private async handleAutomationSaveTask(_event: any, task: Partial<ScheduledTask>): Promise<ScheduledTask> {
+    return this.getAutomationHandler('saveTask')(task);
+  }
+
+  private async handleAutomationSetTaskEnabled(
+    _event: any,
+    request: { taskId: string; enabled: boolean },
+  ): Promise<ScheduledTask> {
+    return this.getAutomationHandler('setTaskEnabled')(request);
+  }
+
+  private async handleAutomationDeleteTask(_event: any, taskId: string): Promise<{ ok: true; id: string }> {
+    return this.getAutomationHandler('deleteTask')(taskId);
+  }
+
+  private async handleAutomationRunTask(_event: any, taskId: string): Promise<ScheduledTask> {
+    return this.getAutomationHandler('runTask')(taskId);
+  }
+
+  private async handleAutomationGetSchedulerStatus(): Promise<AutomationSchedulerStatus> {
+    return this.getAutomationHandler('getSchedulerStatus')({});
+  }
+
+  private async handleAutomationGetRemoteControl(): Promise<RemoteControlState> {
+    return this.getAutomationHandler('getRemoteControl')({});
+  }
+
+  private async handleAutomationUpdateRemoteControl(
+    _event: any,
+    update: Partial<RemoteControlState>,
+  ): Promise<RemoteControlState> {
+    return this.getAutomationHandler('updateRemoteControl')(update);
+  }
+
+  private async handleAutomationCreateRemotePairingCode(_event: any, deviceName?: string): Promise<RemoteControlState> {
+    return this.getAutomationHandler('createRemotePairingCode')(deviceName);
+  }
+
+  private async handleAutomationStartRemoteControl(): Promise<RemoteControlState> {
+    return this.getAutomationHandler('startRemoteControl')({});
+  }
+
+  private async handleAutomationStopRemoteControl(): Promise<RemoteControlState> {
+    return this.getAutomationHandler('stopRemoteControl')({});
+  }
+
+  private async handleAutomationRevokeRemoteDevice(_event: any, deviceId: string): Promise<RemoteControlState> {
+    return this.getAutomationHandler('revokeRemoteDevice')(deviceId);
+  }
+
+  private async handleAutomationListTeams(): Promise<VirtualTeamBlueprint[]> {
+    return this.getAutomationHandler('listTeams')({});
+  }
+
+  private async handleAutomationListTeamRuns(_event: any, teamId?: string): Promise<VirtualTeamRunRecord[]> {
+    return this.getAutomationHandler('listTeamRuns')(teamId);
+  }
+
+  private async handleAutomationSaveTeam(
+    _event: any,
+    team: Partial<VirtualTeamBlueprint>,
+  ): Promise<VirtualTeamBlueprint> {
+    return this.getAutomationHandler('saveTeam')(team);
+  }
+
+  private async handleAutomationDeleteTeam(_event: any, teamId: string): Promise<{ ok: true; id: string }> {
+    return this.getAutomationHandler('deleteTeam')(teamId);
+  }
+
+  private async handleAutomationCreateDefaultTeam(_event: any, objective?: string): Promise<VirtualTeamBlueprint> {
+    return this.getAutomationHandler('createDefaultTeam')(objective);
+  }
+
+  private async handleAutomationRunTeam(_event: any, teamId: string): Promise<VirtualTeamRunRecord> {
+    return this.getAutomationHandler('runTeam')(teamId);
+  }
+
+  private async handleAutomationExportProjectState(
+    _event: any,
+    options?: { includeRuns?: boolean },
+  ): Promise<AutomationProjectExport> {
+    return this.getAutomationHandler('exportProjectState')(options ?? {});
+  }
+
+  private async handleAutomationImportProjectState(
+    _event: any,
+    bundle: Partial<AutomationProjectExport>,
+  ): Promise<AutomationProjectImportResult> {
+    return this.getAutomationHandler('importProjectState')(bundle);
+  }
+
+  private getAutomationHandler(operation: string): (args: any) => Promise<any> {
+    const handler = this.automationHandlers.get(operation);
+    if (!handler) {
+      throw new Error(`Automation handler not configured: ${operation}`);
+    }
+    return handler;
+  }
+
+  // ============================================================================
+  // LOCAL HISTORY HANDLERS
+  // ============================================================================
+
+  private async handleHistorySaveRecord(
+    _event: any,
+    record: LocalHistoryRecordInput,
+  ): Promise<LocalHistoryRecord> {
+    return this.getHistoryHandler('saveRecord')(record);
+  }
+
+  private async handleHistoryGetRecord(_event: any, id: string): Promise<LocalHistoryRecord> {
+    return this.getHistoryHandler('getRecord')(id);
+  }
+
+  private async handleHistoryListRecords(
+    _event: any,
+    filter?: LocalHistoryFilter,
+  ): Promise<LocalHistoryRecord[]> {
+    return this.getHistoryHandler('listRecords')(filter ?? {});
+  }
+
+  private async handleHistoryDeleteRecord(_event: any, id: string): Promise<{ ok: true; id: string }> {
+    return this.getHistoryHandler('deleteRecord')(id);
+  }
+
+  private async handleHistoryExportRecords(
+    _event: any,
+    filter?: LocalHistoryFilter,
+  ): Promise<LocalHistoryExport> {
+    return this.getHistoryHandler('exportRecords')(filter ?? {});
+  }
+
+  private async handleHistoryGetStorageInfo(): Promise<LocalHistoryStorageInfo> {
+    return this.getHistoryHandler('getStorageInfo')({});
+  }
+
+  private getHistoryHandler(operation: string): (args: any) => Promise<any> {
+    const handler = this.historyHandlers.get(operation);
+    if (!handler) {
+      throw new Error(`Local history handler not configured: ${operation}`);
+    }
+    return handler;
+  }
+
   private async handleGetConfig() {
     const handler = this.appHandlers.get('getConfig');
     if (!handler) {
@@ -373,6 +600,14 @@ export class IpcBridge {
 
   registerMcpHandler(operation: string, handler: (args: any) => Promise<any>) {
     this.mcpHandlers.set(operation, handler);
+  }
+
+  registerAutomationHandler(operation: string, handler: (args: any) => Promise<any>) {
+    this.automationHandlers.set(operation, handler);
+  }
+
+  registerHistoryHandler(operation: string, handler: (args: any) => Promise<any>) {
+    this.historyHandlers.set(operation, handler);
   }
 
   registerAuthHandler(operation: string, handler: (args: any) => Promise<any>) {

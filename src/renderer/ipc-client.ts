@@ -94,7 +94,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type LlmProviderType = 'anthropic' | 'openai' | 'openai-compatible';
+export type LlmProviderType = 'openai' | 'openai-compatible';
 
 export interface ChatRequest {
   messages: ChatMessage[];
@@ -105,6 +105,7 @@ export interface ChatRequest {
   temperature?: number;
   contextTokens?: number;
   enableTools?: boolean;
+  maxToolRounds?: number;
 }
 
 export interface ChatResponse {
@@ -222,6 +223,267 @@ export interface McpToolInfo extends Tool {
   toolName: string;
 }
 
+export interface SkillManifest {
+  id: string;
+  name: string;
+  description: string;
+  path: string;
+  source: 'project' | 'workspace' | 'bundled';
+  enabled: boolean;
+  trusted?: boolean;
+  updatedAt?: number;
+}
+
+export interface SkillDetail extends SkillManifest {
+  content: string;
+}
+
+export interface ScheduledTask {
+  id: string;
+  name: string;
+  prompt: string;
+  intervalMinutes: number;
+  enabled: boolean;
+  nextRunAt: number;
+  createdAt: number;
+  updatedAt: number;
+  retryPolicy?: AutomationRetryPolicy;
+  notificationPolicy?: AutomationNotificationPolicy;
+  missedRunPolicy?: AutomationMissedRunPolicy;
+  retryAttempts?: number;
+  lastRunAt?: number;
+  lastStatus?: 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+  lastResult?: string;
+}
+
+export interface AutomationRetryPolicy {
+  enabled: boolean;
+  maxRetries: number;
+  retryDelayMinutes: number;
+}
+
+export interface AutomationNotificationPolicy {
+  onSuccess: boolean;
+  onFailure: boolean;
+  channel: 'desktop' | 'remote' | 'none';
+}
+
+export type AutomationMissedRunPolicy = 'run-once' | 'skip';
+
+export interface AutomationRunRecord {
+  id: string;
+  taskId: string;
+  taskName: string;
+  status: 'running' | 'succeeded' | 'failed' | 'skipped';
+  startedAt: number;
+  completedAt?: number;
+  result?: string;
+  error?: string;
+  model?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+export interface AutomationApprovalRequest {
+  id: string;
+  type: 'file-write' | 'command' | 'tool';
+  title: string;
+  summary: string;
+  details: Record<string, any>;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  createdAt: number;
+  expiresAt: number;
+  resolvedAt?: number;
+  resolvedBy?: string;
+  reason?: string;
+}
+
+export interface RemoteControlState {
+  enabled: boolean;
+  mode: 'disabled' | 'local-network' | 'relay';
+  serverPort?: number;
+  serverUrl?: string;
+  localNetworkUrls?: string[];
+  pairingCode?: string;
+  pairingTokenHash?: string;
+  pairingExpiresAt?: number;
+  approvedDevices: Array<{
+    id: string;
+    name: string;
+    createdAt: number;
+    lastSeenAt?: number;
+  }>;
+  pendingApprovals: Array<{
+    id: string;
+    deviceName: string;
+    requestedAt: number;
+  }>;
+  pendingActions?: AutomationApprovalRequest[];
+  auditLog?: RemoteControlAuditEvent[];
+}
+
+export interface RemoteControlAuditEvent {
+  id: string;
+  type:
+    | 'pairing-created'
+    | 'device-paired'
+    | 'device-revoked'
+    | 'approval-approved'
+    | 'approval-rejected'
+    | 'server-started'
+    | 'server-stopped'
+    | 'settings-updated';
+  message: string;
+  createdAt: number;
+  deviceId?: string;
+  deviceName?: string;
+  approvalId?: string;
+}
+
+export interface VirtualTeamMember {
+  id: string;
+  name: string;
+  role: string;
+  goal: string;
+  model?: string;
+  tools: string[];
+}
+
+export type VirtualTeamPermissionMode = 'supervised' | 'full-access';
+
+export interface VirtualTeamBlueprint {
+  id: string;
+  name: string;
+  objective: string;
+  workspacePath?: string;
+  permissionMode?: VirtualTeamPermissionMode;
+  maxIterations?: number;
+  requireQaSignoff?: boolean;
+  supervisorId: string;
+  members: VirtualTeamMember[];
+  status: 'draft' | 'active' | 'paused' | 'completed';
+  createdAt: number;
+  updatedAt: number;
+  lastRunAt?: number;
+  lastStatus?: 'running' | 'succeeded' | 'failed';
+  lastResult?: string;
+}
+
+export interface VirtualTeamMilestone {
+  id: string;
+  title: string;
+  ownerRole: string;
+  memberId: string;
+  memberName: string;
+  iteration: number;
+  status: 'pending' | 'running' | 'succeeded' | 'failed';
+  createdAt: number;
+  startedAt?: number;
+  completedAt?: number;
+  summary?: string;
+}
+
+export interface VirtualTeamRunRecord {
+  id: string;
+  teamId: string;
+  teamName: string;
+  objective: string;
+  workspacePath?: string;
+  status: 'running' | 'succeeded' | 'failed';
+  startedAt: number;
+  completedAt?: number;
+  artifactPath?: string;
+  summary?: string;
+  error?: string;
+  milestones?: VirtualTeamMilestone[];
+  steps: Array<{
+    memberId: string;
+    memberName: string;
+    role: string;
+    iteration?: number;
+    status: 'running' | 'succeeded' | 'failed';
+    startedAt: number;
+    completedAt?: number;
+    output?: string;
+    error?: string;
+  }>;
+}
+
+export interface AutomationSchedulerStatus {
+  running: boolean;
+  intervalMs: number;
+  runningTaskIds: string[];
+}
+
+export interface AutomationProjectExport {
+  schemaVersion: 1;
+  exportedAt: number;
+  workspacePath: string;
+  skillPolicies: Record<string, { enabled: boolean; trusted?: boolean }>;
+  tasks: ScheduledTask[];
+  teams: VirtualTeamBlueprint[];
+  taskRuns?: AutomationRunRecord[];
+  teamRuns?: VirtualTeamRunRecord[];
+}
+
+export interface AutomationProjectImportResult {
+  ok: true;
+  imported: {
+    skillPolicies: number;
+    tasks: number;
+    teams: number;
+    taskRuns: number;
+    teamRuns: number;
+  };
+}
+
+export type LocalHistoryRecordType =
+  | 'chat-session'
+  | 'tool-event'
+  | 'automation-run'
+  | 'project-event';
+
+export interface LocalHistoryRecord {
+  schemaVersion: 1;
+  id: string;
+  type: LocalHistoryRecordType;
+  workspacePath?: string;
+  title?: string;
+  data: any;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface LocalHistoryRecordInput {
+  id?: string;
+  type: LocalHistoryRecordType;
+  workspacePath?: string;
+  title?: string;
+  data: any;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface LocalHistoryFilter {
+  type?: LocalHistoryRecordType;
+  workspacePath?: string;
+  limit?: number;
+}
+
+export interface LocalHistoryExport {
+  schemaVersion: 1;
+  exportedAt: number;
+  records: LocalHistoryRecord[];
+}
+
+export interface LocalHistoryStorageInfo {
+  storagePath: string;
+  recordCount: number;
+  updatedAt?: number;
+}
+
 export interface ElectronRendererApi {
   tools: {
     execute(toolName: string, args: Record<string, any>): Promise<ToolExecuteResponse>;
@@ -239,6 +501,41 @@ export interface ElectronRendererApi {
     listServers(): Promise<McpServerInfo[]>;
     listTools(): Promise<McpToolInfo[]>;
     refresh(): Promise<McpServerInfo[]>;
+  };
+  automation: {
+    listSkills(): Promise<SkillManifest[]>;
+    refreshSkills(): Promise<SkillManifest[]>;
+    getSkill(skillId: string): Promise<SkillDetail>;
+    setSkillEnabled(skillId: string, enabled: boolean): Promise<SkillManifest>;
+    listTasks(): Promise<ScheduledTask[]>;
+    listTaskRuns(taskId?: string): Promise<AutomationRunRecord[]>;
+    saveTask(task: Partial<ScheduledTask>): Promise<ScheduledTask>;
+    setTaskEnabled(taskId: string, enabled: boolean): Promise<ScheduledTask>;
+    deleteTask(taskId: string): Promise<{ ok: true; id: string }>;
+    runTask(taskId: string): Promise<ScheduledTask>;
+    getSchedulerStatus(): Promise<AutomationSchedulerStatus>;
+    getRemoteControl(): Promise<RemoteControlState>;
+    updateRemoteControl(update: Partial<RemoteControlState>): Promise<RemoteControlState>;
+    createRemotePairingCode(deviceName?: string): Promise<RemoteControlState>;
+    startRemoteControl(): Promise<RemoteControlState>;
+    stopRemoteControl(): Promise<RemoteControlState>;
+    listTeams(): Promise<VirtualTeamBlueprint[]>;
+    listTeamRuns(teamId?: string): Promise<VirtualTeamRunRecord[]>;
+    saveTeam(team: Partial<VirtualTeamBlueprint>): Promise<VirtualTeamBlueprint>;
+    deleteTeam(teamId: string): Promise<{ ok: true; id: string }>;
+    createDefaultTeam(objective?: string): Promise<VirtualTeamBlueprint>;
+    runTeam(teamId: string): Promise<VirtualTeamRunRecord>;
+    revokeRemoteDevice(deviceId: string): Promise<RemoteControlState>;
+    exportProjectState(options?: { includeRuns?: boolean }): Promise<AutomationProjectExport>;
+    importProjectState(bundle: Partial<AutomationProjectExport>): Promise<AutomationProjectImportResult>;
+  };
+  history: {
+    saveRecord(record: LocalHistoryRecordInput): Promise<LocalHistoryRecord>;
+    getRecord(id: string): Promise<LocalHistoryRecord>;
+    listRecords(filter?: LocalHistoryFilter): Promise<LocalHistoryRecord[]>;
+    deleteRecord(id: string): Promise<{ ok: true; id: string }>;
+    exportRecords(filter?: LocalHistoryFilter): Promise<LocalHistoryExport>;
+    getStorageInfo(): Promise<LocalHistoryStorageInfo>;
   };
   fs: {
     read(path: string, encoding?: string): Promise<string>;
@@ -311,6 +608,41 @@ export const ipcClient: ElectronRendererApi = {
     listServers: () => getApi().mcp.listServers(),
     listTools: () => getApi().mcp.listTools(),
     refresh: () => getApi().mcp.refresh(),
+  },
+  automation: {
+    listSkills: () => getApi().automation.listSkills(),
+    refreshSkills: () => getApi().automation.refreshSkills(),
+    getSkill: skillId => getApi().automation.getSkill(skillId),
+    setSkillEnabled: (skillId, enabled) => getApi().automation.setSkillEnabled(skillId, enabled),
+    listTasks: () => getApi().automation.listTasks(),
+    listTaskRuns: taskId => getApi().automation.listTaskRuns(taskId),
+    saveTask: task => getApi().automation.saveTask(task),
+    setTaskEnabled: (taskId, enabled) => getApi().automation.setTaskEnabled(taskId, enabled),
+    deleteTask: taskId => getApi().automation.deleteTask(taskId),
+    runTask: taskId => getApi().automation.runTask(taskId),
+    getSchedulerStatus: () => getApi().automation.getSchedulerStatus(),
+    getRemoteControl: () => getApi().automation.getRemoteControl(),
+    updateRemoteControl: update => getApi().automation.updateRemoteControl(update),
+    createRemotePairingCode: deviceName => getApi().automation.createRemotePairingCode(deviceName),
+    startRemoteControl: () => getApi().automation.startRemoteControl(),
+    stopRemoteControl: () => getApi().automation.stopRemoteControl(),
+    listTeams: () => getApi().automation.listTeams(),
+    listTeamRuns: teamId => getApi().automation.listTeamRuns(teamId),
+    saveTeam: team => getApi().automation.saveTeam(team),
+    deleteTeam: teamId => getApi().automation.deleteTeam(teamId),
+    createDefaultTeam: objective => getApi().automation.createDefaultTeam(objective),
+    runTeam: teamId => getApi().automation.runTeam(teamId),
+    revokeRemoteDevice: deviceId => getApi().automation.revokeRemoteDevice(deviceId),
+    exportProjectState: options => getApi().automation.exportProjectState(options),
+    importProjectState: bundle => getApi().automation.importProjectState(bundle),
+  },
+  history: {
+    saveRecord: record => getApi().history.saveRecord(record),
+    getRecord: id => getApi().history.getRecord(id),
+    listRecords: filter => getApi().history.listRecords(filter),
+    deleteRecord: id => getApi().history.deleteRecord(id),
+    exportRecords: filter => getApi().history.exportRecords(filter),
+    getStorageInfo: () => getApi().history.getStorageInfo(),
   },
   fs: {
     read: (path, encoding) => getApi().fs.read(path, encoding),

@@ -4,7 +4,7 @@
  * Central export for all service bridges
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FinanceServiceBridge = exports.WebServiceBridge = exports.CommandServiceBridge = exports.McpServiceBridge = exports.AppStateServiceBridge = exports.AuthServiceBridge = exports.FileSystemServiceBridge = exports.ApiServiceBridge = exports.ToolServiceBridge = void 0;
+exports.LocalHistoryServiceBridge = exports.AutomationServiceBridge = exports.FinanceServiceBridge = exports.WebServiceBridge = exports.CommandServiceBridge = exports.McpServiceBridge = exports.AppStateServiceBridge = exports.AuthServiceBridge = exports.FileSystemServiceBridge = exports.ApiServiceBridge = exports.ToolServiceBridge = void 0;
 var tool_service_bridge_1 = require("./tool-service-bridge");
 Object.defineProperty(exports, "ToolServiceBridge", { enumerable: true, get: function () { return tool_service_bridge_1.ToolServiceBridge; } });
 var api_service_bridge_1 = require("./api-service-bridge");
@@ -23,4 +23,8 @@ var web_service_bridge_1 = require("./web-service-bridge");
 Object.defineProperty(exports, "WebServiceBridge", { enumerable: true, get: function () { return web_service_bridge_1.WebServiceBridge; } });
 var finance_service_bridge_1 = require("./finance-service-bridge");
 Object.defineProperty(exports, "FinanceServiceBridge", { enumerable: true, get: function () { return finance_service_bridge_1.FinanceServiceBridge; } });
+var automation_service_bridge_1 = require("./automation-service-bridge");
+Object.defineProperty(exports, "AutomationServiceBridge", { enumerable: true, get: function () { return automation_service_bridge_1.AutomationServiceBridge; } });
+var local_history_service_bridge_1 = require("./local-history-service-bridge");
+Object.defineProperty(exports, "LocalHistoryServiceBridge", { enumerable: true, get: function () { return local_history_service_bridge_1.LocalHistoryServiceBridge; } });
 //# sourceMappingURL=index.js.map

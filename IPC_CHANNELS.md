@@ -144,7 +144,7 @@ const response = await window.api.api.chat({
   messages: [
     { role: 'user', content: 'Hello, how are you?' }
   ],
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'codeAgent-3-5-sonnet-20241022',
   temperature: 0.7
 });
 console.log(response.content);

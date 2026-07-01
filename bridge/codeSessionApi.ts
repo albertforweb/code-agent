@@ -13,13 +13,13 @@ import { errorMessage } from '../utils/errors.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { extractErrorDetail } from './debugUtils.js'
 
-const ANTHROPIC_VERSION = '2023-06-01'
+const LLM_PROVIDER_VERSION = '2023-06-01'
 
 function oauthHeaders(accessToken: string): Record<string, string> {
   return {
     Authorization: `Bearer ${accessToken}`,
     'Content-Type': 'application/json',
-    'anthropic-version': ANTHROPIC_VERSION,
+    'llmProvider-version': LLM_PROVIDER_VERSION,
   }
 }
 

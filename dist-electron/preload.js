@@ -28,6 +28,37 @@ const IPC_CHANNELS = {
     'mcp:listServers': 'mcp:listServers',
     'mcp:listTools': 'mcp:listTools',
     'mcp:refresh': 'mcp:refresh',
+    'automation:listSkills': 'automation:listSkills',
+    'automation:refreshSkills': 'automation:refreshSkills',
+    'automation:getSkill': 'automation:getSkill',
+    'automation:setSkillEnabled': 'automation:setSkillEnabled',
+    'automation:listTasks': 'automation:listTasks',
+    'automation:listTaskRuns': 'automation:listTaskRuns',
+    'automation:saveTask': 'automation:saveTask',
+    'automation:setTaskEnabled': 'automation:setTaskEnabled',
+    'automation:deleteTask': 'automation:deleteTask',
+    'automation:runTask': 'automation:runTask',
+    'automation:getSchedulerStatus': 'automation:getSchedulerStatus',
+    'automation:getRemoteControl': 'automation:getRemoteControl',
+    'automation:updateRemoteControl': 'automation:updateRemoteControl',
+    'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
+    'automation:startRemoteControl': 'automation:startRemoteControl',
+    'automation:stopRemoteControl': 'automation:stopRemoteControl',
+    'automation:listTeams': 'automation:listTeams',
+    'automation:listTeamRuns': 'automation:listTeamRuns',
+    'automation:saveTeam': 'automation:saveTeam',
+    'automation:deleteTeam': 'automation:deleteTeam',
+    'automation:createDefaultTeam': 'automation:createDefaultTeam',
+    'automation:runTeam': 'automation:runTeam',
+    'automation:revokeRemoteDevice': 'automation:revokeRemoteDevice',
+    'automation:exportProjectState': 'automation:exportProjectState',
+    'automation:importProjectState': 'automation:importProjectState',
+    'history:saveRecord': 'history:saveRecord',
+    'history:getRecord': 'history:getRecord',
+    'history:listRecords': 'history:listRecords',
+    'history:deleteRecord': 'history:deleteRecord',
+    'history:exportRecords': 'history:exportRecords',
+    'history:getStorageInfo': 'history:getStorageInfo',
     'fs:read': 'fs:read',
     'fs:write': 'fs:write',
     'fs:list': 'fs:list',
@@ -100,6 +131,109 @@ const api = {
         },
         refresh: () => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['mcp:refresh']);
+        },
+    },
+    // ============================================================================
+    // AUTOMATION API
+    // ============================================================================
+    automation: {
+        listSkills: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listSkills']);
+        },
+        refreshSkills: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:refreshSkills']);
+        },
+        getSkill: (skillId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:getSkill'], skillId);
+        },
+        setSkillEnabled: (skillId, enabled) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:setSkillEnabled'], { skillId, enabled });
+        },
+        listTasks: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listTasks']);
+        },
+        listTaskRuns: (taskId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listTaskRuns'], taskId);
+        },
+        saveTask: (task) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:saveTask'], task);
+        },
+        setTaskEnabled: (taskId, enabled) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:setTaskEnabled'], { taskId, enabled });
+        },
+        deleteTask: (taskId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:deleteTask'], taskId);
+        },
+        runTask: (taskId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:runTask'], taskId);
+        },
+        getSchedulerStatus: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:getSchedulerStatus']);
+        },
+        getRemoteControl: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:getRemoteControl']);
+        },
+        updateRemoteControl: (update) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:updateRemoteControl'], update);
+        },
+        createRemotePairingCode: (deviceName) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:createRemotePairingCode'], deviceName);
+        },
+        startRemoteControl: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:startRemoteControl']);
+        },
+        stopRemoteControl: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:stopRemoteControl']);
+        },
+        listTeams: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listTeams']);
+        },
+        listTeamRuns: (teamId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listTeamRuns'], teamId);
+        },
+        saveTeam: (team) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:saveTeam'], team);
+        },
+        deleteTeam: (teamId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:deleteTeam'], teamId);
+        },
+        createDefaultTeam: (objective) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:createDefaultTeam'], objective);
+        },
+        runTeam: (teamId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:runTeam'], teamId);
+        },
+        revokeRemoteDevice: (deviceId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:revokeRemoteDevice'], deviceId);
+        },
+        exportProjectState: (options) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:exportProjectState'], options);
+        },
+        importProjectState: (bundle) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:importProjectState'], bundle);
+        },
+    },
+    // ============================================================================
+    // LOCAL HISTORY API
+    // ============================================================================
+    history: {
+        saveRecord: (record) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:saveRecord'], record);
+        },
+        getRecord: (id) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:getRecord'], id);
+        },
+        listRecords: (filter) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:listRecords'], filter);
+        },
+        deleteRecord: (id) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:deleteRecord'], id);
+        },
+        exportRecords: (filter) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:exportRecords'], filter);
+        },
+        getStorageInfo: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['history:getStorageInfo']);
         },
     },
     // ============================================================================

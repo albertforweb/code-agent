@@ -3,7 +3,12 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { fileSuffixForOauthConfig } from '../constants/oauth.js'
 import { isRunningWithBun } from './bundledMode.js'
-import { getClaudeConfigHomeDir, isEnvTruthy } from './envUtils.js'
+import {
+  CODEAGENT_CONFIG_DIR_ENV,
+  getCodeAgentConfigHomeDir,
+  LEGACY_CONFIG_DIR_ENV,
+  isEnvTruthy,
+} from './envUtils.js'
 import { findExecutable } from './findExecutable.js'
 import { getFsImplementation } from './fsOperations.js'
 import { which } from './which.js'
@@ -11,18 +16,32 @@ import { which } from './which.js'
 type Platform = 'win32' | 'darwin' | 'linux'
 
 // Config and data paths
-export const getGlobalClaudeFile = memoize((): string => {
-  // Legacy fallback for backwards compatibility
-  if (
-    getFsImplementation().existsSync(
-      join(getClaudeConfigHomeDir(), '.config.json'),
-    )
-  ) {
-    return join(getClaudeConfigHomeDir(), '.config.json')
+export const getGlobalCodeAgentFile = memoize((): string => {
+  const fs = getFsImplementation()
+  const localConfigPath = join(getCodeAgentConfigHomeDir(), '.config.json')
+  if (fs.existsSync(localConfigPath)) {
+    return localConfigPath
   }
 
-  const filename = `.claude${fileSuffixForOauthConfig()}.json`
-  return join(process.env.CLAUDE_CONFIG_DIR || homedir(), filename)
+  const suffix = fileSuffixForOauthConfig()
+  const baseDir =
+    process.env[CODEAGENT_CONFIG_DIR_ENV] ??
+    process.env[LEGACY_CONFIG_DIR_ENV] ??
+    homedir()
+  const codeAgentGlobalPath = join(baseDir, `.code-agent${suffix}.json`)
+  if (fs.existsSync(codeAgentGlobalPath)) {
+    return codeAgentGlobalPath
+  }
+
+  const legacyGlobalPath = join(
+    process.env[LEGACY_CONFIG_DIR_ENV] ?? homedir(),
+    `.codeAgent${suffix}.json`,
+  )
+  if (fs.existsSync(legacyGlobalPath)) {
+    return legacyGlobalPath
+  }
+
+  return codeAgentGlobalPath
 })
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {
@@ -334,12 +353,12 @@ export const env = {
 
 /**
  * Returns the host platform for analytics reporting.
- * If CLAUDE_CODE_HOST_PLATFORM is set to a valid platform value, that overrides
+ * If CODE_AGENT_HOST_PLATFORM is set to a valid platform value, that overrides
  * the detected platform. This is useful for container/remote environments where
  * process.platform reports the container OS but the actual host platform differs.
  */
 export function getHostPlatformForAnalytics(): Platform {
-  const override = process.env.CLAUDE_CODE_HOST_PLATFORM
+  const override = process.env.CODE_AGENT_HOST_PLATFORM
   if (override === 'win32' || override === 'darwin' || override === 'linux') {
     return override
   }

@@ -2,12 +2,12 @@
 
 ## What You're Working With
 
-This is the **Claude Code CLI source code that was leaked from npm**. It has some important characteristics:
+This is a **legacy CLI codebase being refactored into CodeAgent**. It has some important characteristics:
 
 ### 🎯 Original Design
 - **Runtime**: Bun (not Node.js)
 - **Build Tool**: Bun's bundler
-- **Target**: Internal Anthropic tool
+- **Target**: Internal LlmProvider tool
 - **Features**: 40+ tools, assistant AI system, pet system, etc.
 
 ### 🚨 Key Challenge
@@ -15,15 +15,15 @@ This is the **Claude Code CLI source code that was leaked from npm**. It has som
 The code has **2,770+ TypeScript errors** because:
 
 1. ❌ **Bun-specific imports** - `bun:bundle`, `Bun.*` APIs
-2. ❌ **Missing internal modules** - Internal Anthropic files that don't exist in the repo
-3. ❌ **Internal dependencies** - References to `@anthropic-ai/sdk` internals
+2. ❌ **Missing internal modules** - Internal LlmProvider files that don't exist in the repo
+3. ❌ **Internal dependencies** - Legacy references to external SDK internals
 4. ❌ **Runtime mismatches** - Code expects Bun but we're using Node.js TypeScript
 
 ### 📦 What's In The Repo
 
 ✅ **1,900+ TypeScript files** (full source code)
 ✅ **512,000+ lines of code** (entire codebase)
-❌ **Missing internal types/modules** (internal to Anthropic)
+❌ **Missing internal types/modules** (internal to LlmProvider)
 ❌ **Bun runtime specific** (not Node.js compatible)
 
 ## The Reality
@@ -31,7 +31,7 @@ The code has **2,770+ TypeScript errors** because:
 This codebase **cannot compile to working Node.js JavaScript** because:
 
 1. It uses Bun-specific APIs and modules
-2. Many internal Anthropic modules are missing
+2. Many internal LlmProvider modules are missing
 3. The SDK it depends on has internal exports that changed
 4. It has compile-time feature flags (Bun-specific)
 
@@ -58,7 +58,7 @@ Bun would understand all the Bun-specific imports and APIs.
 - Read the TypeScript files directly
 - Understand the architecture
 - Learn from the implementation
-- This is what most people do with this leaked source
+- This is what most people do with a legacy source drop
 
 ## Recommended Path
 
@@ -105,7 +105,7 @@ node dist/main.js  # Probably won't work properly
 ```bash
 # Just read the TypeScript files
 # Learn the architecture
-# Understand Claude Code internals
+# Understand CodeAgent internals
 # No build needed!
 ```
 
@@ -125,7 +125,7 @@ node dist/main.js  # Probably won't work properly
 
 ## The Bottom Line
 
-You have the **complete leaked source code** for Claude Code. It's a Bun project, so trying to build it with Node.js TypeScript is like trying to run a macOS app on Windows - the fundamentals don't match.
+You have the **legacy source tree** that CodeAgent is being built from. It's a Bun project, so trying to build it with Node.js TypeScript is like trying to run a macOS app on Windows - the fundamentals don't match.
 
 **Recommended approach**: Install Bun and build properly, or just read the TypeScript code for learning purposes.
 

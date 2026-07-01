@@ -1,18 +1,18 @@
 import { formatTotalCost } from '../../cost-tracker.js'
-import { currentLimits } from '../../services/claudeAiLimits.js'
+import { currentLimits } from '../../services/accountLimits.js'
 import type { LocalCommandCall } from '../../types/command.js'
-import { isClaudeAISubscriber } from '../../utils/auth.js'
+import { isSubscriptionAuthSubscriber } from '../../utils/auth.js'
 
 export const call: LocalCommandCall = async () => {
-  if (isClaudeAISubscriber()) {
+  if (isSubscriptionAuthSubscriber()) {
     let value: string
 
     if (currentLimits.isUsingOverage) {
       value =
-        'You are currently using your overages to power your Claude Code usage. We will automatically switch you back to your subscription rate limits when they reset'
+        'You are currently using your overages to power your CodeAgent usage. We will automatically switch you back to your subscription rate limits when they reset'
     } else {
       value =
-        'You are currently using your subscription to power your Claude Code usage'
+        'You are currently using your subscription to power your CodeAgent usage'
     }
 
     if (process.env.USER_TYPE === 'ant') {

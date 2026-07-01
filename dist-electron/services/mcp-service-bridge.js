@@ -120,8 +120,6 @@ class McpServiceBridge {
     async loadConfiguredServers() {
         const configFiles = [
             { filePath: path.join(this.basePath, '.mcp.json'), scope: 'project' },
-            { filePath: path.join(this.basePath, '.claude', 'settings.json'), scope: 'project' },
-            { filePath: path.join(os.homedir(), '.claude.json'), scope: 'user' },
         ];
         const servers = [];
         const configs = new Map();

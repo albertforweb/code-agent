@@ -1,9 +1,11 @@
-export const PRODUCT_URL = 'https://claude.com/claude-code'
+export const PRODUCT_URL = 'https://github.com/albertforweb/code-agent'
 
-// Claude Code Remote session URLs
-export const CLAUDE_AI_BASE_URL = 'https://claude.ai'
-export const CLAUDE_AI_STAGING_BASE_URL = 'https://claude-ai.staging.ant.dev'
-export const CLAUDE_AI_LOCAL_BASE_URL = 'http://localhost:4000'
+// Legacy hosted remote-session URLs. CodeAgent's supported remote-control path
+// is the local Automation Remote Control feature; these constants remain only
+// for compatibility with inherited CLI flows until those flows are rehomed.
+export const SUBSCRIPTION_BASE_URL = 'https://codeAgent.ai'
+export const SUBSCRIPTION_STAGING_BASE_URL = 'https://codeAgent-ai.staging.ant.dev'
+export const SUBSCRIPTION_LOCAL_BASE_URL = 'http://localhost:4000'
 
 /**
  * Determine if we're in a staging environment for remote sessions.
@@ -34,19 +36,19 @@ export function isRemoteSessionLocal(
 }
 
 /**
- * Get the base URL for Claude AI based on environment.
+ * Get the base URL for the legacy hosted remote-session service.
  */
-export function getClaudeAiBaseUrl(
+export function getSubscriptionBaseUrl(
   sessionId?: string,
   ingressUrl?: string,
 ): string {
   if (isRemoteSessionLocal(sessionId, ingressUrl)) {
-    return CLAUDE_AI_LOCAL_BASE_URL
+    return SUBSCRIPTION_LOCAL_BASE_URL
   }
   if (isRemoteSessionStaging(sessionId, ingressUrl)) {
-    return CLAUDE_AI_STAGING_BASE_URL
+    return SUBSCRIPTION_STAGING_BASE_URL
   }
-  return CLAUDE_AI_BASE_URL
+  return SUBSCRIPTION_BASE_URL
 }
 
 /**
@@ -54,7 +56,7 @@ export function getClaudeAiBaseUrl(
  *
  * The cse_→session_ translation is a temporary shim gated by
  * tengu_bridge_repl_v2_cse_shim_enabled (see isCseShimEnabled). Worker
- * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the claude.ai
+ * endpoints (/v1/code/sessions/{id}/worker/*) want `cse_*` but the codeAgent.ai
  * frontend currently routes on `session_*` (compat/convert.go:27 validates
  * TagSession). Same UUID body, different tag prefix. Once the server tags by
  * environment_kind and the frontend accepts `cse_*` directly, flip the gate
@@ -71,6 +73,6 @@ export function getRemoteSessionUrl(
     require('../bridge/sessionIdCompat.js') as typeof import('../bridge/sessionIdCompat.js')
   /* eslint-enable @typescript-eslint/no-require-imports */
   const compatId = toCompatSessionId(sessionId)
-  const baseUrl = getClaudeAiBaseUrl(compatId, ingressUrl)
+  const baseUrl = getSubscriptionBaseUrl(compatId, ingressUrl)
   return `${baseUrl}/code/${compatId}`
 }

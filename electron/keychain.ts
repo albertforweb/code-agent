@@ -10,11 +10,10 @@ interface KeytarLike {
   deletePassword(service: string, account: string): Promise<boolean>;
 }
 
-const PROVIDERS: LlmProviderType[] = ['anthropic', 'openai', 'openai-compatible'];
+const PROVIDERS: LlmProviderType[] = ['openai', 'openai-compatible'];
 
 export class KeychainService {
   private readonly serviceName = 'code-agent';
-  private readonly legacyAnthropicKey = 'anthropic-api-key';
   private readonly keytar: KeytarLike | null;
 
   constructor(keytar?: KeytarLike | null) {
@@ -33,10 +32,6 @@ export class KeychainService {
     const token = await this.keytar.getPassword(this.serviceName, this.getProviderKey(provider));
     if (token) {
       return token;
-    }
-
-    if (provider === 'anthropic') {
-      return this.keytar.getPassword(this.serviceName, this.legacyAnthropicKey);
     }
 
     return null;
@@ -58,9 +53,6 @@ export class KeychainService {
     const providers = provider ? [provider] : PROVIDERS;
     for (const providerName of providers) {
       await this.keytar.deletePassword(this.serviceName, this.getProviderKey(providerName));
-      if (providerName === 'anthropic') {
-        await this.keytar.deletePassword(this.serviceName, this.legacyAnthropicKey);
-      }
     }
   }
 

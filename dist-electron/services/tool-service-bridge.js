@@ -96,10 +96,11 @@ class ToolServiceBridge {
             }
             this.onStart(toolId, toolName, args);
             const permissionMode = await this.permissionPolicyProvider(tool, args, context);
+            context.permissionMode = permissionMode;
             if (permissionMode === 'deny') {
                 throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
             }
-            if (permissionMode === 'ask') {
+            if (permissionMode === 'ask' && !tool.customReview) {
                 await this.permissionReviewHandler(tool, args, context);
             }
             const result = await this._executeToolInternal(tool, args, context);

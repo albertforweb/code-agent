@@ -43,7 +43,7 @@ WHAT I KNOW FOR CERTAIN (from code analysis):
    ✓ Contains node_modules/bun imports
 
 4. EXPECTED EXECUTION OUTPUT:
-   node dist/main.js --help should show Claude CLI help text
+   node dist/main.js --help should show CodeAgent CLI help text
 
 WHAT I CANNOT VERIFY (due to environment limitations):
 ======================================================

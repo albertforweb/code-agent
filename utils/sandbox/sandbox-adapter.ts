@@ -1,6 +1,6 @@
 /**
- * Adapter layer that wraps @anthropic-ai/sandbox-runtime with Claude CLI-specific integrations.
- * This file provides the bridge between the external sandbox-runtime package and Claude CLI's
+ * Adapter layer that wraps src/utils/sandbox/runtime.js with CodeAgent integrations.
+ * This file provides the bridge between the local sandbox runtime and CodeAgent's
  * settings system, tool integration, and additional features.
  */
 
@@ -14,18 +14,18 @@ import type {
   SandboxDependencyCheck,
   SandboxRuntimeConfig,
   SandboxViolationEvent,
-} from '@anthropic-ai/sandbox-runtime'
+} from 'src/utils/sandbox/runtime.js'
 import {
   SandboxManager as BaseSandboxManager,
   SandboxRuntimeConfigSchema,
   SandboxViolationStore,
-} from '@anthropic-ai/sandbox-runtime'
+} from 'src/utils/sandbox/runtime.js'
 import { rmSync, statSync } from 'fs'
 import { readFile } from 'fs/promises'
 import { memoize } from 'lodash-es'
 import { join, resolve, sep } from 'path'
 import {
-  getAdditionalDirectoriesForClaudeMd,
+  getAdditionalDirectoriesForMemory,
   getCwdState,
   getOriginalCwd,
 } from '../../bootstrap/state.js'
@@ -54,7 +54,7 @@ import { FILE_EDIT_TOOL_NAME } from 'src/tools/FileEditTool/constants.js'
 import { FILE_READ_TOOL_NAME } from 'src/tools/FileReadTool/prompt.js'
 import { WEB_FETCH_TOOL_NAME } from 'src/tools/WebFetchTool/prompt.js'
 import { errorMessage } from '../errors.js'
-import { getClaudeTempDir } from '../permissions/filesystem.js'
+import { getCodeAgentTempDir } from '../permissions/filesystem.js'
 import type { PermissionRuleValue } from '../permissions/PermissionRule.js'
 import { ripgrepCommand } from '../ripgrep.js'
 
@@ -81,17 +81,17 @@ function permissionRuleExtractPrefix(permissionRule: string): string | null {
 }
 
 /**
- * Resolve Claude Code-specific path patterns for sandbox-runtime.
+ * Resolve CodeAgent-specific path patterns for the local sandbox runtime.
  *
- * Claude Code uses special path prefixes in permission rules:
+ * CodeAgent uses special path prefixes in permission rules:
  * - `//path` → absolute from filesystem root (becomes `/path`)
  * - `/path` → relative to settings file directory (becomes `$SETTINGS_DIR/path`)
- * - `~/path` → passed through (sandbox-runtime handles this)
- * - `./path` or `path` → passed through (sandbox-runtime handles this)
+ * - `~/path` → passed through (the local runtime handles this)
+ * - `./path` or `path` → passed through (the local runtime handles this)
  *
  * This function only handles CC-specific conventions (`//` and `/`).
  * Standard path patterns like `~/` and relative paths are passed through
- * for sandbox-runtime's normalizePathForSandbox to handle.
+ * for runtime path normalization to handle.
  *
  * @param pattern The path pattern from a permission rule
  * @param source The settings source this pattern came from (needed to resolve `/path` patterns)
@@ -106,7 +106,7 @@ export function resolvePathPatternForSandbox(
   }
 
   // Handle / prefix - relative to settings file directory (CC-specific convention)
-  // Note: ~/path and relative paths are passed through for sandbox-runtime to handle
+  // Note: ~/path and relative paths are passed through for runtime normalization
   if (pattern.startsWith('/') && !pattern.startsWith('//')) {
     const root = getSettingsRootPathForSource(source)
     // Pattern like "/foo/**" becomes "${root}/foo/**"
@@ -114,7 +114,7 @@ export function resolvePathPatternForSandbox(
   }
 
   // Other patterns (~/path, ./path, path) pass through as-is
-  // sandbox-runtime's normalizePathForSandbox will handle them
+  // runtime path normalization will handle them
   return pattern
 }
 
@@ -131,8 +131,8 @@ export function resolvePathPatternForSandbox(
  * settings-relative (permission-rule convention). Users reasonably expect
  * absolute paths in sandbox.filesystem.allowWrite to work as-is.
  *
- * Also expands `~` here rather than relying on sandbox-runtime, because
- * sandbox-runtime's getFsWriteConfig() does not call normalizePathForSandbox
+ * Also expands `~` here rather than relying on the local runtime, because
+ * getFsWriteConfig() does not call runtime path normalization
  * on allowWrite paths (it only strips trailing glob suffixes).
  */
 export function resolveSandboxFilesystemPath(
@@ -164,7 +164,7 @@ function shouldAllowManagedReadPathsOnly(): boolean {
 }
 
 /**
- * Convert Claude Code settings format to SandboxRuntimeConfig format
+ * Convert CodeAgent settings format to SandboxRuntimeConfig format
  * (Function exported for testing)
  *
  * @param settings Merged settings (used for sandbox config like network, ripgrep, etc.)
@@ -220,15 +220,15 @@ export function convertToSandboxRuntimeConfig(
   }
 
   // Extract filesystem paths from Edit and Read rules
-  // Always include current directory and Claude temp directory as writable
+  // Always include current directory and CodeAgent temp directory as writable
   // The temp directory is needed for Shell.ts cwd tracking files
-  const allowWrite: string[] = ['.', getClaudeTempDir()]
+  const allowWrite: string[] = ['.', getCodeAgentTempDir()]
   const denyWrite: string[] = []
   const denyRead: string[] = []
   const allowRead: string[] = []
 
   // Always deny writes to settings.json files to prevent sandbox escape
-  // This blocks settings in the original working directory (where Claude Code started)
+  // This blocks settings in the original working directory (where CodeAgent started)
   const settingsPaths = SETTING_SOURCES.map(source =>
     getSettingsFilePathForSource(source),
   ).filter((p): p is string => p !== undefined)
@@ -240,25 +240,25 @@ export function convertToSandboxRuntimeConfig(
   const cwd = getCwdState()
   const originalCwd = getOriginalCwd()
   if (cwd !== originalCwd) {
-    denyWrite.push(resolve(cwd, '.claude', 'settings.json'))
-    denyWrite.push(resolve(cwd, '.claude', 'settings.local.json'))
+    denyWrite.push(resolve(cwd, '.codeAgent', 'settings.json'))
+    denyWrite.push(resolve(cwd, '.codeAgent', 'settings.local.json'))
   }
 
-  // Block writes to .claude/skills in both original and current working directories.
-  // The sandbox-runtime's getDangerousDirectories() protects .claude/commands and
-  // .claude/agents but not .claude/skills. Skills have the same privilege level
-  // (auto-discovered, auto-loaded, full Claude capabilities) so they need the
+  // Block writes to .codeAgent/skills in both original and current working directories.
+  // The runtime's dangerous-directory defaults protect .codeAgent/commands and
+  // .codeAgent/agents but not .codeAgent/skills. Skills have the same privilege level
+  // (auto-discovered, auto-loaded, full agent capabilities) so they need the
   // same OS-level sandbox protection.
-  denyWrite.push(resolve(originalCwd, '.claude', 'skills'))
+  denyWrite.push(resolve(originalCwd, '.codeAgent', 'skills'))
   if (cwd !== originalCwd) {
-    denyWrite.push(resolve(cwd, '.claude', 'skills'))
+    denyWrite.push(resolve(cwd, '.codeAgent', 'skills'))
   }
 
   // SECURITY: Git's is_git_directory() treats cwd as a bare repo if it has
   // HEAD + objects/ + refs/. An attacker planting these (plus a config with
-  // core.fsmonitor) escapes the sandbox when Claude's unsandboxed git runs.
+  // core.fsmonitor) escapes the sandbox when unsandboxed git runs.
   //
-  // Unconditionally denying these paths makes sandbox-runtime mount
+  // Unconditionally denying these paths makes the runtime mount
   // /dev/null at non-existent ones, which (a) leaves a 0-byte HEAD stub on
   // the host and (b) breaks `git log HEAD` inside bwrap ("ambiguous argument").
   // So: if a file exists, denyWrite (ro-bind in place, no stub). If not, scrub
@@ -294,7 +294,7 @@ export function convertToSandboxRuntimeConfig(
   // Two sources: persisted in settings, and session-only in bootstrap state.
   const additionalDirs = new Set([
     ...(settings.permissions?.additionalDirectories || []),
-    ...getAdditionalDirectoriesForClaudeMd(),
+    ...getAdditionalDirectoriesForMemory(),
   ])
   allowWrite.push(...additionalDirs)
 
@@ -348,7 +348,7 @@ export function convertToSandboxRuntimeConfig(
     }
   }
   // Ripgrep config for sandbox. User settings take priority; otherwise pass our rg.
-  // In embedded mode (argv0='rg' dispatch), sandbox-runtime spawns with argv0 set.
+  // In embedded mode (argv0='rg' dispatch), the runtime spawns with argv0 set.
   const { rgPath, rgArgs, argv0 } = ripgrepCommand()
   const ripgrepConfig = settings.sandbox?.ripgrep ?? {
     command: rgPath,
@@ -381,7 +381,7 @@ export function convertToSandboxRuntimeConfig(
 }
 
 // ============================================================================
-// Claude CLI-specific state
+// CodeAgent CLI-specific state
 // ============================================================================
 
 let initializationPromise: Promise<void> | undefined
@@ -393,13 +393,13 @@ let settingsSubscriptionCleanup: (() => void) | undefined
 let worktreeMainRepoPath: string | null | undefined
 
 // Bare-repo files at cwd that didn't exist at config time and should be
-// scrubbed if they appear after a sandboxed command. See anthropics/claude-code#29316.
+// scrubbed if they appear after a sandboxed command. See upstream issue #29316.
 const bareGitRepoScrubPaths: string[] = []
 
 /**
  * Delete bare-repo files planted at cwd during a sandboxed command, before
- * Claude's unsandboxed git calls can see them. See the SECURITY block above
- * bareGitRepoFiles. anthropics/claude-code#29316.
+ * CodeAgent's unsandboxed git calls can see them. See the SECURITY block above
+ * bareGitRepoFiles. upstream issue #29316.
  */
 function scrubBareGitRepoFiles(): void {
   for (const p of bareGitRepoScrubPaths) {
@@ -823,7 +823,7 @@ async function reset(): Promise<void> {
 
 /**
  * Add a command to the excluded commands list (commands that should not be sandboxed)
- * This is a Claude CLI-specific function that updates local settings.
+ * This is a CodeAgent CLI-specific function that updates local settings.
  */
 export function addToExcludedCommands(
   command: string,
@@ -922,7 +922,7 @@ export interface ISandboxManager {
 }
 
 /**
- * Claude CLI sandbox manager - wraps sandbox-runtime with Claude-specific features
+ * CodeAgent sandbox manager - wraps the local runtime with CodeAgent features
  */
 export const SandboxManager: ISandboxManager = {
   // Custom implementations
@@ -967,7 +967,7 @@ export const SandboxManager: ISandboxManager = {
 }
 
 // ============================================================================
-// Re-export types from sandbox-runtime
+// Re-export local sandbox runtime types
 // ============================================================================
 
 export type {

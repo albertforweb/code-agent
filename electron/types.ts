@@ -132,7 +132,7 @@ export interface ChatMessage {
   content: string;
 }
 
-export type LlmProviderType = 'anthropic' | 'openai' | 'openai-compatible';
+export type LlmProviderType = 'openai' | 'openai-compatible';
 
 export interface ChatRequest {
   messages: ChatMessage[];
@@ -143,6 +143,7 @@ export interface ChatRequest {
   temperature?: number;
   contextTokens?: number;
   enableTools?: boolean;
+  maxToolRounds?: number;
 }
 
 export interface ChatResponse {
@@ -274,6 +275,275 @@ export interface AppStateChangedMessage {
 }
 
 // ============================================================================
+// AUTOMATION CHANNELS
+// ============================================================================
+
+export interface SkillManifest {
+  id: string;
+  name: string;
+  description: string;
+  path: string;
+  source: 'project' | 'workspace' | 'bundled';
+  enabled: boolean;
+  trusted?: boolean;
+  updatedAt?: number;
+}
+
+export interface SkillDetail extends SkillManifest {
+  content: string;
+}
+
+export interface ScheduledTask {
+  id: string;
+  name: string;
+  prompt: string;
+  intervalMinutes: number;
+  enabled: boolean;
+  nextRunAt: number;
+  createdAt: number;
+  updatedAt: number;
+  retryPolicy?: AutomationRetryPolicy;
+  notificationPolicy?: AutomationNotificationPolicy;
+  missedRunPolicy?: AutomationMissedRunPolicy;
+  retryAttempts?: number;
+  lastRunAt?: number;
+  lastStatus?: 'pending' | 'running' | 'succeeded' | 'failed' | 'skipped';
+  lastResult?: string;
+}
+
+export interface AutomationRetryPolicy {
+  enabled: boolean;
+  maxRetries: number;
+  retryDelayMinutes: number;
+}
+
+export interface AutomationNotificationPolicy {
+  onSuccess: boolean;
+  onFailure: boolean;
+  channel: 'desktop' | 'remote' | 'none';
+}
+
+export type AutomationMissedRunPolicy = 'run-once' | 'skip';
+
+export interface AutomationRunRecord {
+  id: string;
+  taskId: string;
+  taskName: string;
+  status: 'running' | 'succeeded' | 'failed' | 'skipped';
+  startedAt: number;
+  completedAt?: number;
+  result?: string;
+  error?: string;
+  model?: string;
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
+export interface AutomationApprovalRequest {
+  id: string;
+  type: 'file-write' | 'command' | 'tool';
+  title: string;
+  summary: string;
+  details: Record<string, any>;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  createdAt: number;
+  expiresAt: number;
+  resolvedAt?: number;
+  resolvedBy?: string;
+  reason?: string;
+}
+
+export interface RemoteControlState {
+  enabled: boolean;
+  mode: 'disabled' | 'local-network' | 'relay';
+  serverPort?: number;
+  serverUrl?: string;
+  localNetworkUrls?: string[];
+  pairingCode?: string;
+  pairingTokenHash?: string;
+  pairingExpiresAt?: number;
+  approvedDevices: Array<{
+    id: string;
+    name: string;
+    createdAt: number;
+    lastSeenAt?: number;
+  }>;
+  pendingApprovals: Array<{
+    id: string;
+    deviceName: string;
+    requestedAt: number;
+  }>;
+  pendingActions?: AutomationApprovalRequest[];
+  auditLog?: RemoteControlAuditEvent[];
+}
+
+export interface RemoteControlAuditEvent {
+  id: string;
+  type:
+    | 'pairing-created'
+    | 'device-paired'
+    | 'device-revoked'
+    | 'approval-approved'
+    | 'approval-rejected'
+    | 'server-started'
+    | 'server-stopped'
+    | 'settings-updated';
+  message: string;
+  createdAt: number;
+  deviceId?: string;
+  deviceName?: string;
+  approvalId?: string;
+}
+
+export interface VirtualTeamMember {
+  id: string;
+  name: string;
+  role: string;
+  goal: string;
+  model?: string;
+  tools: string[];
+}
+
+export type VirtualTeamPermissionMode = 'supervised' | 'full-access';
+
+export interface VirtualTeamBlueprint {
+  id: string;
+  name: string;
+  objective: string;
+  workspacePath?: string;
+  permissionMode?: VirtualTeamPermissionMode;
+  maxIterations?: number;
+  requireQaSignoff?: boolean;
+  supervisorId: string;
+  members: VirtualTeamMember[];
+  status: 'draft' | 'active' | 'paused' | 'completed';
+  createdAt: number;
+  updatedAt: number;
+  lastRunAt?: number;
+  lastStatus?: 'running' | 'succeeded' | 'failed';
+  lastResult?: string;
+}
+
+export interface VirtualTeamMilestone {
+  id: string;
+  title: string;
+  ownerRole: string;
+  memberId: string;
+  memberName: string;
+  iteration: number;
+  status: 'pending' | 'running' | 'succeeded' | 'failed';
+  createdAt: number;
+  startedAt?: number;
+  completedAt?: number;
+  summary?: string;
+}
+
+export interface VirtualTeamRunRecord {
+  id: string;
+  teamId: string;
+  teamName: string;
+  objective: string;
+  workspacePath?: string;
+  status: 'running' | 'succeeded' | 'failed';
+  startedAt: number;
+  completedAt?: number;
+  artifactPath?: string;
+  summary?: string;
+  error?: string;
+  milestones?: VirtualTeamMilestone[];
+  steps: Array<{
+    memberId: string;
+    memberName: string;
+    role: string;
+    iteration?: number;
+    status: 'running' | 'succeeded' | 'failed';
+    startedAt: number;
+    completedAt?: number;
+    output?: string;
+    error?: string;
+  }>;
+}
+
+export interface AutomationSchedulerStatus {
+  running: boolean;
+  intervalMs: number;
+  runningTaskIds: string[];
+}
+
+export interface AutomationProjectExport {
+  schemaVersion: 1;
+  exportedAt: number;
+  workspacePath: string;
+  skillPolicies: Record<string, { enabled: boolean; trusted?: boolean }>;
+  tasks: ScheduledTask[];
+  teams: VirtualTeamBlueprint[];
+  taskRuns?: AutomationRunRecord[];
+  teamRuns?: VirtualTeamRunRecord[];
+}
+
+export interface AutomationProjectImportResult {
+  ok: true;
+  imported: {
+    skillPolicies: number;
+    tasks: number;
+    teams: number;
+    taskRuns: number;
+    teamRuns: number;
+  };
+}
+
+// ============================================================================
+// LOCAL HISTORY CHANNELS
+// ============================================================================
+
+export type LocalHistoryRecordType =
+  | 'chat-session'
+  | 'tool-event'
+  | 'automation-run'
+  | 'project-event';
+
+export interface LocalHistoryRecord {
+  schemaVersion: 1;
+  id: string;
+  type: LocalHistoryRecordType;
+  workspacePath?: string;
+  title?: string;
+  data: any;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface LocalHistoryRecordInput {
+  id?: string;
+  type: LocalHistoryRecordType;
+  workspacePath?: string;
+  title?: string;
+  data: any;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface LocalHistoryFilter {
+  type?: LocalHistoryRecordType;
+  workspacePath?: string;
+  limit?: number;
+}
+
+export interface LocalHistoryExport {
+  schemaVersion: 1;
+  exportedAt: number;
+  records: LocalHistoryRecord[];
+}
+
+export interface LocalHistoryStorageInfo {
+  storagePath: string;
+  recordCount: number;
+  updatedAt?: number;
+}
+
+// ============================================================================
 // ALL IPC CHANNELS
 // ============================================================================
 
@@ -304,6 +574,41 @@ export const IPC_CHANNELS = {
   'mcp:listServers': 'mcp:listServers',
   'mcp:listTools': 'mcp:listTools',
   'mcp:refresh': 'mcp:refresh',
+
+  // Automation channels
+  'automation:listSkills': 'automation:listSkills',
+  'automation:refreshSkills': 'automation:refreshSkills',
+  'automation:getSkill': 'automation:getSkill',
+  'automation:setSkillEnabled': 'automation:setSkillEnabled',
+  'automation:listTasks': 'automation:listTasks',
+  'automation:listTaskRuns': 'automation:listTaskRuns',
+  'automation:saveTask': 'automation:saveTask',
+  'automation:setTaskEnabled': 'automation:setTaskEnabled',
+  'automation:deleteTask': 'automation:deleteTask',
+  'automation:runTask': 'automation:runTask',
+  'automation:getSchedulerStatus': 'automation:getSchedulerStatus',
+  'automation:getRemoteControl': 'automation:getRemoteControl',
+  'automation:updateRemoteControl': 'automation:updateRemoteControl',
+  'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
+  'automation:startRemoteControl': 'automation:startRemoteControl',
+  'automation:stopRemoteControl': 'automation:stopRemoteControl',
+  'automation:listTeams': 'automation:listTeams',
+  'automation:listTeamRuns': 'automation:listTeamRuns',
+  'automation:saveTeam': 'automation:saveTeam',
+  'automation:deleteTeam': 'automation:deleteTeam',
+  'automation:createDefaultTeam': 'automation:createDefaultTeam',
+  'automation:runTeam': 'automation:runTeam',
+  'automation:revokeRemoteDevice': 'automation:revokeRemoteDevice',
+  'automation:exportProjectState': 'automation:exportProjectState',
+  'automation:importProjectState': 'automation:importProjectState',
+
+  // Local history channels
+  'history:saveRecord': 'history:saveRecord',
+  'history:getRecord': 'history:getRecord',
+  'history:listRecords': 'history:listRecords',
+  'history:deleteRecord': 'history:deleteRecord',
+  'history:exportRecords': 'history:exportRecords',
+  'history:getStorageInfo': 'history:getStorageInfo',
 
   // File system channels
   'fs:read': 'fs:read',

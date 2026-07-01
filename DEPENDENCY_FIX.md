@@ -49,7 +49,7 @@ All scripts now use native OS commands for cleanup, not rimraf.
 
 ```json
 {
-  "@anthropic-ai/sdk": "^0.24.0",
+  "code-agent": "local-first OpenAI-compatible client",
   "@commander-js/extra-typings": "^11.1.0",
   "@opentelemetry/api": "^1.8.0",
   "@types/node": "^20.11.0",

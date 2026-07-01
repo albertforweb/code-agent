@@ -14,6 +14,7 @@ import * as path from 'path';
 import { IpcBridge } from './bridge';
 import Store from 'electron-store';
 import { registerServiceBridges, type RegisteredServiceBridges } from './services-bridge';
+import { setupAutoUpdater, type AutoUpdaterController } from './updater';
 
 const isDev = process.env.NODE_ENV === 'development';
 const shouldOpenDevTools = process.env.ELECTRON_OPEN_DEVTOOLS === '1';
@@ -21,6 +22,13 @@ const shouldDisableGpu = process.env.ELECTRON_DISABLE_GPU === '1';
 const isMac = process.platform === 'darwin';
 const isWin = process.platform === 'win32';
 const isLinux = process.platform === 'linux';
+const APP_NAME = 'CodeAgent';
+const APP_ID = 'com.albertforweb.codeagent';
+
+app.setName(APP_NAME);
+if (isWin) {
+  app.setAppUserModelId(APP_ID);
+}
 
 if (shouldDisableGpu) {
   app.commandLine.appendSwitch('disable-gpu');
@@ -46,6 +54,15 @@ let mainWindow: BrowserWindow | null = null;
 const store = new Store<{ windowState?: WindowState }>();
 const ipcBridge = new IpcBridge();
 let serviceBridges: RegisteredServiceBridges | null = null;
+let autoUpdaterController: AutoUpdaterController | null = null;
+
+function getResourcePath(filename: string): string {
+  return path.join(__dirname, '../electron/resources', filename);
+}
+
+function getWindowIconPath(): string {
+  return getResourcePath(isWin ? 'icon.ico' : 'icon.png');
+}
 
 // ============================================================================
 // WINDOW MANAGEMENT
@@ -94,6 +111,7 @@ function createWindow() {
   const windowState = getWindowState();
 
   mainWindow = new BrowserWindow({
+    title: APP_NAME,
     width: windowState.width,
     height: windowState.height,
     x: windowState.x,
@@ -104,7 +122,7 @@ function createWindow() {
       sandbox: true,
       nodeIntegration: false,
     },
-    icon: isMac ? undefined : path.join(__dirname, '../electron/resources/icon.ico'),
+    icon: isMac ? undefined : getWindowIconPath(),
   });
 
   mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
@@ -156,17 +174,26 @@ function createWindow() {
  * Initialize app
  */
 async function initializeApp() {
+  app.setAboutPanelOptions({
+    applicationName: APP_NAME,
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    iconPath: getResourcePath('icon.png'),
+  });
+
   // Setup IPC handlers
   setupIpcHandlers();
 
   // Create window
   createWindow();
 
+  autoUpdaterController = setupAutoUpdater({
+    getMainWindow: () => mainWindow,
+    isDev,
+  });
+
   // Setup menu
   setupMenu();
-
-  // Setup updater (future)
-  // setupAutoUpdater();
 }
 
 /**
@@ -214,7 +241,7 @@ if (!gotTheLock) {
 function setupMenu() {
   const template: any[] = [
     {
-      label: isMac ? 'Code Agent' : 'File',
+      label: isMac ? APP_NAME : 'File',
       submenu: [
         {
           label: 'Settings',
@@ -251,7 +278,7 @@ function setupMenu() {
       submenu: [
         { role: 'reload' },
         { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        ...(isDev ? [{ role: 'toggleDevTools' }] : []),
         { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
@@ -264,13 +291,23 @@ function setupMenu() {
       label: 'Help',
       submenu: [
         {
+          label: 'Check for Updates...',
+          enabled: autoUpdaterController?.canCheckForUpdates() ?? false,
+          click: () => {
+            autoUpdaterController?.checkForUpdates(true).catch(error => {
+              console.warn('Manual update check failed:', error);
+            });
+          },
+        },
+        { type: 'separator' },
+        {
           label: 'About',
           click: () => {
             dialog.showMessageBox(mainWindow!, {
               type: 'info',
-              title: 'About Code Agent',
-              message: 'Code Agent',
-              detail: 'Claude Code desktop application\nVersion 1.0.0',
+              title: `About ${APP_NAME}`,
+              message: APP_NAME,
+              detail: `Local-first coding agent\nVersion ${app.getVersion()}`,
             });
           },
         },
@@ -302,46 +339,6 @@ function setupIpcHandlers() {
     }
   });
 }
-
-// ============================================================================
-// AUTO UPDATE (future implementation)
-// ============================================================================
-
-// function setupAutoUpdater() {
-//   try {
-//     const { autoUpdater } = require('electron-updater');
-//
-//     autoUpdater.checkForUpdatesAndNotify();
-//
-//     autoUpdater.on('update-available', () => {
-//       dialog.showMessageBox(mainWindow!, {
-//         type: 'info',
-//         title: 'Update Available',
-//         message: 'A new version is available. Download?',
-//         buttons: ['Download', 'Later'],
-//       }).then(result => {
-//         if (result.response === 0) {
-//           autoUpdater.downloadUpdate();
-//         }
-//       });
-//     });
-//
-//     autoUpdater.on('update-downloaded', () => {
-//       dialog.showMessageBox(mainWindow!, {
-//         type: 'info',
-//         title: 'Update Ready',
-//         message: 'Update downloaded. Install on quit?',
-//         buttons: ['Install', 'Later'],
-//       }).then(result => {
-//         if (result.response === 0) {
-//           autoUpdater.quitAndInstall();
-//         }
-//       });
-//     });
-//   } catch (e) {
-//     console.error('Auto-update failed:', e);
-//   }
-// }
 
 // ============================================================================
 // UTILS

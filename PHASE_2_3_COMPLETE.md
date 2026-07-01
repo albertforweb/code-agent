@@ -210,7 +210,7 @@ dist-electron/preload.js.map (source map)
 │                                                                │
 │  Service Bridges (standalone, injectable, testable)           │
 │  ├─ ToolServiceBridge (tool execution)                       │
-│  ├─ ApiServiceBridge (Anthropic API)                         │
+│  ├─ ApiServiceBridge (LlmProvider API)                         │
 │  ├─ FileSystemServiceBridge (safe I/O)                       │
 │  ├─ AuthServiceBridge (token mgmt)                           │
 │  └─ AppStateServiceBridge (state mgmt)                       │

@@ -1,6 +1,6 @@
-import type Anthropic from '@anthropic-ai/sdk'
-import type { ClientOptions } from '@anthropic-ai/sdk'
-import { Stream } from '@anthropic-ai/sdk/streaming.mjs'
+import type LlmClient from 'src/services/api/sdk.js'
+import type { ClientOptions } from 'src/services/api/sdk.js'
+import { Stream } from 'src/services/api/sdk.js'
 import { randomUUID } from 'crypto'
 import {
   getOpenAICompatibleMaxOutputTokens,
@@ -45,7 +45,7 @@ const DEFAULT_MODELS: Record<OpenAIProviderKind, string> = {
 export function createOpenAICompatibleClient({
   model,
   fetchOverride,
-}: OpenAICompatibleClientOptions): Anthropic {
+}: OpenAICompatibleClientOptions): LlmClient {
   const messages = {
     create: (params: Record<string, any>, options?: Record<string, any>) =>
       createRequest(params, options, { model, fetchOverride }),
@@ -69,7 +69,7 @@ export function createOpenAICompatibleClient({
     },
   }
 
-  return client as unknown as Anthropic
+  return client as unknown as LlmClient
 }
 
 function createRequest(
@@ -152,7 +152,7 @@ async function executeRequest(
 
   if (params.stream) {
     return {
-      data: createAnthropicEventStream(response, controller, body.model),
+      data: createLlmProviderEventStream(response, controller, body.model),
       response,
       request_id: requestId,
     }
@@ -160,7 +160,7 @@ async function executeRequest(
 
   const data = await response.json()
   return {
-    data: toAnthropicMessage(data, body.model),
+    data: toLlmProviderMessage(data, body.model),
     response,
     request_id: requestId ?? data?.id ?? null,
   }
@@ -363,11 +363,11 @@ function toOpenAIToolChoice(choice: Record<string, any> | undefined): unknown {
   }
 }
 
-function toAnthropicMessage(data: Record<string, any>, fallbackModel: string) {
+function toLlmProviderMessage(data: Record<string, any>, fallbackModel: string) {
   const choice = data?.choices?.[0] ?? {}
   const message = choice.message ?? {}
-  const content = toAnthropicContentBlocks(message)
-  const stopReason = toAnthropicStopReason(choice.finish_reason, content)
+  const content = toLlmProviderContentBlocks(message)
+  const stopReason = toLlmProviderStopReason(choice.finish_reason, content)
 
   return {
     id: data.id ?? `msg_${randomUUID()}`,
@@ -377,11 +377,11 @@ function toAnthropicMessage(data: Record<string, any>, fallbackModel: string) {
     content,
     stop_reason: stopReason,
     stop_sequence: null,
-    usage: toAnthropicUsage(data.usage),
+    usage: toLlmProviderUsage(data.usage),
   }
 }
 
-function toAnthropicContentBlocks(message: Record<string, any>): any[] {
+function toLlmProviderContentBlocks(message: Record<string, any>): any[] {
   const blocks: any[] = []
   if (typeof message.content === 'string' && message.content.length > 0) {
     blocks.push({ type: 'text', text: message.content })
@@ -403,7 +403,7 @@ function toAnthropicContentBlocks(message: Record<string, any>): any[] {
   return blocks
 }
 
-function createAnthropicEventStream(
+function createLlmProviderEventStream(
   response: Response,
   controller: AbortController,
   model: string,
@@ -442,12 +442,12 @@ function createAnthropicEventStream(
     for await (const payload of iterateOpenAIStream(response, controller)) {
       const choice = payload?.choices?.[0]
       if (payload?.usage) {
-        Object.assign(usage, toAnthropicUsage(payload.usage))
+        Object.assign(usage, toLlmProviderUsage(payload.usage))
       }
       if (!choice) continue
 
       if (choice.finish_reason) {
-        finalStopReason = toAnthropicStopReason(choice.finish_reason)
+        finalStopReason = toLlmProviderStopReason(choice.finish_reason)
       }
 
       const delta = choice.delta ?? {}
@@ -596,7 +596,7 @@ function parseOpenAIStreamLine(line: string): Record<string, any> | '[DONE]' | n
   }
 }
 
-function toAnthropicStopReason(
+function toLlmProviderStopReason(
   finishReason: string | null | undefined,
   content?: any[],
 ): string | null {
@@ -617,7 +617,7 @@ function toAnthropicStopReason(
   }
 }
 
-function toAnthropicUsage(usage: Record<string, any> | undefined) {
+function toLlmProviderUsage(usage: Record<string, any> | undefined) {
   return {
     ...EMPTY_USAGE,
     input_tokens: usage?.prompt_tokens ?? 0,
@@ -655,7 +655,7 @@ function resolveModel(model?: string): string {
   )
   if (envModel) return envModel
 
-  if (model && !model.toLowerCase().includes('claude-')) {
+  if (model && !model.toLowerCase().includes('codeAgent-')) {
     return model
   }
 

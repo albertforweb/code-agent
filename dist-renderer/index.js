@@ -2434,7 +2434,7 @@
           var HostPortal = 4;
           var HostComponent = 5;
           var HostText = 6;
-          var Fragment2 = 7;
+          var Fragment3 = 7;
           var Mode = 8;
           var ContextConsumer = 9;
           var ContextProvider = 10;
@@ -3591,7 +3591,7 @@
                 return "DehydratedFragment";
               case ForwardRef:
                 return getWrappedName$1(type, type.render, "ForwardRef");
-              case Fragment2:
+              case Fragment3:
                 return "Fragment";
               case HostComponent:
                 return type;
@@ -12020,7 +12020,7 @@
               }
             }
             function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-              if (current2 === null || current2.tag !== Fragment2) {
+              if (current2 === null || current2.tag !== Fragment3) {
                 var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
                 created.return = returnFiber;
                 return created;
@@ -12423,7 +12423,7 @@
                 if (child.key === key) {
                   var elementType = element.type;
                   if (elementType === REACT_FRAGMENT_TYPE) {
-                    if (child.tag === Fragment2) {
+                    if (child.tag === Fragment3) {
                       deleteRemainingChildren(returnFiber, child.sibling);
                       var existing = useFiber(child, element.props.children);
                       existing.return = returnFiber;
@@ -17899,7 +17899,7 @@
                 var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
                 return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
               }
-              case Fragment2:
+              case Fragment3:
                 return updateFragment(current2, workInProgress2, renderLanes2);
               case Mode:
                 return updateMode(current2, workInProgress2, renderLanes2);
@@ -18171,7 +18171,7 @@
               case SimpleMemoComponent:
               case FunctionComponent:
               case ForwardRef:
-              case Fragment2:
+              case Fragment3:
               case Mode:
               case Profiler2:
               case ContextConsumer:
@@ -22432,7 +22432,7 @@
             return fiber;
           }
           function createFiberFromFragment(elements, mode, lanes, key) {
-            var fiber = createFiber(Fragment2, elements, key, mode);
+            var fiber = createFiber(Fragment3, elements, key, mode);
             fiber.lanes = lanes;
             return fiber;
           }
@@ -38672,19 +38672,30 @@
     secondaryButton: "App_secondaryButton",
     dangerButton: "App_dangerButton",
     textButton: "App_textButton",
+    containerCollapsed: "App_containerCollapsed",
     navSidebar: "App_navSidebar",
+    navSidebarCollapsed: "App_navSidebarCollapsed",
     brandBlock: "App_brandBlock",
     sidebarFooter: "App_sidebarFooter",
     brandMark: "App_brandMark",
     statusDot: "App_statusDot",
     statusDotBusy: "App_statusDotBusy",
+    navCollapseButton: "App_navCollapseButton",
     newChatButton: "App_newChatButton",
     navItem: "App_navItem",
     navItemActive: "App_navItemActive",
+    navChildItem: "App_navChildItem",
+    navChildItemActive: "App_navChildItemActive",
     recentItem: "App_recentItem",
     recentItemActive: "App_recentItemActive",
+    navGlyph: "App_navGlyph",
+    navChildGlyph: "App_navChildGlyph",
+    navLabel: "App_navLabel",
+    navChildLabel: "App_navChildLabel",
     navList: "App_navList",
     recentList: "App_recentList",
+    navGroup: "App_navGroup",
+    navSubList: "App_navSubList",
     recentSection: "App_recentSection",
     sessionSearchInput: "App_sessionSearchInput",
     recentTitle: "App_recentTitle",
@@ -38694,8 +38705,6 @@
     sidebarSettingsButtonActive: "App_sidebarSettingsButtonActive",
     appShell: "App_appShell",
     headerTitle: "App_headerTitle",
-    runtimeStrip: "App_runtimeStrip",
-    runtimeCellButton: "App_runtimeCellButton",
     commandPalette: "App_commandPalette",
     commandPaletteItem: "App_commandPaletteItem",
     statusPane: "App_statusPane",
@@ -38707,6 +38716,7 @@
     detailEyebrow: "App_detailEyebrow",
     detailGrid: "App_detailGrid",
     toolsLayout: "App_toolsLayout",
+    automationGrid: "App_automationGrid",
     detailPanel: "App_detailPanel",
     panelActions: "App_panelActions",
     inlineError: "App_inlineError",
@@ -38729,10 +38739,14 @@
     toolExposureButton: "App_toolExposureButton",
     toolExposureButtonOff: "App_toolExposureButtonOff",
     toolCatalogItem: "App_toolCatalogItem",
+    toolCatalogItemSelected: "App_toolCatalogItemSelected",
     toolStatusBadge: "App_toolStatusBadge",
     toolStatusConnected: "App_toolStatusConnected",
     toolStatusError: "App_toolStatusError",
+    teamTranscript: "App_teamTranscript",
+    teamTranscriptStep: "App_teamTranscriptStep",
     toolActivityActions: "App_toolActivityActions",
+    pairingCode: "App_pairingCode",
     dialogBackdrop: "App_dialogBackdrop",
     settingsView: "App_settingsView",
     settingsPageForm: "App_settingsPageForm",
@@ -38792,6 +38806,41 @@
       listTools: () => getApi().mcp.listTools(),
       refresh: () => getApi().mcp.refresh()
     },
+    automation: {
+      listSkills: () => getApi().automation.listSkills(),
+      refreshSkills: () => getApi().automation.refreshSkills(),
+      getSkill: (skillId) => getApi().automation.getSkill(skillId),
+      setSkillEnabled: (skillId, enabled) => getApi().automation.setSkillEnabled(skillId, enabled),
+      listTasks: () => getApi().automation.listTasks(),
+      listTaskRuns: (taskId) => getApi().automation.listTaskRuns(taskId),
+      saveTask: (task) => getApi().automation.saveTask(task),
+      setTaskEnabled: (taskId, enabled) => getApi().automation.setTaskEnabled(taskId, enabled),
+      deleteTask: (taskId) => getApi().automation.deleteTask(taskId),
+      runTask: (taskId) => getApi().automation.runTask(taskId),
+      getSchedulerStatus: () => getApi().automation.getSchedulerStatus(),
+      getRemoteControl: () => getApi().automation.getRemoteControl(),
+      updateRemoteControl: (update) => getApi().automation.updateRemoteControl(update),
+      createRemotePairingCode: (deviceName) => getApi().automation.createRemotePairingCode(deviceName),
+      startRemoteControl: () => getApi().automation.startRemoteControl(),
+      stopRemoteControl: () => getApi().automation.stopRemoteControl(),
+      listTeams: () => getApi().automation.listTeams(),
+      listTeamRuns: (teamId) => getApi().automation.listTeamRuns(teamId),
+      saveTeam: (team) => getApi().automation.saveTeam(team),
+      deleteTeam: (teamId) => getApi().automation.deleteTeam(teamId),
+      createDefaultTeam: (objective) => getApi().automation.createDefaultTeam(objective),
+      runTeam: (teamId) => getApi().automation.runTeam(teamId),
+      revokeRemoteDevice: (deviceId) => getApi().automation.revokeRemoteDevice(deviceId),
+      exportProjectState: (options) => getApi().automation.exportProjectState(options),
+      importProjectState: (bundle) => getApi().automation.importProjectState(bundle)
+    },
+    history: {
+      saveRecord: (record) => getApi().history.saveRecord(record),
+      getRecord: (id) => getApi().history.getRecord(id),
+      listRecords: (filter) => getApi().history.listRecords(filter),
+      deleteRecord: (id) => getApi().history.deleteRecord(id),
+      exportRecords: (filter) => getApi().history.exportRecords(filter),
+      getStorageInfo: () => getApi().history.getStorageInfo()
+    },
     fs: {
       read: (path, encoding) => getApi().fs.read(path, encoding),
       write: (path, content, encoding) => getApi().fs.write(path, content, encoding),
@@ -38834,11 +38883,12 @@
 
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-  var DEFAULT_PROVIDER = "anthropic";
+  var DEFAULT_PROVIDER = "openai-compatible";
   var MAX_TOOL_ACTIVITIES = 20;
   var MAX_PERSISTED_MESSAGES = 80;
   var MAX_RECENT_SESSIONS = 12;
   var DESKTOP_SESSIONS_STATE_KEY = "desktopSessions";
+  var SIDEBAR_COLLAPSED_STORAGE_KEY = "codeAgentSidebarCollapsed";
   var TOOL_PERMISSION_OPTIONS = [
     { value: "allow", label: "Allow" },
     { value: "ask", label: "Ask" },
@@ -38853,15 +38903,25 @@
     api: "API bridge",
     other: "Other"
   };
+  var EMPTY_REMOTE_CONTROL = {
+    enabled: false,
+    mode: "disabled",
+    localNetworkUrls: [],
+    approvedDevices: [],
+    pendingApprovals: [],
+    pendingActions: [],
+    auditLog: []
+  };
+  var EMPTY_SCHEDULER_STATUS = {
+    running: false,
+    intervalMs: 3e4,
+    runningTaskIds: []
+  };
+  var EMPTY_HISTORY_STORAGE = {
+    storagePath: "",
+    recordCount: 0
+  };
   var PROVIDER_DEFAULTS = {
-    anthropic: {
-      label: "Anthropic",
-      model: "claude-3-5-sonnet-20241022",
-      baseUrl: "",
-      maxTokens: 4096,
-      contextTokens: 2e5,
-      enableLlmTools: false
-    },
     openai: {
       label: "OpenAI",
       model: "gpt-4o-mini",
@@ -38882,6 +38942,13 @@
   function getProviderDefault(provider) {
     return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
   }
+  function readStoredSidebarCollapsed() {
+    try {
+      return window.localStorage?.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  }
   var PERMISSION_MODES = ["default", "acceptEdits", "plan", "bypassPermissions", "auto"];
   var SETTING_SOURCE_OPTIONS = ["user", "project", "local"];
   var DESKTOP_COMMANDS = [
@@ -38894,10 +38961,37 @@
     { command: "/settings", description: "Open Settings" },
     { command: "/tools", description: "List bridge and MCP tools" },
     { command: "/mcp", description: "Refresh and list MCP servers/tools" },
+    { command: "/automation", description: "Open skills, scheduled tasks, remote control, and virtual teams" },
+    { command: "/skills", description: "Open local skills and automation extensions" },
+    { command: "/tasks", description: "Open scheduled automation tasks" },
+    { command: "/remote", description: "Open remote-control setup" },
+    { command: "/team", description: "Open virtual team blueprints" },
+    { command: "/history", description: "Open local history and export records" },
     { command: "/sessions", description: "List saved desktop sessions" },
     { command: "/config", description: "Show persisted desktop configuration" },
     { command: "/run <tool> <json>", description: "Run a bridge tool manually" },
     { command: "/clear", description: "Clear the visible chat" }
+  ];
+  var PRIMARY_NAV = [
+    { id: "chat", label: "Chats", description: "Conversation workspace", glyph: "C" },
+    { id: "projects", label: "Projects", description: "Workspace files and project state", glyph: "P" },
+    { id: "tools", label: "Tools", description: "Bridge tools, MCP, and activity", glyph: "T" },
+    { id: "automation", label: "Automation", description: "Skills, tasks, remote control, teams", glyph: "A" },
+    { id: "history", label: "History", description: "Chats, tool activity, exports, audit", glyph: "H" },
+    { id: "settings", label: "Settings", description: "Model, tools, workspace, sessions", glyph: "S" }
+  ];
+  var PROJECTS_MENU = [
+    { id: "overview", title: "Overview", description: "Workspace and model context" },
+    { id: "files", title: "Files", description: "Browse, open, and reveal files" },
+    { id: "session", title: "Session", description: "Current chat and token usage" },
+    { id: "runtime", title: "Runtime", description: "App, platform, MCP state" }
+  ];
+  var TOOLS_MENU = [
+    { id: "bridge", title: "Bridge Tools", description: "Exposure and permissions" },
+    { id: "mcp", title: "MCP Registry", description: "Servers and executable tools" },
+    { id: "command", title: "Command Runner", description: "Approved workspace commands" },
+    { id: "activity", title: "Activity", description: "Tool-call timeline" },
+    { id: "plugins", title: "Plugins & Skills", description: "Configured extension paths" }
   ];
   var SETTINGS_MENU = [
     { id: "model", title: "Model", description: "Provider, tokens, theme" },
@@ -38906,6 +39000,27 @@
     { id: "workspace", title: "Workspace Context", description: "Prompts, MCP, directories" },
     { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser" },
     { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata" }
+  ];
+  var AUTOMATION_MENU = [
+    { id: "skills", title: "Skills", description: "Workspace extensions" },
+    { id: "tasks", title: "Scheduled Tasks", description: "Recurring runs and history" },
+    { id: "remote", title: "Remote Control", description: "Phone pairing and approvals" },
+    { id: "team", title: "Virtual Team", description: "Members, roles, workspaces" },
+    { id: "permissions", title: "Permissions", description: "Unattended execution policy" }
+  ];
+  var HISTORY_MENU = [
+    { id: "overview", title: "Overview", description: "Storage and record counts" },
+    { id: "chats", title: "Chats", description: "Saved conversations" },
+    { id: "tools", title: "Tool Events", description: "Tool-call audit records" },
+    { id: "automation", title: "Automation Runs", description: "Task and team run history" },
+    { id: "events", title: "Project Events", description: "Imports, exports, and audit events" },
+    { id: "export", title: "Export", description: "Download or copy local history" }
+  ];
+  var AUTOMATION_PERMISSION_TOOLS = [
+    "bash.run",
+    "fs.write",
+    "fs.undoLastWrite",
+    "mcp.callTool"
   ];
   var ANSI_COLORS = {
     30: "#1f2937",
@@ -38947,7 +39062,7 @@
     };
   }
   function createReadyMessages() {
-    return [createMessage("assistant", "Ready.", { title: "Code Agent" })];
+    return [createMessage("assistant", "Ready.", { title: "CodeAgent" })];
   }
   function createSessionId() {
     return `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -39047,6 +39162,19 @@
     const currentSessionId = sessions.some((session) => session.id === requestedCurrentId) ? requestedCurrentId : sessions[0].id;
     return {
       currentSessionId,
+      sessions
+    };
+  }
+  function restoreSessionsFromHistory(records, workspacePath) {
+    const sessions = sortSessions(records.map((record) => {
+      const payload = record.data && typeof record.data === "object" ? record.data : {};
+      return sanitizeSession(payload.session ?? record.data, workspacePath);
+    }).filter((session) => Boolean(session)));
+    if (sessions.length === 0) {
+      return null;
+    }
+    return {
+      currentSessionId: sessions[0].id,
       sessions
     };
   }
@@ -39305,6 +39433,54 @@
     const days = Math.max(1, Math.round(deltaMs / day));
     return `${days}d ago`;
   }
+  function getHistoryRecordTypeLabel(type) {
+    switch (type) {
+      case "chat-session":
+        return "Chat";
+      case "tool-event":
+        return "Tool";
+      case "automation-run":
+        return "Automation";
+      case "project-event":
+        return "Project";
+      default:
+        return type;
+    }
+  }
+  function getHistoryRecordTitle(record) {
+    if (record.title) {
+      return record.title;
+    }
+    if (record.type === "chat-session") {
+      const session = record.data?.session;
+      return session?.title ?? "Chat session";
+    }
+    if (record.type === "tool-event") {
+      const data = record.data;
+      return data?.toolName ?? data?.toolId ?? "Tool event";
+    }
+    if (record.type === "automation-run") {
+      const data = record.data;
+      return data?.teamName ?? data?.taskName ?? data?.name ?? "Automation run";
+    }
+    return "Project event";
+  }
+  function getHistoryRecordSummary(record) {
+    const data = record.data && typeof record.data === "object" ? record.data : {};
+    if (record.type === "chat-session") {
+      const session = data.session;
+      return session ? `${session.messages.length} messages / updated ${formatRelativeTime(session.updatedAt)}` : "Saved conversation";
+    }
+    if (record.type === "tool-event") {
+      const status = data.status ?? (data.success === false ? "failed" : data.success === true ? "succeeded" : "recorded");
+      return `${data.toolName ?? data.toolId ?? "Tool"} / ${status}`;
+    }
+    if (record.type === "automation-run") {
+      const status = data.status ?? data.lastStatus ?? "recorded";
+      return data.summary ?? data.lastResult ?? data.error ?? `Automation status: ${status}`;
+    }
+    return data.event ? String(data.event) : "Project event";
+  }
   function normalizeWorkspacePath(value) {
     const normalized = value.replace(/\\/g, "/").split("/").filter((part) => part && part !== ".").join("/");
     return normalized || ".";
@@ -39364,7 +39540,7 @@
     if (tool.name.startsWith("web.")) {
       return "research";
     }
-    if (tool.name.startsWith("finance.")) {
+    if (tool.name.startsWith("finance.") || tool.name.startsWith("automation.")) {
       return "connectors";
     }
     if (tool.name.startsWith("mcp.")) {
@@ -39522,6 +39698,22 @@
     const [tools, setTools] = useState([]);
     const [mcpServers, setMcpServers] = useState([]);
     const [mcpTools, setMcpTools] = useState([]);
+    const [skills, setSkills] = useState([]);
+    const [scheduledTasks, setScheduledTasks] = useState([]);
+    const [taskRuns, setTaskRuns] = useState([]);
+    const [remoteControl, setRemoteControl] = useState(EMPTY_REMOTE_CONTROL);
+    const [virtualTeams, setVirtualTeams] = useState([]);
+    const [teamRuns, setTeamRuns] = useState([]);
+    const [runningTeamIds, setRunningTeamIds] = useState(() => /* @__PURE__ */ new Set());
+    const runningTeamIdsRef = useRef(/* @__PURE__ */ new Set());
+    const [schedulerStatus, setSchedulerStatus] = useState(EMPTY_SCHEDULER_STATUS);
+    const [automationMessage, setAutomationMessage] = useState("");
+    const [historyRecords, setHistoryRecords] = useState([]);
+    const [historyStorageInfo, setHistoryStorageInfo] = useState(EMPTY_HISTORY_STORAGE);
+    const [historyMessage, setHistoryMessage] = useState("");
+    const [historyExportText, setHistoryExportText] = useState("");
+    const [automationExportText, setAutomationExportText] = useState("");
+    const [automationImportText, setAutomationImportText] = useState("");
     const [workspacePath, setWorkspacePath] = useState(".");
     const [workspaceEntries, setWorkspaceEntries] = useState([]);
     const [workspaceBrowserError, setWorkspaceBrowserError] = useState("");
@@ -39543,6 +39735,12 @@
     const [toolRouterMessage, setToolRouterMessage] = useState("");
     const [isSavingSettings, setIsSavingSettings] = useState(false);
     const [activeView, setActiveView] = useState("chat");
+    const [activeProjectsSection, setActiveProjectsSection] = useState("overview");
+    const [activeToolsSection, setActiveToolsSection] = useState("bridge");
+    const [activeAutomationSection, setActiveAutomationSection] = useState("tasks");
+    const [activeHistorySection, setActiveHistorySection] = useState("overview");
+    const [activeSettingsSection, setActiveSettingsSection] = useState("model");
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
     const messageListRef = useRef(null);
     const inputRef = useRef(null);
     const streamMessageIds = useRef(/* @__PURE__ */ new Map());
@@ -39559,6 +39757,12 @@
     useEffect(() => {
       initializeApp();
     }, []);
+    useEffect(() => {
+      try {
+        window.localStorage?.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
+      } catch {
+      }
+    }, [sidebarCollapsed]);
     useEffect(() => {
       const handleResize = () => {
         setViewportSize({
@@ -39714,6 +39918,7 @@ ${formatJson(data.data)}
         return;
       }
       const timeout = window.setTimeout(() => {
+        const activeSession2 = sessions.find((session) => session.id === currentSessionId);
         ipcClient.app.setState({
           [DESKTOP_SESSIONS_STATE_KEY]: {
             currentSessionId,
@@ -39722,9 +39927,25 @@ ${formatJson(data.data)}
         }).catch((error) => {
           console.warn("Failed to persist desktop session state:", error);
         });
+        if (activeSession2) {
+          ipcClient.history.saveRecord({
+            id: `chat-session-${activeSession2.id}`,
+            type: "chat-session",
+            workspacePath: activeSession2.workspacePath ?? appInfo?.workspacePath,
+            title: activeSession2.title,
+            data: {
+              currentSessionId,
+              session: activeSession2
+            },
+            createdAt: activeSession2.createdAt,
+            updatedAt: activeSession2.updatedAt
+          }).catch((error) => {
+            console.warn("Failed to persist desktop session history:", error);
+          });
+        }
       }, 500);
       return () => window.clearTimeout(timeout);
-    }, [sessions, currentSessionId]);
+    }, [sessions, currentSessionId, appInfo?.workspacePath]);
     useEffect(() => {
       const theme = appConfig?.theme || "system";
       const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
@@ -39745,13 +39966,40 @@ ${formatJson(data.data)}
     }, [activeView]);
     async function initializeApp() {
       try {
-        const [info, config, state, bridgeTools, servers, discoveredMcpTools] = await Promise.all([
+        const [
+          info,
+          config,
+          state,
+          bridgeTools,
+          servers,
+          discoveredMcpTools,
+          discoveredSkills,
+          tasks,
+          runs,
+          remote,
+          teams,
+          teamRunHistory,
+          scheduler,
+          historySessions,
+          allHistoryRecords,
+          storageInfo
+        ] = await Promise.all([
           ipcClient.app.info(),
           ipcClient.app.getConfig(),
           ipcClient.app.getState(),
           ipcClient.tools.list(),
           ipcClient.mcp.listServers(),
-          ipcClient.mcp.listTools()
+          ipcClient.mcp.listTools(),
+          ipcClient.automation.listSkills(),
+          ipcClient.automation.listTasks(),
+          ipcClient.automation.listTaskRuns(),
+          ipcClient.automation.getRemoteControl(),
+          ipcClient.automation.listTeams(),
+          ipcClient.automation.listTeamRuns(),
+          ipcClient.automation.getSchedulerStatus(),
+          ipcClient.history.listRecords({ type: "chat-session", limit: MAX_RECENT_SESSIONS }),
+          ipcClient.history.listRecords({ limit: 500 }),
+          ipcClient.history.getStorageInfo()
         ]);
         setAppInfo(info);
         setAppConfig(config);
@@ -39760,7 +40008,17 @@ ${formatJson(data.data)}
         setTools(bridgeTools);
         setMcpServers(servers);
         setMcpTools(discoveredMcpTools);
-        const restoredSessions = restoreSessionsFromState(state, info.workspacePath);
+        setSkills(discoveredSkills);
+        setScheduledTasks(tasks);
+        setTaskRuns(runs);
+        setRemoteControl(remote);
+        setVirtualTeams(teams);
+        setTeamRuns(teamRunHistory);
+        setSchedulerStatus(scheduler);
+        setHistoryRecords(allHistoryRecords);
+        setHistoryStorageInfo(storageInfo);
+        const hasLegacySessions = Boolean(state?.[DESKTOP_SESSIONS_STATE_KEY]);
+        const restoredSessions = hasLegacySessions ? restoreSessionsFromState(state, info.workspacePath) : restoreSessionsFromHistory(historySessions, info.workspacePath) ?? restoreSessionsFromState(state, info.workspacePath);
         const activeSession2 = restoredSessions.sessions.find((session) => session.id === restoredSessions.currentSessionId) ?? restoredSessions.sessions[0];
         setSessions(restoredSessions.sessions);
         setCurrentSessionId(restoredSessions.currentSessionId);
@@ -39870,6 +40128,224 @@ ${formatJson(data.data)}
       setMcpServers(servers);
       setMcpTools(discoveredMcpTools);
       return { bridgeTools, servers, discoveredMcpTools };
+    }
+    async function refreshAutomationData() {
+      const [discoveredSkills, tasks, runs, remote, teams, teamRunHistory, scheduler] = await Promise.all([
+        ipcClient.automation.refreshSkills(),
+        ipcClient.automation.listTasks(),
+        ipcClient.automation.listTaskRuns(),
+        ipcClient.automation.getRemoteControl(),
+        ipcClient.automation.listTeams(),
+        ipcClient.automation.listTeamRuns(),
+        ipcClient.automation.getSchedulerStatus()
+      ]);
+      setSkills(discoveredSkills);
+      setScheduledTasks(tasks);
+      setTaskRuns(runs);
+      setRemoteControl(remote);
+      setVirtualTeams(teams);
+      setTeamRuns(teamRunHistory);
+      setSchedulerStatus(scheduler);
+      return { discoveredSkills, tasks, runs, remote, teams, teamRunHistory, scheduler };
+    }
+    async function refreshHistoryData() {
+      const [records, storageInfo] = await Promise.all([
+        ipcClient.history.listRecords({ limit: 500 }),
+        ipcClient.history.getStorageInfo()
+      ]);
+      setHistoryRecords(records);
+      setHistoryStorageInfo(storageInfo);
+      return { records, storageInfo };
+    }
+    async function deleteHistoryRecord(recordId) {
+      setHistoryMessage("");
+      try {
+        await ipcClient.history.deleteRecord(recordId);
+        await refreshHistoryData();
+        setHistoryMessage("Deleted history record.");
+      } catch (error) {
+        setHistoryMessage(formatDesktopError(error));
+      }
+    }
+    async function restoreChatFromHistory(record) {
+      const restored = restoreSessionsFromHistory([record], appInfo?.workspacePath);
+      const session = restored?.sessions[0];
+      if (!session) {
+        setHistoryMessage("This history record does not contain a restorable chat session.");
+        return;
+      }
+      setSessions((current) => upsertSession(current, session));
+      setCurrentSessionId(session.id);
+      setMessages(session.messages);
+      setActiveView("chat");
+      setHistoryMessage(`Restored chat "${session.title}".`);
+    }
+    async function exportHistoryRecords(type) {
+      setHistoryMessage("");
+      try {
+        const exported = await ipcClient.history.exportRecords({ type, limit: 1e3 });
+        setHistoryExportText(JSON.stringify(exported, null, 2));
+        setHistoryMessage(`Exported ${exported.records.length} history record(s).`);
+      } catch (error) {
+        setHistoryMessage(formatDesktopError(error));
+      }
+    }
+    async function exportAutomationProject(includeRuns) {
+      setAutomationMessage("");
+      try {
+        const bundle = await ipcClient.automation.exportProjectState({ includeRuns });
+        setAutomationExportText(JSON.stringify(bundle, null, 2));
+        await refreshHistoryData();
+        setAutomationMessage(`Exported ${bundle.tasks.length} task(s) and ${bundle.teams.length} team(s).`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function importAutomationProject() {
+      setAutomationMessage("");
+      try {
+        const bundle = JSON.parse(automationImportText);
+        const result = await ipcClient.automation.importProjectState(bundle);
+        await refreshAutomationData();
+        await refreshHistoryData();
+        setAutomationMessage(`Imported ${result.imported.tasks} task(s), ${result.imported.teams} team(s), and ${result.imported.skillPolicies} skill policy entry(ies).`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function saveScheduledTask(task) {
+      setAutomationMessage("");
+      try {
+        const saved = await ipcClient.automation.saveTask(task);
+        await refreshAutomationData();
+        setAutomationMessage(`Saved scheduled task "${saved.name}".`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function runScheduledTask(taskId) {
+      setAutomationMessage("");
+      try {
+        const task = await ipcClient.automation.runTask(taskId);
+        await refreshAutomationData();
+        setAutomationMessage(`Ran scheduled task "${task.name}" with status ${task.lastStatus ?? "unknown"}.`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function deleteScheduledTask(taskId) {
+      setAutomationMessage("");
+      try {
+        await ipcClient.automation.deleteTask(taskId);
+        await refreshAutomationData();
+        setAutomationMessage("Deleted scheduled task.");
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function updateRemoteControl(update) {
+      setAutomationMessage("");
+      try {
+        const remote = await ipcClient.automation.updateRemoteControl(update);
+        await refreshAutomationData();
+        setAutomationMessage("Updated remote control settings.");
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function createRemotePairingCode(deviceName) {
+      setAutomationMessage("");
+      try {
+        const remote = await ipcClient.automation.createRemotePairingCode(deviceName);
+        await refreshAutomationData();
+        setAutomationMessage("Created a remote-control pairing code.");
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function revokeRemoteDevice(deviceId) {
+      setAutomationMessage("");
+      try {
+        const remote = await ipcClient.automation.revokeRemoteDevice(deviceId);
+        setRemoteControl(remote);
+        await refreshAutomationData();
+        await refreshHistoryData();
+        setAutomationMessage("Revoked remote device.");
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function createDefaultVirtualTeam(objective) {
+      setAutomationMessage("");
+      try {
+        const team = await ipcClient.automation.createDefaultTeam(objective);
+        await refreshAutomationData();
+        setAutomationMessage(`Created virtual team "${team.name}".`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function saveVirtualTeam(team) {
+      setAutomationMessage("");
+      try {
+        const saved = await ipcClient.automation.saveTeam(team);
+        await refreshAutomationData();
+        setAutomationMessage(`Saved virtual team "${saved.name}".`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function deleteVirtualTeam(teamId) {
+      setAutomationMessage("");
+      try {
+        await ipcClient.automation.deleteTeam(teamId);
+        await refreshAutomationData();
+        setAutomationMessage("Deleted virtual team.");
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function setSkillEnabled(skillId, enabled) {
+      setAutomationMessage("");
+      try {
+        const skill = await ipcClient.automation.setSkillEnabled(skillId, enabled);
+        await refreshAutomationData();
+        setAutomationMessage(`${enabled ? "Enabled" : "Disabled"} skill "${skill.name}".`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function setScheduledTaskEnabled(taskId, enabled) {
+      setAutomationMessage("");
+      try {
+        const task = await ipcClient.automation.setTaskEnabled(taskId, enabled);
+        await refreshAutomationData();
+        setAutomationMessage(`${enabled ? "Enabled" : "Disabled"} scheduled task "${task.name}".`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      }
+    }
+    async function runVirtualTeam(teamId) {
+      if (runningTeamIdsRef.current.has(teamId)) {
+        return;
+      }
+      setAutomationMessage("");
+      runningTeamIdsRef.current.add(teamId);
+      setRunningTeamIds((current) => new Set(current).add(teamId));
+      try {
+        const run = await ipcClient.automation.runTeam(teamId);
+        await refreshAutomationData();
+        setAutomationMessage(`Virtual team run ${run.status}: ${run.summary ?? run.error ?? run.id}`);
+      } catch (error) {
+        setAutomationMessage(formatDesktopError(error));
+      } finally {
+        runningTeamIdsRef.current.delete(teamId);
+        setRunningTeamIds((current) => {
+          const next = new Set(current);
+          next.delete(teamId);
+          return next;
+        });
+      }
     }
     async function loadWorkspaceDirectory(nextPath = workspacePath) {
       const normalizedPath = normalizeWorkspacePath(nextPath);
@@ -40091,6 +40567,7 @@ ${formatJson(data.data)}
       }
       if (prompt === "/login" || prompt === "/settings") {
         setSettingsMessage(prompt === "/login" ? "Select an LLM backend and save credentials or local endpoint settings." : "");
+        setActiveSettingsSection("model");
         setActiveView("settings");
         appendMessage(createMessage("system", "Opened Settings.", { title: prompt.slice(1) }));
         return true;
@@ -40107,6 +40584,7 @@ ${formatJson(data.data)}
           apiKey: ""
         });
         setSettingsMessage("Configured draft for LM Studio. Set the model ID, then Save.");
+        setActiveSettingsSection("model");
         setActiveView("settings");
         appendMessage(createMessage("system", "Opened Settings with LM Studio defaults.", { title: "login" }));
         return true;
@@ -40119,12 +40597,37 @@ ${formatJson(data.data)}
         appendMessage(createMessage("system", formatSessions(sessions, currentSessionId), { title: "Sessions" }));
         return true;
       }
+      if (prompt === "/history") {
+        await refreshHistoryData();
+        setActiveHistorySection("overview");
+        setActiveView("history");
+        appendMessage(createMessage("system", "Opened History.", { title: "History" }));
+        return true;
+      }
       if (prompt === "/tools") {
+        setActiveToolsSection("bridge");
         appendMessage(createMessage("system", formatTools(tools, mcpTools), { title: "Tools" }));
+        return true;
+      }
+      if (prompt === "/automation" || prompt === "/skills" || prompt === "/tasks" || prompt === "/remote" || prompt === "/team") {
+        await refreshAutomationData();
+        if (prompt === "/skills") {
+          setActiveAutomationSection("skills");
+        } else if (prompt === "/tasks") {
+          setActiveAutomationSection("tasks");
+        } else if (prompt === "/remote") {
+          setActiveAutomationSection("remote");
+        } else if (prompt === "/team") {
+          setActiveAutomationSection("team");
+        }
+        setActiveView("automation");
+        appendMessage(createMessage("system", "Opened Automation.", { title: prompt.slice(1) }));
         return true;
       }
       if (prompt === "/mcp") {
         const { servers, discoveredMcpTools } = await refreshBridgeData();
+        setActiveToolsSection("mcp");
+        setActiveView("tools");
         appendMessage(createMessage("system", formatMcpStatus(servers, discoveredMcpTools), { title: "MCP" }));
         return true;
       }
@@ -40354,12 +40857,70 @@ ${toolText}`;
       updateSettingsDraft({ apiKey: "" });
       setSettingsMessage("Authentication cleared");
     }
+    function openPrimaryView(view) {
+      if (view === "settings") {
+        setSettingsMessage("");
+      } else if (view === "history") {
+        setHistoryMessage("");
+      }
+      setActiveView(view);
+    }
+    function getActiveChildMenu() {
+      if (activeView === "projects") {
+        return PROJECTS_MENU;
+      }
+      if (activeView === "tools") {
+        return TOOLS_MENU;
+      }
+      if (activeView === "automation") {
+        return AUTOMATION_MENU;
+      }
+      if (activeView === "history") {
+        return HISTORY_MENU;
+      }
+      if (activeView === "settings") {
+        return SETTINGS_MENU;
+      }
+      return [];
+    }
+    function getActiveChildId() {
+      if (activeView === "projects") {
+        return activeProjectsSection;
+      }
+      if (activeView === "tools") {
+        return activeToolsSection;
+      }
+      if (activeView === "automation") {
+        return activeAutomationSection;
+      }
+      if (activeView === "history") {
+        return activeHistorySection;
+      }
+      if (activeView === "settings") {
+        return activeSettingsSection;
+      }
+      return "";
+    }
+    function openChildRoute(view, childId) {
+      if (view === "projects") {
+        setActiveProjectsSection(childId);
+      } else if (view === "tools") {
+        setActiveToolsSection(childId);
+      } else if (view === "automation") {
+        setActiveAutomationSection(childId);
+      } else if (view === "history") {
+        setActiveHistorySection(childId);
+        setHistoryMessage("");
+      } else if (view === "settings") {
+        setActiveSettingsSection(childId);
+        setSettingsMessage("");
+      }
+      setActiveView(view);
+    }
     const statusLabel = isSending ? "Working" : status;
     const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
     const activeProviderDefault = getProviderDefault(activeProvider);
     const activeProviderLabel = activeProviderDefault.label;
-    const activeModelName = appConfig?.model || activeProviderDefault.model;
-    const activeBaseUrl = appConfig?.baseUrl || activeProviderDefault.baseUrl;
     const activeFileWriteReview = fileWriteReviews[0] ?? null;
     const activeCommandReview = commandReviews[0] ?? null;
     const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
@@ -40368,29 +40929,73 @@ ${toolText}`;
     const recentSessions = sortSessions(sessions);
     const visibleRecentSessions = recentSessions.filter((session) => matchesSessionSearch(session, sessionSearch));
     const exposedBridgeToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
-    const connectedMcpServerCount = mcpServers.filter((server) => server.status === "connected").length;
     const commandSuggestions = filterDesktopCommands(input);
     const showCommandPalette = activeView === "chat" && commandSuggestions.length > 0 && !isSending;
-    const viewTitle = activeView === "chat" ? conversationTitle : activeView === "projects" ? "Projects" : activeView === "tools" ? "Tools" : "Settings";
-    const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activeView === "projects" ? appInfo?.workspacePath || "Workspace" : activeView === "tools" ? `${tools.length} bridge tools / ${mcpTools.length} MCP tools` : `${activeProviderLabel} / ${appConfig?.model || activeProviderDefault.model}`;
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.container, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.navSidebar, "aria-label": "Navigation", children: [
+    const activeProjectsMenuItem = PROJECTS_MENU.find((item) => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
+    const activeToolsMenuItem = TOOLS_MENU.find((item) => item.id === activeToolsSection) ?? TOOLS_MENU[0];
+    const activeAutomationMenuItem = AUTOMATION_MENU.find((item) => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
+    const activeHistoryMenuItem = HISTORY_MENU.find((item) => item.id === activeHistorySection) ?? HISTORY_MENU[0];
+    const activeSettingsMenuItem = SETTINGS_MENU.find((item) => item.id === activeSettingsSection) ?? SETTINGS_MENU[0];
+    const activeChildMenu = getActiveChildMenu();
+    const activeChildId = getActiveChildId();
+    const viewTitle = activeView === "chat" ? conversationTitle : activeView === "projects" ? activeProjectsMenuItem.title : activeView === "tools" ? activeToolsMenuItem.title : activeView === "automation" ? activeAutomationMenuItem.title : activeView === "history" ? activeHistoryMenuItem.title : activeSettingsMenuItem.title;
+    const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activeView === "projects" ? activeProjectsMenuItem.description : activeView === "tools" ? activeToolsMenuItem.description : activeView === "automation" ? activeAutomationMenuItem.description : activeView === "history" ? activeHistoryMenuItem.description : activeSettingsMenuItem.description;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${sidebarCollapsed ? App_default.containerCollapsed : ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: `${App_default.navSidebar} ${sidebarCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: "*" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Code Agent" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "CodeAgent" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activeProviderLabel })
-          ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.navCollapseButton,
+              type: "button",
+              title: sidebarCollapsed ? "Expand navigation" : "Collapse navigation",
+              "aria-label": sidebarCollapsed ? "Expand navigation" : "Collapse navigation",
+              onClick: () => setSidebarCollapsed((value) => !value),
+              children: sidebarCollapsed ? ">" : "<"
+            }
+          )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", onClick: startNewChat, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "+" }),
-          "New chat"
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", title: "New chat", onClick: startNewChat, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: "+" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: "New chat" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("nav", { className: App_default.navList, "aria-label": "Primary", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "chat" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("chat"), children: "Chats" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "projects" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("projects"), children: "Projects" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: activeView === "tools" ? App_default.navItemActive : App_default.navItem, type: "button", onClick: () => setActiveView("tools"), children: "Tools" })
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: PRIMARY_NAV.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: activeView === item.id ? App_default.navItemActive : App_default.navItem,
+              type: "button",
+              title: item.description,
+              onClick: () => openPrimaryView(item.id),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: item.glyph }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: item.label })
+              ]
+            }
+          ),
+          activeView === item.id && activeChildMenu.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.label} sections`, children: activeChildMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: child.id === activeChildId ? App_default.navChildItemActive : App_default.navChildItem,
+              type: "button",
+              title: `${child.title}: ${child.description}`,
+              onClick: () => openChildRoute(item.id, child.id),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: child.title.charAt(0) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: child.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.description })
+                ] })
+              ]
+            },
+            child.id
+          )) })
+        ] }, item.id)) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Recents" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -40405,7 +41010,7 @@ ${toolText}`;
             }
           ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recentList, children: [
-            visibleRecentSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.recentItemActive, type: "button", onClick: () => setActiveView("chat"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: sessionSearch.trim() ? "No matches" : "New conversation" }) }),
+            visibleRecentSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.recentItemActive, type: "button", onClick: () => openPrimaryView("chat"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: sessionSearch.trim() ? "No matches" : "New conversation" }) }),
             visibleRecentSessions.map((session) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
               "button",
               {
@@ -40426,116 +41031,21 @@ ${toolText}`;
             ))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarBottom, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: activeView === "settings" ? App_default.sidebarSettingsButtonActive : App_default.sidebarSettingsButton,
-              type: "button",
-              onClick: () => {
-                setSettingsMessage("");
-                setActiveView("settings");
-              },
-              children: "Settings"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarFooter, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.statusDot} ${isSending ? App_default.statusDotBusy : ""}` }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount} tools exposed` : "Chat mode" })
-            ] })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.sidebarBottom, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarFooter, title: statusLabel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.statusDot} ${isSending ? App_default.statusDotBusy : ""}` }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount} tools exposed` : "Chat mode" })
           ] })
-        ] })
+        ] }) })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.appShell, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", { className: App_default.header, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.headerActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.status} ${isSending ? App_default.statusBusy : ""}`, children: statusLabel }) })
-        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", { className: App_default.header, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
+        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""}`, children: [
           activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.runtimeStrip, "aria-label": "Runtime status", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.runtimeCellButton,
-                  type: "button",
-                  title: `${activeProviderLabel}${activeBaseUrl ? ` / ${activeBaseUrl}` : ""}`,
-                  onClick: () => {
-                    setSettingsMessage("Provider and model settings.");
-                    setActiveView("settings");
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Provider" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: activeProviderLabel })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.runtimeCellButton,
-                  type: "button",
-                  title: activeModelName,
-                  onClick: () => {
-                    setSettingsMessage("Provider and model settings.");
-                    setActiveView("settings");
-                  },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: activeModelName })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.runtimeCellButton,
-                  type: "button",
-                  title: appInfo?.workspacePath || void 0,
-                  onClick: () => setActiveView("projects"),
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 44) : "Unknown" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.runtimeCellButton,
-                  type: "button",
-                  onClick: () => setActiveView("tools"),
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool mode" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount}/${tools.length} exposed` : "Chat only" })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.runtimeCellButton,
-                  type: "button",
-                  onClick: () => setActiveView("tools"),
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "MCP" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-                      connectedMcpServerCount,
-                      "/",
-                      mcpServers.length,
-                      " servers \xB7 ",
-                      mcpTools.length,
-                      " tools"
-                    ] })
-                  ]
-                }
-              )
-            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
               messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 MessageItem,
@@ -40579,7 +41089,7 @@ ${toolText}`;
                   value: input,
                   onChange: (event) => setInput(event.target.value),
                   onKeyDown: handleInputKeyDown,
-                  placeholder: "Reply to Code Agent...",
+                  placeholder: "Reply to CodeAgent...",
                   rows: 1,
                   disabled: isSending,
                   "aria-label": "Message"
@@ -40594,6 +41104,7 @@ ${toolText}`;
           activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             ProjectsView,
             {
+              activeSection: activeProjectsSection,
               appInfo,
               appConfig,
               appState,
@@ -40620,6 +41131,7 @@ ${toolText}`;
           activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             ToolsView,
             {
+              activeSection: activeToolsSection,
               tools,
               mcpTools,
               mcpServers,
@@ -40637,14 +41149,72 @@ ${toolText}`;
               onClearActivities: () => setToolActivities([])
             }
           ),
+          activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            AutomationView,
+            {
+              activeSection: activeAutomationSection,
+              skills,
+              tasks: scheduledTasks,
+              taskRuns,
+              schedulerStatus,
+              remoteControl,
+              teams: virtualTeams,
+              teamRuns,
+              runningTeamIds,
+              appConfig,
+              workspacePath: appInfo?.workspacePath ?? workspacePath,
+              message: automationMessage,
+              exportText: automationExportText,
+              importText: automationImportText,
+              onRefresh: refreshAutomationData,
+              onSetSkillEnabled: setSkillEnabled,
+              onExportProject: exportAutomationProject,
+              onImportTextChange: setAutomationImportText,
+              onImportProject: importAutomationProject,
+              onSaveTask: saveScheduledTask,
+              onRunTask: runScheduledTask,
+              onSetTaskEnabled: setScheduledTaskEnabled,
+              onDeleteTask: deleteScheduledTask,
+              onUpdateRemoteControl: updateRemoteControl,
+              onCreatePairingCode: createRemotePairingCode,
+              onRevokeRemoteDevice: revokeRemoteDevice,
+              onCreateDefaultTeam: createDefaultVirtualTeam,
+              onSaveTeam: saveVirtualTeam,
+              onRunTeam: runVirtualTeam,
+              onDeleteTeam: deleteVirtualTeam,
+              onSetToolPermission: (toolName, mode) => {
+                void updateToolPermissionPolicy(toolName, mode);
+                setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
+              },
+              onApplyPermissionPreset: (preset) => {
+                applyToolPermissionPreset(preset);
+                setAutomationMessage(
+                  preset === "allow-all" ? "All bridge tools are allowed for unattended automation." : preset === "ask-mutating" ? "Read-only tools are allowed and mutating tools require approval." : "Read-only tools are allowed and mutating tools are denied."
+                );
+              }
+            }
+          ),
+          activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            HistoryView,
+            {
+              activeSection: activeHistorySection,
+              records: historyRecords,
+              storageInfo: historyStorageInfo,
+              message: historyMessage,
+              exportText: historyExportText,
+              onRefresh: refreshHistoryData,
+              onDeleteRecord: deleteHistoryRecord,
+              onRestoreChat: restoreChatFromHistory,
+              onExportRecords: exportHistoryRecords
+            }
+          ),
           activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             SettingsView,
             {
+              activeSection: activeSettingsSection,
               draft: settingsDraft,
               message: settingsMessage,
               saving: isSavingSettings,
-              tools,
-              mcpServers,
               onChange: updateSettingsDraft,
               onClearToken: clearToken,
               onSubmit: saveSettings
@@ -40656,21 +41226,81 @@ ${toolText}`;
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("projects"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : "Unknown" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("tools"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-              exposedBridgeToolCount,
-              "/",
-              tools.length,
-              " bridge / ",
-              mcpTools.length,
-              " MCP"
-            ] })
-          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: App_default.statusPane,
+              type: "button",
+              onClick: () => {
+                setActiveProjectsSection("files");
+                setActiveView("projects");
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : "Unknown" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: App_default.statusPane,
+              type: "button",
+              onClick: () => {
+                setActiveToolsSection("bridge");
+                setActiveView("tools");
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                  exposedBridgeToolCount,
+                  "/",
+                  tools.length,
+                  " bridge / ",
+                  mcpTools.length,
+                  " MCP"
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: App_default.statusPane,
+              type: "button",
+              onClick: () => {
+                setActiveAutomationSection("tasks");
+                setActiveView("automation");
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Automation" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                  scheduledTasks.length,
+                  " tasks / ",
+                  virtualTeams.length,
+                  " teams"
+                ] })
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: App_default.statusPane,
+              type: "button",
+              onClick: () => {
+                setActiveHistorySection("overview");
+                setActiveView("history");
+              },
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "History" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                  historyStorageInfo.recordCount,
+                  " records"
+                ] })
+              ]
+            }
+          ),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
@@ -40716,6 +41346,7 @@ ${toolText}`;
     ] });
   }
   function ProjectsView({
+    activeSection,
     appInfo,
     appConfig,
     appState,
@@ -40738,90 +41369,66 @@ ${toolText}`;
     mcpServers,
     mcpTools
   }) {
+    const activeMenuItem = PROJECTS_MENU.find((item) => item.id === activeSection) ?? PROJECTS_MENU[0];
+    const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Projects", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
-            ] })
-          ] })
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.detailToolbar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Projects" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: activeMenuItem.title }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: activeMenuItem.description })
+      ] }) }),
+      activeSection === "overview" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: workspaceTitle }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Workspace State" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool calls" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
+              ] })
             ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-                viewportSize.width,
-                " x ",
-                viewportSize.height
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Workspace State" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool calls" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
               ] })
             ] })
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+      activeSection === "files" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Files" }),
@@ -40868,10 +41475,65 @@ ${toolText}`;
             );
           })
         ] })
+      ] }),
+      activeSection === "session" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
+          ] })
+        ] })
+      ] }),
+      activeSection === "runtime" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Runtime" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "App" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo?.isDev ? "Development" : "Production" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+              viewportSize.width,
+              " x ",
+              viewportSize.height
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
+          ] })
+        ] })
       ] })
     ] });
   }
   function ToolsView({
+    activeSection,
     tools,
     mcpTools,
     mcpServers,
@@ -40897,156 +41559,1056 @@ ${toolText}`;
       },
       { allow: 0, ask: 0, deny: 0 }
     );
+    const activeMenuItem = TOOLS_MENU.find((item) => item.id === activeSection) ?? TOOLS_MENU[0];
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Tools", children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailToolbar, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Agent capabilities" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Tools" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: activeMenuItem.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: activeMenuItem.description })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: "Refresh" })
+        (activeSection === "bridge" || activeSection === "mcp") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: "Refresh" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsLayout, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Bridge Tools" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterSummary, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model exposure" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-                exposedToolCount,
-                " / ",
-                tools.length
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool calls" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Ask policy" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.ask })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Denied" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.deny })
+      activeSection === "bridge" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Bridge Tools" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterSummary, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model exposure" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+              exposedToolCount,
+              " / ",
+              tools.length
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all"), children: "Expose all" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only"), children: "Read-only only" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off"), children: "Hide mutating" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: "Allow all" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: "Ask mutating" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: "Deny mutating" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool calls" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
           ] }),
-          routerMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.toolRouterMessage, children: routerMessage }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-            toolGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.toolCatalogGroup, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: group.label }),
-              group.tools.map((tool) => {
-                const exposed = isToolExposedToModel(tool, appConfig);
-                const permission = getToolPermissionPolicy(tool, appConfig);
-                return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tool.name }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tool.readOnly ? "Read-only" : "Can change workspace" })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tool.description }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolExposureRow, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: exposed ? "Exposed to model" : "Hidden from model" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        className: exposed ? App_default.toolExposureButton : App_default.toolExposureButtonOff,
-                        type: "button",
-                        onClick: () => onToggleModelTool(tool.name, !exposed),
-                        children: exposed ? "Hide" : "Expose"
-                      }
-                    )
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "select",
-                      {
-                        value: permission,
-                        onChange: (event) => onSetToolPermission(tool.name, event.target.value),
-                        children: TOOL_PERMISSION_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
-                      }
-                    )
-                  ] })
-                ] }, tool.name);
-              })
-            ] }, group.id)),
-            tools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No bridge tools available" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Ask policy" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.ask })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Denied" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.deny })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsStack, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "MCP Registry" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Servers" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Execution policy" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getToolPermissionPolicy({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig) })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-              mcpServers.map((server) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all"), children: "Expose all" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only"), children: "Read-only only" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off"), children: "Hide mutating" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: "Allow all" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: "Ask mutating" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: "Deny mutating" })
+        ] }),
+        routerMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.toolRouterMessage, children: routerMessage }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+          toolGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.toolCatalogGroup, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: group.label }),
+            group.tools.map((tool) => {
+              const exposed = isToolExposedToModel(tool, appConfig);
+              const permission = getToolPermissionPolicy(tool, appConfig);
+              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: server.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tool.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tool.readOnly ? "Read-only" : "Can change workspace" })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tool.description }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolExposureRow, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: exposed ? "Exposed to model" : "Hidden from model" }),
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "span",
+                    "button",
                     {
-                      className: [
-                        App_default.toolStatusBadge,
-                        server.status === "connected" ? App_default.toolStatusConnected : "",
-                        server.status === "error" ? App_default.toolStatusError : ""
-                      ].filter(Boolean).join(" "),
-                      children: server.status
+                      className: exposed ? App_default.toolExposureButton : App_default.toolExposureButtonOff,
+                      type: "button",
+                      onClick: () => onToggleModelTool(tool.name, !exposed),
+                      children: exposed ? "Hide" : "Expose"
                     }
                   )
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-                  server.type,
-                  server.scope ? ` \xB7 ${server.scope}` : "",
-                  server.error ? ` \xB7 ${server.error}` : ""
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "select",
+                    {
+                      value: permission,
+                      onChange: (event) => onSetToolPermission(tool.name, event.target.value),
+                      children: TOOL_PERMISSION_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
+                    }
+                  )
                 ] })
-              ] }, `${server.scope ?? "unknown"}-${server.name}`)),
-              mcpServers.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No MCP servers configured" })
+              ] }, tool.name);
+            })
+          ] }, group.id)),
+          tools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No bridge tools available" })
+        ] })
+      ] }),
+      activeSection === "mcp" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "MCP Registry" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Servers" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tools" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Execution policy" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getToolPermissionPolicy({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig) })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+          mcpServers.map((server) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: server.name }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "span",
+                {
+                  className: [
+                    App_default.toolStatusBadge,
+                    server.status === "connected" ? App_default.toolStatusConnected : "",
+                    server.status === "error" ? App_default.toolStatusError : ""
+                  ].filter(Boolean).join(" "),
+                  children: server.status
+                }
+              )
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.tagList, children: [
-              mcpTools.slice(0, 12).map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.tag, children: [
-                tool.serverScope ? `${tool.serverScope}:` : "",
-                tool.serverName,
-                ".",
-                tool.toolName
-              ] }, `${tool.serverKey ?? tool.serverName}-${tool.toolName}`)),
-              mcpTools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No executable stdio MCP tools discovered yet" })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+              server.type,
+              server.scope ? ` / ${server.scope}` : "",
+              server.error ? ` / ${server.error}` : ""
+            ] })
+          ] }, `${server.scope ?? "unknown"}-${server.name}`)),
+          mcpServers.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No MCP servers configured" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.tagList, children: [
+          mcpTools.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.tag, children: [
+            tool.serverScope ? `${tool.serverScope}:` : "",
+            tool.serverName,
+            ".",
+            tool.toolName
+          ] }, `${tool.serverKey ?? tool.serverName}-${tool.toolName}`)),
+          mcpTools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No executable stdio MCP tools discovered yet" })
+        ] })
+      ] }),
+      activeSection === "command" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RunCommandPanel, { onRunCommand }),
+      activeSection === "activity" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        ToolActivityPanel,
+        {
+          activities: toolActivities,
+          onClear: onClearActivities,
+          onOpenWorkspacePath,
+          onRevealWorkspacePath
+        }
+      ),
+      activeSection === "plugins" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PluginSkillPanel, { appConfig })
+    ] });
+  }
+  function HistoryView({
+    activeSection,
+    records,
+    storageInfo,
+    message,
+    exportText,
+    onRefresh,
+    onDeleteRecord,
+    onRestoreChat,
+    onExportRecords
+  }) {
+    const activeMenuItem = HISTORY_MENU.find((item) => item.id === activeSection) ?? HISTORY_MENU[0];
+    const chatRecords = records.filter((record) => record.type === "chat-session");
+    const toolRecords = records.filter((record) => record.type === "tool-event");
+    const automationRecords = records.filter((record) => record.type === "automation-run");
+    const projectEventRecords = records.filter((record) => record.type === "project-event");
+    const visibleRecords = activeSection === "chats" ? chatRecords : activeSection === "tools" ? toolRecords : activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : records;
+    async function copyExportText() {
+      if (exportText) {
+        await navigator.clipboard.writeText(exportText);
+      }
+    }
+    function downloadExportText() {
+      if (!exportText) {
+        return;
+      }
+      const blob = new Blob([exportText], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `code-agent-history-${Date.now()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-labelledby": "history-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "history-title", children: "History" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: "Browse local chat, tool, automation, and project-event records stored outside shareable project files." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: "Refresh" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContentHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Local history store" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: activeMenuItem.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: activeMenuItem.description })
+        ] }),
+        message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: message }),
+        activeSection === "overview" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Storage", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Records" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: storageInfo.recordCount })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Chats" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: chatRecords.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool events" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: toolRecords.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Automation" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: automationRecords.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Project events" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectEventRecords.length })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.mutedText, title: storageInfo.storagePath, children: [
+              "Storage path: ",
+              storageInfo.storagePath || "Unavailable"
             ] })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PluginSkillPanel, { appConfig })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolsStack, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RunCommandPanel, { onRunCommand }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            ToolActivityPanel,
+            HistoryRecordList,
             {
-              activities: toolActivities,
-              onClear: onClearActivities,
-              onOpenWorkspacePath,
-              onRevealWorkspacePath
+              records: records.slice(0, 12),
+              onDeleteRecord,
+              onRestoreChat
             }
           )
+        ] }),
+        (activeSection === "chats" || activeSection === "tools" || activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          HistoryRecordList,
+          {
+            records: visibleRecords,
+            onDeleteRecord,
+            onRestoreChat
+          }
+        ),
+        activeSection === "export" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Export History", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Exports are local JSON snapshots. They do not include provider API keys." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords(), children: "Export All" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("chat-session"), children: "Export Chats" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("tool-event"), children: "Export Tool Events" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run"), children: "Export Automation" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("project-event"), children: "Export Project Events" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Export Data", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: exportText, readOnly: true, rows: 14, placeholder: "Choose an export option above." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: copyExportText, children: "Copy JSON" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: downloadExportText, children: "Download JSON" })
+            ] })
+          ] })
         ] })
       ] })
-    ] });
+    ] }) });
+  }
+  function HistoryRecordList({
+    records,
+    onDeleteRecord,
+    onRestoreChat
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Records", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+      records.map((record) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: getHistoryRecordTitle(record) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: getHistoryRecordTypeLabel(record.type) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: getHistoryRecordSummary(record) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(record.updatedAt).toLocaleString() }),
+        record.workspacePath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { title: record.workspacePath, children: [
+          "Workspace: ",
+          record.workspacePath
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          record.type === "chat-session" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRestoreChat(record), children: "Restore Chat" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteRecord(record.id), children: "Delete" })
+        ] })
+      ] }, record.id)),
+      records.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No history records in this section." })
+    ] }) });
+  }
+  function createAutomationDraftId(prefix) {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function getDefaultTeamGoal(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor")) {
+      return "Coordinate the team, keep work aligned to the project objective, and decide the next handoff.";
+    }
+    if (normalizedRole.includes("manager")) {
+      return "Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.";
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return "Validate the implementation plan, propose tests, and call out release blockers.";
+    }
+    if (normalizedRole.includes("review")) {
+      return "Review the work for correctness, maintainability, security, and missing verification.";
+    }
+    return "Implement the assigned work, use tools conservatively, and report concrete results.";
+  }
+  function getDefaultTeamTools(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor") || normalizedRole.includes("manager")) {
+      return ["automation.listTeams", "automation.listTeamRuns", "fs.read"];
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return ["fs.read", "bash.run"];
+    }
+    return ["fs.read", "fs.write", "bash.run"];
+  }
+  function createVirtualTeamMemberDraft(role = "Developer") {
+    return {
+      id: createAutomationDraftId("member"),
+      name: role,
+      role,
+      goal: getDefaultTeamGoal(role),
+      tools: getDefaultTeamTools(role)
+    };
+  }
+  function createVirtualTeamDraft(workspacePath) {
+    const members = [
+      createVirtualTeamMemberDraft("Supervisor"),
+      createVirtualTeamMemberDraft("Project Manager"),
+      createVirtualTeamMemberDraft("Developer"),
+      createVirtualTeamMemberDraft("QA")
+    ];
+    const now = Date.now();
+    return {
+      id: createAutomationDraftId("team"),
+      name: "Autonomous project team",
+      objective: "Build and validate the software project from the human blueprint.",
+      workspacePath,
+      permissionMode: "full-access",
+      maxIterations: 1,
+      requireQaSignoff: true,
+      supervisorId: members[0].id,
+      members,
+      status: "draft",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  function cloneVirtualTeamForDraft(team, workspacePath) {
+    const members = team.members.map((member) => ({
+      ...member,
+      tools: [...member.tools]
+    }));
+    const supervisorId = members.some((member) => member.id === team.supervisorId) ? team.supervisorId : members[0]?.id ?? "";
+    return {
+      ...team,
+      workspacePath: team.workspacePath ?? workspacePath,
+      permissionMode: team.permissionMode ?? "full-access",
+      maxIterations: team.maxIterations ?? 1,
+      requireQaSignoff: Boolean(team.requireQaSignoff),
+      supervisorId,
+      members
+    };
+  }
+  function getTeamPermissionLabel(mode) {
+    return mode === "supervised" ? "Supervised" : "Full access";
+  }
+  function formatTeamTools(tools) {
+    return tools.join(", ");
+  }
+  function createPermissionTool(toolName) {
+    const readOnly = !["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"].includes(toolName);
+    return {
+      name: toolName,
+      description: "",
+      inputSchema: {},
+      readOnly
+    };
+  }
+  function AutomationView({
+    activeSection,
+    skills,
+    tasks,
+    taskRuns,
+    schedulerStatus,
+    remoteControl,
+    teams,
+    teamRuns,
+    runningTeamIds,
+    appConfig,
+    workspacePath,
+    message,
+    exportText,
+    importText,
+    onRefresh,
+    onSetSkillEnabled,
+    onExportProject,
+    onImportTextChange,
+    onImportProject,
+    onSaveTask,
+    onRunTask,
+    onSetTaskEnabled,
+    onDeleteTask,
+    onUpdateRemoteControl,
+    onCreatePairingCode,
+    onRevokeRemoteDevice,
+    onCreateDefaultTeam,
+    onSaveTeam,
+    onRunTeam,
+    onDeleteTeam,
+    onSetToolPermission,
+    onApplyPermissionPreset
+  }) {
+    const [taskName, setTaskName] = useState("Daily project check");
+    const [taskPrompt, setTaskPrompt] = useState("Summarize git status, failing tests, and next actions for this workspace.");
+    const [taskInterval, setTaskInterval] = useState(1440);
+    const [taskRetryEnabled, setTaskRetryEnabled] = useState(false);
+    const [taskMaxRetries, setTaskMaxRetries] = useState(1);
+    const [taskRetryDelay, setTaskRetryDelay] = useState(15);
+    const [taskNotifySuccess, setTaskNotifySuccess] = useState(false);
+    const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
+    const [taskNotificationChannel, setTaskNotificationChannel] = useState("desktop");
+    const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState("run-once");
+    const [deviceName, setDeviceName] = useState("Phone");
+    const [selectedTeamId, setSelectedTeamId] = useState("");
+    const [teamDraft, setTeamDraft] = useState(() => createVirtualTeamDraft(workspacePath));
+    const activeMenuItem = AUTOMATION_MENU.find((item) => item.id === activeSection) ?? AUTOMATION_MENU[0];
+    const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+    const recentTeamRuns = selectedTeamId ? teamRuns.filter((run) => run.teamId === selectedTeamId) : teamRuns;
+    useEffect(() => {
+      if (!selectedTeamId && teams[0]) {
+        setSelectedTeamId(teams[0].id);
+        setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
+      }
+    }, [selectedTeamId, teams, workspacePath]);
+    function startNewTeamDraft() {
+      const draft = createVirtualTeamDraft(workspacePath);
+      setSelectedTeamId("");
+      setTeamDraft(draft);
+    }
+    function selectTeam(team) {
+      setSelectedTeamId(team.id);
+      setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
+    }
+    function updateTeamDraft(update) {
+      setTeamDraft((current) => ({
+        ...current,
+        ...update,
+        updatedAt: Date.now()
+      }));
+    }
+    function updateTeamMember(index, update) {
+      setTeamDraft((current) => {
+        const members = current.members.map((member, memberIndex) => memberIndex === index ? { ...member, ...update } : member);
+        const supervisorId = members.some((member) => member.id === current.supervisorId) ? current.supervisorId : members[0]?.id ?? "";
+        return {
+          ...current,
+          members,
+          supervisorId,
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function addTeamMember(role = "Developer") {
+      setTeamDraft((current) => {
+        const member = createVirtualTeamMemberDraft(role);
+        return {
+          ...current,
+          members: [...current.members, member],
+          supervisorId: current.supervisorId || member.id,
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function deleteTeamMember(memberId) {
+      setTeamDraft((current) => {
+        const members = current.members.filter((member) => member.id !== memberId);
+        return {
+          ...current,
+          members,
+          supervisorId: current.supervisorId === memberId ? members[0]?.id ?? "" : current.supervisorId,
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function saveTeamDraft() {
+      onSaveTeam({
+        ...teamDraft,
+        permissionMode: teamDraft.permissionMode ?? "full-access",
+        maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
+        requireQaSignoff: Boolean(teamDraft.requireQaSignoff),
+        members: teamDraft.members.map((member) => ({
+          ...member,
+          name: member.name.trim() || member.role.trim() || "Team member",
+          role: member.role.trim() || "Contributor",
+          goal: member.goal.trim() || getDefaultTeamGoal(member.role),
+          tools: normalizeToolNameList(member.tools)
+        }))
+      });
+    }
+    async function copyAutomationExportText() {
+      if (exportText) {
+        await navigator.clipboard.writeText(exportText);
+      }
+    }
+    function downloadAutomationExportText() {
+      if (!exportText) {
+        return;
+      }
+      const blob = new Blob([exportText], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `code-agent-automation-${Date.now()}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-labelledby": "automation-title", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "automation-title", children: "Automation" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: "Manage skills, scheduled work, remote approvals, virtual teams, and unattended execution policy." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: "Refresh" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContentHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Local automation platform" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: activeMenuItem.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: activeMenuItem.description })
+        ] }),
+        message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: message }),
+        activeSection === "skills" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Skills", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Workspace skills are discovered from `.code-agent/skills` and `skills`." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+              skills.map((skill) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: skill.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    skill.enabled ? "Enabled" : "Disabled",
+                    " / ",
+                    skill.source
+                  ] })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: skill.description || "No description provided." }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: skill.path, children: skill.path }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSetSkillEnabled(skill.id, !skill.enabled), children: skill.enabled ? "Disable" : "Enable" }) })
+              ] }, skill.id)),
+              skills.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No workspace skills found yet." })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Shareable Project Bundle", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportProject(false), children: "Export Config" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportProject(true), children: "Export With Runs" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: copyAutomationExportText, children: "Copy Export" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: downloadAutomationExportText, children: "Download Export" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: onImportProject, disabled: !importText.trim(), children: "Import JSON" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Export JSON" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: exportText, readOnly: true, rows: 8, placeholder: "Exported automation JSON appears here." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Import JSON" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: importText, onChange: (event) => onImportTextChange(event.target.value), rows: 8, placeholder: "Paste a CodeAgent automation export JSON object." })
+              ] })
+            ] })
+          ] })
+        ] }),
+        activeSection === "tasks" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Scheduler", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: schedulerStatus.running ? "Running" : "Stopped" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tick" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+                  Math.round(schedulerStatus.intervalMs / 1e3),
+                  "s"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Active tasks" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: schedulerStatus.runningTaskIds.length })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the Team Editor when trusted autonomous work should not pause for approvals." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Create Task", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Name" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: taskName, onChange: (event) => setTaskName(event.target.value) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Interval minutes" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "number",
+                    min: 1,
+                    value: taskInterval,
+                    onChange: (event) => setTaskInterval(Math.max(1, Number(event.target.value) || 1))
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Prompt" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: taskPrompt, onChange: (event) => setTaskPrompt(event.target.value), rows: 4 })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Retry failed runs" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskRetryEnabled ? "enabled" : "disabled", onChange: (event) => setTaskRetryEnabled(event.target.value === "enabled"), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "disabled", children: "Disabled" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "enabled", children: "Enabled" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Max retries" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "number",
+                    min: 0,
+                    max: 10,
+                    value: taskMaxRetries,
+                    onChange: (event) => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Retry delay minutes" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "number",
+                    min: 1,
+                    max: 1440,
+                    value: taskRetryDelay,
+                    onChange: (event) => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notify on success" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotifySuccess ? "yes" : "no", onChange: (event) => setTaskNotifySuccess(event.target.value === "yes"), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notify on failure" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotifyFailure ? "yes" : "no", onChange: (event) => setTaskNotifyFailure(event.target.value === "yes"), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notification channel" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotificationChannel, onChange: (event) => setTaskNotificationChannel(event.target.value), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "desktop", children: "Desktop" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "remote", children: "Remote" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "none", children: "None" })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Missed runs" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskMissedRunPolicy, onChange: (event) => setTaskMissedRunPolicy(event.target.value), children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "run-once", children: "Run once after restart" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "skip", children: "Skip and resume schedule" })
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                className: App_default.primaryButton,
+                type: "button",
+                onClick: () => onSaveTask({
+                  name: taskName,
+                  prompt: taskPrompt,
+                  intervalMinutes: taskInterval,
+                  enabled: true,
+                  retryPolicy: {
+                    enabled: taskRetryEnabled,
+                    maxRetries: taskMaxRetries,
+                    retryDelayMinutes: taskRetryDelay
+                  },
+                  notificationPolicy: {
+                    onSuccess: taskNotifySuccess,
+                    onFailure: taskNotifyFailure,
+                    channel: taskNotificationChannel
+                  },
+                  missedRunPolicy: taskMissedRunPolicy
+                }),
+                children: "Save Task"
+              }
+            ) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Configured Tasks", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+            tasks.map((task) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: task.enabled ? "Enabled" : "Disabled" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: task.prompt }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Every ",
+                task.intervalMinutes,
+                " min / next ",
+                new Date(task.nextRunAt).toLocaleString()
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Status: ",
+                task.lastStatus ?? "never run"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Retry: ",
+                task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} after ${task.retryPolicy.retryDelayMinutes} min` : "disabled"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Notify: ",
+                task.notificationPolicy?.channel ?? "desktop",
+                " / success ",
+                task.notificationPolicy?.onSuccess ? "on" : "off",
+                " / failure ",
+                task.notificationPolicy?.onFailure !== false ? "on" : "off"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Missed runs: ",
+                task.missedRunPolicy === "skip" ? "skip and resume schedule" : "run once after restart"
+              ] }),
+              task.lastResult && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: task.lastResult }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRunTask(task.id), children: "Run Now" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled), children: task.enabled ? "Disable" : "Enable" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteTask(task.id), children: "Delete" })
+              ] })
+            ] }, task.id)),
+            tasks.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No scheduled tasks configured." })
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Recent Task Runs", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+            taskRuns.slice(0, 8).map((run) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: run.taskName }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: run.status })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: run.result ?? run.error ?? "Running..." }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(run.startedAt).toLocaleString() })
+            ] }, run.id)),
+            taskRuns.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No task runs yet." })
+          ] }) })
+        ] }),
+        activeSection === "remote" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Remote Access", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.enabled ? "Enabled" : "Disabled" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.mode })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Devices" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.approvedDevices.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Pending approvals" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.pendingActions?.length ?? 0 })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.settingsGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Device name" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: deviceName, onChange: (event) => setDeviceName(event.target.value) })
+            ] }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? "disabled" : "local-network" }), children: remoteControl.enabled ? "Disable" : "Enable" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: () => onCreatePairingCode(deviceName), children: "Pair Device" })
+            ] })
+          ] }),
+          remoteControl.pairingCode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Pairing Code", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.pairingCode, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Pairing code" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: remoteControl.pairingCode }),
+            remoteControl.pairingExpiresAt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("em", { children: [
+              "Expires ",
+              new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()
+            ] })
+          ] }) }),
+          (remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Remote URL", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.pairingCode, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Remote URL" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl }),
+            remoteControl.serverUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: remoteControl.serverUrl })
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Approved Devices", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+            remoteControl.approvedDevices.map((device) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: device.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: device.lastSeenAt ? "Seen recently" : "Paired" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Paired ",
+                new Date(device.createdAt).toLocaleString()
+              ] }),
+              device.lastSeenAt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Last seen ",
+                new Date(device.lastSeenAt).toLocaleString()
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onRevokeRemoteDevice(device.id), children: "Revoke" }) })
+            ] }, device.id)),
+            remoteControl.approvedDevices.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No approved remote devices." })
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Remote Audit Log", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+            (remoteControl.auditLog ?? []).slice(0, 12).map((event) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: event.message }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: event.type })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(event.createdAt).toLocaleString() }),
+              event.deviceName && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                "Device: ",
+                event.deviceName
+              ] })
+            ] }, event.id)),
+            (remoteControl.auditLog ?? []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No remote-control audit events yet." })
+          ] }) })
+        ] }),
+        activeSection === "team" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Team Blueprints", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: startNewTeamDraft, children: "New Team" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onCreateDefaultTeam(teamDraft.objective), children: "Add Default Template" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+              teams.map((team) => {
+                const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === "running";
+                return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: team.id === selectedTeamId ? `${App_default.toolCatalogItem} ${App_default.toolCatalogItemSelected}` : App_default.toolCatalogItem, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: teamIsRunning ? "running" : team.status })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: team.objective }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { title: team.workspacePath ?? workspacePath, children: [
+                    "Workspace: ",
+                    team.workspacePath ?? workspacePath
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                    "Permissions: ",
+                    getTeamPermissionLabel(team.permissionMode)
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                    "Governance: ",
+                    team.maxIterations ?? 1,
+                    " iteration(s) / QA ",
+                    team.requireQaSignoff ? "required" : "optional"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.tagList, children: team.members.map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.tag, children: member.role }, member.id)) }),
+                  team.lastResult && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: team.lastResult }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => selectTeam(team), disabled: teamIsRunning, children: "Edit" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRunTeam(team.id), disabled: teamIsRunning, children: teamIsRunning ? "Running..." : "Run Team" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteTeam(team.id), disabled: teamIsRunning, children: "Delete" })
+                  ] })
+                ] }, team.id);
+              }),
+              teams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No virtual team blueprints configured." })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Team Editor", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team name" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: teamDraft.name, onChange: (event) => updateTeamDraft({ name: event.target.value }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: teamDraft.supervisorId, onChange: (event) => updateTeamDraft({ supervisorId: event.target.value }), children: teamDraft.members.map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: member.id, children: member.name || member.role }, member.id)) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Execution permissions" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "select",
+                  {
+                    value: teamDraft.permissionMode ?? "full-access",
+                    onChange: (event) => updateTeamDraft({ permissionMode: event.target.value }),
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full access, no approval popups" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Supervised, ask for risky tools" })
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Max iterations" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "number",
+                    min: 1,
+                    max: 5,
+                    value: teamDraft.maxIterations ?? 1,
+                    onChange: (event) => updateTeamDraft({
+                      maxIterations: Math.max(1, Math.min(5, Math.floor(Number(event.target.value) || 1)))
+                    })
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "QA/reviewer signoff" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "select",
+                  {
+                    value: teamDraft.requireQaSignoff ? "required" : "optional",
+                    onChange: (event) => updateTeamDraft({ requireQaSignoff: event.target.value === "required" }),
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "required", children: "Required before success" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "optional", children: "Optional" })
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project objective" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: teamDraft.objective, onChange: (event) => updateTeamDraft({ objective: event.target.value }), rows: 4 })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team workspace path" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: teamDraft.workspacePath ?? workspacePath, onChange: (event) => updateTeamDraft({ workspacePath: event.target.value }) })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("Developer"), children: "Add Developer" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("QA"), children: "Add QA" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("Reviewer"), children: "Add Reviewer" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: saveTeamDraft, children: "Save Team" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolCatalog, children: teamDraft.members.map((member, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: member.name || member.role || "Team member" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: member.id === teamDraft.supervisorId ? "Supervisor" : "Member" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Name" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: member.name, onChange: (event) => updateTeamMember(index, { name: event.target.value }) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: member.role, onChange: (event) => updateTeamMember(index, { role: event.target.value }) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Goal" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: member.goal, onChange: (event) => updateTeamMember(index, { goal: event.target.value }), rows: 3 })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model override" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: member.model ?? "", onChange: (event) => updateTeamMember(index, { model: event.target.value || void 0 }) })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: formatTeamTools(member.tools), onChange: (event) => updateTeamMember(index, { tools: normalizeToolNameList(event.target.value) }) })
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => updateTeamDraft({ supervisorId: member.id }), children: "Make Supervisor" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => deleteTeamMember(member.id), disabled: teamDraft.members.length <= 1, children: "Delete Member" })
+              ] })
+            ] }, member.id)) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Team Communication", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: selectedTeam ? `Showing runs for ${selectedTeam.name}.` : "Showing recent runs across all teams." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
+              recentTeamRuns.slice(0, 6).map((run) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: run.teamName }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: run.status })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: run.summary ?? run.error ?? "Running..." }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { title: run.workspacePath ?? workspacePath, children: [
+                  "Workspace: ",
+                  run.workspacePath ?? workspacePath
+                ] }),
+                run.artifactPath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { title: run.artifactPath, children: [
+                  "Artifact: ",
+                  run.artifactPath
+                ] }),
+                (run.milestones?.length ?? 0) > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.teamTranscript, children: run.milestones?.map((milestone) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.teamTranscriptStep, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: milestone.title }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: milestone.status })
+                  ] }),
+                  milestone.summary && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: milestone.summary })
+                ] }, `${run.id}-${milestone.id}`)) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.teamTranscript, children: [
+                  run.steps.map((step, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.teamTranscriptStep, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                        step.iteration ? `Iteration ${step.iteration} / ` : "",
+                        step.role,
+                        " / ",
+                        step.memberName
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: step.status })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: step.output ?? step.error ?? "Waiting for output." })
+                  ] }, `${run.id}-${step.memberId}-${index}`)),
+                  run.steps.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No team messages yet." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
+                  run.steps.length,
+                  " step(s) / ",
+                  new Date(run.startedAt).toLocaleString()
+                ] })
+              ] }, run.id)),
+              recentTeamRuns.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No team runs yet." })
+            ] })
+          ] })
+        ] }),
+        activeSection === "permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Unattended Execution Policy", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: "Allow All Tools" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: "Ask Before Changes" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: "Deny Mutating Tools" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Key Automation Tools", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolCatalog, children: AUTOMATION_PERMISSION_TOOLS.map((toolName) => {
+            const permission = getToolPermissionPolicy(createPermissionTool(toolName), appConfig);
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: toolName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: permission, onChange: (event) => onSetToolPermission(toolName, event.target.value), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "allow", children: "Allow" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "ask", children: "Ask" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "deny", children: "Deny" })
+              ] })
+            ] }, toolName);
+          }) }) })
+        ] })
+      ] })
+    ] }) });
   }
   function RunCommandPanel({
     onRunCommand
@@ -41418,16 +42980,14 @@ ${toolText}`;
     return Array.from(next).join(",");
   }
   function SettingsView({
+    activeSection,
     draft,
     message,
     saving,
-    tools,
-    mcpServers,
     onChange,
     onClearToken,
     onSubmit
   }) {
-    const [activeSection, setActiveSection] = useState("model");
     const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
     const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
       value,
@@ -41451,339 +43011,312 @@ ${toolText}`;
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "settings-title", children: "Settings" }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: "Configure model backends, agent tools, workspace context, and desktop compatibility options." })
       ] }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsBody, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.settingsMenu, "aria-label": "Settings sections", children: [
-          SETTINGS_MENU.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: item.id === activeSection ? App_default.settingsMenuItemActive : App_default.settingsMenuItem,
-              type: "button",
-              onClick: () => setActiveSection(item.id),
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: item.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: item.description })
-              ]
-            },
-            item.id
-          )),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsMenuSummary, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Bridge tools" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tools.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "MCP servers" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: mcpServers.length })
-            ] })
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContentHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Settings" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: activeMenuItem.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: activeMenuItem.description })
+        ] }),
+        activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "LLM backend",
+                value: draft.llmProvider,
+                options: providerOptions,
+                onChange: changeProvider
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
+                type: "password",
+                value: draft.apiKey,
+                onChange: (value) => onChange({ apiKey: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Base URL",
+                value: draft.baseUrl,
+                onChange: (value) => onChange({ baseUrl: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Model",
+                value: draft.model,
+                onChange: (value) => onChange({ model: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Theme",
+                value: draft.theme,
+                options: [
+                  { value: "system", label: "System" },
+                  { value: "light", label: "Light" },
+                  { value: "dark", label: "Dark" }
+                ],
+                onChange: (value) => onChange({ theme: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Temperature",
+                type: "number",
+                value: draft.temperature,
+                onChange: (value) => onChange({ temperature: Number(value) })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Max tokens",
+                type: "number",
+                value: draft.maxTokens,
+                onChange: (value) => onChange({ maxTokens: Number(value) })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Context tokens",
+                type: "number",
+                value: draft.contextTokens,
+                onChange: (value) => onChange({ contextTokens: Number(value) })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Thinking",
+                value: draft.thinkingMode,
+                options: [
+                  { value: "adaptive", label: "Adaptive" },
+                  { value: "enabled", label: "Enabled" },
+                  { value: "disabled", label: "Disabled" }
+                ],
+                onChange: (value) => onChange({ thinkingMode: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Effort",
+                value: draft.effort,
+                options: [
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "max", label: "Max" }
+                ],
+                onChange: (value) => onChange({ effort: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) })
+        ] }),
+        activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Output format",
+                value: draft.outputFormat,
+                options: [
+                  { value: "text", label: "Text" },
+                  { value: "json", label: "JSON" },
+                  { value: "stream-json", label: "Stream JSON" }
+                ],
+                onChange: (value) => onChange({ outputFormat: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Input format",
+                value: draft.inputFormat,
+                options: [
+                  { value: "text", label: "Text" },
+                  { value: "stream-json", label: "Stream JSON" }
+                ],
+                onChange: (value) => onChange({ inputFormat: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug filter", value: draft.debugFilter, onChange: (value) => onChange({ debugFilter: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug file", value: draft.debugFile, onChange: (value) => onChange({ debugFile: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "JSON schema", value: draft.jsonSchema, onChange: (value) => onChange({ jsonSchema: value }), className: App_default.fieldWide })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Print mode", checked: draft.printMode, onChange: (checked) => onChange({ printMode: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include hook events", checked: draft.includeHookEvents, onChange: (checked) => onChange({ includeHookEvents: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include partial messages", checked: draft.includePartialMessages, onChange: (checked) => onChange({ includePartialMessages: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Replay user messages", checked: draft.replayUserMessages, onChange: (checked) => onChange({ replayUserMessages: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug", checked: draft.debugEnabled, onChange: (checked) => onChange({ debugEnabled: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug to stderr", checked: draft.debugToStderr, onChange: (checked) => onChange({ debugToStderr: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Verbose", checked: draft.verbose, onChange: (checked) => onChange({ verbose: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "MCP debug", checked: draft.mcpDebug, onChange: (checked) => onChange({ mcpDebug: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContentHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Settings" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: activeMenuItem.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: activeMenuItem.description })
-          ] }),
-          activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "LLM backend",
-                  value: draft.llmProvider,
-                  options: providerOptions,
-                  onChange: changeProvider
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
-                  type: "password",
-                  value: draft.apiKey,
-                  onChange: (value) => onChange({ apiKey: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: "Base URL",
-                  value: draft.baseUrl,
-                  onChange: (value) => onChange({ baseUrl: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: "Model",
-                  value: draft.model,
-                  onChange: (value) => onChange({ model: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Theme",
-                  value: draft.theme,
-                  options: [
-                    { value: "system", label: "System" },
-                    { value: "light", label: "Light" },
-                    { value: "dark", label: "Dark" }
-                  ],
-                  onChange: (value) => onChange({ theme: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: "Temperature",
-                  type: "number",
-                  value: draft.temperature,
-                  onChange: (value) => onChange({ temperature: Number(value) })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: "Max tokens",
-                  type: "number",
-                  value: draft.maxTokens,
-                  onChange: (value) => onChange({ maxTokens: Number(value) })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                TextSetting,
-                {
-                  label: "Context tokens",
-                  type: "number",
-                  value: draft.contextTokens,
-                  onChange: (value) => onChange({ contextTokens: Number(value) })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Thinking",
-                  value: draft.thinkingMode,
-                  options: [
-                    { value: "adaptive", label: "Adaptive" },
-                    { value: "enabled", label: "Enabled" },
-                    { value: "disabled", label: "Disabled" }
-                  ],
-                  onChange: (value) => onChange({ thinkingMode: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Effort",
-                  value: draft.effort,
-                  options: [
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
-                    { value: "max", label: "Max" }
-                  ],
-                  onChange: (value) => onChange({ effort: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
+        activeSection === "tools-permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Startup mode",
+                value: draft.startupMode,
+                options: [
+                  { value: "none", label: "None" },
+                  { value: "init", label: "Init" },
+                  { value: "init-only", label: "Init only" },
+                  { value: "maintenance", label: "Maintenance" }
+                ],
+                onChange: (value) => onChange({ startupMode: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission mode" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.permissionMode, onChange: (event) => onChange({ permissionMode: event.target.value }), children: PERMISSION_MODES.map((mode) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: mode, children: mode }, mode)) })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Permission prompt tool", value: draft.permissionPromptTool, onChange: (value) => onChange({ permissionPromptTool: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent", value: draft.agent, onChange: (value) => onChange({ agent: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Allowed tools", value: draft.allowedTools, onChange: (value) => onChange({ allowedTools: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Selected tools", value: draft.selectedTools, onChange: (value) => onChange({ selectedTools: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Disallowed tools", value: draft.disallowedTools, onChange: (value) => onChange({ disallowedTools: value }) })
           ] }),
-          activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Output format",
-                  value: draft.outputFormat,
-                  options: [
-                    { value: "text", label: "Text" },
-                    { value: "json", label: "JSON" },
-                    { value: "stream-json", label: "Stream JSON" }
-                  ],
-                  onChange: (value) => onChange({ outputFormat: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Input format",
-                  value: draft.inputFormat,
-                  options: [
-                    { value: "text", label: "Text" },
-                    { value: "stream-json", label: "Stream JSON" }
-                  ],
-                  onChange: (value) => onChange({ inputFormat: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug filter", value: draft.debugFilter, onChange: (value) => onChange({ debugFilter: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Debug file", value: draft.debugFile, onChange: (value) => onChange({ debugFile: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "JSON schema", value: draft.jsonSchema, onChange: (value) => onChange({ jsonSchema: value }), className: App_default.fieldWide })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Print mode", checked: draft.printMode, onChange: (checked) => onChange({ printMode: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include hook events", checked: draft.includeHookEvents, onChange: (checked) => onChange({ includeHookEvents: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Include partial messages", checked: draft.includePartialMessages, onChange: (checked) => onChange({ includePartialMessages: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Replay user messages", checked: draft.replayUserMessages, onChange: (checked) => onChange({ replayUserMessages: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug", checked: draft.debugEnabled, onChange: (checked) => onChange({ debugEnabled: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Debug to stderr", checked: draft.debugToStderr, onChange: (checked) => onChange({ debugToStderr: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Verbose", checked: draft.verbose, onChange: (checked) => onChange({ verbose: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "MCP debug", checked: draft.mcpDebug, onChange: (checked) => onChange({ mcpDebug: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
-            ] })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Memory", checked: draft.memoryEnabled, onChange: (checked) => onChange({ memoryEnabled: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plugins", checked: draft.pluginsEnabled, onChange: (checked) => onChange({ pluginsEnabled: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Disable slash commands", checked: draft.disableSlashCommands, onChange: (checked) => onChange({ disableSlashCommands: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Skip permissions", checked: draft.dangerouslySkipPermissions, onChange: (checked) => onChange({ dangerouslySkipPermissions: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
+          ] })
+        ] }),
+        activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "System prompt file", value: draft.systemPromptFile, onChange: (value) => onChange({ systemPromptFile: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Append prompt file", value: draft.appendSystemPromptFile, onChange: (value) => onChange({ appendSystemPromptFile: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "MCP config", value: draft.mcpConfig, onChange: (value) => onChange({ mcpConfig: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Settings file or JSON", value: draft.settingsSource, onChange: (value) => onChange({ settingsSource: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Additional directories", value: draft.addDirs, onChange: (value) => onChange({ addDirs: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Plugin directories", value: draft.pluginDirs, onChange: (value) => onChange({ pluginDirs: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Agents JSON", value: draft.agentsJson, onChange: (value) => onChange({ agentsJson: value }), className: App_default.fieldWide })
           ] }),
-          activeSection === "tools-permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Startup mode",
-                  value: draft.startupMode,
-                  options: [
-                    { value: "none", label: "None" },
-                    { value: "init", label: "Init" },
-                    { value: "init-only", label: "Init only" },
-                    { value: "maintenance", label: "Maintenance" }
-                  ],
-                  onChange: (value) => onChange({ startupMode: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission mode" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.permissionMode, onChange: (event) => onChange({ permissionMode: event.target.value }), children: PERMISSION_MODES.map((mode) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: mode, children: mode }, mode)) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Permission prompt tool", value: draft.permissionPromptTool, onChange: (value) => onChange({ permissionPromptTool: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent", value: draft.agent, onChange: (value) => onChange({ agent: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Allowed tools", value: draft.allowedTools, onChange: (value) => onChange({ allowedTools: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Selected tools", value: draft.selectedTools, onChange: (value) => onChange({ selectedTools: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Disallowed tools", value: draft.disallowedTools, onChange: (value) => onChange({ disallowedTools: value }) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Memory", checked: draft.memoryEnabled, onChange: (checked) => onChange({ memoryEnabled: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plugins", checked: draft.pluginsEnabled, onChange: (checked) => onChange({ pluginsEnabled: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Disable slash commands", checked: draft.disableSlashCommands, onChange: (checked) => onChange({ disableSlashCommands: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Skip permissions", checked: draft.dangerouslySkipPermissions, onChange: (checked) => onChange({ dangerouslySkipPermissions: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
-            ] })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.checkboxGroup, children: [
+            SETTING_SOURCE_OPTIONS.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              ToggleSetting,
+              {
+                label: `${source} settings`,
+                checked: selectedSources.has(source),
+                onChange: (checked) => onChange({ settingSources: updateCsvValue(draft.settingSources, source, checked) })
+              },
+              source
+            )),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
+          ] })
+        ] }),
+        activeSection === "sessions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume at message", value: draft.resumeSessionAt, onChange: (value) => onChange({ resumeSessionAt: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Rewind files message", value: draft.rewindFilesMessageId, onChange: (value) => onChange({ rewindFilesMessageId: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session ID", value: draft.sessionId, onChange: (value) => onChange({ sessionId: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session name", value: draft.sessionName, onChange: (value) => onChange({ sessionName: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Prefill", value: draft.prefill, onChange: (value) => onChange({ prefill: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link repo", value: draft.deepLinkRepo, onChange: (value) => onChange({ deepLinkRepo: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link fetch ms", type: "number", value: draft.deepLinkLastFetch, onChange: (value) => onChange({ deepLinkLastFetch: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Worktree", value: draft.worktree, onChange: (value) => onChange({ worktree: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Tmux",
+                value: draft.tmuxMode,
+                options: [
+                  { value: "off", label: "Off" },
+                  { value: "default", label: "Default" },
+                  { value: "classic", label: "Classic" }
+                ],
+                onChange: (value) => onChange({ tmuxMode: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Chrome",
+                value: draft.chromeIntegration,
+                options: [
+                  { value: "default", label: "Default" },
+                  { value: "enabled", label: "Enabled" },
+                  { value: "disabled", label: "Disabled" }
+                ],
+                onChange: (value) => onChange({ chromeIntegration: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Advisor model", value: draft.advisorModel, onChange: (value) => onChange({ advisorModel: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "File specs", value: draft.fileSpecs, onChange: (value) => onChange({ fileSpecs: value }), className: App_default.fieldWide })
           ] }),
-          activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "System prompt file", value: draft.systemPromptFile, onChange: (value) => onChange({ systemPromptFile: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Append prompt file", value: draft.appendSystemPromptFile, onChange: (value) => onChange({ appendSystemPromptFile: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "MCP config", value: draft.mcpConfig, onChange: (value) => onChange({ mcpConfig: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Settings file or JSON", value: draft.settingsSource, onChange: (value) => onChange({ settingsSource: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Additional directories", value: draft.addDirs, onChange: (value) => onChange({ addDirs: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Plugin directories", value: draft.pluginDirs, onChange: (value) => onChange({ pluginDirs: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Agents JSON", value: draft.agentsJson, onChange: (value) => onChange({ agentsJson: value }), className: App_default.fieldWide })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.checkboxGroup, children: [
-              SETTING_SOURCE_OPTIONS.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                ToggleSetting,
-                {
-                  label: `${source} settings`,
-                  checked: selectedSources.has(source),
-                  onChange: (checked) => onChange({ settingSources: updateCsvValue(draft.settingSources, source, checked) })
-                },
-                source
-              )),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
-            ] })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Continue latest", checked: draft.continueSession, onChange: (checked) => onChange({ continueSession: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+          ] })
+        ] }),
+        activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Development channels", value: draft.developmentChannelServers, onChange: (value) => onChange({ developmentChannelServers: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent ID", value: draft.agentId, onChange: (value) => onChange({ agentId: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent name", value: draft.agentName, onChange: (value) => onChange({ agentName: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Team name", value: draft.teamName, onChange: (value) => onChange({ teamName: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent color", value: draft.agentColor, onChange: (value) => onChange({ agentColor: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Parent session ID", value: draft.parentSessionId, onChange: (value) => onChange({ parentSessionId: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "Teammate mode",
+                value: draft.teammateMode,
+                options: [
+                  { value: "auto", label: "Auto" },
+                  { value: "tmux", label: "Tmux" },
+                  { value: "in-process", label: "In process" }
+                ],
+                onChange: (value) => onChange({ teammateMode: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent type", value: draft.agentType, onChange: (value) => onChange({ agentType: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "SDK URL", value: draft.sdkUrl, onChange: (value) => onChange({ sdkUrl: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Teleport session", value: draft.teleportSession, onChange: (value) => onChange({ teleportSession: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote description", value: draft.remoteDescription, onChange: (value) => onChange({ remoteDescription: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote control name", value: draft.remoteControlName, onChange: (value) => onChange({ remoteControlName: value }) })
           ] }),
-          activeSection === "sessions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume at message", value: draft.resumeSessionAt, onChange: (value) => onChange({ resumeSessionAt: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Rewind files message", value: draft.rewindFilesMessageId, onChange: (value) => onChange({ rewindFilesMessageId: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session ID", value: draft.sessionId, onChange: (value) => onChange({ sessionId: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Session name", value: draft.sessionName, onChange: (value) => onChange({ sessionName: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Prefill", value: draft.prefill, onChange: (value) => onChange({ prefill: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link repo", value: draft.deepLinkRepo, onChange: (value) => onChange({ deepLinkRepo: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Deep link fetch ms", type: "number", value: draft.deepLinkLastFetch, onChange: (value) => onChange({ deepLinkLastFetch: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Worktree", value: draft.worktree, onChange: (value) => onChange({ worktree: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Tmux",
-                  value: draft.tmuxMode,
-                  options: [
-                    { value: "off", label: "Off" },
-                    { value: "default", label: "Default" },
-                    { value: "classic", label: "Classic" }
-                  ],
-                  onChange: (value) => onChange({ tmuxMode: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Chrome",
-                  value: draft.chromeIntegration,
-                  options: [
-                    { value: "default", label: "Default" },
-                    { value: "enabled", label: "Enabled" },
-                    { value: "disabled", label: "Disabled" }
-                  ],
-                  onChange: (value) => onChange({ chromeIntegration: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Advisor model", value: draft.advisorModel, onChange: (value) => onChange({ advisorModel: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "File specs", value: draft.fileSpecs, onChange: (value) => onChange({ fileSpecs: value }), className: App_default.fieldWide })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Continue latest", checked: draft.continueSession, onChange: (checked) => onChange({ continueSession: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
-            ] })
-          ] }),
-          activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Development channels", value: draft.developmentChannelServers, onChange: (value) => onChange({ developmentChannelServers: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent ID", value: draft.agentId, onChange: (value) => onChange({ agentId: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent name", value: draft.agentName, onChange: (value) => onChange({ agentName: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Team name", value: draft.teamName, onChange: (value) => onChange({ teamName: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent color", value: draft.agentColor, onChange: (value) => onChange({ agentColor: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Parent session ID", value: draft.parentSessionId, onChange: (value) => onChange({ parentSessionId: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                SelectSetting,
-                {
-                  label: "Teammate mode",
-                  value: draft.teammateMode,
-                  options: [
-                    { value: "auto", label: "Auto" },
-                    { value: "tmux", label: "Tmux" },
-                    { value: "in-process", label: "In process" }
-                  ],
-                  onChange: (value) => onChange({ teammateMode: value })
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Agent type", value: draft.agentType, onChange: (value) => onChange({ agentType: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "SDK URL", value: draft.sdkUrl, onChange: (value) => onChange({ sdkUrl: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Teleport session", value: draft.teleportSession, onChange: (value) => onChange({ teleportSession: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote description", value: draft.remoteDescription, onChange: (value) => onChange({ remoteDescription: value }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Remote control name", value: draft.remoteControlName, onChange: (value) => onChange({ remoteControlName: value }) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Brief mode", checked: draft.briefMode, onChange: (checked) => onChange({ briefMode: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Assistant mode", checked: draft.assistantMode, onChange: (checked) => onChange({ assistantMode: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plan mode required", checked: draft.planModeRequired, onChange: (checked) => onChange({ planModeRequired: checked }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Hard fail", checked: draft.hardFail, onChange: (checked) => onChange({ hardFail: checked }) })
-            ] })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Brief mode", checked: draft.briefMode, onChange: (checked) => onChange({ briefMode: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Assistant mode", checked: draft.assistantMode, onChange: (checked) => onChange({ assistantMode: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Plan mode required", checked: draft.planModeRequired, onChange: (checked) => onChange({ planModeRequired: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Hard fail", checked: draft.hardFail, onChange: (checked) => onChange({ hardFail: checked }) })
           ] })
         ] })
       ] }),
@@ -41875,4 +43408,3 @@ react/cjs/react-jsx-runtime.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
-//# sourceMappingURL=index.js.map

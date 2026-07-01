@@ -14,4 +14,4 @@ export interface OAuthToken {
   expiresAt?: number;
 }
 
-export type OAuthProvider = 'github' | 'google' | 'anthropic';
+export type OAuthProvider = 'github' | 'google' | 'llmProvider';

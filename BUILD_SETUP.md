@@ -40,7 +40,7 @@ c:\git\code-agent/
 - `react@^18.2.0` - UI framework
 - `ink@^4.4.1` - React terminal renderer
 - `lodash-es@^4.17.21` - Utilities
-- `@anthropic-ai/sdk@^0.24.0` - Anthropic API client
+- Local CodeAgent LLM compatibility layer - OpenAI-compatible API client
 - `typescript@^5.3.0` - TypeScript compiler
 
 ### Dev Dependencies

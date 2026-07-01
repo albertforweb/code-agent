@@ -25,7 +25,7 @@ const DEFAULT_MAX_OUTPUT_TOKENS: Record<OpenAIProviderKind, number> = {
 export function getOpenAICompatibleProviderKind(): OpenAIProviderKind | null {
   const raw = firstDefined(
     process.env.CODE_AGENT_LLM_PROVIDER,
-    process.env.CLAUDE_CODE_LLM_PROVIDER,
+    process.env.CODE_AGENT_LLM_PROVIDER,
     process.env.LLM_PROVIDER,
   )
   if (!raw) return null
@@ -69,7 +69,7 @@ export function getOpenAICompatibleModel(): string {
       process.env.OPENAI_MODEL,
       process.env.LM_STUDIO_MODEL,
       process.env.LMSTUDIO_MODEL,
-      process.env.ANTHROPIC_MODEL,
+      process.env.LLM_PROVIDER_MODEL,
     ) ?? DEFAULT_MODELS[provider]
   )
 }

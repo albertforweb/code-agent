@@ -1,0 +1,10 @@
+- **Milestone 1**: Define the scope and requirements of the demo app.
+  - **Acceptance Criteria for Milestone 1**: Requirements document is complete, covering input (current date and time, stock symbol) and output (buy-in and sell-out prices).
+- **Milestone 2**: Implement a function to fetch the current date and time.
+  - **Acceptance Criteria for Milestone 2**: Function to fetch the current date and time works as expected.
+- **Milestone 3**: Implement a function to get stock quotes based on user-provided symbols.
+  - **Acceptance Criteria for Milestone 3**: Stock quotes are fetched correctly using the provided symbols.
+- **Milestone 4**: Determine buy-in and sell-out prices based on historical or current market data.
+  - **Acceptance Criteria for Milestone 4**: Buy-in and sell-out prices are calculated accurately based on market data.
+- **Milestone 5**: Integrate all components into a cohesive application.
+  - **Acceptance Criteria for Milestone 5**: The entire application functions as intended, with no errors or issues.

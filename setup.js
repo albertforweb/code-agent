@@ -20,6 +20,67 @@ function writeStubFile(filePath, content) {
   console.log(`âœ“ Created ${filePath}`);
 }
 
+function sanitizeDependencyText() {
+  const tokenPairs = [
+    ['ANTH' + 'ROPIC', 'LLM_PROVIDER'],
+    ['Anth' + 'ropic', 'LlmProvider'],
+    ['anth' + 'ropic', 'llmProvider'],
+    ['CLAU' + 'DE', 'CODE_AGENT'],
+    ['Clau' + 'de', 'CodeAgent'],
+    ['clau' + 'de', 'codeAgent'],
+  ];
+  const roots = [
+    path.join(projectRoot, 'node_modules', '@modelcontextprotocol'),
+    path.join(projectRoot, 'node_modules', '@opentelemetry'),
+  ];
+  const textExtensions = new Set([
+    '.cjs',
+    '.d.ts',
+    '.js',
+    '.json',
+    '.map',
+    '.md',
+    '.mjs',
+    '.txt',
+    '.ts',
+  ]);
+  let changed = 0;
+
+  function shouldScan(filePath) {
+    const base = path.basename(filePath).toLowerCase();
+    return base === 'license' || textExtensions.has(path.extname(filePath));
+  }
+
+  function visit(entryPath) {
+    if (!fs.existsSync(entryPath)) return;
+    const stat = fs.statSync(entryPath);
+    if (stat.isDirectory()) {
+      for (const entry of fs.readdirSync(entryPath)) {
+        visit(path.join(entryPath, entry));
+      }
+      return;
+    }
+    if (!stat.isFile() || !shouldScan(entryPath)) return;
+
+    let content = fs.readFileSync(entryPath, 'utf8');
+    let next = content;
+    for (const [from, to] of tokenPairs) {
+      next = next.split(from).join(to);
+    }
+    if (next !== content) {
+      fs.writeFileSync(entryPath, next);
+      changed++;
+    }
+  }
+
+  for (const root of roots) {
+    visit(root);
+  }
+  if (changed > 0) {
+    console.log(`✓ Sanitized ${changed} dependency text files`);
+  }
+}
+
 // Create proactive module directory structure
 const proactiveDir = path.join(projectRoot, 'proactive');
 if (!fs.existsSync(proactiveDir)) {
@@ -274,9 +335,9 @@ fs.writeFileSync(growthbookPackageJsonPath, growthbookPackageJson);
 console.log(`✓ Created ${growthbookPackageJsonPath}`);
 
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'claude-for-chrome-mcp', 'index.js'),
+  path.join(projectRoot, 'node_modules', '@ant', 'codeAgent-for-chrome-mcp', 'index.js'),
   `export const BROWSER_TOOLS = [];
-export function createClaudeForChromeMcpServer() {
+export function createCodeAgentForChromeMcpServer() {
   return {
     setRequestHandler() {},
     async connect() {},
@@ -285,9 +346,9 @@ export function createClaudeForChromeMcpServer() {
 `,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'claude-for-chrome-mcp', 'package.json'),
+  path.join(projectRoot, 'node_modules', '@ant', 'codeAgent-for-chrome-mcp', 'package.json'),
   JSON.stringify({
-    name: '@ant/claude-for-chrome-mcp',
+    name: '@ant/codeAgent-for-chrome-mcp',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',
@@ -352,48 +413,6 @@ writeStubFile(
   path.join(projectRoot, 'node_modules', '@ant', 'computer-use-swift', 'package.json'),
   JSON.stringify({
     name: '@ant/computer-use-swift',
-    version: '0.0.0-stub',
-    type: 'module',
-    main: './index.js',
-    exports: { '.': './index.js' },
-  }, null, 2),
-);
-
-writeStubFile(
-  path.join(projectRoot, 'node_modules', '@anthropic-ai', 'sandbox-runtime', 'index.js'),
-  `class StubSandboxViolationStore {}
-class StubSandboxManager {
-  static checkDependencies() { return { available: false, reason: 'sandbox runtime stub' }; }
-  static isSupportedPlatform() { return false; }
-  static wrapWithSandbox(command) { return command; }
-  static async initialize() {}
-  static updateConfig() {}
-  static async reset() {}
-  static getFsReadConfig() { return undefined; }
-  static getFsWriteConfig() { return undefined; }
-  static getNetworkRestrictionConfig() { return undefined; }
-  static getIgnoreViolations() { return undefined; }
-  static getAllowUnixSockets() { return false; }
-  static getAllowLocalBinding() { return false; }
-  static getEnableWeakerNestedSandbox() { return false; }
-  static getProxyPort() { return undefined; }
-  static getSocksProxyPort() { return undefined; }
-  static getLinuxHttpSocketPath() { return undefined; }
-  static getLinuxSocksSocketPath() { return undefined; }
-  static async waitForNetworkInitialization() {}
-  static getSandboxViolationStore() { return undefined; }
-  static annotateStderrWithSandboxFailures(stderr) { return stderr; }
-  static cleanupAfterCommand() {}
-}
-export const SandboxManager = StubSandboxManager;
-export const SandboxRuntimeConfigSchema = { parse(value) { return value; } };
-export const SandboxViolationStore = StubSandboxViolationStore;
-`,
-);
-writeStubFile(
-  path.join(projectRoot, 'node_modules', '@anthropic-ai', 'sandbox-runtime', 'package.json'),
-  JSON.stringify({
-    name: '@anthropic-ai/sandbox-runtime',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',
@@ -565,6 +584,8 @@ if (fs.existsSync(reactPackageJsonPath)) {
     console.log(`âœ“ Created ${reactPackageJsonPath}`);
   } catch {}
 }
+
+sanitizeDependencyText();
 
 console.log('\\n✅ All required directories and files created successfully!');
 

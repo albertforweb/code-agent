@@ -55,7 +55,7 @@ class ToolServiceBridge {
 ```
 
 #### 2. `electron/services/api-service-bridge.ts`
-- Anthropic SDK integration
+- CodeAgent API integration
 - Chat message handling
 - Bootstrap data fetching
 - API error handling

@@ -22,7 +22,7 @@ type Props = {
   onDone(): void;
   startingMessage?: string;
   mode?: 'login' | 'setup-token';
-  forceLoginMethod?: 'claudeai' | 'console';
+  forceLoginMethod?: 'subscription' | 'console';
 };
 type OAuthStatus = {
   state: 'idle';
@@ -46,7 +46,7 @@ type OAuthStatus = {
 } // Flow started, waiting for browser to open
 | {
   state: 'starting';
-  loginWithClaudeAi: boolean;
+  loginWithSubscription: boolean;
 } // User selected a login method and OAuth startup is scheduled
 | {
   state: 'waiting_for_login';
@@ -66,18 +66,18 @@ type OAuthStatus = {
   message: string;
   toRetry?: OAuthStatus;
 };
-type LoginMethod = 'claudeai' | 'console' | 'platform' | 'local' | 'skip';
+type LoginMethod = 'subscription' | 'console' | 'platform' | 'local' | 'skip';
 const LOGIN_METHOD_OPTIONS: {
   value: LoginMethod;
   title: string;
   detail: string;
 }[] = [{
-  value: 'claudeai',
-  title: 'Claude account with subscription',
+  value: 'subscription',
+  title: 'Subscription account',
   detail: 'Pro, Max, Team, or Enterprise'
 }, {
   value: 'console',
-  title: 'Anthropic Console account',
+  title: 'API billing account',
   detail: 'API usage billing'
 }, {
   value: 'platform',
@@ -118,7 +118,7 @@ function getConfiguredLocalModel(): string {
     process.env.OPENAI_MODEL,
     process.env.LM_STUDIO_MODEL,
     process.env.LMSTUDIO_MODEL,
-    process.env.ANTHROPIC_MODEL,
+    process.env.LLM_PROVIDER_MODEL,
   ) ?? '';
 }
 
@@ -135,7 +135,7 @@ function applyLocalProviderConfig(baseUrl: string, model: string): void {
   process.env.CODE_AGENT_LLM_PROVIDER = 'openai-compatible';
   process.env.CODE_AGENT_BASE_URL = baseUrl;
   process.env.CODE_AGENT_MODEL = model;
-  process.env.ANTHROPIC_MODEL = model;
+  process.env.LLM_PROVIDER_MODEL = model;
   saveGlobalConfig(current => ({
     ...current,
     env: {
@@ -173,7 +173,7 @@ export function ConsoleOAuthFlow({
   const settings = getSettings_DEPRECATED() || {};
   const forceLoginMethod = forceLoginMethodProp ?? settings.forceLoginMethod;
   const orgUUID = settings.forceLoginOrgUUID;
-  const forcedMethodMessage = forceLoginMethod === 'claudeai' ? 'Login method pre-selected: Subscription Plan (Claude Pro/Max)' : forceLoginMethod === 'console' ? 'Login method pre-selected: API Usage Billing (Anthropic Console)' : null;
+  const forcedMethodMessage = forceLoginMethod === 'subscription' ? 'Login method pre-selected: Subscription Plan' : forceLoginMethod === 'console' ? 'Login method pre-selected: API Usage Billing' : null;
   const terminal = useTerminalNotification();
   const [oauthStatus, setOAuthStatus] = useState<OAuthStatus>(() => {
     if (mode === 'setup-token') {
@@ -181,7 +181,7 @@ export function ConsoleOAuthFlow({
         state: 'ready_to_start'
       };
     }
-    if (forceLoginMethod === 'claudeai' || forceLoginMethod === 'console') {
+    if (forceLoginMethod === 'subscription' || forceLoginMethod === 'console') {
       return {
         state: 'ready_to_start'
       };
@@ -194,9 +194,9 @@ export function ConsoleOAuthFlow({
   const [cursorOffset, setCursorOffset] = useState(0);
   const [focusedLoginMethodIndex, setFocusedLoginMethodIndex] = useState(0);
   const [oauthService] = useState(() => new OAuthService());
-  const [loginWithClaudeAi, setLoginWithClaudeAi] = useState(() => {
-    // Use Claude AI auth for setup-token mode to support user:inference scope
-    return mode === 'setup-token' || forceLoginMethod === 'claudeai';
+  const [loginWithSubscription, setLoginWithSubscription] = useState(() => {
+    // Use subscription auth for setup-token mode to support user:inference scope
+    return mode === 'setup-token' || forceLoginMethod === 'subscription';
   });
   // After a few seconds we suggest the user to copy/paste url if the
   // browser did not open automatically. In this flow we expect the user to
@@ -212,8 +212,8 @@ export function ConsoleOAuthFlow({
 
   // Log forced login method on mount
   useEffect(() => {
-    if (forceLoginMethod === 'claudeai') {
-      logEvent('tengu_oauth_claudeai_forced', {});
+    if (forceLoginMethod === 'subscription') {
+      logEvent('tengu_oauth_subscription_forced', {});
     } else if (forceLoginMethod === 'console') {
       logEvent('tengu_oauth_console_forced', {});
     }
@@ -230,7 +230,7 @@ export function ConsoleOAuthFlow({
   // Handle Enter to continue on success state
   useKeybinding('confirm:yes', () => {
     logEvent('tengu_oauth_success', {
-      loginWithClaudeAi
+      loginWithSubscription
     });
     onDone();
   }, {
@@ -345,10 +345,10 @@ export function ConsoleOAuthFlow({
     }
   }
 
-  const startOAuth = useCallback(async (loginWithClaudeAiOverride?: boolean) => {
+  const startOAuth = useCallback(async (loginWithSubscriptionOverride?: boolean) => {
     if (pendingOAuthStartRef.current) return;
     pendingOAuthStartRef.current = true;
-    const activeLoginWithClaudeAi = loginWithClaudeAiOverride ?? loginWithClaudeAi;
+    const activeLoginWithSubscription = loginWithSubscriptionOverride ?? loginWithSubscription;
     let authUrlDelivered = false;
     let startupTimedOut = false;
     const retryState: OAuthStatus = {
@@ -366,7 +366,7 @@ export function ConsoleOAuthFlow({
     }, OAUTH_STARTUP_TIMEOUT_MS);
     try {
       logEvent('tengu_oauth_flow_start', {
-        loginWithClaudeAi: activeLoginWithClaudeAi
+        loginWithSubscription: activeLoginWithSubscription
       });
       const result = await oauthService.startOAuthFlow(async url_0 => {
         authUrlDelivered = true;
@@ -379,7 +379,7 @@ export function ConsoleOAuthFlow({
         });
         setTimeout(setShowPastePrompt, 3000, true);
       }, {
-        loginWithClaudeAi: activeLoginWithClaudeAi,
+        loginWithSubscription: activeLoginWithSubscription,
         inferenceOnly: mode === 'setup-token',
         expiresIn: mode === 'setup-token' ? 365 * 24 * 60 * 60 : undefined,
         // 1 year for setup-token
@@ -406,7 +406,7 @@ export function ConsoleOAuthFlow({
       });
       if (mode === 'setup-token') {
         // For setup-token mode, return the OAuth access token directly (it can be used as an API key)
-        // Don't save to keychain - the token is displayed for manual use with CLAUDE_CODE_OAUTH_TOKEN
+        // Don't save to keychain - the token is displayed for manual use with CODE_AGENT_OAUTH_TOKEN
         setOAuthStatus({
           state: 'success',
           token: result.accessToken
@@ -421,7 +421,7 @@ export function ConsoleOAuthFlow({
           state: 'success'
         });
         void sendNotification({
-          message: 'Claude Code login successful',
+          message: 'CodeAgent login successful',
           notificationType: 'auth_success'
         }, terminal);
       }
@@ -441,7 +441,7 @@ export function ConsoleOAuthFlow({
       clearTimeout(startupTimer);
       pendingOAuthStartRef.current = false;
     }
-  }, [oauthService, setShowPastePrompt, loginWithClaudeAi, mode, orgUUID]);
+  }, [oauthService, setShowPastePrompt, loginWithSubscription, mode, orgUUID]);
   const selectLoginMethod = useCallback((value: LoginMethod) => {
     if (value === 'skip') {
       logEvent('tengu_oauth_skipped', {});
@@ -462,18 +462,18 @@ export function ConsoleOAuthFlow({
       });
       return;
     }
-    const selectedLoginWithClaudeAi = value === 'claudeai';
-    void startOAuth(selectedLoginWithClaudeAi);
+    const selectedLoginWithSubscription = value === 'subscription';
+    void startOAuth(selectedLoginWithSubscription);
     setOAuthStatus({
       state: 'starting',
-      loginWithClaudeAi: selectedLoginWithClaudeAi
+      loginWithSubscription: selectedLoginWithSubscription
     });
-    if (selectedLoginWithClaudeAi) {
-      logEvent('tengu_oauth_claudeai_selected', {});
+    if (selectedLoginWithSubscription) {
+      logEvent('tengu_oauth_subscription_selected', {});
     } else {
       logEvent('tengu_oauth_console_selected', {});
     }
-    setLoginWithClaudeAi(selectedLoginWithClaudeAi);
+    setLoginWithSubscription(selectedLoginWithSubscription);
   }, [startOAuth, onDone]);
   useInput((input, key, event) => {
     if (oauthStatus.state !== 'idle') return;
@@ -512,7 +512,7 @@ export function ConsoleOAuthFlow({
     if (oauthStatus.state === 'ready_to_start' && !pendingOAuthStartRef.current) {
       void startOAuth();
     } else if (oauthStatus.state === 'starting' && !pendingOAuthStartRef.current) {
-      void startOAuth(oauthStatus.loginWithClaudeAi);
+      void startOAuth(oauthStatus.loginWithSubscription);
     }
   }, [oauthStatus, startOAuth]);
 
@@ -520,16 +520,16 @@ export function ConsoleOAuthFlow({
   useEffect(() => {
     if (mode === 'setup-token' && oauthStatus.state === 'success') {
       // Delay to ensure static content is fully rendered before exiting
-      const timer_0 = setTimeout((loginWithClaudeAi_0, onDone_0) => {
+      const timer_0 = setTimeout((loginWithSubscription_0, onDone_0) => {
         logEvent('tengu_oauth_success', {
-          loginWithClaudeAi: loginWithClaudeAi_0
+          loginWithSubscription: loginWithSubscription_0
         });
         // Don't clear terminal so the token remains visible
         onDone_0();
-      }, 500, loginWithClaudeAi, onDone);
+      }, 500, loginWithSubscription, onDone);
       return () => clearTimeout(timer_0);
     }
-  }, [mode, oauthStatus, loginWithClaudeAi, onDone]);
+  }, [mode, oauthStatus, loginWithSubscription, onDone]);
 
   // Cleanup OAuth service when component unmounts
   useEffect(() => {
@@ -564,7 +564,7 @@ export function ConsoleOAuthFlow({
               </Text>
               <Text dimColor>
                 Use this token by setting: export
-                CLAUDE_CODE_OAUTH_TOKEN=&lt;token&gt;
+                CODE_AGENT_OAUTH_TOKEN=&lt;token&gt;
               </Text>
             </Box>
       </Box>}
@@ -628,7 +628,7 @@ function OAuthStatusMessage(t0) {
   switch (oauthStatus.state) {
     case "idle":
       {
-        const t1 = startingMessage ? startingMessage : "Claude Code can be used with your Claude subscription or billed based on API usage through your Console account.";
+        const t1 = startingMessage ? startingMessage : "CodeAgent can use a local LLM backend, an API key, or a supported subscription account.";
         return <Box flexDirection="column" gap={1} marginTop={1}>
             <Text bold={true}>{t1}</Text>
             <Text>Select login method or skip:</Text>
@@ -659,7 +659,7 @@ function OAuthStatusMessage(t0) {
         let t2;
         let t3;
         if ($[13] === Symbol.for("react.memo_cache_sentinel")) {
-          t2 = <Text>Claude Code supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment variables, then restart Claude Code.</Text>;
+          t2 = <Text>CodeAgent supports Amazon Bedrock, Microsoft Foundry, and Vertex AI. Set the required environment variables, then restart CodeAgent.</Text>;
           t3 = <Text>If you are part of an enterprise organization, contact your administrator for setup instructions.</Text>;
           $[13] = t2;
           $[14] = t3;
@@ -676,21 +676,21 @@ function OAuthStatusMessage(t0) {
         }
         let t5;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t5 = <Text>· Amazon Bedrock:{" "}<Link url="https://code.claude.com/docs/en/amazon-bedrock">https://code.claude.com/docs/en/amazon-bedrock</Link></Text>;
+          t5 = <Text>· Amazon Bedrock:{" "}<Link url="https://github.com/albertforweb/code-agent">https://github.com/albertforweb/code-agent</Link></Text>;
           $[16] = t5;
         } else {
           t5 = $[16];
         }
         let t6;
         if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t6 = <Text>· Microsoft Foundry:{" "}<Link url="https://code.claude.com/docs/en/microsoft-foundry">https://code.claude.com/docs/en/microsoft-foundry</Link></Text>;
+          t6 = <Text>· Microsoft Foundry:{" "}<Link url="https://github.com/albertforweb/code-agent">https://github.com/albertforweb/code-agent</Link></Text>;
           $[17] = t6;
         } else {
           t6 = $[17];
         }
         let t7;
         if ($[18] === Symbol.for("react.memo_cache_sentinel")) {
-          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}{t6}<Text>· Vertex AI:{" "}<Link url="https://code.claude.com/docs/en/google-vertex-ai">https://code.claude.com/docs/en/google-vertex-ai</Link></Text></Box>;
+          t7 = <Box flexDirection="column" marginTop={1}>{t4}{t5}{t6}<Text>· Vertex AI:{" "}<Link url="https://github.com/albertforweb/code-agent">https://github.com/albertforweb/code-agent</Link></Text></Box>;
           $[18] = t7;
         } else {
           t7 = $[18];
@@ -710,7 +710,7 @@ function OAuthStatusMessage(t0) {
             <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
             <Text>Base URL</Text>
             <Box>
-              <Text>URL > </Text>
+              <Text>URL {'>'} </Text>
               <TextInput value={localBaseUrl} onChange={setLocalBaseUrl} onSubmit={handleLocalBaseUrlSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localBaseUrlCursorOffset} onChangeCursorOffset={setLocalBaseUrlCursorOffset} focus showCursor />
             </Box>
             <Text dimColor={true}>LM Studio default: {DEFAULT_LOCAL_BASE_URL}</Text>
@@ -722,7 +722,7 @@ function OAuthStatusMessage(t0) {
             <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
             <Text>Model ID</Text>
             <Box>
-              <Text>Model > </Text>
+              <Text>Model {'>'} </Text>
               <TextInput value={localModel} onChange={setLocalModel} onSubmit={handleLocalModelSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localModelCursorOffset} onChangeCursorOffset={setLocalModelCursorOffset} placeholder={DEFAULT_LOCAL_MODEL} focus showCursor />
             </Box>
             <Text dimColor={true}>Use the loaded model ID shown by your local backend.</Text>
@@ -792,7 +792,7 @@ function OAuthStatusMessage(t0) {
       {
         let t1;
         if ($[37] === Symbol.for("react.memo_cache_sentinel")) {
-          t1 = <Box flexDirection="column" gap={1}><Box><Spinner /><Text>Creating API key for Claude Code…</Text></Box></Box>;
+          t1 = <Box flexDirection="column" gap={1}><Box><Spinner /><Text>Creating API key for CodeAgent…</Text></Box></Box>;
           $[37] = t1;
         } else {
           t1 = $[37];

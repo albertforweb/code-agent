@@ -71,7 +71,7 @@ export function Passes({
         setReferrerReward(eligibilityData.referrer_reward);
 
         // Use the campaign returned from eligibility for redemptions
-        const campaign = eligibilityData.referral_code_details?.campaign ?? 'claude_code_guest_pass';
+        const campaign = eligibilityData.referral_code_details?.campaign ?? 'code_agent_guest_pass';
 
         // Fetch redemptions data
         let redemptionsData: ReferralRedemptionsResponse;
@@ -146,7 +146,7 @@ export function Passes({
         <Text>{'┌──────────┐'}</Text>
         <Text>
           {' ) CC '}
-          <Text color="claude">{TEARDROP_ASTERISK}</Text>
+          <Text color="codeAgent">{TEARDROP_ASTERISK}</Text>
           {' ┊ ( '}
         </Text>
         <Text>{'└──────────┘'}</Text>
@@ -166,8 +166,8 @@ export function Passes({
 
         <Box flexDirection="column" marginLeft={2}>
           <Text dimColor>
-            {referrerReward ? `Share a free week of Claude Code with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. ` : 'Share a free week of Claude Code with friends. '}
-            <Link url={referrerReward ? 'https://support.claude.com/en/articles/13456702-claude-code-guest-passes' : 'https://support.claude.com/en/articles/12875061-claude-code-guest-passes'}>
+            {referrerReward ? `Share a free week of CodeAgent with friends. If they love it and subscribe, you'll get ${formatCreditAmount(referrerReward)} of extra usage to keep building. ` : 'Share a free week of CodeAgent with friends. '}
+            <Link url={referrerReward ? 'https://support.codeAgent.com/en/articles/13456702-codeAgent-code-guest-passes' : 'https://support.codeAgent.com/en/articles/12875061-codeAgent-code-guest-passes'}>
               Terms apply.
             </Link>
           </Text>

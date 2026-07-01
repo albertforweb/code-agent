@@ -34,6 +34,21 @@ import type {
   BootstrapData,
   McpServerInfo,
   McpToolInfo,
+  SkillManifest,
+  SkillDetail,
+  ScheduledTask,
+  AutomationRunRecord,
+  AutomationSchedulerStatus,
+  RemoteControlState,
+  VirtualTeamBlueprint,
+  VirtualTeamRunRecord,
+  AutomationProjectExport,
+  AutomationProjectImportResult,
+  LocalHistoryRecord,
+  LocalHistoryRecordInput,
+  LocalHistoryFilter,
+  LocalHistoryExport,
+  LocalHistoryStorageInfo,
   ChatDeltaMessage,
   ChatCompleteMessage,
   ChatErrorMessage,
@@ -61,6 +76,37 @@ const IPC_CHANNELS = {
   'mcp:listServers': 'mcp:listServers',
   'mcp:listTools': 'mcp:listTools',
   'mcp:refresh': 'mcp:refresh',
+  'automation:listSkills': 'automation:listSkills',
+  'automation:refreshSkills': 'automation:refreshSkills',
+  'automation:getSkill': 'automation:getSkill',
+  'automation:setSkillEnabled': 'automation:setSkillEnabled',
+  'automation:listTasks': 'automation:listTasks',
+  'automation:listTaskRuns': 'automation:listTaskRuns',
+  'automation:saveTask': 'automation:saveTask',
+  'automation:setTaskEnabled': 'automation:setTaskEnabled',
+  'automation:deleteTask': 'automation:deleteTask',
+  'automation:runTask': 'automation:runTask',
+  'automation:getSchedulerStatus': 'automation:getSchedulerStatus',
+  'automation:getRemoteControl': 'automation:getRemoteControl',
+  'automation:updateRemoteControl': 'automation:updateRemoteControl',
+  'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
+  'automation:startRemoteControl': 'automation:startRemoteControl',
+  'automation:stopRemoteControl': 'automation:stopRemoteControl',
+  'automation:listTeams': 'automation:listTeams',
+  'automation:listTeamRuns': 'automation:listTeamRuns',
+  'automation:saveTeam': 'automation:saveTeam',
+  'automation:deleteTeam': 'automation:deleteTeam',
+  'automation:createDefaultTeam': 'automation:createDefaultTeam',
+  'automation:runTeam': 'automation:runTeam',
+  'automation:revokeRemoteDevice': 'automation:revokeRemoteDevice',
+  'automation:exportProjectState': 'automation:exportProjectState',
+  'automation:importProjectState': 'automation:importProjectState',
+  'history:saveRecord': 'history:saveRecord',
+  'history:getRecord': 'history:getRecord',
+  'history:listRecords': 'history:listRecords',
+  'history:deleteRecord': 'history:deleteRecord',
+  'history:exportRecords': 'history:exportRecords',
+  'history:getStorageInfo': 'history:getStorageInfo',
   'fs:read': 'fs:read',
   'fs:write': 'fs:write',
   'fs:list': 'fs:list',
@@ -144,6 +190,140 @@ const api = {
 
     refresh: (): Promise<McpServerInfo[]> => {
       return ipcRenderer.invoke(IPC_CHANNELS['mcp:refresh']);
+    },
+  },
+
+  // ============================================================================
+  // AUTOMATION API
+  // ============================================================================
+  automation: {
+    listSkills: (): Promise<SkillManifest[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listSkills']);
+    },
+
+    refreshSkills: (): Promise<SkillManifest[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:refreshSkills']);
+    },
+
+    getSkill: (skillId: string): Promise<SkillDetail> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:getSkill'], skillId);
+    },
+
+    setSkillEnabled: (skillId: string, enabled: boolean): Promise<SkillManifest> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:setSkillEnabled'], { skillId, enabled });
+    },
+
+    listTasks: (): Promise<ScheduledTask[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listTasks']);
+    },
+
+    listTaskRuns: (taskId?: string): Promise<AutomationRunRecord[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listTaskRuns'], taskId);
+    },
+
+    saveTask: (task: Partial<ScheduledTask>): Promise<ScheduledTask> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:saveTask'], task);
+    },
+
+    setTaskEnabled: (taskId: string, enabled: boolean): Promise<ScheduledTask> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:setTaskEnabled'], { taskId, enabled });
+    },
+
+    deleteTask: (taskId: string): Promise<{ ok: true; id: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:deleteTask'], taskId);
+    },
+
+    runTask: (taskId: string): Promise<ScheduledTask> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:runTask'], taskId);
+    },
+
+    getSchedulerStatus: (): Promise<AutomationSchedulerStatus> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:getSchedulerStatus']);
+    },
+
+    getRemoteControl: (): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:getRemoteControl']);
+    },
+
+    updateRemoteControl: (update: Partial<RemoteControlState>): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:updateRemoteControl'], update);
+    },
+
+    createRemotePairingCode: (deviceName?: string): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:createRemotePairingCode'], deviceName);
+    },
+
+    startRemoteControl: (): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:startRemoteControl']);
+    },
+
+    stopRemoteControl: (): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:stopRemoteControl']);
+    },
+
+    listTeams: (): Promise<VirtualTeamBlueprint[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listTeams']);
+    },
+
+    listTeamRuns: (teamId?: string): Promise<VirtualTeamRunRecord[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listTeamRuns'], teamId);
+    },
+
+    saveTeam: (team: Partial<VirtualTeamBlueprint>): Promise<VirtualTeamBlueprint> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:saveTeam'], team);
+    },
+
+    deleteTeam: (teamId: string): Promise<{ ok: true; id: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:deleteTeam'], teamId);
+    },
+
+    createDefaultTeam: (objective?: string): Promise<VirtualTeamBlueprint> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:createDefaultTeam'], objective);
+    },
+
+    runTeam: (teamId: string): Promise<VirtualTeamRunRecord> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:runTeam'], teamId);
+    },
+
+    revokeRemoteDevice: (deviceId: string): Promise<RemoteControlState> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:revokeRemoteDevice'], deviceId);
+    },
+
+    exportProjectState: (options?: { includeRuns?: boolean }): Promise<AutomationProjectExport> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:exportProjectState'], options);
+    },
+
+    importProjectState: (bundle: Partial<AutomationProjectExport>): Promise<AutomationProjectImportResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:importProjectState'], bundle);
+    },
+  },
+
+  // ============================================================================
+  // LOCAL HISTORY API
+  // ============================================================================
+  history: {
+    saveRecord: (record: LocalHistoryRecordInput): Promise<LocalHistoryRecord> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:saveRecord'], record);
+    },
+
+    getRecord: (id: string): Promise<LocalHistoryRecord> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:getRecord'], id);
+    },
+
+    listRecords: (filter?: LocalHistoryFilter): Promise<LocalHistoryRecord[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:listRecords'], filter);
+    },
+
+    deleteRecord: (id: string): Promise<{ ok: true; id: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:deleteRecord'], id);
+    },
+
+    exportRecords: (filter?: LocalHistoryFilter): Promise<LocalHistoryExport> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:exportRecords'], filter);
+    },
+
+    getStorageInfo: (): Promise<LocalHistoryStorageInfo> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['history:getStorageInfo']);
     },
   },
 

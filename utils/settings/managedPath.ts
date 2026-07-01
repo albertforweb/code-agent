@@ -6,21 +6,25 @@ import { getPlatform } from '../platform.js'
  * Get the path to the managed settings directory based on the current platform.
  */
 export const getManagedFilePath = memoize(function (): string {
-  // Allow override for testing/demos (Ant-only, eliminated from external builds)
+  const override =
+    process.env.CODEAGENT_MANAGED_SETTINGS_PATH ??
+    process.env.CODE_AGENT_MANAGED_SETTINGS_PATH
+  // Allow override for testing/demos.
   if (
-    process.env.USER_TYPE === 'ant' &&
-    process.env.CLAUDE_CODE_MANAGED_SETTINGS_PATH
+    (process.env.USER_TYPE === 'ant' ||
+      process.env.CODEAGENT_MANAGED_SETTINGS_PATH) &&
+    override
   ) {
-    return process.env.CLAUDE_CODE_MANAGED_SETTINGS_PATH
+    return override
   }
 
   switch (getPlatform()) {
     case 'macos':
-      return '/Library/Application Support/ClaudeCode'
+      return '/Library/Application Support/CodeAgent'
     case 'windows':
-      return 'C:\\Program Files\\ClaudeCode'
+      return 'C:\\Program Files\\CodeAgent'
     default:
-      return '/etc/claude-code'
+      return '/etc/code-agent'
   }
 })
 

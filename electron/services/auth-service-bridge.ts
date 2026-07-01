@@ -22,7 +22,7 @@ export class AuthServiceBridge {
   /**
    * Get current authentication token
    */
-  async getToken(provider: LlmProviderType = 'anthropic'): Promise<AuthToken | null> {
+  async getToken(provider: LlmProviderType = 'openai-compatible'): Promise<AuthToken | null> {
     const memoryToken = this.currentTokens.get(provider);
     if (memoryToken) {
       return memoryToken;
@@ -55,7 +55,7 @@ export class AuthServiceBridge {
    * Set authentication token (stores securely in keychain if available)
    */
   async setToken(token: AuthToken): Promise<void> {
-    const provider = token.provider ?? 'anthropic';
+    const provider = token.provider ?? 'openai-compatible';
     this.currentTokens.set(provider, { ...token, provider });
 
     try {
@@ -73,7 +73,7 @@ export class AuthServiceBridge {
   async logout(provider?: LlmProviderType): Promise<void> {
     const providers: LlmProviderType[] = provider
       ? [provider]
-      : ['anthropic', 'openai', 'openai-compatible'];
+      : ['openai', 'openai-compatible'];
 
     for (const providerName of providers) {
       this.currentTokens.delete(providerName);
@@ -159,7 +159,7 @@ export class AuthServiceBridge {
    * Refresh access token
    */
   async refreshToken(): Promise<AuthToken> {
-    const currentToken = this.currentTokens.get('anthropic');
+    const currentToken = this.currentTokens.get('openai') ?? this.currentTokens.get('openai-compatible');
     if (!currentToken?.refreshToken) {
       throw new Error('No refresh token available');
     }
@@ -190,7 +190,7 @@ export class AuthServiceBridge {
         accessToken: data.access_token,
         refreshToken: data.refresh_token || currentToken.refreshToken,
         expiresAt: Date.now() + (data.expires_in * 1000),
-        provider: 'anthropic',
+        provider: currentToken.provider ?? 'openai-compatible',
       };
 
       await this.setToken(token);
@@ -204,7 +204,7 @@ export class AuthServiceBridge {
    * Check if token is valid and not expired
    */
   isTokenValid(): boolean {
-    const currentToken = this.currentTokens.get('anthropic');
+    const currentToken = this.currentTokens.get('openai') ?? this.currentTokens.get('openai-compatible');
     if (!currentToken) {
       return false;
     }
@@ -228,7 +228,6 @@ export class AuthServiceBridge {
       hasMemoryToken: this.currentTokens.size > 0,
       hasKeychain: this.keychain.hasKeychain(),
       hasEnvironmentToken: Boolean(
-        process.env.ANTHROPIC_API_KEY ||
         process.env.OPENAI_API_KEY ||
         process.env.OPENAI_COMPATIBLE_API_KEY ||
         process.env.LM_STUDIO_API_KEY,
@@ -237,10 +236,6 @@ export class AuthServiceBridge {
   }
 
   private getEnvironmentToken(provider: LlmProviderType): string | undefined {
-    if (provider === 'anthropic') {
-      return process.env.ANTHROPIC_API_KEY;
-    }
-
     if (provider === 'openai') {
       return process.env.OPENAI_API_KEY;
     }

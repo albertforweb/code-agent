@@ -15,6 +15,8 @@ class IpcBridge {
         this.authHandlers = new Map();
         this.appHandlers = new Map();
         this.mcpHandlers = new Map();
+        this.automationHandlers = new Map();
+        this.historyHandlers = new Map();
         this.setupChannelHandlers();
     }
     /**
@@ -35,6 +37,39 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listTools'], this.handleMcpListTools.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:refresh'], this.handleMcpRefresh.bind(this));
+        // Automation channels
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:listSkills'], this.handleAutomationListSkills.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:refreshSkills'], this.handleAutomationRefreshSkills.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:getSkill'], this.handleAutomationGetSkill.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:setSkillEnabled'], this.handleAutomationSetSkillEnabled.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:listTasks'], this.handleAutomationListTasks.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:listTaskRuns'], this.handleAutomationListTaskRuns.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:saveTask'], this.handleAutomationSaveTask.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:setTaskEnabled'], this.handleAutomationSetTaskEnabled.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:deleteTask'], this.handleAutomationDeleteTask.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:runTask'], this.handleAutomationRunTask.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:getSchedulerStatus'], this.handleAutomationGetSchedulerStatus.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:getRemoteControl'], this.handleAutomationGetRemoteControl.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:updateRemoteControl'], this.handleAutomationUpdateRemoteControl.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:createRemotePairingCode'], this.handleAutomationCreateRemotePairingCode.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:startRemoteControl'], this.handleAutomationStartRemoteControl.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:stopRemoteControl'], this.handleAutomationStopRemoteControl.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:listTeams'], this.handleAutomationListTeams.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:listTeamRuns'], this.handleAutomationListTeamRuns.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:saveTeam'], this.handleAutomationSaveTeam.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:deleteTeam'], this.handleAutomationDeleteTeam.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:createDefaultTeam'], this.handleAutomationCreateDefaultTeam.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:runTeam'], this.handleAutomationRunTeam.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:revokeRemoteDevice'], this.handleAutomationRevokeRemoteDevice.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:exportProjectState'], this.handleAutomationExportProjectState.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['automation:importProjectState'], this.handleAutomationImportProjectState.bind(this));
+        // Local history channels
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:saveRecord'], this.handleHistorySaveRecord.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:getRecord'], this.handleHistoryGetRecord.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:listRecords'], this.handleHistoryListRecords.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:deleteRecord'], this.handleHistoryDeleteRecord.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:exportRecords'], this.handleHistoryExportRecords.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['history:getStorageInfo'], this.handleHistoryGetStorageInfo.bind(this));
         // File system channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:read'], this.handleFileRead.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:write'], this.handleFileWrite.bind(this));
@@ -218,6 +253,119 @@ class IpcBridge {
         }
         return handler({});
     }
+    // ============================================================================
+    // AUTOMATION HANDLERS
+    // ============================================================================
+    async handleAutomationListSkills() {
+        return this.getAutomationHandler('listSkills')({});
+    }
+    async handleAutomationRefreshSkills() {
+        return this.getAutomationHandler('refreshSkills')({});
+    }
+    async handleAutomationGetSkill(_event, skillId) {
+        return this.getAutomationHandler('getSkill')(skillId);
+    }
+    async handleAutomationSetSkillEnabled(_event, request) {
+        return this.getAutomationHandler('setSkillEnabled')(request);
+    }
+    async handleAutomationListTasks() {
+        return this.getAutomationHandler('listTasks')({});
+    }
+    async handleAutomationListTaskRuns(_event, taskId) {
+        return this.getAutomationHandler('listTaskRuns')(taskId);
+    }
+    async handleAutomationSaveTask(_event, task) {
+        return this.getAutomationHandler('saveTask')(task);
+    }
+    async handleAutomationSetTaskEnabled(_event, request) {
+        return this.getAutomationHandler('setTaskEnabled')(request);
+    }
+    async handleAutomationDeleteTask(_event, taskId) {
+        return this.getAutomationHandler('deleteTask')(taskId);
+    }
+    async handleAutomationRunTask(_event, taskId) {
+        return this.getAutomationHandler('runTask')(taskId);
+    }
+    async handleAutomationGetSchedulerStatus() {
+        return this.getAutomationHandler('getSchedulerStatus')({});
+    }
+    async handleAutomationGetRemoteControl() {
+        return this.getAutomationHandler('getRemoteControl')({});
+    }
+    async handleAutomationUpdateRemoteControl(_event, update) {
+        return this.getAutomationHandler('updateRemoteControl')(update);
+    }
+    async handleAutomationCreateRemotePairingCode(_event, deviceName) {
+        return this.getAutomationHandler('createRemotePairingCode')(deviceName);
+    }
+    async handleAutomationStartRemoteControl() {
+        return this.getAutomationHandler('startRemoteControl')({});
+    }
+    async handleAutomationStopRemoteControl() {
+        return this.getAutomationHandler('stopRemoteControl')({});
+    }
+    async handleAutomationRevokeRemoteDevice(_event, deviceId) {
+        return this.getAutomationHandler('revokeRemoteDevice')(deviceId);
+    }
+    async handleAutomationListTeams() {
+        return this.getAutomationHandler('listTeams')({});
+    }
+    async handleAutomationListTeamRuns(_event, teamId) {
+        return this.getAutomationHandler('listTeamRuns')(teamId);
+    }
+    async handleAutomationSaveTeam(_event, team) {
+        return this.getAutomationHandler('saveTeam')(team);
+    }
+    async handleAutomationDeleteTeam(_event, teamId) {
+        return this.getAutomationHandler('deleteTeam')(teamId);
+    }
+    async handleAutomationCreateDefaultTeam(_event, objective) {
+        return this.getAutomationHandler('createDefaultTeam')(objective);
+    }
+    async handleAutomationRunTeam(_event, teamId) {
+        return this.getAutomationHandler('runTeam')(teamId);
+    }
+    async handleAutomationExportProjectState(_event, options) {
+        return this.getAutomationHandler('exportProjectState')(options ?? {});
+    }
+    async handleAutomationImportProjectState(_event, bundle) {
+        return this.getAutomationHandler('importProjectState')(bundle);
+    }
+    getAutomationHandler(operation) {
+        const handler = this.automationHandlers.get(operation);
+        if (!handler) {
+            throw new Error(`Automation handler not configured: ${operation}`);
+        }
+        return handler;
+    }
+    // ============================================================================
+    // LOCAL HISTORY HANDLERS
+    // ============================================================================
+    async handleHistorySaveRecord(_event, record) {
+        return this.getHistoryHandler('saveRecord')(record);
+    }
+    async handleHistoryGetRecord(_event, id) {
+        return this.getHistoryHandler('getRecord')(id);
+    }
+    async handleHistoryListRecords(_event, filter) {
+        return this.getHistoryHandler('listRecords')(filter ?? {});
+    }
+    async handleHistoryDeleteRecord(_event, id) {
+        return this.getHistoryHandler('deleteRecord')(id);
+    }
+    async handleHistoryExportRecords(_event, filter) {
+        return this.getHistoryHandler('exportRecords')(filter ?? {});
+    }
+    async handleHistoryGetStorageInfo() {
+        return this.getHistoryHandler('getStorageInfo')({});
+    }
+    getHistoryHandler(operation) {
+        const handler = this.historyHandlers.get(operation);
+        if (!handler) {
+            throw new Error(`Local history handler not configured: ${operation}`);
+        }
+        return handler;
+    }
     async handleGetConfig() {
         const handler = this.appHandlers.get('getConfig');
         if (!handler) {
@@ -292,6 +440,12 @@ class IpcBridge {
     }
     registerMcpHandler(operation, handler) {
         this.mcpHandlers.set(operation, handler);
+    }
+    registerAutomationHandler(operation, handler) {
+        this.automationHandlers.set(operation, handler);
+    }
+    registerHistoryHandler(operation, handler) {
+        this.historyHandlers.set(operation, handler);
     }
     registerAuthHandler(operation, handler) {
         this.authHandlers.set(operation, handler);

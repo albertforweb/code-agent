@@ -70,14 +70,14 @@ toolService.setResultHandler((toolId, data) => {
 
 ### ApiServiceBridge
 
-**Purpose**: Call Anthropic Claude API
+**Purpose**: Call LlmProvider CodeAgent API
 
 **Usage**:
 ```typescript
-// Send message to Claude
+// Send message to CodeAgent
 const response = await apiService.chat({
   messages: [{ role: 'user', content: 'Hello' }],
-  model: 'claude-3-5-sonnet-20241022',
+  model: 'codeAgent-3-5-sonnet-20241022',
   temperature: 0.7
 });
 
@@ -174,11 +174,11 @@ const isValid = authService.isTokenValid();
 ```typescript
 // Get configuration
 const config = await appStateService.getConfig();
-console.log(config.model); // 'claude-3-5-sonnet-20241022'
+console.log(config.model); // 'codeAgent-3-5-sonnet-20241022'
 
 // Update configuration
 await appStateService.setConfig({
-  model: 'claude-3-opus-20250219',
+  model: 'codeAgent-3-opus-20250219',
   temperature: 0.5
 });
 
@@ -295,7 +295,7 @@ ipcBridge.registerApiHandler('chat', async (request) => {
 // Service
 async chat(request): Promise<ChatResponse> {
   // Throws Error on failure
-  return anthropic.messages.create(...);
+  return llmProvider.messages.create(...);
 }
 ```
 

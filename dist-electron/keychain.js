@@ -4,11 +4,10 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KeychainService = void 0;
-const PROVIDERS = ['anthropic', 'openai', 'openai-compatible'];
+const PROVIDERS = ['openai', 'openai-compatible'];
 class KeychainService {
     constructor(keytar) {
         this.serviceName = 'code-agent';
-        this.legacyAnthropicKey = 'anthropic-api-key';
         this.keytar = keytar ?? this.loadKeytar();
     }
     hasKeychain() {
@@ -21,9 +20,6 @@ class KeychainService {
         const token = await this.keytar.getPassword(this.serviceName, this.getProviderKey(provider));
         if (token) {
             return token;
-        }
-        if (provider === 'anthropic') {
-            return this.keytar.getPassword(this.serviceName, this.legacyAnthropicKey);
         }
         return null;
     }
@@ -40,9 +36,6 @@ class KeychainService {
         const providers = provider ? [provider] : PROVIDERS;
         for (const providerName of providers) {
             await this.keytar.deletePassword(this.serviceName, this.getProviderKey(providerName));
-            if (providerName === 'anthropic') {
-                await this.keytar.deletePassword(this.serviceName, this.legacyAnthropicKey);
-            }
         }
     }
     getProviderKey(provider) {
