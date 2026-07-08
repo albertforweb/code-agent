@@ -1,5 +1,5 @@
 import { c as _c } from "react/compiler-runtime";
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import { Box, Text } from '../ink.js';
 import * as React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -219,7 +219,7 @@ function SpinnerWithVerbInner({
   // doesn't trigger re-renders; we pick up updates on the parent's ~25x/turn
   // re-render cadence, same as the old ApiMetricsLine did.
   let ttftText: string | null = null;
-  if ("external" === 'ant' && apiMetricsRef?.current && apiMetricsRef.current.length > 0) {
+  if ("external" === 'internal' && apiMetricsRef?.current && apiMetricsRef.current.length > 0) {
     ttftText = computeTtftText(apiMetricsRef.current);
   }
 
@@ -258,7 +258,7 @@ function SpinnerWithVerbInner({
   const showBtwTip = tipsEnabled && elapsedSnapshot > 30_000 && !getGlobalConfig().btwUseCount;
   const effectiveTip = contextTipsActive ? undefined : showClearTip && !nextTask ? 'Use /clear to start fresh when switching topics and free up context' : showBtwTip && !nextTask ? "Use /btw to ask a quick side question without interrupting CodeAgent's current work" : spinnerTip;
 
-  // Budget text (ant-only) — shown above the tip line
+  // Budget text (internal-only) — shown above the tip line
   let budgetText: string | null = null;
   if (feature('TOKEN_BUDGET')) {
     const budget = getCurrentTurnTokenBudget();

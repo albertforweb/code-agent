@@ -21,7 +21,7 @@ export function getAPIProviderForStatsig(): AnalyticsMetadata_I_VERIFIED_THIS_IS
 /**
  * Check if LLM_PROVIDER_BASE_URL is a first-party LlmProvider API URL.
  * Returns true if not set (default API) or points to api.llmProvider.com
- * (or api-staging.llmProvider.com for ant users).
+ * (or api-staging.llmProvider.com for internal users).
  */
 export function isFirstPartyLlmProviderBaseUrl(): boolean {
   if (isOpenAICompatibleProvider()) {
@@ -35,7 +35,7 @@ export function isFirstPartyLlmProviderBaseUrl(): boolean {
   try {
     const host = new URL(baseUrl).host
     const allowedHosts = ['api.llmProvider.com']
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       allowedHosts.push('api-staging.llmProvider.com')
     }
     return allowedHosts.includes(host)

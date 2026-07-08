@@ -10,6 +10,39 @@ permissions:
   contents: write
 
 jobs:
+  cli-package:
+    name: Build CLI package
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and verify CLI package
+        run: npm run pack:cli:check
+
+      - name: Generate release notes
+        run: npm run release:notes
+
+      - name: Upload CLI package and release notes artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-agent-cli
+          path: |
+            dist-build/cli/*.tgz
+            dist-build/release-notes/*.md
+
   release:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -30,6 +63,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -55,3 +90,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ matrix.platform == 'Windows' && secrets.WIN_CSC_LINK || secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ matrix.platform == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || secrets.CSC_KEY_PASSWORD }}
+
+      - name: Verify macOS release package
+        if: matrix.platform == 'macOS'
+        run: npm run verify:desktop-release

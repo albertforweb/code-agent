@@ -58,9 +58,20 @@ const REMOTE_RATE_LIMIT_WINDOW_MS = 60000;
 const REMOTE_RATE_LIMIT_MAX_REQUESTS = 120;
 const REMOTE_PAIR_RATE_LIMIT_MAX_REQUESTS = 20;
 const TOOL_ROUND_LIMIT_MESSAGE = 'Stopped after reaching the desktop tool-call round limit.';
+function normalizeAutomationWorkspacePath(value) {
+    const fallback = os.homedir();
+    const raw = typeof value === 'string' && value.trim() ? value.trim() : fallback;
+    const expanded = raw.startsWith('~')
+        ? path.join(fallback, raw.slice(1))
+        : raw;
+    const resolved = path.resolve(expanded);
+    if (!resolved || resolved === path.parse(resolved).root) {
+        return fallback;
+    }
+    return resolved;
+}
 class AutomationServiceBridge {
     constructor(workspacePath = process.cwd()) {
-        this.workspacePath = workspacePath;
         this.taskExecutor = null;
         this.teamMemberExecutor = null;
         this.notificationEmitter = null;
@@ -72,6 +83,8 @@ class AutomationServiceBridge {
         this.remotePort = null;
         this.approvalResolvers = new Map();
         this.remoteRateLimits = new Map();
+        this.approvalResolutionEmitter = null;
+        this.workspacePath = normalizeAutomationWorkspacePath(workspacePath);
         this.projectDir = path.join(this.workspacePath, '.code-agent');
         this.legacyStorePath = path.join(this.projectDir, 'automation.json');
         this.projectManifestPath = path.join(this.projectDir, 'project.json');
@@ -91,6 +104,9 @@ class AutomationServiceBridge {
     }
     setNotificationEmitter(emitter) {
         this.notificationEmitter = emitter;
+    }
+    setApprovalResolutionEmitter(emitter) {
+        this.approvalResolutionEmitter = emitter;
     }
     async listSkills() {
         const store = await this.readStore();
@@ -336,6 +352,56 @@ class AutomationServiceBridge {
         if (!store.remoteControl.enabled || store.remoteControl.mode === 'disabled') {
             await this.stopRemoteControlServer();
         }
+        else if (store.remoteControl.mode === 'relay') {
+            await this.closeRemoteControlServer();
+        }
+        return this.sanitizeRemoteControl(store.remoteControl);
+    }
+    async configureRemoteRelay(input) {
+        const brokerUrl = this.normalizeRelayBrokerUrl(input.brokerUrl);
+        const store = await this.readStore();
+        const now = Date.now();
+        const existingRelay = this.normalizeRemoteRelay(store.remoteControl.relay);
+        store.remoteControl = this.normalizeRemoteControl({
+            ...store.remoteControl,
+            relay: {
+                ...existingRelay,
+                ...input,
+                brokerUrl,
+                enrollmentStatus: 'enrolled',
+                enrolledAt: existingRelay.enrolledAt ?? now,
+                disabledAt: undefined,
+            },
+            auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+                type: 'relay-configured',
+                message: `Configured managed relay enrollment for ${brokerUrl}.`,
+            }),
+        });
+        await this.writeStore(store);
+        return this.sanitizeRemoteControl(store.remoteControl);
+    }
+    async disableRemoteRelay() {
+        const store = await this.readStore();
+        const relay = this.normalizeRemoteRelay(store.remoteControl.relay);
+        const wasRelayMode = store.remoteControl.mode === 'relay';
+        store.remoteControl = this.normalizeRemoteControl({
+            ...store.remoteControl,
+            enabled: wasRelayMode ? false : store.remoteControl.enabled,
+            mode: wasRelayMode ? 'disabled' : store.remoteControl.mode,
+            relay: {
+                ...relay,
+                enrollmentStatus: 'disabled',
+                disabledAt: Date.now(),
+            },
+            auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+                type: 'relay-disabled',
+                message: 'Disabled managed relay enrollment.',
+            }),
+        });
+        if (wasRelayMode) {
+            await this.closeRemoteControlServer();
+        }
+        await this.writeStore(store);
         return this.sanitizeRemoteControl(store.remoteControl);
     }
     async revokeRemoteDevice(deviceId) {
@@ -408,13 +474,7 @@ class AutomationServiceBridge {
         return this.sanitizeRemoteControl(store.remoteControl);
     }
     async stopRemoteControlServer() {
-        if (this.remoteServer) {
-            await new Promise(resolve => {
-                this.remoteServer?.close(() => resolve());
-            });
-            this.remoteServer = null;
-            this.remotePort = null;
-        }
+        await this.closeRemoteControlServer();
         const store = await this.readStore();
         store.remoteControl = this.normalizeRemoteControl({
             ...store.remoteControl,
@@ -429,6 +489,16 @@ class AutomationServiceBridge {
         });
         await this.writeStore(store);
         return this.sanitizeRemoteControl(store.remoteControl);
+    }
+    async closeRemoteControlServer() {
+        if (!this.remoteServer) {
+            return;
+        }
+        await new Promise(resolve => {
+            this.remoteServer?.close(() => resolve());
+        });
+        this.remoteServer = null;
+        this.remotePort = null;
     }
     async registerApprovalRequest(request, resolver) {
         const store = await this.readStore();
@@ -485,6 +555,16 @@ class AutomationServiceBridge {
             else {
                 resolver.reject(reason, resolvedBy);
             }
+        }
+        if (resolvedBy !== 'desktop') {
+            this.approvalResolutionEmitter?.({
+                approvalId,
+                type: approval?.type,
+                title: approval?.title,
+                approved,
+                resolvedBy,
+                reason,
+            });
         }
         return { ok: Boolean(resolvedAction || resolver) };
     }
@@ -882,6 +962,20 @@ class AutomationServiceBridge {
             this.sendJson(response, 200, { approvals: remote.pendingActions ?? [] });
             return;
         }
+        if (request.method === 'GET' && pathname === '/api/devices') {
+            const remote = await this.getRemoteControl();
+            this.sendJson(response, 200, {
+                devices: remote.approvedDevices,
+                currentDeviceId: device.id,
+                auditLog: remote.auditLog ?? [],
+            });
+            return;
+        }
+        const deviceRevokeMatch = pathname.match(/^\/api\/devices\/([^/]+)$/);
+        if ((request.method === 'DELETE' || request.method === 'POST') && deviceRevokeMatch) {
+            this.sendJson(response, 200, await this.revokeRemoteDeviceFromRemote(deviceRevokeMatch[1], device));
+            return;
+        }
         const approvalMatch = pathname.match(/^\/api\/approvals\/([^/]+)$/);
         if (request.method === 'POST' && approvalMatch) {
             const body = await this.readJsonBody(request);
@@ -936,6 +1030,25 @@ class AutomationServiceBridge {
             },
             remoteControl: this.sanitizeRemoteControl(store.remoteControl),
         };
+    }
+    async revokeRemoteDeviceFromRemote(deviceId, actor) {
+        const store = await this.readStore();
+        const target = store.remoteControl.approvedDevices.find(candidate => candidate.id === deviceId);
+        if (!target) {
+            throw new Error(`Remote device not found: ${deviceId}`);
+        }
+        store.remoteControl = this.normalizeRemoteControl({
+            ...store.remoteControl,
+            approvedDevices: store.remoteControl.approvedDevices.filter(candidate => candidate.id !== deviceId),
+            auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+                type: 'device-revoked',
+                message: `Revoked remote device "${target.name}" from "${actor.name}".`,
+                deviceId: target.id,
+                deviceName: target.name,
+            }),
+        });
+        await this.writeStore(store);
+        return this.sanitizeRemoteControl(store.remoteControl);
     }
     async requireRemoteDevice(request) {
         const authorization = request.headers.authorization ?? '';
@@ -1648,8 +1761,9 @@ class AutomationServiceBridge {
             enabled: Boolean(raw.enabled),
             mode,
             serverPort: typeof raw.serverPort === 'number' ? raw.serverPort : undefined,
-            serverUrl: typeof raw.serverUrl === 'string' ? raw.serverUrl : undefined,
-            localNetworkUrls: Array.isArray(raw.localNetworkUrls) ? raw.localNetworkUrls.map(String) : [],
+            serverUrl: mode === 'local-network' && typeof raw.serverUrl === 'string' ? raw.serverUrl : undefined,
+            localNetworkUrls: mode === 'local-network' && Array.isArray(raw.localNetworkUrls) ? raw.localNetworkUrls.map(String) : [],
+            relay: this.normalizeRemoteRelay(raw.relay),
             pairingCode: typeof raw.pairingCode === 'string' ? raw.pairingCode : undefined,
             pairingTokenHash: typeof raw.pairingTokenHash === 'string' ? raw.pairingTokenHash : undefined,
             pairingExpiresAt: typeof raw.pairingExpiresAt === 'number' ? raw.pairingExpiresAt : undefined,
@@ -1664,6 +1778,55 @@ class AutomationServiceBridge {
                     .slice(0, 100)
                 : [],
         };
+    }
+    normalizeRemoteRelay(value) {
+        const raw = value && typeof value === 'object' ? value : {};
+        const enrollmentStatus = raw.enrollmentStatus === 'enrolled' || raw.enrollmentStatus === 'disabled'
+            ? raw.enrollmentStatus
+            : raw.brokerUrl
+                ? 'enrolled'
+                : 'not-configured';
+        return {
+            enrollmentStatus,
+            brokerUrl: this.optionalTrimmedString(raw.brokerUrl),
+            accountId: this.optionalTrimmedString(raw.accountId),
+            deviceId: this.optionalTrimmedString(raw.deviceId),
+            relayPublicKey: this.optionalTrimmedString(raw.relayPublicKey),
+            clientKeyId: this.optionalTrimmedString(raw.clientKeyId),
+            auditCursor: this.optionalTrimmedString(raw.auditCursor),
+            enrolledAt: this.optionalTimestamp(raw.enrolledAt),
+            disabledAt: this.optionalTimestamp(raw.disabledAt),
+            lastConnectedAt: this.optionalTimestamp(raw.lastConnectedAt),
+            tokenRotatesAt: this.optionalTimestamp(raw.tokenRotatesAt),
+        };
+    }
+    normalizeRelayBrokerUrl(value) {
+        const raw = value.trim();
+        if (!raw) {
+            throw new Error('Relay broker URL is required.');
+        }
+        let parsed;
+        try {
+            parsed = new url_1.URL(raw);
+        }
+        catch {
+            throw new Error('Relay broker URL must be a valid HTTPS URL.');
+        }
+        if (parsed.protocol !== 'https:') {
+            throw new Error('Relay broker URL must use HTTPS.');
+        }
+        parsed.hash = '';
+        return parsed.toString().replace(/\/$/, '');
+    }
+    optionalTrimmedString(value) {
+        if (typeof value !== 'string') {
+            return undefined;
+        }
+        const trimmed = value.trim();
+        return trimmed ? trimmed : undefined;
+    }
+    optionalTimestamp(value) {
+        return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
     }
     appendRemoteAudit(current, event) {
         return [
@@ -1732,10 +1895,7 @@ class AutomationServiceBridge {
         if (typeof value !== 'string' || !value.trim()) {
             return undefined;
         }
-        const expanded = value.trim().startsWith('~')
-            ? path.join(os.homedir(), value.trim().slice(1))
-            : value.trim();
-        return path.resolve(expanded);
+        return normalizeAutomationWorkspacePath(value);
     }
     normalizeTeamPermissionMode(value) {
         return value === 'supervised' ? 'supervised' : 'full-access';

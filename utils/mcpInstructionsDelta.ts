@@ -32,13 +32,13 @@ export type ClientSideInstruction = {
  * (rebuilt every turn; cache-busts on late connect).
  *
  * Env override for local testing: CODE_AGENT_MCP_INSTR_DELTA=true/false
- * wins over both ant bypass and the GrowthBook gate.
+ * wins over both internal bypass and the GrowthBook gate.
  */
 export function isMcpInstructionsDeltaEnabled(): boolean {
   if (isEnvTruthy(process.env.CODE_AGENT_MCP_INSTR_DELTA)) return true
   if (isEnvDefinedFalsy(process.env.CODE_AGENT_MCP_INSTR_DELTA)) return false
   return (
-    process.env.USER_TYPE === 'ant' ||
+    process.env.USER_TYPE === 'internal' ||
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_basalt_3kr', false)
   )
 }

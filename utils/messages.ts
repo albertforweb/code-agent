@@ -2347,7 +2347,7 @@ export function normalizeMessagesForAPI(
   // Skip in test mode — tags change message content hashes, breaking
   // VCR fixture lookup. Gate must match SnipTool.isEnabled() — don't
   // inject [id:] tags when the tool isn't available (confuses the model
-  // and wastes tokens on every non-meta user message for every ant).
+  // and wastes tokens on every non-meta user message for every internal).
   if (feature('HISTORY_SNIP') && process.env.NODE_ENV !== 'test') {
     const { isSnipRuntimeEnabled } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -2418,7 +2418,7 @@ export function mergeUserMessages(a: UserMessage, b: UserMessage): UserMessage {
     // Gated behind the full runtime check because changing isMeta semantics
     // affects downstream callers (e.g., VCR fixture hashing in SDK harness
     // tests), so this must only fire when snip is actually enabled — not
-    // for all ants.
+    // for all internal users.
     const { isSnipRuntimeEnabled } =
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       require('../services/compact/snipCompact.js') as typeof import('../services/compact/snipCompact.js')
@@ -2684,7 +2684,7 @@ export function normalizeContentFromAPI(
               toolName: sanitizeToolNameForAnalytics(contentBlock.name),
               inputLen: contentBlock.input.length,
             })
-            if (process.env.USER_TYPE === 'ant') {
+            if (process.env.USER_TYPE === 'internal') {
               logForDebugging(
                 `tool input JSON parse fail: ${contentBlock.input.slice(0, 200)}`,
                 { level: 'warn' },
@@ -3297,7 +3297,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
 }
 
 function getReadOnlyToolNames(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
+  // Internal-native builds alias find/grep to embedded bfs/ugrep and remove the
   // dedicated Glob/Grep tools from the registry, so point at find/grep via
   // Bash instead.
   const tools = hasEmbeddedSearchTools()

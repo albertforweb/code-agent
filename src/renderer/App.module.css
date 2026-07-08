@@ -1746,6 +1746,435 @@ body.dark .statusPaneStatic strong {
   gap: var(--spacing-md);
 }
 
+.projectModeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.projectModeCard {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 146px;
+  padding: var(--spacing-md);
+  border: 1px solid #e4ddd1;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  color: #3b362f;
+  font: inherit;
+  text-align: left;
+}
+
+.projectModeCard:hover {
+  border-color: #cbbdaa;
+  background: #fffaf4;
+}
+
+.projectModeCard span {
+  color: #a15b3f;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.projectModeCard strong {
+  color: #2b2823;
+  font-size: 18px;
+  font-weight: 760;
+}
+
+.projectModeCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.projectList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.projectConsoleGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+
+.employeeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.employeeCardShell,
+.employeeCard {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.employeeCard {
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.employeeCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.employeeCardHeader > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.employeeAvatar {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: #8d6748;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.employeeCardHeader strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employeeCardHeader span,
+.employeeCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.employeeAssignGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.employeeAssignOption {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "check name"
+    "check role";
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.employeeAssignOption input {
+  grid-area: check;
+}
+
+.employeeAssignOption span {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  color: #3b362f;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employeeAssignOption em {
+  grid-area: role;
+  min-width: 0;
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectCard {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.projectCardSelected {
+  border-color: #bba58b;
+  background: #fff8ef;
+  box-shadow: inset 3px 0 0 #8d6748;
+}
+
+.projectCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
+.projectCardHeader > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.projectCardHeader strong,
+.projectPanelTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectCardHeader span {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+
+.projectCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.projectChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.projectChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 100%;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid #e0d6c8;
+  border-radius: 999px;
+  background: #fbfaf7;
+  color: #5f574d;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectSupervisorRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 241, 234, 0.72);
+}
+
+.projectSupervisorRow span,
+.projectSupervisorRow em {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+}
+
+.projectSupervisorRow strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #3b362f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectTeamDiagram {
+  display: grid;
+  gap: var(--spacing-md);
+  justify-items: center;
+}
+
+.projectSupervisorNode {
+  display: grid;
+  gap: 3px;
+  min-width: min(100%, 280px);
+  padding: var(--spacing-md);
+  border: 1px solid #d9c7b1;
+  border-radius: var(--radius-md);
+  background: #fff8ef;
+  text-align: center;
+}
+
+.projectSupervisorNode span,
+.projectSupervisorNode em {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+}
+
+.projectSupervisorNode strong {
+  color: #2b2823;
+  font-size: 18px;
+}
+
+.projectTeamNodes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  max-width: 760px;
+}
+
+.projectTeamNodes span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e0d6c8;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.58);
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.projectBoard {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.projectBoardColumn {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 140px;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(245, 241, 234, 0.72);
+}
+
+.projectBoardColumnHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  color: #81786b;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+
+.projectTaskCard {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e0d6c8;
+  border-left: 3px solid #8d6748;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.projectTaskCard strong,
+.projectDeliverableCard strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectTaskCard span,
+.projectDeliverableCard span,
+.projectDeliverableCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.projectChatList,
+.projectDeliverables {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.projectChatMessage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.projectChatMessage > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.projectChatMessage strong {
+  color: #2b2823;
+}
+
+.projectChatMessage p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.projectDeliverableCard {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.projectDeliverableCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+
 .toolsLayout {
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(280px, 0.9fr);
 }
@@ -2173,6 +2602,17 @@ body.dark .detailHero h2,
 body.dark .detailToolbar h2,
 body.dark .detailPanel h3,
 body.dark .detailList dd,
+body.dark .projectModeCard strong,
+body.dark .employeeCardHeader strong,
+body.dark .employeeAssignOption span,
+body.dark .projectCardHeader strong,
+body.dark .projectPanelTitle,
+body.dark .projectSupervisorRow strong,
+body.dark .projectSupervisorNode strong,
+body.dark .projectTeamNodes span,
+body.dark .projectTaskCard strong,
+body.dark .projectChatMessage strong,
+body.dark .projectDeliverableCard strong,
 body.dark .toolCatalogItem strong {
   color: var(--color-text-dark);
 }
@@ -2186,6 +2626,21 @@ body.dark .toolCatalogGroup h4,
 body.dark .toolExposureRow span,
 body.dark .toolPermissionRow span,
 body.dark .toolActivityActions span,
+body.dark .projectModeCard p,
+body.dark .employeeCardHeader span,
+body.dark .employeeCard p,
+body.dark .employeeAssignOption em,
+body.dark .projectCardHeader span,
+body.dark .projectCard p,
+body.dark .projectSupervisorRow span,
+body.dark .projectSupervisorRow em,
+body.dark .projectSupervisorNode span,
+body.dark .projectSupervisorNode em,
+body.dark .projectBoardColumnHeader,
+body.dark .projectTaskCard span,
+body.dark .projectChatMessage p,
+body.dark .projectDeliverableCard span,
+body.dark .projectDeliverableCard p,
 body.dark .toolCatalogItem span,
 body.dark .toolCatalogItem p {
   color: var(--color-text-dark-secondary);
@@ -2275,15 +2730,38 @@ body.dark .toolCatalogItem .toolStatusError {
 }
 
 body.dark .detailPanel,
+body.dark .projectModeCard,
+body.dark .employeeCard,
+body.dark .employeeAssignOption,
+body.dark .projectCard,
+body.dark .projectTeamNodes span,
+body.dark .projectBoardColumn,
+body.dark .projectTaskCard,
+body.dark .projectChatMessage,
+body.dark .projectDeliverableCard,
 body.dark .toolCatalogItem {
   border-color: #403b32;
   background: rgba(255, 255, 255, 0.04);
 }
 
+body.dark .projectModeCard:hover,
+body.dark .projectCardSelected,
 body.dark .toolCatalogItemSelected {
   border-color: #6d5945;
   background: #302922;
   box-shadow: inset 3px 0 0 #c49868;
+}
+
+body.dark .projectChip,
+body.dark .projectSupervisorRow {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .projectSupervisorNode {
+  border-color: #6d5945;
+  background: #302922;
 }
 
 body.dark .teamTranscript {
@@ -2820,6 +3298,9 @@ body.dark .settingsMessage {
 
 @media (max-width: 1100px) {
   .detailGrid,
+  .projectModeGrid,
+  .projectConsoleGrid,
+  .projectBoard,
   .toolsLayout,
   .automationGrid {
     grid-template-columns: 1fr;

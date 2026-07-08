@@ -1,5 +1,5 @@
 import { c as _c } from "react/compiler-runtime";
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import { feature } from 'bun:bundle';
 import { Box, Text, useTheme, useThemeSetting, useTerminalFocus } from '../../ink.js';
 import type { KeyboardEvent } from '../../ink/events/keyboard-event.js';
@@ -353,7 +353,7 @@ export function Config({
       });
     }
   },
-  // Fast mode toggle (ant-only, eliminated from external builds)
+  // Fast mode toggle (internal-only, eliminated from external builds)
   ...(isFastModeEnabled() && isFastModeAvailable() ? [{
     id: 'fastMode',
     label: `Fast mode (${FAST_MODE_MODEL_DISPLAY} only)`,
@@ -402,8 +402,8 @@ export function Config({
       });
     }
   }] : []),
-  // Speculation toggle (ant-only)
-  ...("external" === 'ant' ? [{
+  // Speculation toggle (internal-only)
+  ...("external" === 'internal' ? [{
     id: 'speculationEnabled',
     label: 'Speculative execution',
     value: globalConfig.speculationEnabled ?? true,

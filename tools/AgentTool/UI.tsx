@@ -94,12 +94,12 @@ type ProcessedMessage = {
 
 /**
  * Process progress messages to group consecutive search/read operations into summaries.
- * For ants only - returns original messages for non-ants.
+ * For internal users only - returns original messages for non-internal users.
  * @param isAgentRunning - If true, the last group is always marked as active (in progress)
  */
 function processProgressMessages(messages: ProgressMessage<Progress>[], tools: Tools, isAgentRunning: boolean): ProcessedMessage[] {
-  // Only process for ants
-  if ("external" !== 'ant') {
+  // Only process for internal users
+  if ("external" !== 'internal') {
     return messages.filter((m): m is ProgressMessage<AgentToolProgress> => hasProgressMessage(m.data) && m.data.message.type !== 'user').map(m => ({
       type: 'original',
       message: m
@@ -323,7 +323,7 @@ export function renderToolResultMessage(data: Output, progressMessagesForMessage
   theme: ThemeName;
   isTranscriptMode?: boolean;
 }): React.ReactNode {
-  // Remote-launched agents (ant-only) use a private output type not in the
+  // Remote-launched agents (internal-only) use a private output type not in the
   // public schema. Narrow via the internal discriminant.
   const internal = data as Output | RemoteLaunchedOutput;
   if (internal.status === 'remote_launched') {
@@ -385,9 +385,9 @@ export function renderToolResultMessage(data: Output, progressMessagesForMessage
     }
   });
   return <Box flexDirection="column">
-      {"external" === 'ant' && <MessageResponse>
+      {"external" === 'internal' && <MessageResponse>
           <Text color="warning">
-            [ANT-ONLY] API calls: {getDisplayPath(getDumpPromptsPath(agentId))}
+            [INTERNAL-ONLY] API calls: {getDisplayPath(getDumpPromptsPath(agentId))}
           </Text>
         </MessageResponse>}
       {isTranscriptMode && prompt && <MessageResponse>
@@ -502,7 +502,7 @@ export function renderToolUseProgressMessage(progressMessages: ProgressMessage<P
       </MessageResponse>;
   }
 
-  // Process messages to group consecutive search/read operations into summaries (ants only)
+  // Process messages to group consecutive search/read operations into summaries (internal users only)
   // isAgentRunning=true since this is the progress view while the agent is still running
   const processedMessages = processProgressMessages(progressMessages, tools, true);
 
@@ -591,9 +591,9 @@ export function renderToolUseRejectedMessage(_input: {
   const firstData = progressMessagesForMessage[0]?.data;
   const agentId = firstData && hasProgressMessage(firstData) ? firstData.agentId : undefined;
   return <>
-      {"external" === 'ant' && agentId && <MessageResponse>
+      {"external" === 'internal' && agentId && <MessageResponse>
           <Text color="warning">
-            [ANT-ONLY] API calls: {getDisplayPath(getDumpPromptsPath(agentId))}
+            [INTERNAL-ONLY] API calls: {getDisplayPath(getDumpPromptsPath(agentId))}
           </Text>
         </MessageResponse>}
       {renderToolUseProgressMessage(progressMessagesForMessage, {

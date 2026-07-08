@@ -1,5 +1,4 @@
 import memoize from 'lodash-es/memoize.js'
-import { existsSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 
@@ -9,17 +8,7 @@ export const CODEAGENT_CONFIG_HOME = '.code-agent'
 export const LEGACY_CONFIG_HOME = '.codeAgent'
 
 function getDefaultConfigHomeDir(): string {
-  const codeAgentDir = join(homedir(), CODEAGENT_CONFIG_HOME)
-  if (existsSync(codeAgentDir)) {
-    return codeAgentDir
-  }
-
-  const legacyDir = join(homedir(), LEGACY_CONFIG_HOME)
-  if (existsSync(legacyDir)) {
-    return legacyDir
-  }
-
-  return codeAgentDir
+  return join(homedir(), CODEAGENT_CONFIG_HOME)
 }
 
 // Memoized: many callers hit this on hot paths. Keyed off both the primary and
@@ -140,11 +129,11 @@ export function shouldMaintainProjectWorkingDir(): boolean {
 }
 
 /**
- * Check if running on Homespace (ant-internal cloud environment)
+ * Check if running on Homespace (internal cloud environment)
  */
 export function isRunningOnHomespace(): boolean {
   return (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     isEnvTruthy(process.env.COO_RUNNING_ON_HOMESPACE)
   )
 }
@@ -163,7 +152,7 @@ export function isRunningOnHomespace(): boolean {
 export function isInProtectedNamespace(): boolean {
   // USER_TYPE is build-time --define'd; in external builds this block is
   // DCE'd so the require() and namespace allowlist never appear in the bundle.
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     /* eslint-disable @typescript-eslint/no-require-imports */
     return (
       require('./protectedNamespace.js') as typeof import('./protectedNamespace.js')

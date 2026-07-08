@@ -4,7 +4,7 @@
  * (same pattern as Chrome's rendering overrides, plus `.call()`).
  *
  * The wrapper-closure logic (build overrides fresh, lock gate, permission
- * merge, screenshot stash) lives in `@ant/computer-use-mcp`'s
+ * merge, screenshot stash) lives in `@codeagent/computer-use-mcp`'s
  * `bindSessionContext`. This file binds it once per process,
  * caches the dispatcher, and updates a per-call ref for the pieces of
  * `ToolUseContext` that vary per-call (`abortController`, `setToolJSX`,
@@ -16,7 +16,7 @@
  * GrowthBook gate `tengu_malort_pedway` (see gates.ts).
  */
 
-import { bindSessionContext, type ComputerUseSessionContext, type CuCallToolResult, type CuPermissionRequest, type CuPermissionResponse, DEFAULT_GRANT_FLAGS, type ScreenshotDims } from '@ant/computer-use-mcp';
+import { bindSessionContext, type ComputerUseSessionContext, type CuCallToolResult, type CuPermissionRequest, type CuPermissionResponse, DEFAULT_GRANT_FLAGS, type ScreenshotDims } from '@codeagent/computer-use-mcp';
 import * as React from 'react';
 import { getSessionId } from '../../bootstrap/state.js';
 import { ComputerUseApproval } from '../../components/permissions/ComputerUseApproval/ComputerUseApproval.js';

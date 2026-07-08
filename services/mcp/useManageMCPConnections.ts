@@ -973,7 +973,7 @@ export function useManageMCPConnections(
         plugin: 0,
         subscription: 0,
       }
-      // Ant-only: collect stdio command basenames to correlate with RSS/FPS
+      // Internal-only: collect stdio command basenames to correlate with RSS/FPS
       // metrics. Stdio servers like rust-analyzer can be heavy and we want to
       // know which ones correlate with poor session performance.
       const stdioCommands: string[] = []
@@ -986,7 +986,7 @@ export function useManageMCPConnections(
         else if (serverConfig.scope === 'subscription') counts.subscription++
 
         if (
-          process.env.USER_TYPE === 'ant' &&
+          process.env.USER_TYPE === 'internal' &&
           !isMcpServerDisabled(name) &&
           (serverConfig.type === undefined || serverConfig.type === 'stdio') &&
           'command' in serverConfig
@@ -996,7 +996,7 @@ export function useManageMCPConnections(
       }
       logEvent('tengu_mcp_servers', {
         ...counts,
-        ...(process.env.USER_TYPE === 'ant' && stdioCommands.length > 0
+        ...(process.env.USER_TYPE === 'internal' && stdioCommands.length > 0
           ? {
               stdio_commands: stdioCommands
                 .sort()

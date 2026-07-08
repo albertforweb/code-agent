@@ -79,6 +79,45 @@ export async function automationRemoteServeHandler(): Promise<void> {
   await new Promise<void>(() => {});
 }
 
+export async function automationRemoteRelayStatusHandler(): Promise<void> {
+  printJson((await getService().getRemoteControl()).relay ?? { enrollmentStatus: 'not-configured' });
+}
+
+export async function automationRemoteRelayConfigureHandler(options: {
+  brokerUrl?: string;
+  accountId?: string;
+  deviceId?: string;
+  relayPublicKey?: string;
+  clientKeyId?: string;
+  auditCursor?: string;
+  tokenRotatesAt?: string;
+}): Promise<void> {
+  if (!options.brokerUrl?.trim()) {
+    throw new Error('automation remote relay configure requires --broker-url');
+  }
+
+  const tokenRotatesAt = options.tokenRotatesAt
+    ? Date.parse(options.tokenRotatesAt)
+    : undefined;
+  if (options.tokenRotatesAt && !Number.isFinite(tokenRotatesAt)) {
+    throw new Error('automation remote relay configure --token-rotates-at must be an ISO timestamp or parseable date.');
+  }
+
+  printJson(await getService().configureRemoteRelay({
+    brokerUrl: options.brokerUrl,
+    accountId: options.accountId,
+    deviceId: options.deviceId,
+    relayPublicKey: options.relayPublicKey,
+    clientKeyId: options.clientKeyId,
+    auditCursor: options.auditCursor,
+    tokenRotatesAt,
+  }));
+}
+
+export async function automationRemoteRelayDisableHandler(): Promise<void> {
+  printJson(await getService().disableRemoteRelay());
+}
+
 export async function automationTeamsHandler(): Promise<void> {
   printJson(await getService().listTeams());
 }
@@ -166,12 +205,26 @@ async function runOpenAiCompatiblePrompt(prompt: string): Promise<{
   model: string;
   usage: { inputTokens: number; outputTokens: number };
 }> {
-  const baseUrl = (process.env.CODE_AGENT_BASE_URL || process.env.OPENAI_BASE_URL || process.env.LM_STUDIO_BASE_URL || '').replace(/\/$/, '');
-  const model = process.env.CODE_AGENT_MODEL || process.env.OPENAI_MODEL || 'local-model';
-  const apiKey = process.env.CODE_AGENT_API_KEY || process.env.OPENAI_API_KEY || 'lm-studio';
+  const baseUrl = (
+    process.env.CODE_AGENT_BASE_URL ||
+    process.env.CODE_AGENT_LLM_BASE_URL ||
+    process.env.OPENAI_COMPATIBLE_BASE_URL ||
+    process.env.OPENAI_BASE_URL ||
+    ''
+  ).replace(/\/$/, '');
+  const model =
+    process.env.CODE_AGENT_MODEL ||
+    process.env.OPENAI_COMPATIBLE_MODEL ||
+    process.env.OPENAI_MODEL ||
+    'local-model';
+  const apiKey =
+    process.env.CODE_AGENT_API_KEY ||
+    process.env.OPENAI_COMPATIBLE_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    'local';
 
   if (!baseUrl) {
-    throw new Error('CLI automation execution requires CODE_AGENT_BASE_URL or OPENAI_BASE_URL.');
+    throw new Error('CLI automation execution requires CODE_AGENT_BASE_URL, CODE_AGENT_LLM_BASE_URL, OPENAI_COMPATIBLE_BASE_URL, or OPENAI_BASE_URL.');
   }
 
   const response = await fetch(`${baseUrl}/chat/completions`, {

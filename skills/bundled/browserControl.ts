@@ -1,4 +1,4 @@
-import { BROWSER_TOOLS } from '@ant/codeAgent-for-chrome-mcp'
+import { BROWSER_TOOLS } from '@codeagent/browser-control-mcp'
 import { BASE_CHROME_PROMPT } from '../../utils/browserControl/prompt.js'
 import { shouldAutoEnableBrowserControl } from '../../utils/browserControl/setup.js'
 import { registerBundledSkill } from '../bundledSkills.js'

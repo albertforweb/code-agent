@@ -15,7 +15,7 @@ import {
  * ...
  */
 const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return null
   }
   const namespacePath =
@@ -33,7 +33,7 @@ const getKubernetesNamespace = memoize(async (): Promise<string | null> => {
  * Get the OCI container ID from within a running container
  */
 export const getContainerId = memoize(async (): Promise<string | null> => {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return null
   }
   const containerIdPath = '/proc/self/mountinfo'
@@ -68,11 +68,11 @@ export const getContainerId = memoize(async (): Promise<string | null> => {
 /**
  * Logs an event with the current namespace and tool permission context
  */
-export async function logPermissionContextForAnts(
+export async function logPermissionContextForInternal(
   toolPermissionContext: ToolPermissionContext | null,
   moment: 'summary' | 'initialization',
 ): Promise<void> {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return
   }
 

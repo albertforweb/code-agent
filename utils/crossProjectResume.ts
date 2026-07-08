@@ -38,8 +38,8 @@ export function checkCrossProjectResume(
     return { isCrossProject: false }
   }
 
-  // Gate worktree detection to ants only for staged rollout
-  if (process.env.USER_TYPE !== 'ant') {
+  // Gate worktree detection to internal users only for staged rollout
+  if (process.env.USER_TYPE !== 'internal') {
     const sessionId = getSessionIdFromLog(log)
     const command = `cd ${quote([log.projectPath])} && code-agent --resume ${sessionId}`
     return {

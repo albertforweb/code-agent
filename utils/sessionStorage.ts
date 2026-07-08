@@ -1982,7 +1982,7 @@ function applyPreservedSegmentRelinks(
 function applySnipRemovals(messages: Map<UUID, TranscriptMessage>): void {
   // Structural check — snipMetadata only exists on the boundary subtype.
   // Avoids the subtype literal which is in excluded-strings.txt
-  // (HISTORY_SNIP is ant-only; the literal must not leak into external builds).
+  // (HISTORY_SNIP is internal-only; the literal must not leak into external builds).
   type WithSnipMeta = { snipMetadata?: { removedUuids?: UUID[] } }
   const toDelete = new Set<UUID>()
   for (const entry of messages.values()) {
@@ -4350,11 +4350,11 @@ export async function loadAllSubagentTranscriptsFromDisk(): Promise<{
 // without awaiting recordTranscript's return value (race-free hint tracking).
 export function isLoggableMessage(m: Message): boolean {
   if (m.type === 'progress') return false
-  // IMPORTANT: We deliberately filter out most attachments for non-ants because
+  // IMPORTANT: We deliberately filter out most attachments for non-internal users because
   // they have sensitive info for training that we don't want exposed to the public.
   // When enabled, we allow hook_additional_context through since it contains
   // user-configured hook output that is useful for session context on resume.
-  if (m.type === 'attachment' && getUserType() !== 'ant') {
+  if (m.type === 'attachment' && getUserType() !== 'internal') {
     if (
       m.attachment.type === 'hook_additional_context' &&
       isEnvTruthy(process.env.CODE_AGENT_SAVE_HOOK_ADDITIONAL_CONTEXT)
@@ -4385,7 +4385,7 @@ function collectReplIds(messages: readonly Message[]): Set<string> {
  * REPL tool_use/tool_result pairs and promote isVirtual messages to real. On
  * --resume the model then sees a coherent native-tool-call history (assistant
  * called Bash, got result, called Read, got result) without the REPL wrapper.
- * Ant transcripts keep the wrapper so /share training data sees REPL usage.
+ * Internal transcripts keep the wrapper so /share training data sees REPL usage.
  *
  * replIds is pre-collected from the FULL session array, not the slice being
  * transformed — recordTranscript receives incremental slices where the REPL
@@ -4452,7 +4452,7 @@ export function cleanMessagesForLogging(
   allMessages: readonly Message[] = messages,
 ): Transcript {
   const filtered = messages.filter(isLoggableMessage) as Transcript
-  return getUserType() !== 'ant'
+  return getUserType() !== 'internal'
     ? transformMessagesForExternalTranscript(
         filtered,
         collectReplIds(allMessages),

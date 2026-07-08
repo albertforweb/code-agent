@@ -202,7 +202,7 @@ export async function clearConversation({
   // Set the old session as parent for analytics lineage tracking
   regenerateSessionId({ setCurrentAsParent: true })
   // Update the environment variable so subprocesses use the new session ID
-  if (process.env.USER_TYPE === 'ant' && process.env.CODE_AGENT_SESSION_ID) {
+  if (process.env.USER_TYPE === 'internal' && process.env.CODE_AGENT_SESSION_ID) {
     process.env.CODE_AGENT_SESSION_ID = getSessionId()
   }
   await resetSessionFilePointer()

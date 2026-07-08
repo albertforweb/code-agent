@@ -4,7 +4,7 @@ import { isEnvTruthy } from 'src/utils/envUtils.js'
 type OauthConfigType = 'prod' | 'staging' | 'local'
 
 function getOauthConfigType(): OauthConfigType {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     if (isEnvTruthy(process.env.USE_LOCAL_OAUTH)) {
       return 'local'
     }
@@ -113,28 +113,28 @@ const PROD_OAUTH_CONFIG = {
 export const MCP_CLIENT_METADATA_URL =
   'https://codeAgent.ai/oauth/codeAgent-code-client-metadata'
 
-// Staging OAuth configuration - only included in ant builds with staging flag
+// Staging OAuth configuration - only included in internal builds with staging flag
 // Uses literal check for dead code elimination
 const STAGING_OAUTH_CONFIG =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? ({
         BASE_API_URL: 'https://api-staging.llmProvider.com',
         CONSOLE_AUTHORIZE_URL:
-          'https://platform.staging.ant.dev/oauth/authorize',
+          'https://platform.staging.codeagent.local/oauth/authorize',
         SUBSCRIPTION_AUTHORIZE_URL:
-          'https://codeAgent-ai.staging.ant.dev/oauth/authorize',
-        SUBSCRIPTION_ORIGIN: 'https://codeAgent-ai.staging.ant.dev',
-        TOKEN_URL: 'https://platform.staging.ant.dev/v1/oauth/token',
+          'https://codeAgent-ai.staging.codeagent.local/oauth/authorize',
+        SUBSCRIPTION_ORIGIN: 'https://codeAgent-ai.staging.codeagent.local',
+        TOKEN_URL: 'https://platform.staging.codeagent.local/v1/oauth/token',
         API_KEY_URL:
           'https://api-staging.llmProvider.com/api/oauth/codeAgent_cli/create_api_key',
         ROLES_URL:
           'https://api-staging.llmProvider.com/api/oauth/codeAgent_cli/roles',
         CONSOLE_SUCCESS_URL:
-          'https://platform.staging.ant.dev/buy_credits?returnUrl=/oauth/code/success%3Fapp%3DcodeAgent-code',
+          'https://platform.staging.codeagent.local/buy_credits?returnUrl=/oauth/code/success%3Fapp%3DcodeAgent-code',
         SUBSCRIPTION_SUCCESS_URL:
-          'https://platform.staging.ant.dev/oauth/code/success?app=codeAgent-code',
+          'https://platform.staging.codeagent.local/oauth/code/success?app=codeAgent-code',
         MANUAL_REDIRECT_URL:
-          'https://platform.staging.ant.dev/oauth/code/callback',
+          'https://platform.staging.codeagent.local/oauth/code/callback',
         CLIENT_ID: '22422756-60c9-4084-8eb7-27705fd5cf9a',
         OAUTH_FILE_SUFFIX: '-staging-oauth',
         MCP_PROXY_URL: 'https://mcp-proxy-staging.llmProvider.com',
@@ -177,7 +177,7 @@ function getLocalOauthConfig(): OauthConfig {
 // Only FedStart/PubSec deployments are permitted to prevent OAuth tokens
 // from being sent to arbitrary endpoints.
 const ALLOWED_OAUTH_BASE_URLS = [
-  'https://beacon.codeAgent-ai.staging.ant.dev',
+  'https://beacon.codeAgent-ai.staging.codeagent.local',
   'https://codeAgent.fedstart.com',
   'https://codeAgent-staging.fedstart.com',
 ]

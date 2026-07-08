@@ -105,7 +105,7 @@ export function _resetTmuxControlModeProbeForTesting(): void {
 }
 
 /**
- * Runtime env-var check only. Ants default to on (CODE_AGENT_NO_FLICKER=0
+ * Runtime env-var check only. Internal users default to on (CODE_AGENT_NO_FLICKER=0
  * to opt out); external users default to off (CODE_AGENT_NO_FLICKER=1 to
  * opt in).
  */
@@ -125,7 +125,7 @@ export function isFullscreenEnvEnabled(): boolean {
     }
     return false
   }
-  return process.env.USER_TYPE === 'ant'
+  return process.env.USER_TYPE === 'internal'
 }
 
 /**

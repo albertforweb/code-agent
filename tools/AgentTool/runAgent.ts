@@ -358,8 +358,8 @@ export async function* runAgent({
     registerPerfettoAgent(agentId, agentDefinition.agentType, parentId)
   }
 
-  // Log API calls path for subagents (ant-only)
-  if (process.env.USER_TYPE === 'ant') {
+  // Log API calls path for subagents (internal-only)
+  if (process.env.USER_TYPE === 'internal') {
     logForDebugging(
       `[Subagent ${agentDefinition.agentType}] API calls: ${getDisplayPath(getDumpPromptsPath(agentId))}`,
     )

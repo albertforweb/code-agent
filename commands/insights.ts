@@ -58,7 +58,7 @@ type RemoteHostInfo = {
 
 /* eslint-disable custom-rules/no-process-env-top-level */
 const getRunningRemoteHosts: () => Promise<string[]> =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? async () => {
         const { stdout, code } = await execFileNoThrow(
           'coder',
@@ -81,7 +81,7 @@ const getRunningRemoteHosts: () => Promise<string[]> =
     : async () => []
 
 const getRemoteHostSessionCount: (hs: string) => Promise<number> =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? async (homespace: string) => {
         const { stdout, code } = await execFileNoThrow(
           'ssh',
@@ -100,7 +100,7 @@ const collectFromRemoteHost: (
   hs: string,
   destDir: string,
 ) => Promise<{ copied: number; skipped: number }> =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? async (homespace: string, destDir: string) => {
         const result = { copied: 0, skipped: 0 }
 
@@ -188,7 +188,7 @@ const collectAllRemoteHostData: (destDir: string) => Promise<{
   totalCopied: number
   totalSkipped: number
 }> =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? async (destDir: string) => {
         const rHosts = await getRunningRemoteHosts()
         const result: RemoteHostInfo[] = []
@@ -1447,7 +1447,7 @@ RESPOND WITH ONLY A VALID JSON OBJECT:
 Include 3 opportunities. Think BIG - autonomous workflows, parallel agents, iterating against tests.`,
     maxTokens: 8192,
   },
-  ...(process.env.USER_TYPE === 'ant'
+  ...(process.env.USER_TYPE === 'internal'
     ? [
         {
           name: 'cc_team_improvements',
@@ -2187,13 +2187,13 @@ function generateHtmlReport(
     `
       : ''
 
-  // Build Team Feedback section (collapsible, ant-only)
+  // Build Team Feedback section (collapsible, internal-only)
   const ccImprovements =
-    process.env.USER_TYPE === 'ant'
+    process.env.USER_TYPE === 'internal'
       ? insights.cc_team_improvements?.improvements || []
       : []
   const modelImprovements =
-    process.env.USER_TYPE === 'ant'
+    process.env.USER_TYPE === 'internal'
       ? insights.model_behavior_improvements?.improvements || []
       : []
   const teamFeedbackHtml =
@@ -2804,8 +2804,8 @@ export async function generateUsageReport(options?: {
 }> {
   let remoteStats: { hosts: RemoteHostInfo[]; totalCopied: number } | undefined
 
-  // Optionally collect data from remote hosts first (ant-only)
-  if (process.env.USER_TYPE === 'ant' && options?.collectRemote) {
+  // Optionally collect data from remote hosts first (internal-only)
+  if (process.env.USER_TYPE === 'internal' && options?.collectRemote) {
     const destDir = join(getCodeAgentConfigHomeDir(), 'projects')
     const { hosts, totalCopied } = await collectAllRemoteHostData(destDir)
     remoteStats = { hosts, totalCopied }
@@ -3048,7 +3048,7 @@ const usageReport: Command = {
     let remoteHosts: string[] = []
     let hasRemoteHosts = false
 
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       // Parse --homespaces flag
       collectRemote = args?.includes('--homespaces') ?? false
 
@@ -3072,7 +3072,7 @@ const usageReport: Command = {
     let reportUrl = `file://${htmlPath}`
     let uploadHint = ''
 
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       // Try to upload to S3
       const timestamp = new Date()
         .toISOString()
@@ -3082,7 +3082,7 @@ const usageReport: Command = {
       const username = process.env.SAFEUSER || process.env.USER || 'unknown'
       const filename = `${username}_insights_${timestamp}.html`
       const s3Path = `s3://llmProvider-serve/atamkin/cc-user-reports/${filename}`
-      const s3Url = `https://s3-frontend.infra.ant.dev/llmProvider-serve/atamkin/cc-user-reports/${filename}`
+      const s3Url = `https://artifacts.codeagent.local/llmProvider-serve/atamkin/cc-user-reports/${filename}`
 
       reportUrl = s3Url
       try {
@@ -3112,9 +3112,9 @@ Then access at: ${s3Url}`
       `${data.git_commits} commits`,
     ].join(' · ')
 
-    // Build remote host info (ant-only)
+    // Build remote host info (internal-only)
     let remoteInfo = ''
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       if (remoteStats && remoteStats.totalCopied > 0) {
         const hsNames = remoteStats.hosts
           .filter(h => h.sessionCount > 0)

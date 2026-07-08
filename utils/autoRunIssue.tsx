@@ -77,11 +77,11 @@ export function AutoRunIssueNotification(t0) {
 export type AutoRunIssueReason = 'feedback_survey_bad' | 'feedback_survey_good';
 
 /**
- * Determines if /issue should auto-run for Ant users
+ * Determines if /issue should auto-run for internal users
  */
 export function shouldAutoRunIssue(reason: AutoRunIssueReason): boolean {
-  // Only for Ant users
-  if ("external" !== 'ant') {
+  // Only for internal users
+  if ("external" !== 'internal') {
     return false;
   }
   switch (reason) {
@@ -96,11 +96,11 @@ export function shouldAutoRunIssue(reason: AutoRunIssueReason): boolean {
 
 /**
  * Returns the appropriate command to auto-run based on the reason
- * ANT-ONLY: good-code-agent command only exists in ant builds
+ * INTERNAL-ONLY: good-code-agent command only exists in internal builds
  */
 export function getAutoRunCommand(reason: AutoRunIssueReason): string {
-  // Only ant builds have the /good-code-agent command
-  if ("external" === 'ant' && reason === 'feedback_survey_good') {
+  // Only internal builds have the /good-code-agent command
+  if ("external" === 'internal' && reason === 'feedback_survey_good') {
     return '/good-code-agent';
   }
   return '/issue';

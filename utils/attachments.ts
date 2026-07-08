@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import {
   logEvent,
   type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -1034,7 +1034,7 @@ async function maybe<A>(label: string, f: () => Promise<A[]>): Promise<A[]> {
       } as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS)
     }
     logError(e)
-    // For Ant users, log the full error to help with debugging
+    // For internal users, log the full error to help with debugging
     logAntError(`Attachment error in ${label}`, e)
 
     return []
@@ -3380,8 +3380,8 @@ async function getTaskReminderAttachments(
     return []
   }
 
-  // Skip for ant users
-  if (process.env.USER_TYPE === 'ant') {
+  // Skip for internal users
+  if (process.env.USER_TYPE === 'internal') {
     return []
   }
 
@@ -3535,7 +3535,7 @@ async function getTeammateMailboxAttachments(
   if (!isAgentSwarmsEnabled()) {
     return []
   }
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return []
   }
 
@@ -3896,7 +3896,7 @@ async function getVerifyPlanReminderAttachment(
   toolUseContext: ToolUseContext,
 ): Promise<Attachment[]> {
   if (
-    process.env.USER_TYPE !== 'ant' ||
+    process.env.USER_TYPE !== 'internal' ||
     !isEnvTruthy(process.env.CODE_AGENT_VERIFY_PLAN)
   ) {
     return []

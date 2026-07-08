@@ -25,7 +25,7 @@ import { getBinaryName, getPlatform } from './installer.js'
 const GCS_BUCKET_URL =
   'https://storage.googleapis.com/codeAgent-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/codeAgent-code-releases'
 export const ARTIFACTORY_REGISTRY_URL =
-  'https://artifactory.infra.ant.dev/artifactory/api/npm/npm-all/'
+  'https://artifacts.codeagent.local/artifactory/api/npm/npm-all/'
 
 export async function getLatestVersionFromArtifactory(
   tag: string = 'latest',
@@ -138,8 +138,8 @@ export async function getLatestVersion(
   }
 
   // Route to appropriate source
-  if (process.env.USER_TYPE === 'ant') {
-    // Use Artifactory for ant users
+  if (process.env.USER_TYPE === 'internal') {
+    // Use Artifactory for internal users
     const npmTag = channel === 'stable' ? 'stable' : 'latest'
     return getLatestVersionFromArtifactory(npmTag)
   }
@@ -506,8 +506,8 @@ export async function downloadVersion(
     return 'binary'
   }
 
-  if (process.env.USER_TYPE === 'ant') {
-    // Use Artifactory for ant users
+  if (process.env.USER_TYPE === 'internal') {
+    // Use Artifactory for internal users
     await downloadVersionFromArtifactory(version, stagingPath)
     return 'npm'
   }

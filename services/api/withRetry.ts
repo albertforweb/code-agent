@@ -75,7 +75,7 @@ const FOREGROUND_529_RETRY_SOURCES = new Set<QuerySource>([
   'side_question',
   // Security classifiers — must complete for auto-mode correctness.
   // yoloClassifier.ts uses 'auto_mode' (not 'yolo_classifier' — that's
-  // type-only). bash_classifier is ant-only; feature-gate so the string
+  // type-only). bash_classifier is internal-only; feature-gate so the string
   // tree-shakes out of external builds (excluded-strings.txt).
   'auto_mode',
   ...(feature('BASH_CLASSIFIER') ? (['bash_classifier'] as const) : []),
@@ -88,7 +88,7 @@ function shouldRetry529(querySource: QuerySource | undefined): boolean {
   )
 }
 
-// CODE_AGENT_UNATTENDED_RETRY: for unattended sessions (ant-only). Retries 429/529
+// CODE_AGENT_UNATTENDED_RETRY: for unattended sessions (internal-only). Retries 429/529
 // indefinitely with higher backoff and periodic keep-alive yields so the host
 // environment does not mark the session idle mid-wait.
 // TODO(ANT-344): the keep-alive via SystemAPIErrorMessage yields is a stopgap
@@ -198,8 +198,8 @@ export async function* withRetry<T>(
       : false
 
     try {
-      // Check for mock rate limits (used by /mock-limits command for Ant employees)
-      if (process.env.USER_TYPE === 'ant') {
+      // Check for mock rate limits (used by /mock-limits command for internal users)
+      if (process.env.USER_TYPE === 'internal') {
         const mockError = checkMockRateLimitError(
           retryContext.model,
           wasFastModeActive,
@@ -741,11 +741,11 @@ function shouldRetry(error: APIError): boolean {
     return true
   }
 
-  // Ants can ignore x-should-retry: false for 5xx server errors only.
+  // Internal users can ignore x-should-retry: false for 5xx server errors only.
   // For other status codes (401, 403, 400, 429, etc.), respect the header.
   if (shouldRetryHeader === 'false') {
     const is5xxError = error.status !== undefined && error.status >= 500
-    if (!(process.env.USER_TYPE === 'ant' && is5xxError)) {
+    if (!(process.env.USER_TYPE === 'internal' && is5xxError)) {
       return false
     }
   }

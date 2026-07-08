@@ -26,7 +26,7 @@ export function createRecentActivityFeed(activities: LogOption[]): FeedConfig {
 }
 export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
   const lines: FeedLine[] = releaseNotes.map(note => {
-    if ("external" === 'ant') {
+    if ("external" === 'internal') {
       const match = note.match(/^(\d+\s+\w+\s+ago)\s+(.+)$/);
       if (match) {
         return {
@@ -39,9 +39,9 @@ export function createWhatsNewFeed(releaseNotes: string[]): FeedConfig {
       text: note
     };
   });
-  const emptyMessage = "external" === 'ant' ? 'Unable to fetch latest codeAgent-cli-internal commits' : 'Check the CodeAgent changelog for updates';
+  const emptyMessage = "external" === 'internal' ? 'Unable to fetch latest codeAgent-cli-internal commits' : 'Check the CodeAgent changelog for updates';
   return {
-    title: "external" === 'ant' ? "What's new [ANT-ONLY: Latest CC commits]" : "What's new",
+    title: "external" === 'internal' ? "What's new [INTERNAL-ONLY: Latest CC commits]" : "What's new",
     lines,
     footer: lines.length > 0 ? '/release-notes for more' : undefined,
     emptyMessage

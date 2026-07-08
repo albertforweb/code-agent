@@ -1490,6 +1490,381 @@ body.App_dark .App_statusPaneStatic strong {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spacing-md);
 }
+.App_projectModeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.App_projectModeCard {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 146px;
+  padding: var(--spacing-md);
+  border: 1px solid #e4ddd1;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.62);
+  color: #3b362f;
+  font: inherit;
+  text-align: left;
+}
+.App_projectModeCard:hover {
+  border-color: #cbbdaa;
+  background: #fffaf4;
+}
+.App_projectModeCard span {
+  color: #a15b3f;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+.App_projectModeCard strong {
+  color: #2b2823;
+  font-size: 18px;
+  font-weight: 760;
+}
+.App_projectModeCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.App_projectList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_projectConsoleGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: var(--spacing-md);
+  align-items: start;
+}
+.App_employeeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_employeeCardShell,
+.App_employeeCard {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_employeeCard {
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+.App_employeeCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_employeeCardHeader > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.App_employeeAvatar {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: #8d6748;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 780;
+}
+.App_employeeCardHeader strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_employeeCardHeader span,
+.App_employeeCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.App_employeeAssignGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--spacing-sm);
+}
+.App_employeeAssignOption {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas: "check name" "check role";
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.52);
+}
+.App_employeeAssignOption input {
+  grid-area: check;
+}
+.App_employeeAssignOption span {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  color: #3b362f;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_employeeAssignOption em {
+  grid-area: role;
+  min-width: 0;
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectCard {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+.App_projectCardSelected {
+  border-color: #bba58b;
+  background: #fff8ef;
+  box-shadow: inset 3px 0 0 #8d6748;
+}
+.App_projectCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectCardHeader > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.App_projectCardHeader strong,
+.App_projectPanelTitle {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectCardHeader span {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+}
+.App_projectCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.App_projectChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.App_projectChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 100%;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid #e0d6c8;
+  border-radius: 999px;
+  background: #fbfaf7;
+  color: #5f574d;
+  font-size: 12px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectSupervisorRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 241, 234, 0.72);
+}
+.App_projectSupervisorRow span,
+.App_projectSupervisorRow em {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+}
+.App_projectSupervisorRow strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #3b362f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectTeamDiagram {
+  display: grid;
+  gap: var(--spacing-md);
+  justify-items: center;
+}
+.App_projectSupervisorNode {
+  display: grid;
+  gap: 3px;
+  min-width: min(100%, 280px);
+  padding: var(--spacing-md);
+  border: 1px solid #d9c7b1;
+  border-radius: var(--radius-md);
+  background: #fff8ef;
+  text-align: center;
+}
+.App_projectSupervisorNode span,
+.App_projectSupervisorNode em {
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+}
+.App_projectSupervisorNode strong {
+  color: #2b2823;
+  font-size: 18px;
+}
+.App_projectTeamNodes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  max-width: 760px;
+}
+.App_projectTeamNodes span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e0d6c8;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.58);
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+.App_projectBoard {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+}
+.App_projectBoardColumn {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 140px;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(245, 241, 234, 0.72);
+}
+.App_projectBoardColumnHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  color: #81786b;
+  font-size: 12px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+.App_projectTaskCard {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e0d6c8;
+  border-left: 3px solid #8d6748;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.66);
+}
+.App_projectTaskCard strong,
+.App_projectDeliverableCard strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectTaskCard span,
+.App_projectDeliverableCard span,
+.App_projectDeliverableCard p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.App_projectChatList,
+.App_projectDeliverables {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_projectChatMessage {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+.App_projectChatMessage > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_projectChatMessage strong {
+  color: #2b2823;
+}
+.App_projectChatMessage p {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+.App_projectDeliverableCard {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.56);
+}
+.App_projectDeliverableCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
 .App_toolsLayout {
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(280px, 0.9fr);
 }
@@ -1859,6 +2234,17 @@ body.App_dark .App_detailHero h2,
 body.App_dark .App_detailToolbar h2,
 body.App_dark .App_detailPanel h3,
 body.App_dark .App_detailList dd,
+body.App_dark .App_projectModeCard strong,
+body.App_dark .App_employeeCardHeader strong,
+body.App_dark .App_employeeAssignOption span,
+body.App_dark .App_projectCardHeader strong,
+body.App_dark .App_projectPanelTitle,
+body.App_dark .App_projectSupervisorRow strong,
+body.App_dark .App_projectSupervisorNode strong,
+body.App_dark .App_projectTeamNodes span,
+body.App_dark .App_projectTaskCard strong,
+body.App_dark .App_projectChatMessage strong,
+body.App_dark .App_projectDeliverableCard strong,
 body.App_dark .App_toolCatalogItem strong {
   color: var(--color-text-dark);
 }
@@ -1871,6 +2257,21 @@ body.App_dark .App_toolCatalogGroup h4,
 body.App_dark .App_toolExposureRow span,
 body.App_dark .App_toolPermissionRow span,
 body.App_dark .App_toolActivityActions span,
+body.App_dark .App_projectModeCard p,
+body.App_dark .App_employeeCardHeader span,
+body.App_dark .App_employeeCard p,
+body.App_dark .App_employeeAssignOption em,
+body.App_dark .App_projectCardHeader span,
+body.App_dark .App_projectCard p,
+body.App_dark .App_projectSupervisorRow span,
+body.App_dark .App_projectSupervisorRow em,
+body.App_dark .App_projectSupervisorNode span,
+body.App_dark .App_projectSupervisorNode em,
+body.App_dark .App_projectBoardColumnHeader,
+body.App_dark .App_projectTaskCard span,
+body.App_dark .App_projectChatMessage p,
+body.App_dark .App_projectDeliverableCard span,
+body.App_dark .App_projectDeliverableCard p,
 body.App_dark .App_toolCatalogItem span,
 body.App_dark .App_toolCatalogItem p {
   color: var(--color-text-dark-secondary);
@@ -1943,14 +2344,35 @@ body.App_dark .App_toolCatalogItem .App_toolStatusError {
   color: #ffb4a8;
 }
 body.App_dark .App_detailPanel,
+body.App_dark .App_projectModeCard,
+body.App_dark .App_employeeCard,
+body.App_dark .App_employeeAssignOption,
+body.App_dark .App_projectCard,
+body.App_dark .App_projectTeamNodes span,
+body.App_dark .App_projectBoardColumn,
+body.App_dark .App_projectTaskCard,
+body.App_dark .App_projectChatMessage,
+body.App_dark .App_projectDeliverableCard,
 body.App_dark .App_toolCatalogItem {
   border-color: #403b32;
   background: rgba(255, 255, 255, 0.04);
 }
+body.App_dark .App_projectModeCard:hover,
+body.App_dark .App_projectCardSelected,
 body.App_dark .App_toolCatalogItemSelected {
   border-color: #6d5945;
   background: #302922;
   box-shadow: inset 3px 0 0 #c49868;
+}
+body.App_dark .App_projectChip,
+body.App_dark .App_projectSupervisorRow {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_projectSupervisorNode {
+  border-color: #6d5945;
+  background: #302922;
 }
 body.App_dark .App_teamTranscript {
   border-top-color: #403b32;
@@ -2412,6 +2834,9 @@ body.App_dark .App_settingsMessage {
 }
 @media (max-width: 1100px) {
   .App_detailGrid,
+  .App_projectModeGrid,
+  .App_projectConsoleGrid,
+  .App_projectBoard,
   .App_toolsLayout,
   .App_automationGrid {
     grid-template-columns: 1fr;

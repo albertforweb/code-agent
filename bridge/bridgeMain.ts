@@ -86,7 +86,7 @@ const SPAWN_SESSIONS_DEFAULT = 32
  * GrowthBook gate for multi-session spawn modes (--spawn / --capacity / --create-session-in-dir).
  * Sibling of tengu_ccr_bridge_multi_environment (multiple envs per host:dir) —
  * this one enables multiple sessions per environment.
- * Rollout staged via targeting rules: ants first, then gradual external.
+ * Rollout staged via targeting rules: internal users first, then gradual external.
  *
  * Uses the blocking gate check so a stale disk-cache miss doesn't unfairly
  * deny access. The fast path (cache has true) is still instant; only the
@@ -338,9 +338,9 @@ export async function runBridgeLoop(
     spawn_mode: config.spawnMode,
   })
 
-  // For ant users, show where session debug logs will land so they can tail them.
+  // For internal users, show where session debug logs will land so they can tail them.
   // sessionRunner.ts uses the same base path. File appears once a session spawns.
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     let debugGlob: string
     if (config.debugFile) {
       const ext = config.debugFile.lastIndexOf('.')
@@ -910,7 +910,7 @@ export async function runBridgeLoop(
           let useCcrV2 = false
           let workerEpoch: number | undefined
           // Server decides per-session via the work secret; env var is the
-          // ant-dev override (e.g. forcing v2 before the server flag is on).
+          // internal-dev override (e.g. forcing v2 before the server flag is on).
           if (
             secret.use_code_sessions === true ||
             isEnvTruthy(process.env.CODE_AGENT_BRIDGE_USE_CCR_V2)
@@ -1132,7 +1132,7 @@ export async function runBridgeLoop(
             } else {
               sessionDebugFile = `${config.debugFile}-${safeId}`
             }
-          } else if (config.verbose || process.env.USER_TYPE === 'ant') {
+          } else if (config.verbose || process.env.USER_TYPE === 'internal') {
             sessionDebugFile = join(
               tmpdir(),
               'CodeAgent',
@@ -1520,7 +1520,7 @@ export async function runBridgeLoop(
   // Skip when the loop exited fatally (env expired, auth failed, give-up) —
   // resume is impossible in those cases and the message would contradict the
   // error already printed.
-  // feature('KAIROS') gate: --session-id is ant-only; without the gate,
+  // feature('KAIROS') gate: --session-id is internal-only; without the gate,
   // revert to the pre-PR behavior (archive + deregister on every shutdown).
   if (
     feature('KAIROS') &&
@@ -1888,7 +1888,7 @@ export function parseArgs(args: string[]): ParsedArgs {
 
 async function printHelp(): Promise<void> {
   // Use EXTERNAL_PERMISSION_MODES for help text — internal modes (bubble)
-  // are ant-only and auto is feature-gated; they're still accepted by validation.
+  // are internal-only and auto is feature-gated; they're still accepted by validation.
   const { EXTERNAL_PERMISSION_MODES } = await import('../types/permissions.js')
   const modes = EXTERNAL_PERMISSION_MODES.join(', ')
   const showServer = await isMultiSessionSpawnEnabled()
@@ -2175,7 +2175,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
   }
 
   // In production, baseUrl is the LlmProvider API (from OAuth config).
-  // CODE_AGENT_BRIDGE_BASE_URL overrides this for ant local dev only.
+  // CODE_AGENT_BRIDGE_BASE_URL overrides this for internal local dev only.
   const baseUrl = getBridgeBaseUrl()
 
   // For non-localhost targets, require HTTPS to protect credentials.
@@ -2196,9 +2196,9 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // same as baseUrl (Envoy routes /v1/session_ingress/* to session-ingress).
   // Locally, session-ingress runs on a different port (9413) than the
   // contain-provide-api (8211), so CODE_AGENT_BRIDGE_SESSION_INGRESS_URL must be
-  // set explicitly. Ant-only, matching CODE_AGENT_BRIDGE_BASE_URL.
+  // set explicitly. Internal-only, matching CODE_AGENT_BRIDGE_BASE_URL.
   const sessionIngressUrl =
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     process.env.CODE_AGENT_BRIDGE_SESSION_INGRESS_URL
       ? process.env.CODE_AGENT_BRIDGE_SESSION_INGRESS_URL
       : baseUrl
@@ -2356,7 +2356,7 @@ export async function bridgeMain(args: string[]): Promise<void> {
   // environment_id and reuse that for registration (idempotent on the
   // backend). Left undefined otherwise — the backend rejects
   // client-generated UUIDs and will allocate a fresh environment.
-  // feature('KAIROS') gate: --session-id is ant-only; parseArgs already
+  // feature('KAIROS') gate: --session-id is internal-only; parseArgs already
   // rejects the flag when the gate is off, so resumeSessionId is always
   // undefined here in external builds — this guard is for tree-shaking.
   let reuseEnvironmentId: string | undefined
@@ -2851,7 +2851,7 @@ export async function runBridgeHeadless(
     )
   }
   const sessionIngressUrl =
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     process.env.CODE_AGENT_BRIDGE_SESSION_INGRESS_URL
       ? process.env.CODE_AGENT_BRIDGE_SESSION_INGRESS_URL
       : baseUrl

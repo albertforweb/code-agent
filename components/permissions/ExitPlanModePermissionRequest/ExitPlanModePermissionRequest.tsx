@@ -51,7 +51,7 @@ type ResponseValue = 'yes-bypass-permissions' | 'yes-accept-edits' | 'yes-accept
 
 /**
  * Build permission updates for plan approval, including prompt-based rules if provided.
- * Prompt-based rules are only added when classifier permissions are enabled (Ant-only).
+ * Prompt-based rules are only added when classifier permissions are enabled (internal-only).
  */
 export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: AllowedPrompt[]): PermissionUpdate[] {
   const updates: PermissionUpdate[] = [{
@@ -60,7 +60,7 @@ export function buildPermissionUpdates(mode: PermissionMode, allowedPrompts?: Al
     destination: 'session'
   }];
 
-  // Add prompt-based permission rules if provided (Ant-only feature)
+  // Add prompt-based permission rules if provided (internal-only feature)
   if (isClassifierPermissionsEnabled() && allowedPrompts && allowedPrompts.length > 0) {
     updates.push({
       type: 'addRules',
@@ -193,7 +193,7 @@ export function ExitPlanModePermissionRequest({
   const inputPlan = isV2 ? undefined : toolUseConfirm.input.plan as string | undefined;
   const planFilePath = isV2 ? getPlanFilePath() : undefined;
 
-  // Extract allowed prompts requested by the plan (Ant-only feature)
+  // Extract allowed prompts requested by the plan (internal-only feature)
   const allowedPrompts = toolUseConfirm.input.allowedPrompts as AllowedPrompt[] | undefined;
 
   // Get the raw plan to check if it's empty

@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 // Background memory consolidation. Fires the /dream prompt as a forked
 // subagent when time-gate passes AND enough sessions have accumulated.
 //
@@ -99,7 +99,7 @@ function isGateOpen(): boolean {
   return isAutoDreamEnabled()
 }
 
-// Ant-build-only test override. Bypasses enabled/time/session gates but NOT
+// Internal-build-only test override. Bypasses enabled/time/session gates but NOT
 // the lock (so repeated turns don't pile up dreams) or the memory-dir
 // precondition. Still scans sessions so the prompt's session-hint is populated.
 function isForced(): boolean {

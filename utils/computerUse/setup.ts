@@ -1,4 +1,4 @@
-import { buildComputerUseTools } from '@ant/computer-use-mcp'
+import { buildComputerUseTools } from '@codeagent/computer-use-mcp'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { buildMcpToolName } from '../../services/mcp/mcpStringUtils.js'

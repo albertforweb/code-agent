@@ -276,7 +276,7 @@ function createSpeculationFeedbackMessage(
   timeSavedMs: number,
   sessionTotalMs: number,
 ): Message | null {
-  if (process.env.USER_TYPE !== 'ant') return null
+  if (process.env.USER_TYPE !== 'internal') return null
 
   if (messages.length === 0 || timeSavedMs === 0) return null
 
@@ -302,7 +302,7 @@ function createSpeculationFeedbackMessage(
       : ''
 
   return createSystemMessage(
-    `[ANT-ONLY] ${parts.join(' · ')} · ${savedText}${sessionSuffix}`,
+    `[INTERNAL-ONLY] ${parts.join(' · ')} · ${savedText}${sessionSuffix}`,
     'warning',
   )
 }
@@ -336,7 +336,7 @@ function resetSpeculationState(setAppState: SetAppState): void {
 
 export function isSpeculationEnabled(): boolean {
   const enabled =
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     (getGlobalConfig().speculationEnabled ?? true)
   logForDebugging(`[Speculation] enabled=${enabled}`)
   return enabled

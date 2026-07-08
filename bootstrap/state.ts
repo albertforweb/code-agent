@@ -112,7 +112,7 @@ type State = {
   agentColorIndex: number
   // Last API request for bug reports
   lastAPIRequest: Omit<BetaMessageStreamParams, 'messages'> | null
-  // Messages from the last API request (ant-only; reference, not clone).
+  // Messages from the last API request (internal-only; reference, not clone).
   // Captures the exact post-compaction, AGENTS.md-injected message set sent
   // to the API so /share's serialized_conversation.json reflects reality.
   lastAPIRequestMessages: BetaMessageStreamParams['messages'] | null
@@ -185,7 +185,7 @@ type State = {
       agentId: string | null
     }
   >
-  // Track slow operations for dev bar display (ant-only)
+  // Track slow operations for dev bar display (internal-only)
   slowOperations: Array<{
     operation: string
     durationMs: number
@@ -388,7 +388,7 @@ function getInitialState(): State {
     mainThreadAgentType: undefined,
     // Remote mode
     isRemoteMode: false,
-    ...(process.env.USER_TYPE === 'ant'
+    ...(process.env.USER_TYPE === 'internal'
       ? {
           replBridgeActive: false,
         }
@@ -1571,7 +1571,7 @@ const MAX_SLOW_OPERATIONS = 10
 const SLOW_OPERATION_TTL_MS = 10000
 
 export function addSlowOperation(operation: string, durationMs: number): void {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (process.env.USER_TYPE !== 'internal') return
   // Skip tracking for editor sessions (user editing a prompt file in $EDITOR)
   // These are intentionally slow since the user is drafting text
   if (operation.includes('exec') && operation.includes('codeAgent-prompt-')) {

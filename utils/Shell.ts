@@ -320,7 +320,7 @@ export async function exec(
         GIT_EDITOR: 'true',
         CODE_AGENTCODE: '1',
         ...envOverrides,
-        ...(process.env.USER_TYPE === 'ant'
+        ...(process.env.USER_TYPE === 'internal'
           ? {
               CODE_AGENT_SESSION_ID: getSessionId(),
             }

@@ -20,6 +20,7 @@ import { Spinner } from './Spinner.js';
 import TextInput from './TextInput.js';
 type Props = {
   onDone(): void;
+  onTextInputActiveChange?: (active: boolean) => void;
   startingMessage?: string;
   mode?: 'login' | 'setup-token';
   forceLoginMethod?: 'subscription' | 'console';
@@ -86,7 +87,7 @@ const LOGIN_METHOD_OPTIONS: {
 }, {
   value: 'local',
   title: 'Local OpenAI-compatible backend',
-  detail: 'LM Studio or another /v1 chat completions API'
+  detail: 'Any /v1 chat completions API'
 }, {
   value: 'skip',
   title: 'Skip login for now',
@@ -102,9 +103,8 @@ function getDefaultLocalBaseUrl(): string {
   return firstDefined(
     process.env.CODE_AGENT_BASE_URL,
     process.env.CODE_AGENT_LLM_BASE_URL,
+    process.env.OPENAI_COMPATIBLE_BASE_URL,
     process.env.OPENAI_BASE_URL,
-    process.env.LM_STUDIO_BASE_URL,
-    process.env.LMSTUDIO_BASE_URL,
   ) ?? DEFAULT_LOCAL_BASE_URL;
 }
 
@@ -115,9 +115,8 @@ function getDefaultLocalModel(): string {
 function getConfiguredLocalModel(): string {
   return firstDefined(
     process.env.CODE_AGENT_MODEL,
+    process.env.OPENAI_COMPATIBLE_MODEL,
     process.env.OPENAI_MODEL,
-    process.env.LM_STUDIO_MODEL,
-    process.env.LMSTUDIO_MODEL,
     process.env.LLM_PROVIDER_MODEL,
   ) ?? '';
 }
@@ -166,6 +165,7 @@ function runInkDiscreteUpdate(callback: () => void): void {
 }
 export function ConsoleOAuthFlow({
   onDone,
+  onTextInputActiveChange,
   startingMessage,
   mode = 'login',
   forceLoginMethod: forceLoginMethodProp
@@ -226,6 +226,14 @@ export function ConsoleOAuthFlow({
       return () => clearTimeout(timer);
     }
   }, [oauthStatus]);
+
+  const localTextInputActive = oauthStatus.state === 'local_setup_base_url' || oauthStatus.state === 'local_setup_model';
+  useEffect(() => {
+    onTextInputActiveChange?.(localTextInputActive);
+  }, [localTextInputActive, onTextInputActiveChange]);
+  useEffect(() => {
+    return () => onTextInputActiveChange?.(false);
+  }, [onTextInputActiveChange]);
 
   // Handle Enter to continue on success state
   useKeybinding('confirm:yes', () => {
@@ -328,11 +336,7 @@ export function ConsoleOAuthFlow({
       applyLocalProviderConfig(localBaseUrl, nextModel);
       setLocalModel(nextModel);
       logEvent('tengu_oauth_local_provider_configured', {});
-      setOAuthStatus({
-        state: 'local_setup_success',
-        baseUrl: localBaseUrl,
-        model: nextModel
-      });
+      onDone();
     } catch (err: unknown) {
       logError(err);
       setOAuthStatus({
@@ -707,25 +711,25 @@ function OAuthStatusMessage(t0) {
     case "local_setup_base_url":
       {
         return <Box flexDirection="column" gap={1} marginTop={1}>
-            <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
+            <Text bold={true}>Configure OpenAI-compatible backend</Text>
             <Text>Base URL</Text>
             <Box>
               <Text>URL {'>'} </Text>
               <TextInput value={localBaseUrl} onChange={setLocalBaseUrl} onSubmit={handleLocalBaseUrlSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localBaseUrlCursorOffset} onChangeCursorOffset={setLocalBaseUrlCursorOffset} focus showCursor />
             </Box>
-            <Text dimColor={true}>LM Studio default: {DEFAULT_LOCAL_BASE_URL}</Text>
+            <Text dimColor={true}>Default endpoint: {DEFAULT_LOCAL_BASE_URL}</Text>
           </Box>;
       }
     case "local_setup_model":
       {
         return <Box flexDirection="column" gap={1} marginTop={1}>
-            <Text bold={true}>Configure LM Studio / OpenAI-compatible backend</Text>
+            <Text bold={true}>Configure OpenAI-compatible backend</Text>
             <Text>Model ID</Text>
             <Box>
               <Text>Model {'>'} </Text>
               <TextInput value={localModel} onChange={setLocalModel} onSubmit={handleLocalModelSubmit} columns={Math.max(20, textInputColumns)} cursorOffset={localModelCursorOffset} onChangeCursorOffset={setLocalModelCursorOffset} placeholder={DEFAULT_LOCAL_MODEL} focus showCursor />
             </Box>
-            <Text dimColor={true}>Use the loaded model ID shown by your local backend.</Text>
+            <Text dimColor={true}>Use the model ID served by your backend.</Text>
           </Box>;
       }
     case "local_setup_success":

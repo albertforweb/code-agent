@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import type {
   ToolResultBlockParam,
   ToolUseBlock,
@@ -924,7 +924,7 @@ async function* queryLoop(
             // Thinking signatures are model-bound: replaying a protected-thinking
             // block (e.g. capybara) to an unprotected fallback (e.g. opus) 400s.
             // Strip before retry so the fallback model gets clean history.
-            if (process.env.USER_TYPE === 'ant') {
+            if (process.env.USER_TYPE === 'internal') {
               messagesForQuery = stripSignatureBlocks(messagesForQuery)
             }
 
@@ -991,7 +991,7 @@ async function* queryLoop(
         content: errorMessage,
       })
 
-      // To help track down bugs, log loudly for ants
+      // To help track down bugs, log loudly for internal users
       logAntError('Query error', error)
       return { reason: 'model_error', error }
     }

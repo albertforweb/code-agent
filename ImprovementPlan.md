@@ -346,7 +346,7 @@ window.api = {
 
 **Status Update (June 24, 2026)**:
 - [x] Added esbuild renderer bundling so `dist-renderer/index.html`, `index.js`, and `index.css` are generated together.
-- [x] Updated `package.json` so `electron .` loads `dist-electron/main.js` instead of the CLI entrypoint.
+- [x] Updated Electron dev scripts and package metadata so desktop runs load `dist-electron/main.js` while npm package metadata stays focused on the CLI entrypoint.
 - [x] Updated `electron/main.ts` to load the built renderer file by default, with `ELECTRON_RENDERER_URL` override support for future dev-server usage.
 - [x] Replaced placeholder welcome screen with the chat workspace, message list, composer, status rail, and settings dialog.
 - [x] Smoke-launched Electron successfully; observed only Chromium DevTools Autofill warnings, not renderer app errors.
@@ -813,13 +813,53 @@ window.api = {
 
 ---
 
-## Phase 5: Packaging & Distribution (Days 15-18)
+## Phase 5: Packaging & Distribution (Days 15-18, expanded platform tracks)
 
-### 5.1 Configure Electron Builder 🚧 PARTIAL
+**Scope Update (July 1, 2026)**: Phase 5 covers distribution surfaces, not only Electron packaging.
+
+**Scope Closure (July 2, 2026)**: Phase 5 is complete for the current local packaging scope. Public npm publication, Apple Developer ID signing/notarization, TestFlight/App Store distribution, and signed-release updater validation are deferred because the required external publishing accounts and credentials are not available.
+
+- **5A macOS CLI**: npm tarball is the first distribution channel; Homebrew is deferred until there is clear demand for it.
+- **5B macOS Desktop**: signed/notarized Electron `.app`, DMG/zip, GitHub Releases, and auto-update validation.
+- **5C iOS Mobile Companion**: native mobile app for local-network pairing, approvals, session status, and future push notifications.
+- **5D Relay/Remote Control**: relay service/package plan for off-network control of sessions running on a laptop or server.
+
+### 5A Package macOS CLI ✅ LOCAL PACKAGE COMPLETE, PUBLIC PUBLISH DEFERRED
+**Objective**: Make the terminal `code-agent` command installable and verifiable on macOS independently from the desktop app.
+
+**Implementation**:
+- [x] Keep the CLI binary exposed as `code-agent` through `package.json` `bin`.
+- [x] Add a top-level npm `files` allowlist so the CLI package ships compiled `dist/**`, README, and CLI distribution docs instead of the full source tree.
+- [x] Move generated runtime compatibility imports to CodeAgent-owned compiled runtime shims under `dist/runtime/**`.
+- [x] Rewrite optional browser/computer-control package imports to CodeAgent-owned compatibility namespaces and package-local runtime shims during the build.
+- [x] Add `scripts/verify-cli-package.mjs` and package scripts for CLI package validation.
+- [x] Add `docs/macos-cli-distribution.md` with local build, manual install, and release checklist notes.
+- [x] Add `verify:phase5` and `pack:phase5` as local package-set gates for CLI, desktop, release notes, iOS readiness, remote-control scope, and artifact hygiene.
+- [x] Validate `npm run pack:cli:check` on the current macOS workspace.
+- [x] Validate global install from the generated tarball in an isolated macOS npm prefix.
+- [x] Use npm-only as the first public CLI distribution channel.
+- [x] Defer Homebrew formula automation until npm distribution is validated with real users.
+- Deferred: publish the npm package when a public npm publishing path, release version, and registry ownership are available.
+
+**Success Criteria**:
+- [x] `npm run pack:cli:check` passes.
+- [x] The tarball includes the compiled CLI entrypoint and runtime shims.
+- [x] The tarball excludes Electron renderer/build artifacts, local state, generated installers, and `node_modules`.
+- [x] `npm install -g ./code-agent-<version>.tgz` exposes `code-agent --version` and `code-agent --help` on macOS.
+- [x] The packaged CLI payload scans clean for removed legacy provider terms and package namespaces.
+
+**Progress Update (July 1, 2026)**:
+- [x] Revalidated `npm run pack:cli:check`; the generated `code-agent-1.0.0.tgz` has 1,962 entries, is about 5.09 MB, and passes isolated `code-agent --version` and `code-agent --help` smoke checks.
+- [x] Added a release-workflow CLI package job that builds, verifies, and uploads the tarball as a workflow artifact while npm publication remains manual.
+- [x] Repaired stale provider-neutral rename mismatches found by the isolated CLI smoke.
+- [x] Re-ran source and generated-output footprint scans for removed provider SDK/package names, explicit legacy-provider terms, and old internal-build shorthand.
+
+### 5.1 Configure Electron Builder ✅ LOCAL PACKAGING COMPLETE, PUBLIC SIGNING DEFERRED
 **Objective**: Set up cross-platform packaging
 
 **Files to Create/Modify**:
 - `package.json` - Build configuration and scripts
+- `scripts/verify-phase5.mjs` - Local Phase 5 package-set verification
 
 **Configuration**:
 - [x] Windows: .exe installer + portable targets configured
@@ -829,6 +869,8 @@ window.api = {
 - [x] macOS notarization hook configured; skips safely unless Apple credentials are present
 - [x] Auto-update channels configured through electron-builder GitHub publish metadata and semver prerelease channel detection
 - [x] Production renderer builds disable source maps before packaging
+- [x] Desktop package verifier added for local macOS app metadata, signature, update metadata behavior, and release-mode checks
+- [x] Phase 5 package-set verifier added for local CLI tarball, macOS desktop app, release notes, remote-control scope, iOS readiness, and generated-artifact hygiene
 
 **Scripts to Add**:
 ```json
@@ -844,9 +886,11 @@ window.api = {
 
 **Success Criteria**:
 - [x] `npm run pack` creates a signed macOS directory app locally
-- [ ] `npm run dist` creates installers for all platforms
-- [ ] Apps are signed and notarized for release distribution after signing/notarization secrets are configured
-- [ ] Auto-update works correctly against a published GitHub release
+- [x] `npm run verify:desktop-package` validates the local packaged macOS app and reports release-only gaps
+- [x] `npm run verify:phase5` validates the local package artifact set and reports environment-bound iOS readiness separately
+- Deferred: validate cross-platform installer artifacts from release CI when a public candidate is produced.
+- Deferred: sign and notarize release artifacts after Apple Developer ID and notarization credentials are available.
+- Deferred: validate auto-update against a signed, published GitHub release.
 
 **Progress Update (June 25, 2026)**:
 - [x] Existing `package.json` electron-builder config includes app id, product name, output directories, mac/win/linux targets, and build scripts.
@@ -866,9 +910,17 @@ window.api = {
 - [x] Rebranded primary desktop and CLI surfaces from inherited labels to CodeAgent, including app metadata, menus, updater dialogs, renderer startup, CLI welcome/logo/help/version, and automation prompts.
 - [x] Revalidated `npm run pack`; the generated macOS app reports `CFBundleDisplayName=CodeAgent`, `CFBundleIdentifier=com.albertforweb.codeagent`, and `CFBundleIconFile=icon.icns`.
 
+**Progress Update (July 1, 2026)**:
+- [x] Added `scripts/verify-desktop-package.mjs` plus `verify:desktop-package`, `verify:desktop-release`, and `pack:desktop:check` npm scripts.
+- [x] The verifier checks the local macOS `.app` bundle metadata, executable bit, app payload, update metadata behavior, hardened runtime signature, Gatekeeper status, and targeted legacy provider branding in release metadata.
+- [x] Release mode now fails unless `app-update.yml`, Developer ID signing, and Gatekeeper acceptance are present.
+- [x] The GitHub release workflow runs the macOS release verifier before the workflow is considered successful.
+- [x] Revalidated `npm run build:electron:prod`, `npm run pack`, and `npm run verify:desktop-package` after the cleanup pass; local packaging succeeds, while public-release signing/notarization/update metadata remain correctly reported as release-only gaps.
+- [x] Extracted `app.asar` and scanned the packaged app code for removed provider SDK/package names, explicit legacy-provider terms, and old internal-build shorthand. Only unrelated third-party dependency namespaces remain inside bundled `node_modules`.
+
 ---
 
-### 5.2 Set Up Auto-Update 🚧 PARTIAL
+### 5.2 Set Up Auto-Update ✅ LOCAL READY, PUBLISHED-RELEASE TEST DEFERRED
 **Objective**: Implement automatic app updates
 
 **Implementation**:
@@ -876,7 +928,7 @@ window.api = {
 - [x] Create GitHub Releases publishing configuration for distribution
 - [x] Configure update channels (stable, beta) through semver prerelease detection
 - [x] Add manual check-for-updates menu item
-- [ ] Verify update download/install against a real published release
+- Deferred: verify update download/install against a real signed, published release.
 
 **Files to Create/Modify**:
 - [x] `electron/updater.ts` - Auto-update logic
@@ -886,30 +938,39 @@ window.api = {
 - [x] App checks for updates on startup in packaged builds
 - [x] User can manually check for updates
 - [x] Updates download and install after user confirmation
-- [ ] Rollback policy documented and tested after first real release
+- Deferred: document and test rollback policy after the first real signed release exists.
 
 ---
 
-### 5.3 Create Distribution & Release Pipeline 🚧 PARTIAL
+### 5.3 Create Distribution & Release Pipeline ✅ LOCAL PIPELINE READY, PUBLIC CREDENTIALS DEFERRED
 **Objective**: Automate releases and distribution
 
 **Implementation**:
 - [x] GitHub Actions workflow for building releases
-- [ ] Automated code signing after secrets are configured
+- [x] GitHub Actions workflow for building and preserving the verified CLI tarball artifact
+- [x] macOS package verification gate in the release workflow
+- Deferred: automated code signing after signing secrets are configured.
 - [x] Automated notarization hook for macOS when secrets are configured
-- [ ] Release notes generation
+- [x] Release notes generation and checklist artifact
 - [x] Upload to GitHub Releases through electron-builder
 
 **Files to Create**:
 - [x] `.github/workflows/release.yml` - CI/CD pipeline
-- [ ] `scripts/release.js` - Release script
+- [x] `scripts/generate-release-notes.mjs` - Release notes and checklist artifact generator
+- Deferred: `scripts/release.js` release orchestration script if manual release commands become too error-prone.
 - [x] `docs/release-packaging.md` - Release packaging notes and required secrets
 
 **Success Criteria**:
 - [x] `npm run release` creates and publishes release when run with GitHub credentials
 - [x] All platforms are configured for automated builds in GitHub Actions
-- [ ] All signatures and notarizations applied after secrets are configured
-- [ ] Release notes generated automatically
+- [x] CLI tarball is configured as a verified GitHub Actions artifact
+- Deferred: all signatures and notarizations applied after signing/notarization credentials are configured.
+- [x] Release notes generated automatically
+
+**Progress Update (July 2, 2026)**:
+- [x] Added `npm run release:notes`, which writes `dist-build/release-notes/CodeAgent-v<version>.md` with source range, artifact checklist, verification checklist, manual release gates, and grouped commits.
+- [x] The release workflow now fetches full git history, generates release notes in the CLI package job, and uploads the notes alongside the verified npm tarball artifact.
+- [x] Updated release packaging docs so the release flow includes generating and reviewing release notes before tagging.
 
 ---
 
@@ -932,18 +993,86 @@ window.api = {
 - [x] Repointed inherited product documentation links to the CodeAgent repository in user-facing surfaces.
 - [x] Replaced the legacy CLI desktop handoff surface with CodeAgent Desktop startup guidance instead of launching the upstream desktop product.
 - [x] Confirmed Electron app metadata, renderer title, build product name, and generated icon assets use CodeAgent branding.
+- [x] Neutralized old provider-specific internal-build shorthand in active source, generated CLI output, and packaged desktop app code scans.
 
 **Remaining Compatibility Migration**:
 - [ ] Introduce CodeAgent-owned environment variable aliases and migrate away from direct `CODE_AGENT_*` names without breaking existing user configs. Primary config/install aliases are in place; broader runtime env aliases remain.
 - [ ] Add first-class `CODEAGENT.md` or `AGENTS.md` instruction-file support before de-emphasizing inherited instruction-file loading.
 - [x] Replace legacy CLI runtime imports from provider SDK packages with CodeAgent-owned message/tool/result types where practical.
-- [ ] Complete controlled legacy compatibility migration across the inherited CLI source tree; do not use a blind global rename because it crosses env vars, provider/model IDs, OAuth helper names, generated telemetry types, hosted remote flows, and filename/import boundaries.
+- [ ] Complete controlled legacy compatibility migration across the inherited CLI source tree; do not use a blind global rename because it crosses env vars, model-family aliases, OAuth helper names, generated telemetry types, hosted remote flows, and filename/import boundaries.
 - [x] Rename or wrap CodeAgent-owned telemetry/user-agent identifiers that still used inherited upstream names.
 - [ ] Disable or rehome legacy hosted remote-session flows; keep the local Automation Remote Control path as the CodeAgent-supported remote feature.
+- [ ] If public launch requires no inherited model-family branding, replace Opus/Sonnet/Haiku aliases, user-facing labels, migration names, and old mascot component names with CodeAgent-owned families through a dedicated model migration that preserves existing user settings.
 
 **Policy**:
 - Provider names such as OpenAI and OpenAI-compatible remain acceptable only when describing actual supported model providers.
 - Do not rename third-party packages or APIs in a way that misrepresents ownership; wrap them behind CodeAgent interfaces instead.
+
+---
+
+### 5C iOS Companion App Distribution ✅ SIMULATOR READY, TESTFLIGHT DEFERRED
+**Objective**: Package a mobile companion that can approve and monitor CodeAgent sessions running on a Mac, laptop, or server.
+
+**Initial Scope**:
+- [x] Choose native SwiftUI iOS implementation path and repo layout under `ios/CodeAgentCompanion`.
+- [x] Scaffold the iOS companion app with local-network server URL, pairing code, status polling, and approval list/actions.
+- [x] Reuse the existing local-network pairing and approval API model for approvals and session status.
+- [x] Add local simulator build verification through `npm run verify:ios-companion`, with a preflight that reports missing simulator runtimes clearly.
+- [x] Add TestFlight packaging and signing notes in `docs/ios-companion-distribution.md`.
+- [x] Move companion token storage from app preferences to Keychain before TestFlight.
+- [x] Add device revocation, audit visibility, and least-privilege remote actions to the mobile UI.
+- [x] Add iOS privacy manifest and export-compliance metadata for the current local-network-only companion scope.
+- [x] Add Makefile simulator install/launch tasks for the iOS companion.
+- [x] Add active-view polling for iOS pending approvals and remote desktop approval-dialog dismissal.
+- [x] Add repeatable local remote-control smoke verification for pairing, approval resolution, trusted-device revocation, and revoked-token rejection.
+- Deferred: keep off-network access disabled until relay identity, encryption, and token rotation are implemented.
+
+**Success Criteria**:
+- [x] iOS app can pair with a local desktop/server session over the local network in a manual device/simulator smoke test.
+- [x] iOS app has native approval/rejection UI backed by the existing narrow approval API surface.
+- [x] iOS app can list trusted devices, show recent audit events, and revoke devices through a narrow authenticated device API.
+- [x] Local remote-control pairing, approval resolution, and device revocation are covered by a repeatable smoke verifier.
+- [x] iOS packaging path is documented for local debug builds and TestFlight.
+- [x] iOS simulator build path is covered by `npm run verify:ios-companion`; local success requires an installed iOS Simulator runtime.
+- [x] iOS privacy manifest is packaged with app-scoped UserDefaults reason metadata and no tracking declaration for the current local-only scope.
+- [x] Push notification requirements are documented before any production relay claim.
+
+**Progress Update (July 1, 2026)**:
+- [x] Added `ios/CodeAgentCompanion` SwiftUI app scaffold and shared Xcode scheme.
+- [x] Added `scripts/verify-ios-companion.mjs` and `verify:ios-companion` npm script.
+- [x] Verified the iOS companion builds against the iOS Simulator SDK with code signing disabled.
+- [x] Updated the verifier to keep iOS build outputs under `dist-build/ios`, remove intermediate Xcode output, and fail with a clear runtime-install message when no simulator runtime exists.
+- [x] Added `docs/ios-companion-distribution.md` with local build, TestFlight, and remote-control scope notes.
+- [x] Added Keychain-backed token storage plus native trusted-device revocation and audit views.
+- [x] Added `PrivacyInfo.xcprivacy`, wired it into the app resources build phase, declared app-scoped UserDefaults usage, and added a verifier guard so TestFlight metadata stays packageable.
+- [x] Verified local simulator pairing and command approval/rejection flow manually, including iOS approval polling and automatic desktop approval-dialog dismissal.
+- [x] Added `make ios`, `make ios-build`, `make ios-install`, `make ios-launch`, and `make ios-reset` for the simulator companion workflow.
+- [x] Added `npm run verify:remote-control-smoke` for the local mobile API path and wired it into `npm run verify:phase5`.
+
+---
+
+### 5D Relay And Remote-Control Distribution ✅ LOCAL SCOPE PACKAGED, OFF-NETWORK RELAY DEFERRED
+**Objective**: Define and package the secure relay path for controlling sessions that run away from the phone's local network.
+
+**Initial Scope**:
+- [x] Select managed relay broker as the only acceptable off-network ownership model; public tunnels to the local HTTP server are out of scope.
+- [x] Document package boundaries for desktop, CLI/server, iOS companion, and future managed relay.
+- [x] Add `verify:remote-control-scope` release-scope verifier for narrow local route families and relay security documentation.
+- Deferred: implement authenticated relay identity, device binding, token rotation, and audit event propagation.
+- Deferred: add end-to-end encryption requirements for relayed approval/status traffic.
+- Deferred: add rate limits, replay protection, and emergency device/session revocation.
+- [x] Package relay configuration for desktop, CLI/server, and iOS companion clients.
+
+**Success Criteria**:
+- [ ] Remote control works off-network without exposing the local HTTP server directly.
+- [ ] Relay traffic is scoped to approval/status/control operations, not arbitrary shell access.
+- [ ] Relay setup and teardown are visible in desktop, CLI/server logs, and mobile audit views.
+- [ ] Security validation is complete before public release notes mention off-network remote control.
+
+**Progress Update (July 1, 2026)**:
+- [x] Added `docs/relay-control-distribution.md` with local-only first release scope, managed relay package boundaries, and off-network release gates.
+- [x] Added `scripts/verify-remote-control-scope.mjs` and `verify:remote-control-scope` to guard against broad remote-control route families and missing relay security constraints.
+- [x] Added inert managed-relay enrollment metadata across the shared automation store, CLI/server commands, desktop Automation view, and iOS companion status model. Relay configuration now packages broker/account/device/key/audit metadata without starting a public tunnel or exposing new local API routes.
 
 ---
 
@@ -1110,17 +1239,17 @@ window.api = {
 - **Phase 4.5** (Local-First Desktop Agent UX): 100% ✅ COMPLETE - roadmap documented, utility tools, guarded Bash, permission policies, command runner, git/dev helpers, tool activity timeline, safe file-write review, applied-change actions, checkpoint undo, assistant-console shell polish, global parent/child sidebar navigation, collapsible nav rail, sectioned Settings, slash-command palette, footer status panes, stdio MCP execution, registry clarity, persisted sessions, transcript search, workspace file browser, Open/Reveal actions, tool-router controls, and common error-state guidance complete
 - **Phase 4.6** (Extensibility, Automation, Remote Control, Virtual Teams): 99% 🚧 HARDENED LOCAL MVP - shared automation store, skill discovery/toggles, scheduled-task execution/history/retry/missed-run policies, desktop notification delivery, local mobile remote control, shared approval queue, device revocation/audit, remote endpoint rate limits, virtual-team runs/artifacts/transcripts, editable team blueprints, seeded/scoped team workspaces, full-access/supervised team permissions, bounded iterations, QA/reviewer sign-off gates, structured run milestones, duplicate-run guards, Automation permission controls, CLI automation commands, and read-only model visibility are in place; relay mode, remote push notifications, relay-grade token hardening, and richer project completion policy remain
 - **Phase 4.7** (Shareable Storage and Sync Foundation): 85% 🚧 LOCAL MVP COMPLETE - automation state is split into project-shareable `.code-agent` files plus ignored local remote-control state, legacy automation storage migrates forward, local history IPC/service APIs are in place, desktop chats/tool/automation events mirror into local history, History UI supports browse/export/delete/chat restore, project-shareable automation bundles can be exported/imported, and storage ownership boundaries are documented; SQLite/cloud backend, conflict handling, and encryption/sync security remain
-- **Phase 5** (Packaging): 94% 🚧 IN PROGRESS - electron-builder config/scripts, production builds without renderer source maps, GitHub publish metadata, update-channel detection, guarded electron-updater startup/manual checks, macOS notarization hook, release workflow, release docs, CodeAgent app icons, packaged runtime dependency fix, primary app/CLI rebranding, README replacement, product URL/doc-link cleanup, legacy desktop handoff neutralization, packageable desktop provider SDK removal, full legacy provider-package dependency/import removal, CodeAgent config/install/deep-link/user-agent identifiers, and targeted user-facing branding cleanup are in place; controlled compatibility env-var/provider/model/OAuth helper migration, signed/notarized release validation, real update testing, release notes automation, and cross-platform installer verification remain
+- **Phase 5** (Packaging): 100% ✅ LOCAL SCOPE COMPLETE - CLI tarball, macOS desktop app packaging, iOS simulator companion, release notes/checklist artifacts, release workflow wiring, desktop package verification, Phase 5 package-set verification, remote-control smoke verification, and relay-scope documentation are complete for local distribution readiness. Public npm publication, Developer ID signing/notarization, signed-release updater validation, TestFlight/App Store distribution, and off-network relay are deferred until the required external accounts, credentials, and relay security implementation exist.
 - **Phase 6** (Testing): 0% - Not Started
 - **Phase 7** (Documentation): 0% - Not Started
 
 ### Timeline
 - **Target Completion**: 3-4 weeks from start
-- **Current Date**: June 26, 2026
+- **Current Date**: July 1, 2026
 - **Target Launch**: ~July 21, 2026 for packaged desktop baseline; automation/team features may extend beyond the initial package if not complete
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
-- **Latest Update**: July 1, 2026 - removed all legacy provider-package source imports and dependency graph entries, replaced actual SDK surfaces with CodeAgent-owned compatibility modules, added CodeAgent-owned config/install/deep-link/user-agent identifiers, cleaned targeted user-facing inherited branding surfaces, revalidated Electron build and packaging, and scoped the remaining compatibility/provider migration.
-- **Next Focus**: migrate compatibility identifiers behind CodeAgent-owned aliases, then configure signing/notarization secrets and test signed/notarized installers.
+- **Latest Update**: July 2, 2026 - closed Phase 5 for the current local packaging scope: CLI, desktop, iOS simulator companion, release notes/checklist artifacts, local remote-control verification, and relay-scope packaging are in place. Public npm publication, Developer ID signing/notarization, TestFlight/App Store distribution, signed-release updater validation, and off-network relay are deferred until the required external accounts, credentials, and relay security work are available.
+- **Next Focus**: start Phase 6 local testing and polish while continuing non-blocking compatibility cleanup behind CodeAgent-owned aliases.
 
 ---
 

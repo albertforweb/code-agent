@@ -21,7 +21,7 @@ const CDP_DOCS_MAP_URL = 'https://platform.codeAgent.com/llms.txt'
 export const CODEAGENT_GUIDE_AGENT_TYPE = 'codeagent-guide'
 
 function getCodeAgentCodeGuideBasePrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
+  // Internal-native builds alias find/grep to embedded bfs/ugrep and remove the
   // dedicated Glob/Grep tools, so point at find/grep instead.
   const localSearchHint = hasEmbeddedSearchTools()
     ? `${FILE_READ_TOOL_NAME}, \`find\`, and \`grep\``
@@ -35,7 +35,7 @@ function getCodeAgentCodeGuideBasePrompt(): string {
 
 2. **CodeAgent extension model**: Skills, MCP servers, automation tasks, virtual teams, and provider adapters.
 
-3. **Model provider APIs**: OpenAI-compatible APIs, local LM Studio backends, OpenAI, and LlmProvider CodeAgent API usage when configured.
+3. **Model provider APIs**: OpenAI-compatible APIs, local backends, OpenAI, and LlmProvider CodeAgent API usage when configured.
 
 **Documentation sources:**
 
@@ -97,7 +97,7 @@ function getFeedbackGuideline(): string {
 export const CODEAGENT_GUIDE_AGENT: BuiltInAgentDefinition = {
   agentType: CODEAGENT_GUIDE_AGENT_TYPE,
   whenToUse: `Use this agent when the user asks questions about: (1) CodeAgent features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) CodeAgent skills, automation, and virtual teams; (3) configured model-provider APIs, including local OpenAI-compatible backends, OpenAI, and LlmProvider CodeAgent API usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed codeagent-guide agent that you can continue via ${SEND_MESSAGE_TOOL_NAME}.`,
-  // Ant-native builds: Glob/Grep tools are removed; use Bash (with embedded
+  // Internal-native builds: Glob/Grep tools are removed; use Bash (with embedded
   // bfs/ugrep via find/grep aliases) for local file search instead.
   tools: hasEmbeddedSearchTools()
     ? [

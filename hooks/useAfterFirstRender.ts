@@ -4,7 +4,7 @@ import { isEnvTruthy } from '../utils/envUtils.js'
 export function useAfterFirstRender(): void {
   useEffect(() => {
     if (
-      process.env.USER_TYPE === 'ant' &&
+      process.env.USER_TYPE === 'internal' &&
       isEnvTruthy(process.env.CODE_AGENT_EXIT_AFTER_FIRST_RENDER)
     ) {
       process.stderr.write(

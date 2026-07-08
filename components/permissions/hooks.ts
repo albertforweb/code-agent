@@ -107,7 +107,7 @@ export function usePermissionRequestLogging(
   // changes during a single dialog's lifetime (e.g., parent re-renders with a
   // fresh object). Without this, the unconditional setAppState below can
   // cascade into an infinite microtask loop — each re-fire does another
-  // setAppState spread + (ant builds) splitCommand → shell-quote regex,
+  // setAppState spread + (internal builds) splitCommand → shell-quote regex,
   // pegging CPU at 100% and leaking ~500MB/min in JSRopeString/RegExp allocs.
   // The component is keyed by toolUseID, so this ref resets on remount —
   // we only need to dedupe re-fires WITHIN one dialog instance.
@@ -139,7 +139,7 @@ export function usePermissionRequestLogging(
       sandboxEnabled: SandboxManager.isSandboxingEnabled(),
     })
 
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       const permissionResult = toolUseConfirm.permissionResult
       if (
         toolUseConfirm.tool.name === BashTool.name &&
@@ -164,9 +164,9 @@ export function usePermissionRequestLogging(
       }
     }
 
-    // [ANT-ONLY] Log bash tool calls, so we can categorize
+    // [INTERNAL-ONLY] Log bash tool calls, so we can categorize
     // & burn down calls that should have been allowed
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       const parsedInput = BashTool.inputSchema.safeParse(toolUseConfirm.input)
       if (
         toolUseConfirm.tool.name === BashTool.name &&

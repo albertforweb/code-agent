@@ -586,7 +586,6 @@ Always be helpful, thorough, and provide clear explanations.`;
     getDefaultBaseUrl(provider) {
         if (provider === 'openai-compatible') {
             return process.env.OPENAI_COMPATIBLE_BASE_URL ||
-                process.env.LM_STUDIO_BASE_URL ||
                 DEFAULT_BASE_URLS[provider];
         }
         return DEFAULT_BASE_URLS[provider];
@@ -595,7 +594,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         if (provider === 'openai') {
             return process.env.OPENAI_API_KEY;
         }
-        return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
+        return process.env.OPENAI_COMPATIBLE_API_KEY;
     }
     getProviderLabel(provider) {
         if (provider === 'openai-compatible') {

@@ -89,6 +89,15 @@ export interface ToolPermissionReviewResponse {
   reason?: string;
 }
 
+export interface ToolApprovalResolvedMessage {
+  requestId: string;
+  type?: 'file-write' | 'command' | 'tool';
+  title?: string;
+  approved: boolean;
+  resolvedBy: string;
+  reason?: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -306,6 +315,7 @@ export interface RemoteControlState {
   serverPort?: number;
   serverUrl?: string;
   localNetworkUrls?: string[];
+  relay?: RemoteRelayConfig;
   pairingCode?: string;
   pairingTokenHash?: string;
   pairingExpiresAt?: number;
@@ -324,6 +334,20 @@ export interface RemoteControlState {
   auditLog?: RemoteControlAuditEvent[];
 }
 
+export interface RemoteRelayConfig {
+  enrollmentStatus: 'not-configured' | 'enrolled' | 'disabled';
+  brokerUrl?: string;
+  accountId?: string;
+  deviceId?: string;
+  relayPublicKey?: string;
+  clientKeyId?: string;
+  auditCursor?: string;
+  enrolledAt?: number;
+  disabledAt?: number;
+  lastConnectedAt?: number;
+  tokenRotatesAt?: number;
+}
+
 export interface RemoteControlAuditEvent {
   id: string;
   type:
@@ -334,7 +358,9 @@ export interface RemoteControlAuditEvent {
     | 'approval-rejected'
     | 'server-started'
     | 'server-stopped'
-    | 'settings-updated';
+    | 'settings-updated'
+    | 'relay-configured'
+    | 'relay-disabled';
   message: string;
   createdAt: number;
   deviceId?: string;
@@ -567,6 +593,7 @@ export interface ElectronRendererApi {
   onToolComplete(callback: (data: ToolCompleteMessage) => void): () => void;
   onToolError(callback: (data: ToolErrorMessage) => void): () => void;
   onToolPermissionReview(callback: (data: ToolPermissionReviewRequest) => void): () => void;
+  onToolApprovalResolved(callback: (data: ToolApprovalResolvedMessage) => void): () => void;
   onFileWriteReview(callback: (data: FileWriteReviewRequest) => void): () => void;
   onCommandReview(callback: (data: CommandReviewRequest) => void): () => void;
   onChatDelta(callback: (data: ChatDeltaMessage) => void): () => void;
@@ -674,6 +701,7 @@ export const ipcClient: ElectronRendererApi = {
   onToolComplete: callback => getApi().onToolComplete(callback),
   onToolError: callback => getApi().onToolError(callback),
   onToolPermissionReview: callback => getApi().onToolPermissionReview(callback),
+  onToolApprovalResolved: callback => getApi().onToolApprovalResolved(callback),
   onFileWriteReview: callback => getApi().onFileWriteReview(callback),
   onCommandReview: callback => getApi().onCommandReview(callback),
   onChatDelta: callback => getApi().onChatDelta(callback),

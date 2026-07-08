@@ -118,8 +118,8 @@ export async function setupTerminal(theme: ThemeName): Promise<string> {
   });
   maybeMarkProjectOnboardingComplete();
 
-  // Install shell completions (ant-only, since the completion command is ant-only)
-  if ("external" === 'ant') {
+  // Install shell completions (internal-only, since the completion command is internal-only)
+  if ("external" === 'internal') {
     result += await setupShellCompletion(theme);
   }
   return result;

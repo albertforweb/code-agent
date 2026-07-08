@@ -236,7 +236,7 @@ const browserControlToolRendering =
   (): typeof import('../../utils/browserControl/toolRendering.js') =>
     require('../../utils/browserControl/toolRendering.js')
 // Lazy: wrapper.tsx → hostAdapter.ts → executor.ts pulls both native modules
-// (@ant/computer-use-input + @ant/computer-use-swift). Runtime-gated by
+// (@codeagent/computer-use-input + @codeagent/computer-use-swift). Runtime-gated by
 // GrowthBook tengu_malort_pedway (see gates.ts).
 const computerUseWrapper = feature('CHICAGO_MCP')
   ? (): typeof import('../../utils/computerUse/wrapper.js') =>
@@ -911,7 +911,7 @@ export const connectToServer = memoize(
           '../../utils/browserControl/mcpServer.js'
         )
         const { createCodeAgentForChromeMcpServer } = await import(
-          '@ant/codeAgent-for-chrome-mcp'
+          '@codeagent/browser-control-mcp'
         )
         const { createLinkedTransportPair } = await import(
           './InProcessTransport.js'

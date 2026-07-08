@@ -1,4 +1,4 @@
-import type { CoordinateMode, CuSubGates } from '@ant/computer-use-mcp/types'
+import type { CoordinateMode, CuSubGates } from '@codeagent/computer-use-mcp/types'
 
 import { getDynamicConfig_CACHED_MAY_BE_STALE } from '../../services/analytics/growthbook.js'
 import { getSubscriptionType } from '../auth.js'
@@ -33,22 +33,22 @@ function readConfig(): ChicagoConfig {
   }
 }
 
-// Max/Pro only for external rollout. Ant bypass so dogfooding continues
-// regardless of subscription tier — not all ants are max/pro, and per
-// AGENTS.md:281, USER_TYPE !== 'ant' branches get zero antfooding.
+// Max/Pro only for external rollout. Internal bypass so dogfooding continues
+// regardless of subscription tier — not all internal users are max/pro, and per
+// AGENTS.md:281, USER_TYPE !== 'internal' branches get zero antfooding.
 function hasRequiredSubscription(): boolean {
-  if (process.env.USER_TYPE === 'ant') return true
+  if (process.env.USER_TYPE === 'internal') return true
   const tier = getSubscriptionType()
   return tier === 'max' || tier === 'pro'
 }
 
 export function getChicagoEnabled(): boolean {
-  // Disable for ants whose shell inherited monorepo dev config.
+  // Disable for internal users whose shell inherited monorepo dev config.
   // MONOREPO_ROOT_DIR is exported by config/local/zsh/zshrc, which
   // laptop-setup.sh wires into ~/.zshrc — its presence is the cheap
   // proxy for "has monorepo access". Override: ALLOW_ANT_COMPUTER_USE_MCP=1.
   if (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     process.env.MONOREPO_ROOT_DIR &&
     !isEnvTruthy(process.env.ALLOW_ANT_COMPUTER_USE_MCP)
   ) {

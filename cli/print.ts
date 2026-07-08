@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import { feature } from 'bun:bundle'
 import { readFile, stat } from 'fs/promises'
 import { dirname } from 'path'
@@ -492,7 +492,7 @@ export async function runHeadless(
   },
 ): Promise<void> {
   if (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     isEnvTruthy(process.env.CODE_AGENT_EXIT_AFTER_FIRST_RENDER)
   ) {
     process.stderr.write(
@@ -852,7 +852,7 @@ export async function runHeadless(
   const messages: SDKMessage[] = []
   let lastMessage: SDKMessage | undefined
   // Streamlined mode transforms messages when CODE_AGENT_STREAMLINED_OUTPUT=true and using stream-json
-  // Build flag gates this out of external builds; env var is the runtime opt-in for ant builds
+  // Build flag gates this out of external builds; env var is the runtime opt-in for internal builds
   const transformToStreamlined =
     feature('STREAMLINED_OUTPUT') &&
     isEnvTruthy(process.env.CODE_AGENT_STREAMLINED_OUTPUT) &&
@@ -2829,7 +2829,7 @@ function runHeadlessStreaming(
 
       if (message.type === 'control_request') {
         if (message.request.subtype === 'interrupt') {
-          // Track escapes for attribution (ant-only feature)
+          // Track escapes for attribution (internal-only feature)
           if (feature('COMMIT_ATTRIBUTION')) {
             setAppState(prev => ({
               ...prev,
@@ -3765,7 +3765,7 @@ function runHeadlessStreaming(
             ...getSettingsWithSources(),
             applied: {
               model,
-              // Numeric effort (ant-only) → null; SDK schema is string-level only.
+              // Numeric effort (internal-only) → null; SDK schema is string-level only.
               effort: typeof effort === 'string' ? effort : null,
             },
           })
@@ -5025,7 +5025,7 @@ async function loadInitialMessages(
   }
 
   // Handle resume in print mode (accepts session ID or URL)
-  // URLs are [ANT-ONLY]
+  // URLs are [INTERNAL-ONLY]
   if (options.resume) {
     try {
       logEvent('tengu_resume_print', {})

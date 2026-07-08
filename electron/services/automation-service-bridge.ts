@@ -97,6 +97,7 @@ export interface RemoteControlState {
   serverPort?: number;
   serverUrl?: string;
   localNetworkUrls?: string[];
+  relay?: RemoteRelayConfig;
   pairingCode?: string;
   pairingTokenHash?: string;
   pairingExpiresAt?: number;
@@ -115,6 +116,20 @@ export interface RemoteControlState {
   auditLog?: RemoteControlAuditEvent[];
 }
 
+export interface RemoteRelayConfig {
+  enrollmentStatus: 'not-configured' | 'enrolled' | 'disabled';
+  brokerUrl?: string;
+  accountId?: string;
+  deviceId?: string;
+  relayPublicKey?: string;
+  clientKeyId?: string;
+  auditCursor?: string;
+  enrolledAt?: number;
+  disabledAt?: number;
+  lastConnectedAt?: number;
+  tokenRotatesAt?: number;
+}
+
 export interface RemoteControlAuditEvent {
   id: string;
   type:
@@ -125,7 +140,9 @@ export interface RemoteControlAuditEvent {
     | 'approval-rejected'
     | 'server-started'
     | 'server-stopped'
-    | 'settings-updated';
+    | 'settings-updated'
+    | 'relay-configured'
+    | 'relay-disabled';
   message: string;
   createdAt: number;
   deviceId?: string;
@@ -255,6 +272,21 @@ const REMOTE_RATE_LIMIT_MAX_REQUESTS = 120;
 const REMOTE_PAIR_RATE_LIMIT_MAX_REQUESTS = 20;
 const TOOL_ROUND_LIMIT_MESSAGE = 'Stopped after reaching the desktop tool-call round limit.';
 
+function normalizeAutomationWorkspacePath(value: string | undefined): string {
+  const fallback = os.homedir();
+  const raw = typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  const expanded = raw.startsWith('~')
+    ? path.join(fallback, raw.slice(1))
+    : raw;
+  const resolved = path.resolve(expanded);
+
+  if (!resolved || resolved === path.parse(resolved).root) {
+    return fallback;
+  }
+
+  return resolved;
+}
+
 export interface AutomationExecutionResult {
   content: string;
   model?: string;
@@ -295,6 +327,15 @@ type ApprovalResolver = {
   reject: (reason?: string, resolvedBy?: string) => void;
 };
 
+export interface ApprovalResolutionEvent {
+  approvalId: string;
+  type?: AutomationApprovalRequest['type'];
+  title?: string;
+  approved: boolean;
+  resolvedBy: string;
+  reason?: string;
+}
+
 export class AutomationServiceBridge {
   private readonly projectDir: string;
   private readonly legacyStorePath: string;
@@ -317,8 +358,12 @@ export class AutomationServiceBridge {
   private remotePort: number | null = null;
   private approvalResolvers = new Map<string, ApprovalResolver>();
   private remoteRateLimits = new Map<string, { count: number; resetAt: number }>();
+  private approvalResolutionEmitter: ((event: ApprovalResolutionEvent) => void) | null = null;
 
-  constructor(private readonly workspacePath: string = process.cwd()) {
+  private readonly workspacePath: string;
+
+  constructor(workspacePath: string = process.cwd()) {
+    this.workspacePath = normalizeAutomationWorkspacePath(workspacePath);
     this.projectDir = path.join(this.workspacePath, '.code-agent');
     this.legacyStorePath = path.join(this.projectDir, 'automation.json');
     this.projectManifestPath = path.join(this.projectDir, 'project.json');
@@ -341,6 +386,10 @@ export class AutomationServiceBridge {
 
   setNotificationEmitter(emitter: AutomationNotificationEmitter): void {
     this.notificationEmitter = emitter;
+  }
+
+  setApprovalResolutionEmitter(emitter: (event: ApprovalResolutionEvent) => void): void {
+    this.approvalResolutionEmitter = emitter;
   }
 
   async listSkills(): Promise<SkillManifest[]> {
@@ -628,8 +677,71 @@ export class AutomationServiceBridge {
 
     if (!store.remoteControl.enabled || store.remoteControl.mode === 'disabled') {
       await this.stopRemoteControlServer();
+    } else if (store.remoteControl.mode === 'relay') {
+      await this.closeRemoteControlServer();
     }
 
+    return this.sanitizeRemoteControl(store.remoteControl);
+  }
+
+  async configureRemoteRelay(input: {
+    brokerUrl: string;
+    accountId?: string;
+    deviceId?: string;
+    relayPublicKey?: string;
+    clientKeyId?: string;
+    auditCursor?: string;
+    tokenRotatesAt?: number;
+  }): Promise<RemoteControlState> {
+    const brokerUrl = this.normalizeRelayBrokerUrl(input.brokerUrl);
+    const store = await this.readStore();
+    const now = Date.now();
+    const existingRelay = this.normalizeRemoteRelay(store.remoteControl.relay);
+
+    store.remoteControl = this.normalizeRemoteControl({
+      ...store.remoteControl,
+      relay: {
+        ...existingRelay,
+        ...input,
+        brokerUrl,
+        enrollmentStatus: 'enrolled',
+        enrolledAt: existingRelay.enrolledAt ?? now,
+        disabledAt: undefined,
+      },
+      auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+        type: 'relay-configured',
+        message: `Configured managed relay enrollment for ${brokerUrl}.`,
+      }),
+    });
+
+    await this.writeStore(store);
+    return this.sanitizeRemoteControl(store.remoteControl);
+  }
+
+  async disableRemoteRelay(): Promise<RemoteControlState> {
+    const store = await this.readStore();
+    const relay = this.normalizeRemoteRelay(store.remoteControl.relay);
+    const wasRelayMode = store.remoteControl.mode === 'relay';
+
+    store.remoteControl = this.normalizeRemoteControl({
+      ...store.remoteControl,
+      enabled: wasRelayMode ? false : store.remoteControl.enabled,
+      mode: wasRelayMode ? 'disabled' : store.remoteControl.mode,
+      relay: {
+        ...relay,
+        enrollmentStatus: 'disabled',
+        disabledAt: Date.now(),
+      },
+      auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+        type: 'relay-disabled',
+        message: 'Disabled managed relay enrollment.',
+      }),
+    });
+
+    if (wasRelayMode) {
+      await this.closeRemoteControlServer();
+    }
+    await this.writeStore(store);
     return this.sanitizeRemoteControl(store.remoteControl);
   }
 
@@ -712,13 +824,7 @@ export class AutomationServiceBridge {
   }
 
   async stopRemoteControlServer(): Promise<RemoteControlState> {
-    if (this.remoteServer) {
-      await new Promise<void>(resolve => {
-        this.remoteServer?.close(() => resolve());
-      });
-      this.remoteServer = null;
-      this.remotePort = null;
-    }
+    await this.closeRemoteControlServer();
 
     const store = await this.readStore();
     store.remoteControl = this.normalizeRemoteControl({
@@ -734,6 +840,18 @@ export class AutomationServiceBridge {
     });
     await this.writeStore(store);
     return this.sanitizeRemoteControl(store.remoteControl);
+  }
+
+  private async closeRemoteControlServer(): Promise<void> {
+    if (!this.remoteServer) {
+      return;
+    }
+
+    await new Promise<void>(resolve => {
+      this.remoteServer?.close(() => resolve());
+    });
+    this.remoteServer = null;
+    this.remotePort = null;
   }
 
   async registerApprovalRequest(
@@ -809,6 +927,17 @@ export class AutomationServiceBridge {
       } else {
         resolver.reject(reason, resolvedBy);
       }
+    }
+
+    if (resolvedBy !== 'desktop') {
+      this.approvalResolutionEmitter?.({
+        approvalId,
+        type: approval?.type,
+        title: approval?.title,
+        approved,
+        resolvedBy,
+        reason,
+      });
     }
 
     return { ok: Boolean(resolvedAction || resolver) };
@@ -1254,6 +1383,25 @@ export class AutomationServiceBridge {
       return;
     }
 
+    if (request.method === 'GET' && pathname === '/api/devices') {
+      const remote = await this.getRemoteControl();
+      this.sendJson(response, 200, {
+        devices: remote.approvedDevices,
+        currentDeviceId: device.id,
+        auditLog: remote.auditLog ?? [],
+      });
+      return;
+    }
+
+    const deviceRevokeMatch = pathname.match(/^\/api\/devices\/([^/]+)$/);
+    if ((request.method === 'DELETE' || request.method === 'POST') && deviceRevokeMatch) {
+      this.sendJson(response, 200, await this.revokeRemoteDeviceFromRemote(
+        deviceRevokeMatch[1],
+        device,
+      ));
+      return;
+    }
+
     const approvalMatch = pathname.match(/^\/api\/approvals\/([^/]+)$/);
     if (request.method === 'POST' && approvalMatch) {
       const body = await this.readJsonBody(request);
@@ -1323,6 +1471,30 @@ export class AutomationServiceBridge {
       },
       remoteControl: this.sanitizeRemoteControl(store.remoteControl),
     };
+  }
+
+  private async revokeRemoteDeviceFromRemote(
+    deviceId: string,
+    actor: { id: string; name: string },
+  ): Promise<RemoteControlState> {
+    const store = await this.readStore();
+    const target = store.remoteControl.approvedDevices.find(candidate => candidate.id === deviceId);
+    if (!target) {
+      throw new Error(`Remote device not found: ${deviceId}`);
+    }
+
+    store.remoteControl = this.normalizeRemoteControl({
+      ...store.remoteControl,
+      approvedDevices: store.remoteControl.approvedDevices.filter(candidate => candidate.id !== deviceId),
+      auditLog: this.appendRemoteAudit(store.remoteControl.auditLog, {
+        type: 'device-revoked',
+        message: `Revoked remote device "${target.name}" from "${actor.name}".`,
+        deviceId: target.id,
+        deviceName: target.name,
+      }),
+    });
+    await this.writeStore(store);
+    return this.sanitizeRemoteControl(store.remoteControl);
   }
 
   private async requireRemoteDevice(request: http.IncomingMessage): Promise<{ id: string; name: string } | null> {
@@ -2123,8 +2295,9 @@ export class AutomationServiceBridge {
       enabled: Boolean(raw.enabled),
       mode,
       serverPort: typeof raw.serverPort === 'number' ? raw.serverPort : undefined,
-      serverUrl: typeof raw.serverUrl === 'string' ? raw.serverUrl : undefined,
-      localNetworkUrls: Array.isArray(raw.localNetworkUrls) ? raw.localNetworkUrls.map(String) : [],
+      serverUrl: mode === 'local-network' && typeof raw.serverUrl === 'string' ? raw.serverUrl : undefined,
+      localNetworkUrls: mode === 'local-network' && Array.isArray(raw.localNetworkUrls) ? raw.localNetworkUrls.map(String) : [],
+      relay: this.normalizeRemoteRelay(raw.relay),
       pairingCode: typeof raw.pairingCode === 'string' ? raw.pairingCode : undefined,
       pairingTokenHash: typeof raw.pairingTokenHash === 'string' ? raw.pairingTokenHash : undefined,
       pairingExpiresAt: typeof raw.pairingExpiresAt === 'number' ? raw.pairingExpiresAt : undefined,
@@ -2139,6 +2312,62 @@ export class AutomationServiceBridge {
           .slice(0, 100)
         : [],
     };
+  }
+
+  private normalizeRemoteRelay(value: unknown): RemoteRelayConfig {
+    const raw = value && typeof value === 'object' ? value as Partial<RemoteRelayConfig> : {};
+    const enrollmentStatus = raw.enrollmentStatus === 'enrolled' || raw.enrollmentStatus === 'disabled'
+      ? raw.enrollmentStatus
+      : raw.brokerUrl
+        ? 'enrolled'
+        : 'not-configured';
+
+    return {
+      enrollmentStatus,
+      brokerUrl: this.optionalTrimmedString(raw.brokerUrl),
+      accountId: this.optionalTrimmedString(raw.accountId),
+      deviceId: this.optionalTrimmedString(raw.deviceId),
+      relayPublicKey: this.optionalTrimmedString(raw.relayPublicKey),
+      clientKeyId: this.optionalTrimmedString(raw.clientKeyId),
+      auditCursor: this.optionalTrimmedString(raw.auditCursor),
+      enrolledAt: this.optionalTimestamp(raw.enrolledAt),
+      disabledAt: this.optionalTimestamp(raw.disabledAt),
+      lastConnectedAt: this.optionalTimestamp(raw.lastConnectedAt),
+      tokenRotatesAt: this.optionalTimestamp(raw.tokenRotatesAt),
+    };
+  }
+
+  private normalizeRelayBrokerUrl(value: string): string {
+    const raw = value.trim();
+    if (!raw) {
+      throw new Error('Relay broker URL is required.');
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      throw new Error('Relay broker URL must be a valid HTTPS URL.');
+    }
+
+    if (parsed.protocol !== 'https:') {
+      throw new Error('Relay broker URL must use HTTPS.');
+    }
+
+    parsed.hash = '';
+    return parsed.toString().replace(/\/$/, '');
+  }
+
+  private optionalTrimmedString(value: unknown): string | undefined {
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed ? trimmed : undefined;
+  }
+
+  private optionalTimestamp(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
   }
 
   private appendRemoteAudit(
@@ -2221,10 +2450,7 @@ export class AutomationServiceBridge {
       return undefined;
     }
 
-    const expanded = value.trim().startsWith('~')
-      ? path.join(os.homedir(), value.trim().slice(1))
-      : value.trim();
-    return path.resolve(expanded);
+    return normalizeAutomationWorkspacePath(value);
   }
 
   private normalizeTeamPermissionMode(value: unknown): VirtualTeamPermissionMode {

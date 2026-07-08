@@ -7,7 +7,7 @@ export const SHELL_TOOL_NAMES: string[] = [BASH_TOOL_NAME, POWERSHELL_TOOL_NAME]
 
 /**
  * Runtime gate for PowerShellTool. Windows-only (the permission engine uses
- * Win32-specific path normalizations). Ant defaults on (opt-out via env=0);
+ * Win32-specific path normalizations). Internal defaults on (opt-out via env=0);
  * external defaults off (opt-in via env=1).
  *
  * Used by tools.ts (tool-list visibility), processBashCommand (! routing),
@@ -16,7 +16,7 @@ export const SHELL_TOOL_NAMES: string[] = [BASH_TOOL_NAME, POWERSHELL_TOOL_NAME]
  */
 export function isPowerShellToolEnabled(): boolean {
   if (getPlatform() !== 'windows') return false
-  return process.env.USER_TYPE === 'ant'
+  return process.env.USER_TYPE === 'internal'
     ? !isEnvDefinedFalsy(process.env.CODE_AGENT_USE_POWERSHELL_TOOL)
     : isEnvTruthy(process.env.CODE_AGENT_USE_POWERSHELL_TOOL)
 }

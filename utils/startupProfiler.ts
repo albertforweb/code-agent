@@ -3,7 +3,7 @@
  * initialization phases.
  *
  * Two modes:
- * 1. Sampled logging: 100% of ant users, 0.1% of external users - logs phases to Statsig
+ * 1. Sampled logging: 100% of internal users, 0.1% of external users - logs phases to Statsig
  * 2. Detailed profiling: CODE_AGENT_PROFILE_STARTUP=1 - full report with memory snapshots
  *
  * Uses Node.js built-in performance hooks API for standard timing measurement.
@@ -25,12 +25,12 @@ import { writeFileSync_DEPRECATED } from './slowOperations.js'
 // eslint-disable-next-line custom-rules/no-process-env-top-level
 const DETAILED_PROFILING = isEnvTruthy(process.env.CODE_AGENT_PROFILE_STARTUP)
 
-// Sampling for Statsig logging: 100% ant, 0.5% external
+// Sampling for Statsig logging: 100% internal, 0.5% external
 // Decision made once at startup - non-sampled users pay no profiling cost
 const STATSIG_SAMPLE_RATE = 0.005
 // eslint-disable-next-line custom-rules/no-process-env-top-level
 const STATSIG_LOGGING_SAMPLED =
-  process.env.USER_TYPE === 'ant' || Math.random() < STATSIG_SAMPLE_RATE
+  process.env.USER_TYPE === 'internal' || Math.random() < STATSIG_SAMPLE_RATE
 
 // Enable profiling if either detailed mode OR sampled for Statsig
 const SHOULD_PROFILE = DETAILED_PROFILING || STATSIG_LOGGING_SAMPLED
@@ -124,7 +124,7 @@ export function profileReport(): void {
   if (reported) return
   reported = true
 
-  // Log to Statsig (sampled: 100% ant, 0.1% external)
+  // Log to Statsig (sampled: 100% internal, 0.1% external)
   logStartupPerf()
 
   // Output detailed report if CODE_AGENT_PROFILE_STARTUP=1

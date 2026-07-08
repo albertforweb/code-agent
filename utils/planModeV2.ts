@@ -45,11 +45,11 @@ export function getPlanModeV2ExploreAgentCount(): number {
 /**
  * Check if plan mode interview phase is enabled.
  *
- * Config: ant=always_on, external=tengu_plan_mode_interview_phase gate, envVar=true
+ * Config: internal=always_on, external=tengu_plan_mode_interview_phase gate, envVar=true
  */
 export function isPlanModeInterviewPhaseEnabled(): boolean {
-  // Always on for ants
-  if (process.env.USER_TYPE === 'ant') return true
+  // Always on for internal users
+  if (process.env.USER_TYPE === 'internal') return true
 
   const env = process.env.CODE_AGENT_PLAN_MODE_INTERVIEW_PHASE
   if (isEnvTruthy(env)) return true
@@ -68,7 +68,7 @@ export type PewterLedgerVariant = 'trim' | 'cut' | 'cap' | null
  *
  * Controls the Phase 4 "Final Plan" bullets in the 5-phase plan mode
  * workflow (messages.ts getPlanPhase4Section). 5-phase is 99% of plan
- * traffic; interview-phase (ants) is untouched as a reference population.
+ * traffic; interview-phase (internal users) is untouched as a reference population.
  *
  * Arms: null (control), 'trim', 'cut', 'cap' — progressively stricter
  * guidance on plan file size.

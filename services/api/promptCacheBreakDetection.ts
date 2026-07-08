@@ -643,8 +643,8 @@ export async function checkResponseForCacheBreak(
         '') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     })
 
-    // Write diff file for ant debugging via --debug. The path is included in
-    // the summary log so ants can find it (DevBar UI removed — event data
+    // Write diff file for internal debugging via --debug. The path is included in
+    // the summary log so internal users can find it (DevBar UI removed — event data
     // flows reliably to BQ for analytics).
     let diffPath: string | undefined
     if (changes?.buildPrevDiffableContent) {

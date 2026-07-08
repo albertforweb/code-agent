@@ -49,7 +49,7 @@ const COMPACTABLE_TOOLS = new Set<string>([
   FILE_WRITE_TOOL_NAME,
 ])
 
-// --- Cached microcompact state (ant-only, gated by feature('CACHED_MICROCOMPACT')) ---
+// --- Cached microcompact state (internal-only, gated by feature('CACHED_MICROCOMPACT')) ---
 
 // Lazy-initialized cached MC module and state to avoid importing in external builds.
 // The imports and state live inside feature() checks for dead code elimination.
@@ -287,7 +287,7 @@ export async function microcompactMessages(
 
   // Legacy microcompact path removed — tengu_cache_plum_violet is always true.
   // For contexts where cached microcompact is not available (external builds,
-  // non-ant users, unsupported models, sub-agents), no compaction happens here;
+  // non-internal users, unsupported models, sub-agents), no compaction happens here;
   // autocompact handles context pressure instead.
   return { messages }
 }

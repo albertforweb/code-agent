@@ -199,15 +199,14 @@ class AuthServiceBridge {
             hasMemoryToken: this.currentTokens.size > 0,
             hasKeychain: this.keychain.hasKeychain(),
             hasEnvironmentToken: Boolean(process.env.OPENAI_API_KEY ||
-                process.env.OPENAI_COMPATIBLE_API_KEY ||
-                process.env.LM_STUDIO_API_KEY),
+                process.env.OPENAI_COMPATIBLE_API_KEY),
         };
     }
     getEnvironmentToken(provider) {
         if (provider === 'openai') {
             return process.env.OPENAI_API_KEY;
         }
-        return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
+        return process.env.OPENAI_COMPATIBLE_API_KEY;
     }
     /**
      * Generate PKCE code verifier

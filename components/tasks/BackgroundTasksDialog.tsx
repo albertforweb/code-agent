@@ -14,7 +14,7 @@ import type { LocalAgentTaskState } from 'src/tasks/LocalAgentTask/LocalAgentTas
 import { LocalAgentTask } from 'src/tasks/LocalAgentTask/LocalAgentTask.js';
 import type { LocalShellTaskState } from 'src/tasks/LocalShellTask/guards.js';
 import { LocalShellTask } from 'src/tasks/LocalShellTask/LocalShellTask.js';
-// Type import is erased at build time — safe even though module is ant-gated.
+// Type import is erased at build time — safe even though module is internal-gated.
 import type { LocalWorkflowTaskState } from 'src/tasks/LocalWorkflowTask/LocalWorkflowTask.js';
 import type { MonitorMcpTaskState } from 'src/tasks/MonitorMcpTask/MonitorMcpTask.js';
 import { RemoteAgentTask, type RemoteAgentTaskState } from 'src/tasks/RemoteAgentTask/RemoteAgentTask.js';
@@ -102,7 +102,7 @@ type ListItem = {
   status: 'running';
 };
 
-// WORKFLOW_SCRIPTS is ant-only (build_flags.yaml). Static imports would leak
+// WORKFLOW_SCRIPTS is internal-only (build_flags.yaml). Static imports would leak
 // ~1.3K lines into external builds. Gate with feature() + require so the
 // bundler can dead-code-eliminate the branch.
 /* eslint-disable @typescript-eslint/no-require-imports */

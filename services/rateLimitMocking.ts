@@ -19,7 +19,7 @@ import {
 export function processRateLimitHeaders(
   headers: globalThis.Headers,
 ): globalThis.Headers {
-  // Only apply mocks for Ant employees using /mock-limits command
+  // Only apply mocks for internal users using /mock-limits command
   if (shouldProcessMockLimits()) {
     return applyMockHeaders(headers)
   }

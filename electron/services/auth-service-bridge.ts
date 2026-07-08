@@ -229,8 +229,7 @@ export class AuthServiceBridge {
       hasKeychain: this.keychain.hasKeychain(),
       hasEnvironmentToken: Boolean(
         process.env.OPENAI_API_KEY ||
-        process.env.OPENAI_COMPATIBLE_API_KEY ||
-        process.env.LM_STUDIO_API_KEY,
+        process.env.OPENAI_COMPATIBLE_API_KEY,
       ),
     };
   }
@@ -240,7 +239,7 @@ export class AuthServiceBridge {
       return process.env.OPENAI_API_KEY;
     }
 
-    return process.env.OPENAI_COMPATIBLE_API_KEY || process.env.LM_STUDIO_API_KEY;
+    return process.env.OPENAI_COMPATIBLE_API_KEY;
   }
 
   /**

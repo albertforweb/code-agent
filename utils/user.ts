@@ -146,8 +146,8 @@ function getEmail(): string | undefined {
     return oauthAccount.emailAddress
   }
 
-  // Ant-only fallbacks below (no execSync)
-  if (process.env.USER_TYPE !== 'ant') {
+  // Internal-only fallbacks below (no execSync)
+  if (process.env.USER_TYPE !== 'internal') {
     return undefined
   }
 
@@ -166,8 +166,8 @@ async function getEmailAsync(): Promise<string | undefined> {
     return oauthAccount.emailAddress
   }
 
-  // Ant-only fallbacks below
-  if (process.env.USER_TYPE !== 'ant') {
+  // Internal-only fallbacks below
+  if (process.env.USER_TYPE !== 'internal') {
     return undefined
   }
 

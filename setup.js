@@ -335,7 +335,7 @@ fs.writeFileSync(growthbookPackageJsonPath, growthbookPackageJson);
 console.log(`✓ Created ${growthbookPackageJsonPath}`);
 
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'codeAgent-for-chrome-mcp', 'index.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'browser-control-mcp', 'index.js'),
   `export const BROWSER_TOOLS = [];
 export function createCodeAgentForChromeMcpServer() {
   return {
@@ -346,9 +346,9 @@ export function createCodeAgentForChromeMcpServer() {
 `,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'codeAgent-for-chrome-mcp', 'package.json'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'browser-control-mcp', 'package.json'),
   JSON.stringify({
-    name: '@ant/codeAgent-for-chrome-mcp',
+    name: '@codeagent/browser-control-mcp',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',
@@ -356,7 +356,7 @@ writeStubFile(
   }, null, 2),
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-mcp', 'index.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-mcp', 'index.js'),
   `export const DEFAULT_GRANT_FLAGS = {};
 export const API_RESIZE_PARAMS = {};
 export function targetImageSize() { return { width: 0, height: 0 }; }
@@ -368,17 +368,17 @@ export function createComputerUseMcpServer() {
 `,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-mcp', 'sentinelApps.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-mcp', 'sentinelApps.js'),
   `export function getSentinelCategory() { return undefined; }\n`,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-mcp', 'types.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-mcp', 'types.js'),
   `export const DEFAULT_GRANT_FLAGS = {};\n`,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-mcp', 'package.json'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-mcp', 'package.json'),
   JSON.stringify({
-    name: '@ant/computer-use-mcp',
+    name: '@codeagent/computer-use-mcp',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',
@@ -390,15 +390,15 @@ writeStubFile(
   }, null, 2),
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-input', 'index.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-input', 'index.js'),
   `export default {};
 export function isSupported() { return false; }
 `,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-input', 'package.json'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-input', 'package.json'),
   JSON.stringify({
-    name: '@ant/computer-use-input',
+    name: '@codeagent/computer-use-input',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',
@@ -406,13 +406,13 @@ writeStubFile(
   }, null, 2),
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-swift', 'index.js'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-swift', 'index.js'),
   `export default {};\n`,
 );
 writeStubFile(
-  path.join(projectRoot, 'node_modules', '@ant', 'computer-use-swift', 'package.json'),
+  path.join(projectRoot, 'node_modules', '@codeagent', 'computer-use-swift', 'package.json'),
   JSON.stringify({
-    name: '@ant/computer-use-swift',
+    name: '@codeagent/computer-use-swift',
     version: '0.0.0-stub',
     type: 'module',
     main: './index.js',

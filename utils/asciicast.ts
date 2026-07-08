@@ -17,7 +17,7 @@ const recordingState: { filePath: string | null; timestamp: number } = {
 
 /**
  * Get the asciicast recording file path.
- * For ants with CODE_AGENT_TERMINAL_RECORDING=1: returns a path.
+ * For internal users with CODE_AGENT_TERMINAL_RECORDING=1: returns a path.
  * Otherwise: returns null.
  * The path is computed once and cached in recordingState.
  */
@@ -25,7 +25,7 @@ export function getRecordFilePath(): string | null {
   if (recordingState.filePath !== null) {
     return recordingState.filePath
   }
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return null
   }
   if (!isEnvTruthy(process.env.CODE_AGENT_TERMINAL_RECORDING)) {

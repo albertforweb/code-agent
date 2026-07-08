@@ -343,14 +343,14 @@ export function groupHooksByEventAndMatcher(
               pluginName: matcher.pluginId,
             })
           }
-        } else if (process.env.USER_TYPE === 'ant') {
+        } else if (process.env.USER_TYPE === 'internal') {
           eventGroup[matcherKey] ??= []
           for (const _hook of matcher.hooks) {
             eventGroup[matcherKey].push({
               event: hookEvent,
               config: {
                 type: 'command',
-                command: '[ANT-ONLY] Built-in Hook',
+                command: '[INTERNAL-ONLY] Built-in Hook',
               },
               matcher: matcher.matcher,
               source: 'builtinHook',

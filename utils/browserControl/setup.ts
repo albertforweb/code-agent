@@ -1,4 +1,4 @@
-import { BROWSER_TOOLS } from '@ant/codeAgent-for-chrome-mcp'
+import { BROWSER_TOOLS } from '@codeagent/browser-control-mcp'
 import { chmod, mkdir, readFile, writeFile } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
@@ -77,7 +77,7 @@ export function shouldAutoEnableBrowserControl(): boolean {
   shouldAutoEnable =
     getIsInteractive() &&
     isChromeExtensionInstalled_CACHED_MAY_BE_STALE() &&
-    (process.env.USER_TYPE === 'ant' ||
+    (process.env.USER_TYPE === 'internal' ||
       getFeatureValue_CACHED_MAY_BE_STALE('tengu_chrome_auto_enable', false))
 
   return shouldAutoEnable
@@ -203,7 +203,7 @@ export async function installChromeNativeHostManifest(
     type: 'stdio',
     allowed_origins: [
       `chrome-extension://fcoeoabgfenejglbffodgkkbkcdhcgfn/`, // PROD_EXTENSION_ID
-      ...(process.env.USER_TYPE === 'ant'
+      ...(process.env.USER_TYPE === 'internal'
         ? [
             'chrome-extension://dihbgbndebgnbjfmelmegjepbnkhlgni/', // DEV_EXTENSION_ID
             'chrome-extension://dngcpimnedloihjnnfngkgjoidhnaolf/', // ANT_EXTENSION_ID

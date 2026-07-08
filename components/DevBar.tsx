@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { getSlowOperations } from '../bootstrap/state.js';
 import { Text, useInterval } from '../ink.js';
 
-// Show DevBar for dev builds or all ants
+// Show DevBar for dev builds or all internal users
 function shouldShowDevBar(): boolean {
-  return "production" === 'development' || "external" === 'ant';
+  return "production" === 'development' || "external" === 'internal';
 }
 export function DevBar() {
   const $ = _c(5);
@@ -35,7 +35,7 @@ export function DevBar() {
   const recentOps = t1;
   let t2;
   if ($[3] !== recentOps) {
-    t2 = <Text wrap="truncate-end" color="warning">[ANT-ONLY] slow sync: {recentOps}</Text>;
+    t2 = <Text wrap="truncate-end" color="warning">[INTERNAL-ONLY] slow sync: {recentOps}</Text>;
     $[3] = recentOps;
     $[4] = t2;
   } else {

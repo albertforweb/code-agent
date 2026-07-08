@@ -19,8 +19,8 @@ type SandboxInput = {
 // It is not a security bug to be able to bypass excludedCommands — the sandbox permission
 // system (which prompts users) is the actual security control.
 function containsExcludedCommand(command: string): boolean {
-  // Check dynamic config for disabled commands and substrings (only for ants)
-  if (process.env.USER_TYPE === 'ant') {
+  // Check dynamic config for disabled commands and substrings (only for internal users)
+  if (process.env.USER_TYPE === 'internal') {
     const disabledCommands = getFeatureValue_CACHED_MAY_BE_STALE<{
       commands: string[]
       substrings: string[]

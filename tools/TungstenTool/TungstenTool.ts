@@ -19,7 +19,7 @@ export const TungstenTool = buildTool({
   searchHint: 'internal terminal workflow helper',
   maxResultSizeChars: 10_000,
   isEnabled() {
-    return process.env.USER_TYPE === 'ant'
+    return process.env.USER_TYPE === 'internal'
   },
   isConcurrencySafe() {
     return true

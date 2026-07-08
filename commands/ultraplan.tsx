@@ -71,10 +71,10 @@ function getBundledUltraplanInstructions(): string {
 }
 
 function getUltraplanInstructions(): string {
-  // Dev-only prompt override. Gated to ant builds (USER_TYPE is a build-time
+  // Dev-only prompt override. Gated to internal builds (USER_TYPE is a build-time
   // define, so the override path is DCE'd from external builds).
-  /* eslint-disable custom-rules/no-sync-fs -- ant-only dev override */
-  return "external" === 'ant' && process.env.ULTRAPLAN_PROMPT_FILE
+  /* eslint-disable custom-rules/no-sync-fs -- internal-only dev override */
+  return "external" === 'internal' && process.env.ULTRAPLAN_PROMPT_FILE
     ? readFileSync(process.env.ULTRAPLAN_PROMPT_FILE, 'utf8').trimEnd()
     : getBundledUltraplanInstructions();
   /* eslint-enable custom-rules/no-sync-fs */
@@ -487,7 +487,7 @@ export default {
   name: 'ultraplan',
   description: `~10–30 min · CodeAgent on the web drafts an advanced plan you can edit and approve. See ${CCR_TERMS_URL}`,
   argumentHint: '<prompt>',
-  isEnabled: () => "external" === 'ant',
+  isEnabled: () => "external" === 'internal',
   load: () => Promise.resolve({
     call
   })

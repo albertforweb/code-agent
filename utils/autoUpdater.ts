@@ -46,9 +46,9 @@ export type AutoUpdaterResult = {
 
 export type MaxVersionConfig = {
   external?: string
-  ant?: string
+  internal?: string
   external_message?: string
-  ant_message?: string
+  internal_message?: string
 }
 
 /**
@@ -100,15 +100,15 @@ This will ensure you have access to the latest features and improvements.
 
 /**
  * Returns the maximum allowed version for the current user type.
- * For ants, returns the `ant` field (dev version format).
+ * For internal users, returns the `internal` field (dev version format).
  * For external users, returns the `external` field (clean semver).
  * This is used as a server-side kill switch to pause auto-updates during incidents.
  * Returns undefined if no cap is configured.
  */
 export async function getMaxVersion(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
-  if (process.env.USER_TYPE === 'ant') {
-    return config.ant || undefined
+  if (process.env.USER_TYPE === 'internal') {
+    return config.internal || undefined
   }
   return config.external || undefined
 }
@@ -119,8 +119,8 @@ export async function getMaxVersion(): Promise<string | undefined> {
  */
 export async function getMaxVersionMessage(): Promise<string | undefined> {
   const config = await getMaxVersionConfig()
-  if (process.env.USER_TYPE === 'ant') {
-    return config.ant_message || undefined
+  if (process.env.USER_TYPE === 'internal') {
+    return config.internal_message || undefined
   }
   return config.external_message || undefined
 }
@@ -410,16 +410,16 @@ export async function getGcsDistTags(): Promise<NpmDistTags> {
 }
 
 /**
- * Get version history from npm registry (ant-only feature)
+ * Get version history from npm registry (internal-only feature)
  * Returns versions sorted newest-first, limited to the specified count
  *
  * Uses NATIVE_PACKAGE_URL when available because:
- * 1. Native installation is the primary installation method for ant users
+ * 1. Native installation is the primary installation method for internal users
  * 2. Not all JS package versions have corresponding native packages
  * 3. This prevents rollback from listing versions that don't have native binaries
  */
 export async function getVersionHistory(limit: number): Promise<string[]> {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return []
   }
 

@@ -12,6 +12,7 @@ import type {
   ToolStartMessage,
   ToolPermissionReviewRequest,
   ToolPermissionReviewResponse,
+  ToolApprovalResolvedMessage,
   CommandReviewRequest,
   CommandReviewResponse,
   FileWriteReviewRequest,
@@ -67,6 +68,7 @@ const IPC_CHANNELS = {
   'tool:commandReviewResponse': 'tool:commandReviewResponse',
   'tool:permissionReview': 'tool:permissionReview',
   'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
+  'tool:approvalResolved': 'tool:approvalResolved',
   'api:chat': 'api:chat',
   'api:chatStream': 'api:chatStream',
   'api:chatDelta': 'api:chatDelta',
@@ -458,6 +460,12 @@ const api = {
     const handler = (_event: any, data: ToolPermissionReviewRequest) => callback(data);
     ipcRenderer.on(IPC_CHANNELS['tool:permissionReview'], handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:permissionReview'], handler);
+  },
+
+  onToolApprovalResolved: (callback: (data: ToolApprovalResolvedMessage) => void): (() => void) => {
+    const handler = (_event: any, data: ToolApprovalResolvedMessage) => callback(data);
+    ipcRenderer.on(IPC_CHANNELS['tool:approvalResolved'], handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS['tool:approvalResolved'], handler);
   },
 
   onChatDelta: (callback: (data: ChatDeltaMessage) => void): (() => void) => {

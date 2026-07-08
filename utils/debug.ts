@@ -57,12 +57,12 @@ export const isDebugMode = memoize((): boolean => {
 })
 
 /**
- * Enables debug logging mid-session (e.g. via /debug). Non-ants don't write
+ * Enables debug logging mid-session (e.g. via /debug). Non-internal users don't write
  * debug logs by default, so this lets them start capturing without restarting
  * with --debug. Returns true if logging was already active.
  */
 export function enableDebugLogging(): boolean {
-  const wasActive = isDebugMode() || process.env.USER_TYPE === 'ant'
+  const wasActive = isDebugMode() || process.env.USER_TYPE === 'internal'
   runtimeDebugEnabled = true
   isDebugMode.cache.clear?.()
   return wasActive
@@ -106,9 +106,9 @@ function shouldLogDebugMessage(message: string): boolean {
     return false
   }
 
-  // Non-ants only write debug logs when debug mode is active (via --debug at
-  // startup or /debug mid-session). Ants always log for /share, bug reports.
-  if (process.env.USER_TYPE !== 'ant' && !isDebugMode()) {
+  // Non-internal users only write debug logs when debug mode is active (via --debug at
+  // startup or /debug mid-session). Internal users always log for /share, bug reports.
+  if (process.env.USER_TYPE !== 'internal' && !isDebugMode()) {
     return false
   }
 
@@ -176,7 +176,7 @@ function getDebugWriter(): BufferedWriter {
           void updateLatestDebugLogSymlink()
           return
         }
-        // Buffered path (ants without --debug): flushes ~1/sec so chain
+        // Buffered path (internal users without --debug): flushes ~1/sec so chain
         // depth stays ~1. .bind over a closure so only the bound args are
         // retained, not this scope.
         pendingWrite = pendingWrite
@@ -253,15 +253,15 @@ const updateLatestDebugLogSymlink = memoize(async (): Promise<void> => {
 })
 
 /**
- * Logs errors for Ants only, always visible in production.
+ * Logs errors for Internal users only, always visible in production.
  */
 export function logAntError(context: string, error: unknown): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return
   }
 
   if (error instanceof Error && error.stack) {
-    logForDebugging(`[ANT-ONLY] ${context} stack trace:\n${error.stack}`, {
+    logForDebugging(`[INTERNAL-ONLY] ${context} stack trace:\n${error.stack}`, {
       level: 'error',
     })
   }

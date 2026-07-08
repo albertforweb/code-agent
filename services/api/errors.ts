@@ -684,7 +684,7 @@ export function getAssistantMessageFromError(
       }
     }
 
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       const baseMessage = `API Error: 400 ${error.message}\n\nRun /share and post the JSON file to ${MACRO.FEEDBACK_CHANNEL}.`
       const rewindInstruction = getIsNonInteractiveSession()
         ? ''
@@ -747,18 +747,18 @@ export function getAssistantMessageFromError(
     })
   }
 
-  // Check for invalid model name error for Ant users. CodeAgent may be
-  // defaulting to a custom internal-only model for Ants, and there might be
-  // Ants using new or unknown org IDs that haven't been gated in.
+  // Check for invalid model name error for internal users. CodeAgent may be
+  // defaulting to a custom internal-only model for Internal users, and there might be
+  // Internal users using new or unknown org IDs that haven't been gated in.
   if (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     !process.env.LLM_PROVIDER_MODEL &&
     error instanceof Error &&
     error.message.toLowerCase().includes('invalid model name')
   ) {
     // Get organization ID from config - only use OAuth account data when actively using OAuth
     const orgId = getOauthAccountInfo()?.organizationUuid
-    const baseMsg = `[ANT-ONLY] Your org isn't gated into the \`${model}\` model. Either run \`codeAgent\` with \`LLM_PROVIDER_MODEL=${getDefaultMainLoopModelSetting()}\``
+    const baseMsg = `[INTERNAL-ONLY] Your org isn't gated into the \`${model}\` model. Either run \`codeAgent\` with \`LLM_PROVIDER_MODEL=${getDefaultMainLoopModelSetting()}\``
     const msg = orgId
       ? `${baseMsg} or share your orgId (${orgId}) in ${MACRO.FEEDBACK_CHANNEL} for help getting access.`
       : `${baseMsg} or reach out in ${MACRO.FEEDBACK_CHANNEL} for help getting access.`

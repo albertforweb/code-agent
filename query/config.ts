@@ -36,7 +36,7 @@ export function buildQueryConfig(): QueryConfig {
       emitToolUseSummaries: isEnvTruthy(
         process.env.CODE_AGENT_EMIT_TOOL_USE_SUMMARIES,
       ),
-      isAnt: process.env.USER_TYPE === 'ant',
+      isAnt: process.env.USER_TYPE === 'internal',
       // Inlined from fastMode.ts to avoid pulling its heavy module graph
       // (axios, settings, auth, model, oauth, config) into test shards that
       // didn't previously load it — changes init order and breaks unrelated tests.

@@ -1,5 +1,5 @@
 import { open, stat } from 'fs/promises'
-import { CODE_AGENT_GUIDE_AGENT_TYPE } from 'src/tools/AgentTool/built-in/codeAgentGuideAgent.js'
+import { CODEAGENT_GUIDE_AGENT_TYPE } from 'src/tools/AgentTool/built-in/codeAgentGuideAgent.js'
 import { getSettingsFilePathForSource } from 'src/utils/settings/settings.js'
 import { enableDebugLogging, getDebugLogPath } from '../../utils/debug.js'
 import { errorMessage, isENOENT } from '../../utils/errors.js'
@@ -13,7 +13,7 @@ export function registerDebugSkill(): void {
   registerBundledSkill({
     name: 'debug',
     description:
-      process.env.USER_TYPE === 'ant'
+      process.env.USER_TYPE === 'internal'
         ? 'Debug your current CodeAgent session by reading the session debug log. Includes all event logging'
         : 'Enable debug logging for this session and help diagnose issues',
     allowedTools: ['Read', 'Grep', 'Glob'],
@@ -23,7 +23,7 @@ export function registerDebugSkill(): void {
     disableModelInvocation: true,
     userInvocable: true,
     async getPromptForCommand(args) {
-      // Non-ants don't write debug logs by default — turn logging on now so
+      // Non-internal users don't write debug logs by default — turn logging on now so
       // subsequent activity in this session is captured.
       const wasAlreadyLogging = enableDebugLogging()
       const debugLogPath = getDebugLogPath()
@@ -93,7 +93,7 @@ Remember that settings are in:
 
 1. Review the user's issue description
 2. The last ${DEFAULT_DEBUG_LINES_READ} lines show the debug file format. Look for [ERROR] and [WARN] entries, stack traces, and failure patterns across the file
-3. Consider launching the ${CODE_AGENT_GUIDE_AGENT_TYPE} subagent to understand the relevant CodeAgent features
+3. Consider launching the ${CODEAGENT_GUIDE_AGENT_TYPE} subagent to understand the relevant CodeAgent features
 4. Explain what you found in plain language
 5. Suggest concrete fixes or next steps
 `

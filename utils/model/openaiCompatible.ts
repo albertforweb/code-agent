@@ -34,8 +34,6 @@ export function getOpenAICompatibleProviderKind(): OpenAIProviderKind | null {
   if (normalized === 'openai') return 'openai'
   if (
     normalized === 'openai-compatible' ||
-    normalized === 'lmstudio' ||
-    normalized === 'lm-studio' ||
     normalized === 'local' ||
     normalized === 'local-openai'
   ) {
@@ -54,9 +52,8 @@ export function getOpenAICompatibleBaseUrl(): string {
     firstDefined(
       process.env.CODE_AGENT_BASE_URL,
       process.env.CODE_AGENT_LLM_BASE_URL,
+      process.env.OPENAI_COMPATIBLE_BASE_URL,
       process.env.OPENAI_BASE_URL,
-      process.env.LM_STUDIO_BASE_URL,
-      process.env.LMSTUDIO_BASE_URL,
     ) ?? DEFAULT_BASE_URLS[provider]
   )
 }
@@ -66,9 +63,8 @@ export function getOpenAICompatibleModel(): string {
   return (
     firstDefined(
       process.env.CODE_AGENT_MODEL,
+      process.env.OPENAI_COMPATIBLE_MODEL,
       process.env.OPENAI_MODEL,
-      process.env.LM_STUDIO_MODEL,
-      process.env.LMSTUDIO_MODEL,
       process.env.LLM_PROVIDER_MODEL,
     ) ?? DEFAULT_MODELS[provider]
   )
@@ -80,9 +76,8 @@ export function getOpenAICompatibleContextTokens(): number {
     [
       process.env.CODE_AGENT_CONTEXT_TOKENS,
       process.env.CODE_AGENT_LLM_CONTEXT_TOKENS,
+      process.env.OPENAI_COMPATIBLE_CONTEXT_TOKENS,
       process.env.OPENAI_CONTEXT_TOKENS,
-      process.env.LM_STUDIO_CONTEXT_TOKENS,
-      process.env.LMSTUDIO_CONTEXT_TOKENS,
     ],
     DEFAULT_CONTEXT_TOKENS[provider],
   )
@@ -94,9 +89,8 @@ export function getOpenAICompatibleMaxOutputTokens(): number {
     [
       process.env.CODE_AGENT_MAX_OUTPUT_TOKENS,
       process.env.CODE_AGENT_LLM_MAX_OUTPUT_TOKENS,
+      process.env.OPENAI_COMPATIBLE_MAX_OUTPUT_TOKENS,
       process.env.OPENAI_MAX_OUTPUT_TOKENS,
-      process.env.LM_STUDIO_MAX_OUTPUT_TOKENS,
-      process.env.LMSTUDIO_MAX_OUTPUT_TOKENS,
     ],
     DEFAULT_MAX_OUTPUT_TOKENS[provider],
   )
@@ -109,9 +103,8 @@ export function shouldSendOpenAICompatibleTools(): boolean {
   const explicit = firstDefined(
     process.env.CODE_AGENT_ENABLE_TOOLS,
     process.env.CODE_AGENT_LLM_ENABLE_TOOLS,
+    process.env.OPENAI_COMPATIBLE_ENABLE_TOOLS,
     process.env.OPENAI_ENABLE_TOOLS,
-    process.env.LM_STUDIO_ENABLE_TOOLS,
-    process.env.LMSTUDIO_ENABLE_TOOLS,
   )
   if (explicit !== undefined) return isEnvTruthy(explicit)
 

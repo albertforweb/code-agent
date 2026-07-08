@@ -433,7 +433,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000
 /**
  * Clean up old npm cache entries for LlmProvider packages.
  * This helps reduce disk usage since we publish many dev versions per day.
- * Only runs once per day for Ant users.
+ * Only runs once per day for internal users.
  */
 export async function cleanupNpmCacheForLlmProviderPackages(): Promise<void> {
   const markerPath = join(getCodeAgentConfigHomeDir(), '.npm-cache-cleanup')
@@ -596,7 +596,7 @@ export async function cleanupOldMessageFilesInBackground(): Promise<void> {
   if (removedWorktrees > 0) {
     logEvent('tengu_worktree_cleanup', { removed: removedWorktrees })
   }
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     await cleanupNpmCacheForLlmProviderPackages()
   }
 }

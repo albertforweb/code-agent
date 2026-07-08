@@ -1,4 +1,3 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
 import { type as osType, version as osVersion, release as osRelease } from 'os'
 import { env } from '../utils/env.js'
 import { getIsGit } from '../utils/git.js'
@@ -132,12 +131,6 @@ function getSystemRemindersSection(): string {
 - The conversation has unlimited context through automatic summarization.`
 }
 
-function getAntModelOverrideSection(): string | null {
-  if (process.env.USER_TYPE !== 'ant') return null
-  if (isUndercover()) return null
-  return getAntModelOverrideConfig()?.defaultSystemPromptSuffix || null
-}
-
 function getLanguageSection(
   languagePreference: string | undefined,
 ): string | null {
@@ -201,7 +194,7 @@ function getSimpleDoingTasksSection(): string {
     `Don't add error handling, fallbacks, or validation for scenarios that can't happen. Trust internal code and framework guarantees. Only validate at system boundaries (user input, external APIs). Don't use feature flags or backwards-compatibility shims when you can just change the code.`,
     `Don't create helpers, utilities, or abstractions for one-time operations. Don't design for hypothetical future requirements. The right amount of complexity is what the task actually requires—no speculative abstractions, but no half-finished implementations either. Three similar lines of code is better than a premature abstraction.`,
     // @[MODEL LAUNCH]: Update comment writing for Capybara — remove or soften once the model stops over-commenting by default
-    ...(process.env.USER_TYPE === 'ant'
+    ...(process.env.USER_TYPE === 'internal'
       ? [
           `Default to writing no comments. Only add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader. If removing the comment wouldn't confuse a future reader, don't write it.`,
           `Don't explain WHAT the code does, since well-named identifiers already do that. Don't reference the current task, fix, or callers ("used by X", "added for the Y flow", "handles the case from issue #123"), since those belong in the PR description and rot as the codebase evolves.`,
@@ -221,7 +214,7 @@ function getSimpleDoingTasksSection(): string {
     `The user will primarily request you to perform software engineering tasks. These may include solving bugs, adding new functionality, refactoring code, explaining code, and more. When given an unclear or generic instruction, consider it in the context of these software engineering tasks and the current working directory. For example, if the user asks you to change "methodName" to snake case, do not reply with just "method_name", instead find the method in the code and modify the code.`,
     `You are highly capable and often allow users to complete ambitious tasks that would otherwise be too complex or take too long. You should defer to user judgement about whether a task is too large to attempt.`,
     // @[MODEL LAUNCH]: capy v8 assertiveness counterweight (PR #24302) — un-gate once validated on external via A/B
-    ...(process.env.USER_TYPE === 'ant'
+    ...(process.env.USER_TYPE === 'internal'
       ? [
           `If you notice the user's request is based on a misconception, or spot a bug adjacent to what they asked about, say so. You're a collaborator, not just an executor—users benefit from your judgment, not just your compliance.`,
         ]
@@ -234,12 +227,12 @@ function getSimpleDoingTasksSection(): string {
     ...codeStyleSubitems,
     `Avoid backwards-compatibility hacks like renaming unused _vars, re-exporting types, adding // removed comments for removed code, etc. If you are certain that something is unused, you can delete it completely.`,
     // @[MODEL LAUNCH]: False-claims mitigation for Capybara v8 (29-30% FC rate vs v4's 16.7%)
-    ...(process.env.USER_TYPE === 'ant'
+    ...(process.env.USER_TYPE === 'internal'
       ? [
           `Report outcomes faithfully: if tests fail, say so with the relevant output; if you did not run a verification step, say that rather than implying it succeeded. Never claim "all tests pass" when output shows failures, never suppress or simplify failing checks (tests, lints, type errors) to manufacture a green result, and never characterize incomplete or broken work as done. Equally, when a check did pass or a task is complete, state it plainly — do not hedge confirmed results with unnecessary disclaimers, downgrade finished work to "partial," or re-verify things you already checked. The goal is an accurate report, not a defensive one.`,
         ]
       : []),
-    ...(process.env.USER_TYPE === 'ant'
+    ...(process.env.USER_TYPE === 'internal'
       ? [
           `If the user reports a bug, slowness, or unexpected behavior with CodeAgent itself (as opposed to asking you to fix their own code), recommend the appropriate local feedback or diagnostics command when available. Only recommend this when the user is describing a problem with CodeAgent.`,
         ]
@@ -283,7 +276,7 @@ function getUsingYourToolsSection(enabledTools: Set<string>): string {
     return [`# Using your tools`, ...prependBullets(items)].join(`\n`)
   }
 
-  // Ant-native builds alias find/grep to embedded bfs/ugrep and remove the
+  // Internal-native builds alias find/grep to embedded bfs/ugrep and remove the
   // dedicated Glob/Grep tools, so skip guidance pointing at them.
   const embedded = hasEmbeddedSearchTools()
 
@@ -388,7 +381,7 @@ function getSessionSpecificGuidanceSection(
       : null,
     hasAgentTool &&
     feature('VERIFICATION_AGENT') &&
-    // 3P default: false — verification agent is ant-only A/B
+    // 3P default: false — verification agent is internal-only A/B
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_hive_evidence', false)
       ? `The contract: when non-trivial implementation happens on your turn, independent adversarial verification must happen before you report completion \u2014 regardless of who did the implementing (you directly, a fork you spawned, or a subagent). You are the one reporting to the user; you own the gate. Non-trivial means: 3+ file edits, backend/API changes, or infrastructure changes. Spawn the ${AGENT_TOOL_NAME} tool with subagent_type="${VERIFICATION_AGENT_TYPE}". Your own checks, caveats, and a fork's self-checks do NOT substitute \u2014 only the verifier assigns a verdict; you cannot self-assign PARTIAL. Pass the original user request, all files changed (by anyone), the approach, and the plan file path if applicable. Flag concerns if you have them but do NOT share test results or claim things work. On FAIL: fix, resume the verifier with its findings plus your fix, repeat until PASS. On PASS: spot-check it \u2014 re-run 2-3 commands from its report, confirm every PASS has a Command run block with output that matches your re-run. If any PASS lacks a command block or diverges, resume the verifier with the specifics. On PARTIAL (from the verifier): report what passed and what could not be verified.`
       : null,
@@ -400,7 +393,7 @@ function getSessionSpecificGuidanceSection(
 
 // @[MODEL LAUNCH]: Remove this section when we launch numbat.
 function getOutputEfficiencySection(): string {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     return `# Communicating with the user
 When sending user-facing text, you're writing for a person, not logging to a console. Assume users can't see most tool calls or thinking - only your text output. Before your first tool call, briefly state what you're about to do. While working, give short updates at key moments: when you find something load-bearing (a bug, a root cause), when changing direction, when you've made progress without an update.
 
@@ -429,7 +422,7 @@ If you can say it in one sentence, don't use three. Prefer short, direct sentenc
 function getSimpleToneAndStyleSection(): string {
   const items = [
     `Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.`,
-    process.env.USER_TYPE === 'ant'
+    process.env.USER_TYPE === 'internal'
       ? null
       : `Your responses should be short and concise.`,
     `When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.`,
@@ -492,9 +485,6 @@ ${CYBER_RISK_INSTRUCTION}`,
       getSessionSpecificGuidanceSection(enabledTools, skillToolCommands),
     ),
     systemPromptSection('memory', () => loadMemoryPrompt()),
-    systemPromptSection('ant_model_override', () =>
-      getAntModelOverrideSection(),
-    ),
     systemPromptSection('env_info_simple', () =>
       computeSimpleEnvInfo(model, additionalWorkingDirectories),
     ),
@@ -524,8 +514,8 @@ ${CYBER_RISK_INSTRUCTION}`,
       () => SUMMARIZE_TOOL_RESULTS_SECTION,
     ),
     // Numeric length anchors — research shows ~1.2% output token reduction vs
-    // qualitative "be concise". Ant-only to measure quality impact first.
-    ...(process.env.USER_TYPE === 'ant'
+    // qualitative "be concise". Internal-only to measure quality impact first.
+    ...(process.env.USER_TYPE === 'internal'
       ? [
           systemPromptSection(
             'numeric_length_anchors',
@@ -613,11 +603,11 @@ export async function computeEnvInfo(
   // FRONTIER_MODEL_* constants — if those ever point at an unannounced model,
   // we don't want them in context. Go fully dark.
   //
-  // DCE: `process.env.USER_TYPE === 'ant'` is build-time --define. It MUST be
+  // DCE: `process.env.USER_TYPE === 'internal'` is build-time --define. It MUST be
   // inlined at each callsite (not hoisted to a const) so the bundler can
   // constant-fold it to `false` in external builds and eliminate the branch.
   let modelDescription = ''
-  if (process.env.USER_TYPE === 'ant' && isUndercover()) {
+  if (process.env.USER_TYPE === 'internal' && isUndercover()) {
     // suppress
   } else {
     const marketingName = getMarketingNameForModel(modelId)
@@ -656,7 +646,7 @@ export async function computeSimpleEnvInfo(
   // Undercover: strip all model name/ID references. See computeEnvInfo.
   // DCE: inline the USER_TYPE check at each site — do NOT hoist to a const.
   let modelDescription: string | null = null
-  if (process.env.USER_TYPE === 'ant' && isUndercover()) {
+  if (process.env.USER_TYPE === 'internal' && isUndercover()) {
     // suppress
   } else {
     const marketingName = getMarketingNameForModel(modelId)
@@ -690,13 +680,13 @@ export async function computeSimpleEnvInfo(
     `OS Version: ${unameSR}`,
     modelDescription,
     knowledgeCutoffMessage,
-    process.env.USER_TYPE === 'ant' && isUndercover()
+    process.env.USER_TYPE === 'internal' && isUndercover()
       ? null
       : `The most recent CodeAgent model family is CodeAgent 4.5/4.6. Model IDs — Opus 4.6: '${CODE_AGENT_4_5_OR_4_6_MODEL_IDS.opus}', Sonnet 4.6: '${CODE_AGENT_4_5_OR_4_6_MODEL_IDS.sonnet}', Haiku 4.5: '${CODE_AGENT_4_5_OR_4_6_MODEL_IDS.haiku}'. When building AI applications, default to the latest and most capable CodeAgent models.`,
-    process.env.USER_TYPE === 'ant' && isUndercover()
+    process.env.USER_TYPE === 'internal' && isUndercover()
       ? null
       : `CodeAgent is available as a CLI in the terminal and as a desktop app.`,
-    process.env.USER_TYPE === 'ant' && isUndercover()
+    process.env.USER_TYPE === 'internal' && isUndercover()
       ? null
       : `Fast mode for CodeAgent prioritizes lower-latency output with the configured model. It can be toggled with /fast when supported.`,
   ].filter(item => item !== null)

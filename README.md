@@ -8,7 +8,7 @@ The project is no longer a provider-branded SDK wrapper. Model calls go through 
 
 - Runs as a CLI through `code-agent` or directly through `dist/entrypoints/cli.js`
 - Runs as a desktop workbench through Electron and React
-- Connects to OpenAI, LM Studio, or any compatible `/chat/completions` API
+- Connects to OpenAI or any OpenAI-compatible `/chat/completions` API
 - Reads, writes, edits, searches, and reasons over workspace files
 - Executes shell commands behind permission and sandbox policy
 - Supports MCP servers, MCP tools, and MCP resource access
@@ -18,7 +18,7 @@ The project is no longer a provider-branded SDK wrapper. Model calls go through 
 
 ## Model Provider Setup
 
-For LM Studio or another local compatible server:
+For a local or hosted OpenAI-compatible server:
 
 ```bash
 export CODE_AGENT_LLM_PROVIDER=openai-compatible
@@ -49,6 +49,10 @@ You can also pass provider settings at runtime:
 ```bash
 code-agent --llm-provider openai-compatible --base-url http://127.0.0.1:1234/v1 --model <loaded-model-id>
 ```
+
+## Local Configuration
+
+User-level CLI settings live in `~/.code-agent/config.json`. CodeAgent automatically copies legacy `~/.code-agent.json` or `~/.codeAgent.json` into that location on first read, then writes future changes to the new folder.
 
 ## Quick Start
 

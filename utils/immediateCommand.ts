@@ -5,11 +5,11 @@ import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growt
  * immediately (during a running query) rather than waiting for the current
  * turn to finish.
  *
- * Always enabled for ants; gated by experiment for external users.
+ * Always enabled for internal users; gated by experiment for external users.
  */
 export function shouldInferenceConfigCommandBeImmediate(): boolean {
   return (
-    process.env.USER_TYPE === 'ant' ||
+    process.env.USER_TYPE === 'internal' ||
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_immediate_model_command', false)
   )
 }

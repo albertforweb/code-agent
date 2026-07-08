@@ -16,7 +16,7 @@ import { getCwd } from '../utils/cwd.js'
 import { registerCleanup } from './cleanupRegistry.js'
 import { logForDebugging } from './debug.js'
 import { logForDiagnosticsNoPII } from './diagLogs.js'
-import { getGlobalCodeAgentFile } from './env.js'
+import { getGlobalCodeAgentFile, getLegacyGlobalCodeAgentFiles } from './env.js'
 import { getCodeAgentConfigHomeDir, isEnvTruthy } from './envUtils.js'
 import { ConfigParseError, getErrnoCode } from './errors.js'
 import { writeFileSyncAndFlush_DEPRECATED } from './file.js'
@@ -200,9 +200,9 @@ export type GlobalConfig = {
   lastOnboardingVersion?: string
   // Tracks the last version for which release notes were seen, used for managing release notes
   lastReleaseNotesSeen?: string
-  // Timestamp when changelog was last fetched (content stored in ~/.codeAgent/cache/changelog.md)
+  // Timestamp when changelog was last fetched (content stored in ~/.code-agent/cache/changelog.md)
   changelogLastFetched?: number
-  // @deprecated - Migrated to ~/.codeAgent/cache/changelog.md. Keep for migration support.
+  // @deprecated - Migrated to ~/.code-agent/cache/changelog.md. Keep for migration support.
   cachedChangelog?: string
   mcpServers?: Record<string, McpServerConfig>
   // codeAgent.ai MCP connectors that have successfully connected at least once.
@@ -223,9 +223,9 @@ export type GlobalConfig = {
   }
   primaryApiKey?: string // Primary API key for the user when no environment variable is set, set via oauth (TODO: rename)
   hasAcknowledgedCostThreshold?: boolean
-  hasSeenUndercoverAutoNotice?: boolean // ant-only: whether the one-time auto-undercover explainer has been shown
-  hasSeenUltraplanTerms?: boolean // ant-only: whether the one-time CCR terms notice has been shown in the ultraplan launch dialog
-  hasResetAutoModeOptInForDefaultOffer?: boolean // ant-only: one-shot migration guard, re-prompts churned auto-mode users
+  hasSeenUndercoverAutoNotice?: boolean // internal-only: whether the one-time auto-undercover explainer has been shown
+  hasSeenUltraplanTerms?: boolean // internal-only: whether the one-time CCR terms notice has been shown in the ultraplan launch dialog
+  hasResetAutoModeOptInForDefaultOffer?: boolean // internal-only: one-shot migration guard, re-prompts churned auto-mode users
   oauthAccount?: AccountInfo
   iterm2KeyBindingInstalled?: boolean // Legacy - keeping for backward compatibility
   editorMode?: EditorMode
@@ -396,7 +396,7 @@ export type GlobalConfig = {
   // CodeAgent usage tracking
   codeAgentCodeFirstTokenDate?: string // ISO timestamp of the user's first CodeAgent OAuth token
 
-  // Model switch callout tracking (ant-only)
+  // Model switch callout tracking (internal-only)
   modelSwitchCalloutDismissed?: boolean // Whether user chose "Don't show again"
   modelSwitchCalloutLastShown?: number // Timestamp of last shown (don't show for 24h)
   modelSwitchCalloutVersion?: string
@@ -448,7 +448,7 @@ export type GlobalConfig = {
   // Cached GrowthBook feature values
   cachedGrowthBookFeatures?: { [featureName: string]: unknown }
 
-  // Local GrowthBook overrides (ant-only, set via /config Gates tab).
+  // Local GrowthBook overrides (internal-only, set via /config Gates tab).
   // Checked after env-var overrides but before the real resolved value.
   growthBookOverrides?: { [featureName: string]: unknown }
 
@@ -531,7 +531,7 @@ export type GlobalConfig = {
   // PR status footer configuration (feature-flagged via GrowthBook)
   prStatusFooterEnabled?: boolean // Show PR review status in footer (default: true)
 
-  // Tmux live panel visibility (ant-only, toggled via Enter on tmux pill)
+  // Tmux live panel visibility (internal-only, toggled via Enter on tmux pill)
   tungstenPanelVisible?: boolean
 
   // Cached org-level fast mode status from the API.
@@ -550,10 +550,10 @@ export type GlobalConfig = {
   // undefined = no cache, null = extra usage enabled, string = disabled reason.
   cachedExtraUsageDisabledReason?: string | null
 
-  // Auto permissions notification tracking (ant-only)
+  // Auto permissions notification tracking (internal-only)
   autoPermissionsNotificationCount?: number // Number of times the auto permissions notification has been shown
 
-  // Speculation configuration (ant-only)
+  // Speculation configuration (internal-only)
   speculationEnabled?: boolean // Whether speculation is enabled (default: true)
 
 
@@ -871,13 +871,84 @@ let globalConfigCache: { config: GlobalConfig | null; mtime: number } = {
   mtime: 0,
 }
 
+let globalConfigFileMigrationChecked = false
+
+function ensureGlobalConfigFileMigrated(): void {
+  if (globalConfigFileMigrationChecked || process.env.NODE_ENV === 'test') {
+    return
+  }
+  globalConfigFileMigrationChecked = true
+
+  const fs = getFsImplementation()
+  const targetFile = getGlobalCodeAgentFile()
+  let targetMtimeMs = 0
+  try {
+    targetMtimeMs = fs.statSync(targetFile).mtimeMs
+  } catch {
+    targetMtimeMs = 0
+  }
+
+  let selectedLegacyFile: string | null = null
+  let selectedLegacyMtimeMs = 0
+  for (const legacyFile of getLegacyGlobalCodeAgentFiles()) {
+    try {
+      const legacyStats = fs.statSync(legacyFile)
+      if (!legacyStats.isFile()) {
+        continue
+      }
+      if (
+        legacyStats.mtimeMs > targetMtimeMs &&
+        legacyStats.mtimeMs > selectedLegacyMtimeMs
+      ) {
+        selectedLegacyFile = legacyFile
+        selectedLegacyMtimeMs = legacyStats.mtimeMs
+      }
+    } catch {
+      // Legacy file does not exist or cannot be statted.
+    }
+  }
+
+  if (!selectedLegacyFile) {
+    return
+  }
+
+  try {
+    fs.mkdirSync(dirname(targetFile), { recursive: true, mode: 0o700 })
+    const legacyContent = fs.readFileSync(selectedLegacyFile, {
+      encoding: 'utf-8',
+    })
+    try {
+      const targetContent = fs.readFileSync(targetFile, { encoding: 'utf-8' })
+      if (targetContent === legacyContent) {
+        return
+      }
+    } catch (error) {
+      if (getErrnoCode(error) !== 'ENOENT') {
+        throw error
+      }
+    }
+    writeFileSyncAndFlush_DEPRECATED(targetFile, legacyContent, {
+      encoding: 'utf-8',
+      mode: 0o600,
+    })
+    logForDebugging(
+      `Migrated CodeAgent global config from ${selectedLegacyFile} to ${targetFile}`,
+    )
+  } catch (error) {
+    logForDebugging(
+      `Failed to migrate CodeAgent global config from ${selectedLegacyFile} to ${targetFile}: ${error}`,
+      { level: 'error' },
+    )
+  }
+}
+
 // Tracking for config file operations (telemetry)
 let lastReadFileStats: { mtime: number; size: number } | null = null
 let configCacheHits = 0
 let configCacheMisses = 0
 // Session-total count of actual disk writes to the global config file.
-// Exposed for ant-only dev diagnostics (see inc-4552) so anomalous write
-// rates surface in the UI before they corrupt ~/.codeAgent.json.
+// Exposed for internal-only dev diagnostics (see inc-4552) so anomalous write
+// rates surface in the UI before they corrupt ~/.code-agent/config.json.
 let globalConfigWriteCount = 0
 
 export function getGlobalConfigWriteCount(): number {
@@ -1045,6 +1116,7 @@ export function getGlobalConfig(): GlobalConfig {
   if (process.env.NODE_ENV === 'test') {
     return TEST_GLOBAL_CONFIG_FOR_TESTING
   }
+  ensureGlobalConfigFileMigrated()
 
   // Fast path: pure memory read. After startup, this always hits — our own
   // writes go write-through and other instances' writes are picked up by the
@@ -1088,7 +1160,7 @@ export function getGlobalConfig(): GlobalConfig {
 /**
  * Returns the effective value of remoteControlAtStartup. Precedence:
  *   1. User's explicit config value (always wins — honors opt-out)
- *   2. CCR auto-connect default (ant-only build, GrowthBook-gated)
+ *   2. CCR auto-connect default (internal-only build, GrowthBook-gated)
  *   3. false (Remote Control must be explicitly opted into)
  */
 export function getRemoteControlAtStartup(): boolean {
@@ -1216,7 +1288,7 @@ function saveConfigWithLock<A extends object>(
     const currentConfig = getConfig(file, createDefault)
     if (file === getGlobalCodeAgentFile() && wouldLoseAuthState(currentConfig)) {
       logForDebugging(
-        'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.codeAgent.json. See GH #3117.',
+        'saveConfigWithLock: re-read config is missing auth that cache has; refusing to write to avoid wiping ~/.code-agent/config.json. See GH #3117.',
         { level: 'error' },
       )
       logEvent('tengu_config_auth_loss_prevented', {})
@@ -1240,7 +1312,7 @@ function saveConfigWithLock<A extends object>(
 
     // Create timestamped backup of existing config before writing
     // We keep multiple backups to prevent data loss if a reset/corrupted config
-    // overwrites a good backup. Backups are stored in ~/.codeAgent/backups/ to
+    // overwrites a good backup. Backups are stored in ~/.code-agent/backups/ to
     // keep the home directory clean.
     try {
       const fileBase = basename(file)
@@ -1343,6 +1415,7 @@ export function enableConfigs(): void {
   // Any reads to configuration before this flag is set show an console warning
   // to prevent us from adding config reading during module initialization
   configReadingAllowed = true
+  ensureGlobalConfigFileMigrated()
   // We only check the global config because currently all the configs share a file
   getConfig(
     getGlobalCodeAgentFile(),
@@ -1357,7 +1430,7 @@ export function enableConfigs(): void {
 
 /**
  * Returns the directory where config backup files are stored.
- * Uses ~/.codeAgent/backups/ to keep the home directory clean.
+ * Uses ~/.code-agent/backups/ to keep the home directory clean.
  */
 function getConfigBackupDir(): string {
   return join(getCodeAgentConfigHomeDir(), 'backups')
@@ -1365,7 +1438,7 @@ function getConfigBackupDir(): string {
 
 /**
  * Find the most recent backup file for a given config file.
- * Checks ~/.codeAgent/backups/ first, then falls back to the legacy location
+ * Checks ~/.code-agent/backups/ first, then falls back to the legacy location
  * (next to the config file) for backwards compatibility.
  * Returns the full path to the most recent backup, or null if none exist.
  */
@@ -1429,6 +1502,9 @@ function getConfig<A>(
   }
 
   const fs = getFsImplementation()
+  if (file === getGlobalCodeAgentFile()) {
+    ensureGlobalConfigFileMigrated()
+  }
 
   try {
     const fileContent = fs.readFileSync(file, {

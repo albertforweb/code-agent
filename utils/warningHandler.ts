@@ -25,10 +25,10 @@ function isRunningFromBuildDirectory(): boolean {
 
   const pathsToCheck = [invokedPath, execPath]
   const buildDirs = [
-    '/build-ant/',
+    '/build-internal/',
     '/build-external/',
     '/build-external-native/',
-    '/build-ant-native/',
+    '/build-internal-native/',
   ]
 
   return pathsToCheck.some(path => buildDirs.some(dir => path.includes(dir)))
@@ -93,13 +93,13 @@ export function initializeWarningHandler(): void {
       const isInternal = isInternalWarning(warning)
 
       // Always log to Statsig for monitoring
-      // Include full details for ant users only, since they may contain code or filepaths
+      // Include full details for internal users only, since they may contain code or filepaths
       logEvent('tengu_node_warning', {
         is_internal: isInternal ? 1 : 0,
         occurrence_count: count + 1,
         classname:
           warning.name as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-        ...(process.env.USER_TYPE === 'ant' && {
+        ...(process.env.USER_TYPE === 'internal' && {
           message:
             warning.message as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         }),

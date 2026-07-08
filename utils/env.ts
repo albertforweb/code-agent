@@ -4,45 +4,46 @@ import { join } from 'path'
 import { fileSuffixForOauthConfig } from '../constants/oauth.js'
 import { isRunningWithBun } from './bundledMode.js'
 import {
+  CODEAGENT_CONFIG_HOME,
   CODEAGENT_CONFIG_DIR_ENV,
   getCodeAgentConfigHomeDir,
+  LEGACY_CONFIG_HOME,
   LEGACY_CONFIG_DIR_ENV,
   isEnvTruthy,
 } from './envUtils.js'
 import { findExecutable } from './findExecutable.js'
-import { getFsImplementation } from './fsOperations.js'
 import { which } from './which.js'
 
 type Platform = 'win32' | 'darwin' | 'linux'
 
 // Config and data paths
 export const getGlobalCodeAgentFile = memoize((): string => {
-  const fs = getFsImplementation()
-  const localConfigPath = join(getCodeAgentConfigHomeDir(), '.config.json')
-  if (fs.existsSync(localConfigPath)) {
-    return localConfigPath
-  }
-
   const suffix = fileSuffixForOauthConfig()
+  return join(getCodeAgentConfigHomeDir(), `config${suffix}.json`)
+})
+
+export function getLegacyGlobalCodeAgentFiles(): string[] {
+  const suffix = fileSuffixForOauthConfig()
+  const canonicalPath = getGlobalCodeAgentFile()
+  const configHomeDir = getCodeAgentConfigHomeDir()
   const baseDir =
     process.env[CODEAGENT_CONFIG_DIR_ENV] ??
     process.env[LEGACY_CONFIG_DIR_ENV] ??
     homedir()
-  const codeAgentGlobalPath = join(baseDir, `.code-agent${suffix}.json`)
-  if (fs.existsSync(codeAgentGlobalPath)) {
-    return codeAgentGlobalPath
-  }
 
-  const legacyGlobalPath = join(
-    process.env[LEGACY_CONFIG_DIR_ENV] ?? homedir(),
-    `.codeAgent${suffix}.json`,
-  )
-  if (fs.existsSync(legacyGlobalPath)) {
-    return legacyGlobalPath
-  }
+  const candidates = [
+    join(configHomeDir, `.config${suffix}.json`),
+    join(baseDir, `.code-agent${suffix}.json`),
+    join(
+      process.env[LEGACY_CONFIG_DIR_ENV] ?? homedir(),
+      `.codeAgent${suffix}.json`,
+    ),
+    join(homedir(), LEGACY_CONFIG_HOME, `.config${suffix}.json`),
+    join(homedir(), CODEAGENT_CONFIG_HOME, `.config${suffix}.json`),
+  ]
 
-  return codeAgentGlobalPath
-})
+  return Array.from(new Set(candidates)).filter(path => path !== canonicalPath)
+}
 
 const hasInternetAccess = memoize(async (): Promise<boolean> => {
   try {

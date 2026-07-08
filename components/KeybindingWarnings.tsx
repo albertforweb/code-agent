@@ -8,7 +8,7 @@ import { getCachedKeybindingWarnings, getKeybindingsPath, isKeybindingCustomizat
  * Similar to McpParsingWarnings, this provides persistent visibility
  * of configuration issues.
  *
- * Only shown when keybinding customization is enabled (ant users + feature gate).
+ * Only shown when keybinding customization is enabled (internal users + feature gate).
  */
 export function KeybindingWarnings() {
   const $ = _c(2);

@@ -702,7 +702,7 @@ export const SettingsSchema = lazySchema(() =>
         ),
       effortLevel: z
         .enum(
-          process.env.USER_TYPE === 'ant'
+          process.env.USER_TYPE === 'internal'
             ? ['low', 'medium', 'high', 'max']
             : ['low', 'medium', 'high'],
         )
@@ -828,7 +828,7 @@ export const SettingsSchema = lazySchema(() =>
           'Custom directory for plan files, relative to project root. ' +
             'If not set, defaults to ~/.codeAgent/plans/',
         ),
-      ...(process.env.USER_TYPE === 'ant'
+      ...(process.env.USER_TYPE === 'internal'
         ? {
             classifierPermissionsEnabled: z
               .boolean()
@@ -989,9 +989,9 @@ export const SettingsSchema = lazySchema(() =>
                   .array(z.string())
                   .optional()
                   .describe('Rules for the auto mode classifier deny section'),
-                ...(process.env.USER_TYPE === 'ant'
+                ...(process.env.USER_TYPE === 'internal'
                   ? {
-                      // Back-compat alias for ant users; external users use soft_deny
+                      // Back-compat alias for internal users; external users use soft_deny
                       deny: z.array(z.string()).optional(),
                     }
                   : {}),

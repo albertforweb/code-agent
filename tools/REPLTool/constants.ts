@@ -11,12 +11,12 @@ import { NOTEBOOK_EDIT_TOOL_NAME } from '../NotebookEditTool/constants.js'
 export const REPL_TOOL_NAME = 'REPL'
 
 /**
- * REPL mode is default-on for ants in the interactive CLI (opt out with
+ * REPL mode is default-on for internal users in the interactive CLI (opt out with
  * CODE_AGENT_REPL=0). The legacy CODE_AGENT_REPL_MODE=1 also forces it on.
  *
  * SDK entrypoints (sdk-ts, sdk-py, sdk-cli) are NOT defaulted on — SDK
  * consumers script direct tool calls (Bash, Read, etc.) and REPL mode
- * hides those tools. USER_TYPE is a build-time --define, so the ant-native
+ * hides those tools. USER_TYPE is a build-time --define, so the internal-native
  * binary would otherwise force REPL mode on every SDK subprocess regardless
  * of the env the caller passes.
  */
@@ -24,7 +24,7 @@ export function isReplModeEnabled(): boolean {
   if (isEnvDefinedFalsy(process.env.CODE_AGENT_REPL)) return false
   if (isEnvTruthy(process.env.CODE_AGENT_REPL_MODE)) return true
   return (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     process.env.CODE_AGENT_ENTRYPOINT === 'cli'
   )
 }

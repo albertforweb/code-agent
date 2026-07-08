@@ -22,6 +22,7 @@ exports.IPC_CHANNELS = {
     'tool:commandReviewResponse': 'tool:commandReviewResponse',
     'tool:permissionReview': 'tool:permissionReview',
     'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
+    'tool:approvalResolved': 'tool:approvalResolved',
     // API channels
     'api:chat': 'api:chat',
     'api:chatStream': 'api:chatStream',

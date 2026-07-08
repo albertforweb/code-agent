@@ -14,13 +14,13 @@ function formatDuration(ms: number): string {
 
 /**
  * Decode a JWT's payload segment without verifying the signature.
- * Strips the `sk-ant-si-` session-ingress prefix if present.
+ * Strips the `sk-codeagent-si-` session-ingress prefix if present.
  * Returns the parsed JSON payload as `unknown`, or `null` if the
  * token is malformed or the payload is not valid JSON.
  */
 export function decodeJwtPayload(token: string): unknown | null {
-  const jwt = token.startsWith('sk-ant-si-')
-    ? token.slice('sk-ant-si-'.length)
+  const jwt = token.startsWith('sk-codeagent-si-')
+    ? token.slice('sk-codeagent-si-'.length)
     : token
   const parts = jwt.split('.')
   if (parts.length !== 3 || !parts[1]) return null

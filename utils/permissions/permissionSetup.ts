@@ -273,7 +273,7 @@ function isDangerousClassifierPermission(
   toolName: string,
   ruleContent: string | undefined,
 ): boolean {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     // Tmux send-keys executes arbitrary shell, bypassing the classifier same as Bash(*)
     if (toolName === 'Tmux') return true
   }
@@ -945,13 +945,13 @@ export async function initializeToolPermissionContext({
   // Load all permission rules from disk
   const rulesFromDisk = loadAllPermissionRulesFromDisk()
 
-  // Ant-only: Detect overly broad shell allow rules for all modes.
+  // Internal-only: Detect overly broad shell allow rules for all modes.
   // Bash(*) or PowerShell(*) are equivalent to YOLO mode for that shell.
   // Skip in CCR/BYOC where --allowed-tools is the intended pre-approval mechanism.
   // Variable name kept for return-field compat; contains both shells.
   let overlyBroadBashPermissions: DangerousPermissionInfo[] = []
   if (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     !isEnvTruthy(process.env.CODE_AGENT_REMOTE) &&
     process.env.CODE_AGENT_ENTRYPOINT !== 'local-agent'
   ) {
@@ -964,7 +964,7 @@ export async function initializeToolPermissionContext({
     ]
   }
 
-  // Ant-only: Detect dangerous shell permissions for auto mode
+  // Internal-only: Detect dangerous shell permissions for auto mode
   // Dangerous permissions (like Bash(*), Bash(python:*), PowerShell(iex:*)) would auto-allow
   // before the classifier can evaluate them, defeating the purpose of safer YOLO mode
   let dangerousPermissions: DangerousPermissionInfo[] = []
@@ -1103,13 +1103,13 @@ export async function verifyAutoModeGateAccess(
   const mainModel = getMainLoopModel()
   // Temp circuit breaker: tengu_auto_mode_config.disableFastMode blocks auto
   // mode when fast mode is on. Checks runtime AppState.fastMode (if provided)
-  // and, for ants, model name '-fast' substring (ant-internal fast models
+  // and, for internal users, model name '-fast' substring (internal fast models
   // like capybara-v2-fast[1m] encode speed in the model ID itself).
   // Remove once auto+fast mode interaction is validated.
   const disableFastModeBreakerFires =
     !!autoModeConfig?.disableFastMode &&
     (!!fastMode ||
-      (process.env.USER_TYPE === 'ant' &&
+      (process.env.USER_TYPE === 'internal' &&
         mainModel.toLowerCase().includes('-fast')))
   const modelSupported =
     modelSupportsAutoMode(mainModel) && !disableFastModeBreakerFires

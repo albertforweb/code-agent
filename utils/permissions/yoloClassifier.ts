@@ -32,7 +32,6 @@ import { isEnvDefinedFalsy, isEnvTruthy } from '../envUtils.js'
 import { errorMessage } from '../errors.js'
 import { lazySchema } from '../lazySchema.js'
 import { extractTextContent } from '../messages.js'
-import { resolveAntModel } from '../model/antModels.js'
 import { getMainLoopModel } from '../model/model.js'
 import { getAutoModeConfig } from '../settings/settings.js'
 import { sideQuery } from '../sideQuery.js'
@@ -61,20 +60,20 @@ const BASE_PROMPT: string = feature('TRANSCRIPT_CLASSIFIER')
   : ''
 
 // External template is loaded separately so it's available for
-// `codeAgent auto-mode defaults` even in ant builds. Ant builds use
+// `codeAgent auto-mode defaults` even in internal builds. Internal builds use
 // permissions_llmProvider.txt at runtime but should dump external defaults.
 const EXTERNAL_PERMISSIONS_TEMPLATE: string = feature('TRANSCRIPT_CLASSIFIER')
   ? txtRequire(require('./yolo-classifier-prompts/permissions_external.txt'))
   : ''
 
 const LLM_PROVIDER_PERMISSIONS_TEMPLATE: string =
-  feature('TRANSCRIPT_CLASSIFIER') && process.env.USER_TYPE === 'ant'
+  feature('TRANSCRIPT_CLASSIFIER') && process.env.USER_TYPE === 'internal'
     ? txtRequire(require('./yolo-classifier-prompts/permissions_llmProvider.txt'))
     : ''
 /* eslint-enable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
 
 function isUsingExternalPermissions(): boolean {
-  if (process.env.USER_TYPE !== 'ant') return true
+  if (process.env.USER_TYPE !== 'internal') return true
   const config = getFeatureValue_CACHED_MAY_BE_STALE(
     'tengu_auto_mode_config',
     {} as AutoModeConfig,
@@ -161,7 +160,7 @@ async function maybeDumpAutoMode(
   timestamp: number,
   suffix?: string,
 ): Promise<void> {
-  if (process.env.USER_TYPE !== 'ant') return
+  if (process.env.USER_TYPE !== 'internal') return
   if (!isEnvTruthy(process.env.CODE_AGENT_DUMP_AUTO_MODE)) return
   const base = suffix ? `${timestamp}.${suffix}` : `${timestamp}`
   try {
@@ -672,15 +671,7 @@ function replaceOutputFormatWithXml(systemPrompt: string): string {
  * Thinking config for classifier calls. The classifier wants short text-only
  * responses — API thinking blocks are ignored by extractTextContent() and waste tokens.
  *
- * For most models: send { type: 'disabled' } via sideQuery's `thinking: false`.
- *
- * Models with alwaysOnThinking (declared in tengu_ant_model_override) default
- * to adaptive thinking server-side and reject `disabled` with a 400. For those:
- * don't pass `thinking: false`, instead pad max_tokens so adaptive thinking
- * (observed 0–1114 tokens replaying go/ccshare/shawnm-20260310-202833) doesn't
- * exhaust the budget before <block> is emitted. Without headroom,
- * stop_reason=max_tokens yields an empty text response → parseXmlBlock('')
- * → null → "unparseable" → safe commands blocked.
+ * Send { type: 'disabled' } via sideQuery's `thinking: false`.
  *
  * Returns [disableThinking, headroom] — tuple instead of named object so
  * property-name strings don't survive minification into external builds.
@@ -688,12 +679,6 @@ function replaceOutputFormatWithXml(systemPrompt: string): string {
 function getClassifierThinkingConfig(
   model: string,
 ): [false | undefined, number] {
-  if (
-    process.env.USER_TYPE === 'ant' &&
-    resolveAntModel(model)?.alwaysOnThinking
-  ) {
-    return [undefined, 2048]
-  }
   return [false, 0]
 }
 
@@ -1320,7 +1305,7 @@ type AutoModeConfig = {
    */
   twoStageClassifier?: boolean | 'fast' | 'thinking'
   /**
-   * Ant builds normally use permissions_llmProvider.txt; when true, use
+   * Internal builds normally use permissions_llmProvider.txt; when true, use
    * permissions_external.txt instead (dogfood the external template).
    */
   forceExternalPermissions?: boolean
@@ -1333,11 +1318,11 @@ type AutoModeConfig = {
 
 /**
  * Get the model for the classifier.
- * Ant-only env var takes precedence, then GrowthBook JSON config override,
+ * Internal-only env var takes precedence, then GrowthBook JSON config override,
  * then the main loop model.
  */
 function getClassifierModel(): string {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     const envModel = process.env.CODE_AGENT_AUTO_MODE_MODEL
     if (envModel) return envModel
   }
@@ -1352,7 +1337,7 @@ function getClassifierModel(): string {
 }
 
 /**
- * Resolve the XML classifier setting: ant-only env var takes precedence,
+ * Resolve the XML classifier setting: internal-only env var takes precedence,
  * then GrowthBook. Returns undefined when unset (caller decides default).
  */
 function resolveTwoStageClassifier():
@@ -1360,7 +1345,7 @@ function resolveTwoStageClassifier():
   | 'fast'
   | 'thinking'
   | undefined {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     const env = process.env.CODE_AGENT_TWO_STAGE_CLASSIFIER
     if (env === 'fast' || env === 'thinking') return env
     if (isEnvTruthy(env)) return true
@@ -1382,7 +1367,7 @@ function isTwoStageClassifierEnabled(): boolean {
 }
 
 function isJsonlTranscriptEnabled(): boolean {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     const env = process.env.CODE_AGENT_JSONL_TRANSCRIPT
     if (isEnvTruthy(env)) return true
     if (isEnvDefinedFalsy(env)) return false

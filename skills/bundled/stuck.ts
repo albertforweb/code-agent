@@ -51,14 +51,14 @@ If every session looks healthy, tell the user that directly. If you did find a s
 `
 
 export function registerStuckSkill(): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return
   }
 
   registerBundledSkill({
     name: 'stuck',
     description:
-      '[ANT-ONLY] Investigate frozen/stuck/slow CodeAgent sessions on this machine and produce a diagnostic report.',
+      '[INTERNAL-ONLY] Investigate frozen/stuck/slow CodeAgent sessions on this machine and produce a diagnostic report.',
     userInvocable: true,
     async getPromptForCommand(args) {
       let prompt = STUCK_PROMPT

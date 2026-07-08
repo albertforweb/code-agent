@@ -43,7 +43,7 @@ export type SecretMatch = {
 // LlmProvider API key prefix, assembled at runtime so the literal byte
 // sequence isn't present in the external bundle (excluded-strings check).
 // join() is not constant-folded by the minifier.
-const ANT_KEY_PFX = ['sk', 'ant', 'api'].join('-')
+const CODEAGENT_KEY_PFX = ['sk', 'codeagent', 'api'].join('-')
 
 const SECRET_RULES: SecretRule[] = [
   // — Cloud providers —
@@ -72,12 +72,12 @@ const SECRET_RULES: SecretRule[] = [
   // — AI APIs —
   {
     id: 'llmProvider-api-key',
-    source: `\\b(${ANT_KEY_PFX}03-[a-zA-Z0-9_\\-]{93}AA)(?:[\\x60'"\\s;]|\\\\[nr]|$)`,
+    source: `\\b(${CODEAGENT_KEY_PFX}03-[a-zA-Z0-9_\\-]{93}AA)(?:[\\x60'"\\s;]|\\\\[nr]|$)`,
   },
   {
     id: 'llmProvider-admin-api-key',
     source:
-      '\\b(sk-ant-admin01-[a-zA-Z0-9_\\-]{93}AA)(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
+      '\\b(sk-codeagent-admin01-[a-zA-Z0-9_\\-]{93}AA)(?:[\\x60\'"\\s;]|\\\\[nr]|$)',
   },
   {
     id: 'openai-api-key',

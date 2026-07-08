@@ -7,7 +7,8 @@ import {
   envDetector,
   hostDetector,
   osDetector,
-  Resource,
+  resourceFromAttributes,
+  type Resource,
 } from '@opentelemetry/resources'
 import {
   BatchLogRecordProcessor,
@@ -66,9 +67,6 @@ import {
   isEnhancedTelemetryEnabled,
 } from './sessionTracing.js'
 
-const resourceFromAttributes = (attributes: ConstructorParameters<typeof Resource>[0]) =>
-  new Resource(attributes)
-
 const DEFAULT_METRICS_EXPORT_INTERVAL_MS = 60000
 const DEFAULT_LOGS_EXPORT_INTERVAL_MS = 5000
 const DEFAULT_TRACES_EXPORT_INTERVAL_MS = 5000
@@ -88,7 +86,7 @@ function telemetryTimeout(ms: number, message: string): Promise<never> {
 }
 
 export function bootstrapTelemetry() {
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     // Read from ANT_ prefixed variables that are defined at build time
     if (process.env.ANT_OTEL_METRICS_EXPORTER) {
       process.env.OTEL_METRICS_EXPORTER = process.env.ANT_OTEL_METRICS_EXPORTER
@@ -168,7 +166,7 @@ async function getOtlpReaders() {
       switch (protocol) {
         case 'grpc': {
           // Lazy-import to keep @grpc/grpc-js (~700KB) out of the telemetry chunk
-          // when the protocol is http/protobuf (ant default) or http/json.
+          // when the protocol is http/protobuf (internal default) or http/json.
           const { OTLPMetricExporter } = await import(
             '@opentelemetry/exporter-metrics-otlp-grpc'
           )
@@ -431,7 +429,7 @@ export async function initializeTelemetry() {
   // the SDK's line reader. Stripped here (not main.tsx) because init.ts
   // re-runs applyConfigEnvironmentVariables() inside initializeTelemetry-
   // AfterTrust for remote-managed-settings users, and bootstrapTelemetry
-  // above copies ANT_OTEL_* for ant users — both would undo an earlier strip.
+  // above copies ANT_OTEL_* for internal users — both would undo an earlier strip.
   if (getHasFormattedOutput()) {
     for (const key of [
       'OTEL_METRICS_EXPORTER',

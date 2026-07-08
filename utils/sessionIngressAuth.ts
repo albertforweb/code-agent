@@ -111,13 +111,13 @@ export function getSessionIngressAuthToken(): string | null {
 
 /**
  * Build auth headers for the current session token.
- * Session keys (sk-ant-sid) use Cookie auth + X-Organization-Uuid;
+ * Session keys (sk-codeagent-sid) use Cookie auth + X-Organization-Uuid;
  * JWTs use Bearer auth.
  */
 export function getSessionIngressAuthHeaders(): Record<string, string> {
   const token = getSessionIngressAuthToken()
   if (!token) return {}
-  if (token.startsWith('sk-ant-sid')) {
+  if (token.startsWith('sk-codeagent-sid')) {
     const headers: Record<string, string> = {
       Cookie: `sessionKey=${token}`,
     }

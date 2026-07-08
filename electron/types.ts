@@ -96,6 +96,15 @@ export interface ToolPermissionReviewResponse {
   reason?: string;
 }
 
+export interface ToolApprovalResolvedMessage {
+  requestId: string;
+  type?: 'file-write' | 'command' | 'tool';
+  title?: string;
+  approved: boolean;
+  resolvedBy: string;
+  reason?: string;
+}
+
 export interface Tool {
   name: string;
   description: string;
@@ -561,6 +570,7 @@ export const IPC_CHANNELS = {
   'tool:commandReviewResponse': 'tool:commandReviewResponse',
   'tool:permissionReview': 'tool:permissionReview',
   'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
+  'tool:approvalResolved': 'tool:approvalResolved',
 
   // API channels
   'api:chat': 'api:chat',

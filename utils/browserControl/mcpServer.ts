@@ -3,7 +3,7 @@ import {
   createCodeAgentForChromeMcpServer,
   type Logger,
   type PermissionMode,
-} from '@ant/codeAgent-for-chrome-mcp'
+} from '@codeagent/browser-control-mcp'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { format } from 'util'
 import { shutdownDatadog } from '../../services/analytics/datadog.js'
@@ -45,12 +45,12 @@ function isPermissionMode(raw: string): raw is PermissionMode {
 
 /**
  * Resolves the Chrome bridge URL based on environment and feature flag.
- * Bridge is used when the feature flag is enabled; ant users always get
+ * Bridge is used when the feature flag is enabled; internal users always get
  * bridge. API key / 3P users fall back to native messaging.
  */
 function getChromeBridgeUrl(): string | undefined {
   const bridgeEnabled =
-    process.env.USER_TYPE === 'ant' ||
+    process.env.USER_TYPE === 'internal' ||
     getFeatureValue_CACHED_MAY_BE_STALE('tengu_copper_bridge', false)
 
   if (!bridgeEnabled) {
@@ -153,7 +153,7 @@ export function createChromeContext(
     // a lightning-mode agent loop in Node and calls the extension's
     // lightning_turn tool once per iteration for execution.
     //
-    // Ant-only: the extension's lightning_turn is build-time-gated via
+    // Internal-only: the extension's lightning_turn is build-time-gated via
     // import.meta.env.ANT_ONLY_BUILD — the whole lightning/ module graph is
     // tree-shaken from the public extension build (build:prod greps for a
     // marker to verify). Without this injection, the Node MCP server's
@@ -161,13 +161,13 @@ export function createChromeContext(
     // users never see the tools advertised. Three independent gates.
     //
     // Types inlined: LlmProviderMessagesRequest/Response live in
-    // @ant/codeAgent-for-chrome-mcp@0.4.0 which isn't published yet. CI installs
+    // @codeagent/browser-control-mcp@0.4.0 which isn't published yet. CI installs
     // 0.3.0. The callLlmProviderMessages field is also 0.4.0-only, but spreading
     // an extra property into CodeAgentForChromeContext is fine against either
     // version — 0.3.0 sees an unknown field (allowed in spread), 0.4.0 sees a
     // structurally-matching one. Once 0.4.0 is published, this can switch to
     // the package's exported types and the dep can be bumped.
-    ...(process.env.USER_TYPE === 'ant' && {
+    ...(process.env.USER_TYPE === 'internal' && {
       callLlmProviderMessages: async (req: {
         model: string
         max_tokens: number

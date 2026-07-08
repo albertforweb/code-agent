@@ -5,7 +5,7 @@
  * for changes to reload them automatically.
  *
  * NOTE: User keybinding customization is currently only available for
- * LlmProvider employees (USER_TYPE === 'ant'). External users always
+ * LlmProvider employees (USER_TYPE === 'internal'). External users always
  * use the default bindings.
  */
 

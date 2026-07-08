@@ -197,11 +197,11 @@ export interface ContextData {
   readonly model: string
   readonly memoryFiles: MemoryFile[]
   readonly mcpTools: McpTool[]
-  /** Ant-only: per-tool breakdown of deferred built-in tools */
+  /** Internal-only: per-tool breakdown of deferred built-in tools */
   readonly deferredBuiltinTools?: DeferredBuiltinTool[]
-  /** Ant-only: per-tool breakdown of always-loaded built-in tools */
+  /** Internal-only: per-tool breakdown of always-loaded built-in tools */
   readonly systemTools?: SystemToolDetail[]
-  /** Ant-only: per-section breakdown of system prompt */
+  /** Internal-only: per-section breakdown of system prompt */
   readonly systemPromptSections?: SystemPromptSectionDetail[]
   readonly agents: Agent[]
   readonly slashCommands?: SlashCommandInfo
@@ -408,11 +408,11 @@ async function countBuiltInToolTokens(
         )
       : 0
 
-  // Build per-tool breakdown for always-loaded tools (ant-only, proportional
+  // Build per-tool breakdown for always-loaded tools (internal-only, proportional
   // split of the bulk count based on rough schema size estimation). Excludes
   // SkillTool since its tokens are shown in the separate Skills category.
   let systemToolDetails: SystemToolDetail[] = []
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     const toolsForBreakdown = alwaysLoadedTools.filter(
       t => !toolMatchesName(t, SKILL_TOOL_NAME),
     )
@@ -1017,13 +1017,13 @@ export async function analyzeContextUsage(
   }
 
   // Built-in tools right after system prompt (skills shown separately below)
-  // Ant users get a per-tool breakdown via systemToolDetails
+  // Internal users get a per-tool breakdown via systemToolDetails
   const systemToolsTokens = builtInToolTokens - skillFrontmatterTokens
   if (systemToolsTokens > 0) {
     cats.push({
       name:
-        process.env.USER_TYPE === 'ant'
-          ? '[ANT-ONLY] System tools'
+        process.env.USER_TYPE === 'internal'
+          ? '[INTERNAL-ONLY] System tools'
           : 'System tools',
       tokens: systemToolsTokens,
       color: 'inactive',
@@ -1351,11 +1351,11 @@ export async function analyzeContextUsage(
     memoryFiles: memoryFileDetails,
     mcpTools: mcpToolDetails,
     deferredBuiltinTools:
-      process.env.USER_TYPE === 'ant' ? deferredBuiltinDetails : undefined,
+      process.env.USER_TYPE === 'internal' ? deferredBuiltinDetails : undefined,
     systemTools:
-      process.env.USER_TYPE === 'ant' ? systemToolDetails : undefined,
+      process.env.USER_TYPE === 'internal' ? systemToolDetails : undefined,
     systemPromptSections:
-      process.env.USER_TYPE === 'ant' ? systemPromptSections : undefined,
+      process.env.USER_TYPE === 'internal' ? systemPromptSections : undefined,
     agents: agentDetails,
     slashCommands:
       slashCommandTokens > 0

@@ -16,6 +16,7 @@ import {
   type ToolPermissionMode,
   type ToolPermissionReviewResponse,
   type ToolExecuteMessage,
+  type ToolApprovalResolvedMessage,
 } from './types';
 import {
   ToolServiceBridge,
@@ -101,7 +102,7 @@ export function registerServiceBridges(
   ipcBridge: IpcBridge,
   options: ServiceBridgeOptions,
 ): RegisteredServiceBridges {
-  const workspacePath = options.cwd ?? process.cwd();
+  const workspacePath = resolveWorkspacePath(options.cwd);
   const automationExecutionScope = new AsyncLocalStorage<AutomationExecutionScope>();
   const pendingFileWriteReviews = new Map<string, {
     resolve: () => void;
@@ -401,6 +402,16 @@ export function registerServiceBridges(
   };
 
   automationService.setNotificationEmitter(automationNotificationEmitter);
+  automationService.setApprovalResolutionEmitter(event => {
+    sendToRenderer(options.getMainWindow, IPC_CHANNELS['tool:approvalResolved'], {
+      requestId: event.approvalId,
+      type: event.type,
+      title: event.title,
+      approved: event.approved,
+      resolvedBy: event.resolvedBy,
+      reason: event.reason,
+    } satisfies ToolApprovalResolvedMessage);
+  });
 
   apiService.setAuthTokenProvider(provider => authService.getToken(provider));
   apiService.setAppConfigProvider(() => appStateService.getConfig());
@@ -950,6 +961,19 @@ export function registerServiceBridges(
     automationService,
     historyService,
   };
+}
+
+function resolveWorkspacePath(value: string | undefined): string {
+  const fallback = app.getPath('home');
+  const candidate = typeof value === 'string' && value.trim()
+    ? path.resolve(value.trim())
+    : fallback;
+
+  if (!candidate || candidate === path.parse(candidate).root) {
+    return fallback;
+  }
+
+  return candidate;
 }
 
 function createBridgeTools({

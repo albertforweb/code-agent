@@ -170,7 +170,7 @@ function denyAutoMemTool(tool: Tool, reason: string) {
  */
 export function createAutoMemCanUseTool(memoryDir: string): CanUseToolFn {
   return async (tool: Tool, input: Record<string, unknown>) => {
-    // Allow REPL — when REPL mode is enabled (ant-default), primitive tools
+    // Allow REPL — when REPL mode is enabled (internal-default), primitive tools
     // are hidden from the tool list so the forked agent calls REPL instead.
     // REPL's VM context re-invokes this canUseTool for each inner primitive
     // (toolWrappers.ts createToolWrapper), so the Read/Bash/Edit/Write checks
@@ -534,7 +534,7 @@ export function initExtractMemories(): void {
     }
 
     if (!getFeatureValue_CACHED_MAY_BE_STALE('tengu_passport_quail', false)) {
-      if (process.env.USER_TYPE === 'ant' && !hasLoggedGateFailure) {
+      if (process.env.USER_TYPE === 'internal' && !hasLoggedGateFailure) {
         hasLoggedGateFailure = true
         logEvent('tengu_extract_memories_gate_disabled', {})
       }

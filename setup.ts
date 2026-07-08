@@ -88,7 +88,7 @@ export async function setup(
   // Explicit --messaging-socket-path is the escape hatch (per #23222 gate pattern).
   if (!isBareMode() || messagingSocketPath !== undefined) {
     // Start UDS messaging server (Mac/Linux only).
-    // Enabled by default for ants — creates a socket in tmpdir if no
+    // Enabled by default for internal users — creates a socket in tmpdir if no
     // --messaging-socket-path is passed. Awaited so the server is bound
     // and $CODE_AGENT_MESSAGING_SOCKET is exported before any hook
     // (SessionStart in particular) can spawn and snapshot process.env.
@@ -334,7 +334,7 @@ export async function setup(
   // overhead. NOT an early-return: the --dangerously-skip-permissions safety
   // gate, tengu_started beacon, and apiKeyHelper prefetch below must still run.
   if (!isBareMode()) {
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       // Prime repo classification cache for auto-undercover mode. Default is
       // undercover ON until proven internal; if this resolves to internal, clear
       // the prompt cache so the next turn picks up the OFF state.
@@ -354,7 +354,7 @@ export async function setup(
       setImmediate(() => {
         void import('./utils/attributionHooks.js').then(
           ({ registerAttributionHooks }) => {
-            registerAttributionHooks() // Register attribution tracking hooks (ant-only feature)
+            registerAttributionHooks() // Register attribution tracking hooks (internal-only feature)
           },
         )
       })
@@ -414,7 +414,7 @@ export async function setup(
     }
 
     if (
-      process.env.USER_TYPE === 'ant' &&
+      process.env.USER_TYPE === 'internal' &&
       // Skip for Desktop's local agent mode — same trust model as CCR/BYOC
       // (trusted LlmProvider-managed launcher intentionally pre-approving everything).
       // Precedent: permissionSetup.ts:861, applySettingsChange.ts:55 (PR #19116)

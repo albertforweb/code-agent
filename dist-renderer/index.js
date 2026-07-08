@@ -6,7 +6,11 @@
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
   var __commonJS = (cb, mod) => function __require() {
-    return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    try {
+      return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+    } catch (e) {
+      throw mod = 0, e;
+    }
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -38717,6 +38721,35 @@
     detailGrid: "App_detailGrid",
     toolsLayout: "App_toolsLayout",
     automationGrid: "App_automationGrid",
+    projectModeGrid: "App_projectModeGrid",
+    projectModeCard: "App_projectModeCard",
+    projectList: "App_projectList",
+    projectConsoleGrid: "App_projectConsoleGrid",
+    employeeGrid: "App_employeeGrid",
+    employeeCardShell: "App_employeeCardShell",
+    employeeCard: "App_employeeCard",
+    employeeCardHeader: "App_employeeCardHeader",
+    employeeAvatar: "App_employeeAvatar",
+    employeeAssignGrid: "App_employeeAssignGrid",
+    employeeAssignOption: "App_employeeAssignOption",
+    projectCard: "App_projectCard",
+    projectCardSelected: "App_projectCardSelected",
+    projectCardHeader: "App_projectCardHeader",
+    projectPanelTitle: "App_projectPanelTitle",
+    projectChipList: "App_projectChipList",
+    projectChip: "App_projectChip",
+    projectSupervisorRow: "App_projectSupervisorRow",
+    projectTeamDiagram: "App_projectTeamDiagram",
+    projectSupervisorNode: "App_projectSupervisorNode",
+    projectTeamNodes: "App_projectTeamNodes",
+    projectBoard: "App_projectBoard",
+    projectBoardColumn: "App_projectBoardColumn",
+    projectBoardColumnHeader: "App_projectBoardColumnHeader",
+    projectTaskCard: "App_projectTaskCard",
+    projectDeliverableCard: "App_projectDeliverableCard",
+    projectChatList: "App_projectChatList",
+    projectDeliverables: "App_projectDeliverables",
+    projectChatMessage: "App_projectChatMessage",
     detailPanel: "App_detailPanel",
     panelActions: "App_panelActions",
     inlineError: "App_inlineError",
@@ -38871,6 +38904,7 @@
     onToolComplete: (callback) => getApi().onToolComplete(callback),
     onToolError: (callback) => getApi().onToolError(callback),
     onToolPermissionReview: (callback) => getApi().onToolPermissionReview(callback),
+    onToolApprovalResolved: (callback) => getApi().onToolApprovalResolved(callback),
     onFileWriteReview: (callback) => getApi().onFileWriteReview(callback),
     onCommandReview: (callback) => getApi().onCommandReview(callback),
     onChatDelta: (callback) => getApi().onChatDelta(callback),
@@ -38888,6 +38922,10 @@
   var MAX_PERSISTED_MESSAGES = 80;
   var MAX_RECENT_SESSIONS = 12;
   var DESKTOP_SESSIONS_STATE_KEY = "desktopSessions";
+  var DESKTOP_PROJECTS_STATE_KEY = "desktopSoftwareProjects";
+  var DESKTOP_ROLES_STATE_KEY = "desktopVirtualRoles";
+  var DESKTOP_EMPLOYEES_STATE_KEY = "desktopVirtualEmployees";
+  var DESKTOP_PROJECT_TEAMS_STATE_KEY = "desktopProjectTeams";
   var SIDEBAR_COLLAPSED_STORAGE_KEY = "codeAgentSidebarCollapsed";
   var TOOL_PERMISSION_OPTIONS = [
     { value: "allow", label: "Allow" },
@@ -38931,7 +38969,7 @@
       enableLlmTools: false
     },
     "openai-compatible": {
-      label: "OpenAI-compatible / LM Studio",
+      label: "OpenAI-compatible",
       model: "local-model",
       baseUrl: "http://127.0.0.1:1234/v1",
       maxTokens: 2048,
@@ -38957,7 +38995,7 @@
     { command: "/pwd", description: "Show the current desktop workspace root" },
     { command: "/workspace", description: "Show the current desktop workspace root" },
     { command: "/login", description: "Open Settings for provider credentials" },
-    { command: "/login lmstudio", description: "Open Settings with LM Studio defaults" },
+    { command: "/login local", description: "Open Settings with OpenAI-compatible defaults" },
     { command: "/settings", description: "Open Settings" },
     { command: "/tools", description: "List bridge and MCP tools" },
     { command: "/mcp", description: "Refresh and list MCP servers/tools" },
@@ -38974,17 +39012,23 @@
   ];
   var PRIMARY_NAV = [
     { id: "chat", label: "Chats", description: "Conversation workspace", glyph: "C" },
-    { id: "projects", label: "Projects", description: "Workspace files and project state", glyph: "P" },
+    { id: "projects", label: "Projects", description: "Ideas, guided builds, and autonomous teams", glyph: "P" },
     { id: "tools", label: "Tools", description: "Bridge tools, MCP, and activity", glyph: "T" },
     { id: "automation", label: "Automation", description: "Skills, tasks, remote control, teams", glyph: "A" },
     { id: "history", label: "History", description: "Chats, tool activity, exports, audit", glyph: "H" },
     { id: "settings", label: "Settings", description: "Model, tools, workspace, sessions", glyph: "S" }
   ];
   var PROJECTS_MENU = [
-    { id: "overview", title: "Overview", description: "Workspace and model context" },
-    { id: "files", title: "Files", description: "Browse, open, and reveal files" },
-    { id: "session", title: "Session", description: "Current chat and token usage" },
-    { id: "runtime", title: "Runtime", description: "App, platform, MCP state" }
+    { id: "studio", title: "Project Studio", description: "Create software from ideas or autonomous teams" },
+    { id: "new", title: "New Project", description: "Capture an idea, goals, artifacts, and team model" },
+    { id: "roles", title: "Roles", description: "Responsibilities, default goals, and tool scope" },
+    { id: "employees", title: "Virtual Employees", description: "Create employees, roles, models, and permission scope" },
+    { id: "teams", title: "Teams", description: "Scoped missions, supervisors, and members" },
+    { id: "guided", title: "Guided Builds", description: "Human-led project chats that turn ideas into artifacts" },
+    { id: "autonomous", title: "Autonomous Projects", description: "Team organization, supervisor, and project execution" },
+    { id: "board", title: "Task Board", description: "Selected autonomous project tasks" },
+    { id: "chat", title: "Team Chat", description: "Selected autonomous project employee conversation" },
+    { id: "deliverables", title: "Deliverables", description: "Selected autonomous project artifacts" }
   ];
   var TOOLS_MENU = [
     { id: "bridge", title: "Bridge Tools", description: "Exposure and permissions" },
@@ -38997,7 +39041,7 @@
     { id: "model", title: "Model", description: "Provider, tokens, theme" },
     { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs" },
     { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety" },
-    { id: "workspace", title: "Workspace Context", description: "Prompts, MCP, directories" },
+    { id: "workspace", title: "Prompts & Directories", description: "System prompts, MCP, directories" },
     { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser" },
     { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata" }
   ];
@@ -39005,7 +39049,7 @@
     { id: "skills", title: "Skills", description: "Workspace extensions" },
     { id: "tasks", title: "Scheduled Tasks", description: "Recurring runs and history" },
     { id: "remote", title: "Remote Control", description: "Phone pairing and approvals" },
-    { id: "team", title: "Virtual Team", description: "Members, roles, workspaces" },
+    { id: "team", title: "Team Blueprints", description: "Reusable teams from shared employees and roles" },
     { id: "permissions", title: "Permissions", description: "Unattended execution policy" }
   ];
   var HISTORY_MENU = [
@@ -39177,6 +39221,505 @@
       currentSessionId: sessions[0].id,
       sessions
     };
+  }
+  var DEFAULT_PROJECT_ARTIFACTS = [
+    "Product brief",
+    "Requirements",
+    "Architecture plan",
+    "Implementation plan",
+    "Task backlog",
+    "Test plan"
+  ];
+  var DEFAULT_AUTONOMOUS_ROLES = [
+    "Supervisor",
+    "Product Manager",
+    "Architect",
+    "Developer",
+    "QA Reviewer"
+  ];
+  var DEFAULT_EMPLOYEE_PERMISSIONS = [
+    "Read workspace",
+    "Write code",
+    "Run tests"
+  ];
+  var DEFAULT_ROLE_BLUEPRINTS = [
+    {
+      id: "role-supervisor",
+      title: "Supervisor",
+      responsibilities: [
+        "Own project execution on behalf of the human",
+        "Assign work to virtual employees",
+        "Approve or reject risky actions according to project permission mode",
+        "Keep deliverables aligned to goals and acceptance criteria"
+      ],
+      defaultGoal: "Coordinate the team, remove blockers, and keep project execution aligned to the human goal.",
+      defaultTools: ["fs.read", "bash.run"],
+      canSupervise: true
+    },
+    {
+      id: "role-product-manager",
+      title: "Product Manager",
+      responsibilities: [
+        "Clarify users, scope, success criteria, and acceptance tests",
+        "Turn ideas into prioritized requirements and backlog items",
+        "Identify missing business or workflow decisions"
+      ],
+      defaultGoal: "Convert the human idea into crisp requirements, user flows, and acceptance criteria.",
+      defaultTools: ["fs.read"],
+      canSupervise: false
+    },
+    {
+      id: "role-architect",
+      title: "Architect",
+      responsibilities: [
+        "Design system structure and technical boundaries",
+        "Identify integration risks and implementation sequencing",
+        "Review architecture changes before implementation fans out"
+      ],
+      defaultGoal: "Design the technical approach and keep implementation choices coherent with the existing codebase.",
+      defaultTools: ["fs.read", "bash.run"],
+      canSupervise: false
+    },
+    {
+      id: "role-developer",
+      title: "Developer",
+      responsibilities: [
+        "Implement scoped code changes",
+        "Update or add tests for changed behavior",
+        "Report blockers and hand off work for review"
+      ],
+      defaultGoal: "Implement the assigned project tasks with focused, tested code changes.",
+      defaultTools: ["fs.read", "fs.write", "bash.run"],
+      canSupervise: false
+    },
+    {
+      id: "role-qa-reviewer",
+      title: "QA Reviewer",
+      responsibilities: [
+        "Plan verification coverage",
+        "Run checks and capture failures",
+        "Validate deliverables against acceptance criteria"
+      ],
+      defaultGoal: "Verify the project deliverables and call out gaps before the project is marked complete.",
+      defaultTools: ["fs.read", "bash.run"],
+      canSupervise: false
+    }
+  ];
+  function createRoleDefinitionId(title = "role") {
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "role";
+    return `role-${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  function getDefaultRoleId(role) {
+    const normalized = role.toLowerCase();
+    if (normalized.includes("supervisor") || normalized.includes("lead") || normalized.includes("owner")) {
+      return "role-supervisor";
+    }
+    if (normalized.includes("product") || normalized.includes("manager")) {
+      return "role-product-manager";
+    }
+    if (normalized.includes("architect")) {
+      return "role-architect";
+    }
+    if (normalized.includes("qa") || normalized.includes("review") || normalized.includes("test")) {
+      return "role-qa-reviewer";
+    }
+    return "role-developer";
+  }
+  function createDefaultVirtualRoles() {
+    const now = Date.now();
+    return DEFAULT_ROLE_BLUEPRINTS.map((role) => ({
+      ...role,
+      responsibilities: [...role.responsibilities],
+      defaultTools: [...role.defaultTools],
+      createdAt: now,
+      updatedAt: now
+    }));
+  }
+  function createVirtualRoleDefinition(title = "Developer") {
+    const now = Date.now();
+    const defaultRole = createDefaultVirtualRoles().find((role) => role.id === getDefaultRoleId(title));
+    return {
+      id: createRoleDefinitionId(title),
+      title,
+      responsibilities: defaultRole?.responsibilities ? [...defaultRole.responsibilities] : ["Deliver assigned project responsibilities."],
+      defaultGoal: defaultRole?.defaultGoal ?? getDefaultTeamGoal(title),
+      defaultTools: defaultRole?.defaultTools ? [...defaultRole.defaultTools] : getDefaultTeamTools(title),
+      canSupervise: Boolean(defaultRole?.canSupervise),
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  function sanitizeVirtualRole(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const title = typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : "Contributor";
+    const now = Date.now();
+    return {
+      id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createRoleDefinitionId(title),
+      title,
+      responsibilities: normalizeStringList(raw.responsibilities, ["Deliver assigned project responsibilities."]),
+      defaultGoal: typeof raw.defaultGoal === "string" && raw.defaultGoal.trim() ? raw.defaultGoal.trim() : getDefaultTeamGoal(title),
+      defaultTools: normalizeStringList(raw.defaultTools, getDefaultTeamTools(title)),
+      canSupervise: Boolean(raw.canSupervise),
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
+    };
+  }
+  function restoreVirtualRolesFromState(state) {
+    const raw = state?.[DESKTOP_ROLES_STATE_KEY];
+    const restored = raw && typeof raw === "object" && Array.isArray(raw.roles) ? raw.roles.map((role) => sanitizeVirtualRole(role)).filter((role) => Boolean(role)) : [];
+    const defaults = createDefaultVirtualRoles();
+    const merged = [
+      ...restored,
+      ...defaults.filter((defaultRole) => !restored.some((role) => role.id === defaultRole.id))
+    ];
+    return merged.sort((left, right) => Number(right.canSupervise) - Number(left.canSupervise) || left.title.localeCompare(right.title));
+  }
+  function upsertVirtualRole(roles, role) {
+    return [
+      role,
+      ...roles.filter((candidate) => candidate.id !== role.id)
+    ].sort((left, right) => Number(right.canSupervise) - Number(left.canSupervise) || left.title.localeCompare(right.title));
+  }
+  function getRoleDefinitionById(roles, roleId, roleName) {
+    return roles.find((role) => role.id === roleId) ?? roles.find((role) => role.title.toLowerCase() === String(roleName ?? "").toLowerCase()) ?? roles.find((role) => role.id === getDefaultRoleId(String(roleName ?? "Developer")));
+  }
+  function createEmployeeId() {
+    return `employee-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function createVirtualEmployeeProfile(role = "Developer", roleId = getDefaultRoleId(role)) {
+    const now = Date.now();
+    const permissions = role.toLowerCase().includes("supervisor") ? ["Approve actions", "Assign team", "Full workspace access", "Manage budget"] : role.toLowerCase().includes("qa") ? ["Read workspace", "Run tests", "File issues"] : [...DEFAULT_EMPLOYEE_PERMISSIONS];
+    return {
+      id: createEmployeeId(),
+      name: role,
+      roleId,
+      role,
+      model: "OpenAI-compatible default",
+      status: "idle",
+      permissions,
+      currentTask: "No active task",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  function createDefaultVirtualEmployees() {
+    return [
+      { ...createVirtualEmployeeProfile("Supervisor", "role-supervisor"), id: "employee-supervisor", name: "Supervisor" },
+      { ...createVirtualEmployeeProfile("Product Manager", "role-product-manager"), id: "employee-product-manager", name: "Product Manager" },
+      { ...createVirtualEmployeeProfile("Architect", "role-architect"), id: "employee-architect", name: "Architect" },
+      { ...createVirtualEmployeeProfile("Developer", "role-developer"), id: "employee-developer", name: "Developer" },
+      { ...createVirtualEmployeeProfile("QA Reviewer", "role-qa-reviewer"), id: "employee-qa-reviewer", name: "QA Reviewer" }
+    ];
+  }
+  function sanitizeVirtualEmployee(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const now = Date.now();
+    const status = raw.status === "working" || raw.status === "approval" ? raw.status : "idle";
+    return {
+      id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createEmployeeId(),
+      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Virtual employee",
+      roleId: typeof raw.roleId === "string" && raw.roleId.trim() ? raw.roleId.trim() : getDefaultRoleId(typeof raw.role === "string" ? raw.role : "Developer"),
+      role: typeof raw.role === "string" && raw.role.trim() ? raw.role.trim() : "Contributor",
+      model: typeof raw.model === "string" && raw.model.trim() ? raw.model.trim() : "OpenAI-compatible default",
+      status,
+      permissions: normalizeStringList(raw.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+      currentTask: typeof raw.currentTask === "string" && raw.currentTask.trim() ? raw.currentTask.trim() : "No active task",
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
+    };
+  }
+  function restoreVirtualEmployeesFromState(state) {
+    const raw = state?.[DESKTOP_EMPLOYEES_STATE_KEY];
+    const restored = raw && typeof raw === "object" && Array.isArray(raw.employees) ? raw.employees.map((employee) => sanitizeVirtualEmployee(employee)).filter((employee) => Boolean(employee)) : [];
+    return restored.length > 0 ? restored : createDefaultVirtualEmployees();
+  }
+  function upsertVirtualEmployee(employees, employee) {
+    return [
+      employee,
+      ...employees.filter((candidate) => candidate.id !== employee.id)
+    ].sort((left, right) => right.updatedAt - left.updatedAt);
+  }
+  function getEmployeeRoleDefinition(employee, roles) {
+    return getRoleDefinitionById(roles, employee.roleId, employee.role);
+  }
+  function isSupervisorEmployee(employee, roles = []) {
+    const role = getEmployeeRoleDefinition(employee, roles);
+    return Boolean(role?.canSupervise) || /supervisor|lead|manager|owner/i.test(`${employee.role} ${employee.permissions.join(" ")}`);
+  }
+  function getProjectSupervisor(project, employees, roles = []) {
+    return employees.find((employee) => employee.id === project.supervisorEmployeeId) ?? employees.find((employee) => isSupervisorEmployee(employee, roles)) ?? employees[0];
+  }
+  function getProjectAssignedEmployees(project, employees, roles = []) {
+    const selected = project.assignedEmployeeIds.map((id) => employees.find((employee) => employee.id === id)).filter((employee) => Boolean(employee));
+    if (selected.length > 0) {
+      return selected;
+    }
+    const supervisor = getProjectSupervisor(project, employees, roles);
+    return employees.filter((employee) => employee.id !== supervisor?.id).slice(0, 4);
+  }
+  function getProjectStaffingEmployees(project, employees, roles, teams) {
+    const supervisor = getProjectSupervisor(project, employees, roles);
+    const assignedTeams = getProjectTeams(project, teams);
+    const teamEmployees = assignedTeams.flatMap((team) => [
+      getTeamSupervisor(team, employees),
+      ...getTeamMembers(team, employees)
+    ]).filter((employee) => Boolean(employee));
+    return uniqueEmployees([
+      ...supervisor ? [supervisor] : [],
+      ...teamEmployees,
+      ...getProjectAssignedEmployees(project, employees, roles)
+    ]);
+  }
+  function createProjectPlanId() {
+    return `project-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function createSoftwareProjectDraft(workspacePath) {
+    const now = Date.now();
+    return {
+      id: createProjectPlanId(),
+      name: "New software project",
+      mode: "guided",
+      status: "idea",
+      idea: "",
+      goals: "",
+      artifacts: [...DEFAULT_PROJECT_ARTIFACTS],
+      workspacePath,
+      supervisorRole: "Supervisor",
+      teamRoles: [...DEFAULT_AUTONOMOUS_ROLES],
+      supervisorEmployeeId: "employee-supervisor",
+      assignedEmployeeIds: [
+        "employee-product-manager",
+        "employee-architect",
+        "employee-developer",
+        "employee-qa-reviewer"
+      ],
+      assignedTeamIds: [],
+      permissionMode: "supervised",
+      createdAt: now,
+      updatedAt: now
+    };
+  }
+  function normalizeStringList(values, fallback) {
+    if (!Array.isArray(values)) {
+      return [...fallback];
+    }
+    const normalized = values.map((value) => String(value ?? "").trim()).filter(Boolean);
+    return normalized.length > 0 ? Array.from(new Set(normalized)) : [...fallback];
+  }
+  function createProjectTeamId(name = "team") {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "team";
+    return `project-team-${slug}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  function createDefaultProjectTeams() {
+    const now = Date.now();
+    return [
+      {
+        id: "project-team-core-delivery",
+        name: "Core Delivery Team",
+        mission: "Own implementation tasks, integration changes, and project deliverable assembly.",
+        supervisorEmployeeId: "employee-supervisor",
+        memberEmployeeIds: ["employee-architect", "employee-developer"],
+        createdAt: now,
+        updatedAt: now
+      },
+      {
+        id: "project-team-review-qa",
+        name: "Review And QA Team",
+        mission: "Validate quality gates, review implementation risk, and produce verification evidence.",
+        supervisorEmployeeId: "employee-supervisor",
+        memberEmployeeIds: ["employee-product-manager", "employee-qa-reviewer"],
+        createdAt: now,
+        updatedAt: now
+      }
+    ];
+  }
+  function sanitizeProjectTeam(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const now = Date.now();
+    const name = typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Project team";
+    return {
+      id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createProjectTeamId(name),
+      name,
+      mission: typeof raw.mission === "string" && raw.mission.trim() ? raw.mission.trim() : "Deliver a scoped portion of the project mission.",
+      supervisorEmployeeId: typeof raw.supervisorEmployeeId === "string" && raw.supervisorEmployeeId.trim() ? raw.supervisorEmployeeId.trim() : "employee-supervisor",
+      memberEmployeeIds: normalizeStringList(raw.memberEmployeeIds, []),
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
+    };
+  }
+  function restoreProjectTeamsFromState(state) {
+    const raw = state?.[DESKTOP_PROJECT_TEAMS_STATE_KEY];
+    const restored = raw && typeof raw === "object" && Array.isArray(raw.teams) ? raw.teams.map((team) => sanitizeProjectTeam(team)).filter((team) => Boolean(team)) : [];
+    const defaults = createDefaultProjectTeams();
+    const merged = [
+      ...restored,
+      ...defaults.filter((defaultTeam) => !restored.some((team) => team.id === defaultTeam.id))
+    ];
+    return merged.sort((left, right) => right.updatedAt - left.updatedAt);
+  }
+  function upsertProjectTeam(teams, team) {
+    return [
+      team,
+      ...teams.filter((candidate) => candidate.id !== team.id)
+    ].sort((left, right) => right.updatedAt - left.updatedAt);
+  }
+  function getProjectTeams(project, teams) {
+    return project.assignedTeamIds.map((id) => teams.find((team) => team.id === id)).filter((team) => Boolean(team));
+  }
+  function getTeamSupervisor(team, employees) {
+    return employees.find((employee) => employee.id === team.supervisorEmployeeId);
+  }
+  function getTeamMembers(team, employees) {
+    return team.memberEmployeeIds.map((id) => employees.find((employee) => employee.id === id)).filter((employee) => Boolean(employee));
+  }
+  function uniqueEmployees(employees) {
+    const seen = /* @__PURE__ */ new Set();
+    return employees.filter((employee) => {
+      if (seen.has(employee.id)) {
+        return false;
+      }
+      seen.add(employee.id);
+      return true;
+    });
+  }
+  function sanitizeSoftwareProjectPlan(value, workspacePath) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const mode = raw.mode === "autonomous" ? "autonomous" : "guided";
+    const status = raw.status === "planning" || raw.status === "active" || raw.status === "stopped" || raw.status === "blocked" || raw.status === "done" ? raw.status : "idea";
+    const now = Date.now();
+    return {
+      id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createProjectPlanId(),
+      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Untitled software project",
+      mode,
+      status,
+      idea: typeof raw.idea === "string" ? raw.idea : "",
+      goals: typeof raw.goals === "string" ? raw.goals : "",
+      artifacts: normalizeStringList(raw.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+      workspacePath: typeof raw.workspacePath === "string" && raw.workspacePath.trim() ? raw.workspacePath : workspacePath,
+      supervisorRole: typeof raw.supervisorRole === "string" && raw.supervisorRole.trim() ? raw.supervisorRole.trim() : "Supervisor",
+      teamRoles: normalizeStringList(raw.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+      supervisorEmployeeId: typeof raw.supervisorEmployeeId === "string" && raw.supervisorEmployeeId.trim() ? raw.supervisorEmployeeId : "employee-supervisor",
+      assignedEmployeeIds: normalizeStringList(raw.assignedEmployeeIds, [
+        "employee-product-manager",
+        "employee-architect",
+        "employee-developer",
+        "employee-qa-reviewer"
+      ]),
+      assignedTeamIds: normalizeStringList(raw.assignedTeamIds, []),
+      permissionMode: raw.permissionMode === "full-access" ? "full-access" : "supervised",
+      createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
+      updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
+    };
+  }
+  function sortSoftwareProjects(projects) {
+    const seen = /* @__PURE__ */ new Set();
+    return projects.filter((project) => {
+      if (!project.id || seen.has(project.id)) {
+        return false;
+      }
+      seen.add(project.id);
+      return true;
+    }).sort((left, right) => right.updatedAt - left.updatedAt);
+  }
+  function upsertSoftwareProjectPlan(projects, project) {
+    return sortSoftwareProjects([
+      project,
+      ...projects.filter((candidate) => candidate.id !== project.id)
+    ]);
+  }
+  function restoreSoftwareProjectsFromState(state, workspacePath) {
+    const raw = state?.[DESKTOP_PROJECTS_STATE_KEY];
+    const restoredProjects = raw && typeof raw === "object" && Array.isArray(raw.projects) ? raw.projects.map((project) => sanitizeSoftwareProjectPlan(project, workspacePath)).filter((project) => Boolean(project)) : [];
+    const projects = sortSoftwareProjects(restoredProjects);
+    const requestedActiveId = raw && typeof raw === "object" && typeof raw.activeProjectId === "string" ? raw.activeProjectId : "";
+    return {
+      activeProjectId: projects.some((project) => project.id === requestedActiveId) ? requestedActiveId : projects[0]?.id ?? "",
+      projects
+    };
+  }
+  function formatProjectPrompt(project, employees = [], roles = [], teams = []) {
+    const lines = [
+      `Project name: ${project.name}`,
+      `Project mode: ${project.mode === "autonomous" ? "autonomous project" : "guided human/app collaboration"}`,
+      "",
+      "Human idea:",
+      project.idea.trim() || "The idea still needs to be captured.",
+      "",
+      "Goals:",
+      project.goals.trim() || "Help clarify goals, users, scope, and success criteria.",
+      "",
+      `Expected software artifacts: ${project.artifacts.join(", ")}`,
+      ""
+    ];
+    if (project.mode === "autonomous") {
+      const supervisor = getProjectSupervisor(project, employees, roles);
+      const assignedEmployees = getProjectAssignedEmployees(project, employees, roles);
+      const assignedTeams = getProjectTeams(project, teams);
+      const employeeLines = [supervisor, ...assignedEmployees].filter((employee) => Boolean(employee)).map((employee) => {
+        const role = getEmployeeRoleDefinition(employee, roles);
+        const responsibilities = role?.responsibilities?.length ? role.responsibilities.join("; ") : employee.permissions.join("; ");
+        return `- ${employee.name}: ${role?.title ?? employee.role}. Responsibilities: ${responsibilities}`;
+      });
+      const teamLines = assignedTeams.map((team) => {
+        const teamSupervisor = getTeamSupervisor(team, employees);
+        const teamMembers = getTeamMembers(team, employees);
+        return `- ${team.name}: ${team.mission} Supervisor: ${teamSupervisor?.name ?? "Unassigned"}. Members: ${teamMembers.map((member) => member.name).join(", ") || "none"}`;
+      });
+      lines.push(
+        `Supervisor role: ${project.supervisorRole}`,
+        `Assigned roles: ${project.teamRoles.join(", ")}`,
+        `Supervisor employee ID: ${project.supervisorEmployeeId || "not assigned"}`,
+        `Assigned team IDs: ${project.assignedTeamIds.join(", ") || "none"}`,
+        `Assigned employee IDs: ${project.assignedEmployeeIds.join(", ") || "not assigned"}`,
+        "",
+        "Assigned teams and scoped missions:",
+        ...teamLines.length > 0 ? teamLines : ["- No teams assigned."],
+        "",
+        "Assigned virtual employees and role responsibilities:",
+        ...employeeLines.length > 0 ? employeeLines : ["- No employees assigned."],
+        "",
+        `Execution mode: ${project.permissionMode === "full-access" ? "supervisor acts on behalf of the human with full permission" : "supervised approvals for risky actions"}`,
+        "",
+        "Start by turning the idea into a delivery blueprint, then identify the first safe implementation milestone for the virtual team."
+      );
+    } else {
+      lines.push(
+        "Work with me directly. Start by asking the smallest useful set of clarifying questions, then help turn the idea into concrete software artifacts and an implementation path."
+      );
+    }
+    return lines.join("\n");
+  }
+  function summarizeProjectGoals(project) {
+    const text = project.goals.trim() || project.idea.trim();
+    return text ? formatSidebarLabel(text, 120) : "No goals captured yet.";
+  }
+  function formatProjectStatus(status) {
+    switch (status) {
+      case "idea":
+        return "Idea";
+      case "planning":
+        return "Planning";
+      case "active":
+        return "Running";
+      case "stopped":
+        return "Stopped";
+      case "blocked":
+        return "Blocked";
+      case "done":
+        return "Done";
+    }
   }
   function createSettingsDraft(config) {
     const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
@@ -39595,14 +40138,14 @@
     if (lower.includes("fetch failed") || lower.includes("econnrefused") || lower.includes("failed to fetch") || lower.includes("connect econnrefused")) {
       return [
         "The configured LLM endpoint is not reachable.",
-        "Check that LM Studio or your OpenAI-compatible server is running, then verify Settings -> Model base URL and model ID.",
+        "Check that your OpenAI-compatible server is running, then verify Settings -> Model base URL and model ID.",
         `Details: ${message}`
       ].join("\n");
     }
     if (lower.includes("context length") || lower.includes("context size") || lower.includes("n_ctx") || lower.includes("exceeds the available context") || lower.includes("tokens to keep")) {
       return [
         "The model context window is too small for this request.",
-        "Increase the model context length in LM Studio, reduce enabled tools in Tools, or lower Settings -> Model context tokens.",
+        "Increase the model context length on your provider, reduce enabled tools in Tools, or lower Settings -> Model context tokens.",
         `Details: ${message}`
       ].join("\n");
     }
@@ -39725,6 +40268,12 @@
     const [toolPermissionReviews, setToolPermissionReviews] = useState([]);
     const [currentSessionId, setCurrentSessionId] = useState(() => createSessionId());
     const [sessions, setSessions] = useState([]);
+    const [softwareProjects, setSoftwareProjects] = useState([]);
+    const [activeSoftwareProjectId, setActiveSoftwareProjectId] = useState("");
+    const [virtualRoles, setVirtualRoles] = useState([]);
+    const [virtualEmployees, setVirtualEmployees] = useState([]);
+    const [projectTeams, setProjectTeams] = useState([]);
+    const [projectActionMessage, setProjectActionMessage] = useState("");
     const [messages, setMessages] = useState(() => createReadyMessages());
     const [input, setInput] = useState("");
     const [sessionSearch, setSessionSearch] = useState("");
@@ -39735,7 +40284,7 @@
     const [toolRouterMessage, setToolRouterMessage] = useState("");
     const [isSavingSettings, setIsSavingSettings] = useState(false);
     const [activeView, setActiveView] = useState("chat");
-    const [activeProjectsSection, setActiveProjectsSection] = useState("overview");
+    const [activeProjectsSection, setActiveProjectsSection] = useState("studio");
     const [activeToolsSection, setActiveToolsSection] = useState("bridge");
     const [activeAutomationSection, setActiveAutomationSection] = useState("tasks");
     const [activeHistorySection, setActiveHistorySection] = useState("overview");
@@ -39745,6 +40294,10 @@
     const inputRef = useRef(null);
     const streamMessageIds = useRef(/* @__PURE__ */ new Map());
     const hasHydratedSessionsRef = useRef(false);
+    const hasHydratedProjectsRef = useRef(false);
+    const hasHydratedRolesRef = useRef(false);
+    const hasHydratedEmployeesRef = useRef(false);
+    const hasHydratedProjectTeamsRef = useRef(false);
     const tokenUsage = useMemo(() => {
       return messages.reduce(
         (totals, message) => ({
@@ -39868,6 +40421,16 @@ ${formatJson(data.data)}
             title: "Tool permission"
           }));
         }));
+        removers.push(ipcClient.onToolApprovalResolved((data) => {
+          setFileWriteReviews((current) => current.filter((review) => review.requestId !== data.requestId));
+          setCommandReviews((current) => current.filter((review) => review.requestId !== data.requestId));
+          setToolPermissionReviews((current) => current.filter((review) => review.requestId !== data.requestId));
+          setStatus("Ready");
+          appendMessage(createMessage("system", `${data.approved ? "Approved" : "Rejected"} by ${data.resolvedBy}: ${data.title ?? data.requestId}`, {
+            title: "Remote approval resolved"
+          }));
+          inputRef.current?.focus();
+        }));
         removers.push(ipcClient.onConfigChanged((data) => {
           setAppConfig(data.config);
           setSettingsDraft((current) => ({
@@ -39947,6 +40510,31 @@ ${formatJson(data.data)}
       return () => window.clearTimeout(timeout);
     }, [sessions, currentSessionId, appInfo?.workspacePath]);
     useEffect(() => {
+      if (!hasHydratedProjectsRef.current || !hasHydratedRolesRef.current || !hasHydratedEmployeesRef.current || !hasHydratedProjectTeamsRef.current) {
+        return;
+      }
+      const timeout = window.setTimeout(() => {
+        ipcClient.app.setState({
+          [DESKTOP_PROJECTS_STATE_KEY]: {
+            activeProjectId: activeSoftwareProjectId,
+            projects: softwareProjects
+          },
+          [DESKTOP_ROLES_STATE_KEY]: {
+            roles: virtualRoles
+          },
+          [DESKTOP_EMPLOYEES_STATE_KEY]: {
+            employees: virtualEmployees
+          },
+          [DESKTOP_PROJECT_TEAMS_STATE_KEY]: {
+            teams: projectTeams
+          }
+        }).catch((error) => {
+          console.warn("Failed to persist desktop project state:", error);
+        });
+      }, 500);
+      return () => window.clearTimeout(timeout);
+    }, [softwareProjects, activeSoftwareProjectId, virtualRoles, virtualEmployees, projectTeams]);
+    useEffect(() => {
       const theme = appConfig?.theme || "system";
       const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
       document.body.classList.toggle("dark", theme === "dark" || theme === "system" && prefersDark);
@@ -40020,14 +40608,31 @@ ${formatJson(data.data)}
         const hasLegacySessions = Boolean(state?.[DESKTOP_SESSIONS_STATE_KEY]);
         const restoredSessions = hasLegacySessions ? restoreSessionsFromState(state, info.workspacePath) : restoreSessionsFromHistory(historySessions, info.workspacePath) ?? restoreSessionsFromState(state, info.workspacePath);
         const activeSession2 = restoredSessions.sessions.find((session) => session.id === restoredSessions.currentSessionId) ?? restoredSessions.sessions[0];
+        const restoredProjects = restoreSoftwareProjectsFromState(state, info.workspacePath);
+        const restoredRoles = restoreVirtualRolesFromState(state);
+        const restoredEmployees = restoreVirtualEmployeesFromState(state);
+        const restoredProjectTeams = restoreProjectTeamsFromState(state);
+        setSoftwareProjects(restoredProjects.projects);
+        setActiveSoftwareProjectId(restoredProjects.activeProjectId);
+        setVirtualRoles(restoredRoles);
+        setVirtualEmployees(restoredEmployees);
+        setProjectTeams(restoredProjectTeams);
         setSessions(restoredSessions.sessions);
         setCurrentSessionId(restoredSessions.currentSessionId);
         setMessages(activeSession2?.messages ?? createReadyMessages());
         hasHydratedSessionsRef.current = true;
+        hasHydratedProjectsRef.current = true;
+        hasHydratedRolesRef.current = true;
+        hasHydratedEmployeesRef.current = true;
+        hasHydratedProjectTeamsRef.current = true;
         setStatus("Ready");
       } catch (error) {
         console.error("Failed to initialize app:", error);
         hasHydratedSessionsRef.current = true;
+        hasHydratedProjectsRef.current = true;
+        hasHydratedRolesRef.current = true;
+        hasHydratedEmployeesRef.current = true;
+        hasHydratedProjectTeamsRef.current = true;
         setStatus("Startup error");
         appendMessage(createMessage("error", formatDesktopError(error), {
           title: "Startup error",
@@ -40063,6 +40668,261 @@ ${formatJson(data.data)}
       setStatus("Ready");
       setActiveView("chat");
       inputRef.current?.focus();
+    }
+    function saveSoftwareProjectPlan(project) {
+      const availableSupervisor = virtualEmployees.find((employee) => employee.id === project.supervisorEmployeeId) ?? virtualEmployees.find((employee) => isSupervisorEmployee(employee, virtualRoles)) ?? virtualEmployees[0];
+      const assignedEmployeeIds = normalizeStringList(
+        project.assignedEmployeeIds,
+        virtualEmployees.filter((employee) => employee.id !== availableSupervisor?.id).slice(0, 4).map((employee) => employee.id)
+      ).filter((id) => id !== availableSupervisor?.id);
+      const assignedTeamIds = normalizeStringList(project.assignedTeamIds, []).filter((id) => projectTeams.some((team) => team.id === id));
+      const sanitized = sanitizeSoftwareProjectPlan({
+        ...project,
+        name: project.name.trim() || "Untitled software project",
+        idea: project.idea.trim(),
+        goals: project.goals.trim(),
+        artifacts: normalizeStringList(project.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+        teamRoles: normalizeStringList(project.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+        supervisorEmployeeId: availableSupervisor?.id ?? project.supervisorEmployeeId,
+        supervisorRole: availableSupervisor ? getEmployeeRoleDefinition(availableSupervisor, virtualRoles)?.title ?? availableSupervisor.role : project.supervisorRole,
+        assignedEmployeeIds,
+        assignedTeamIds,
+        workspacePath: project.workspacePath || appInfo?.workspacePath,
+        updatedAt: Date.now()
+      }, appInfo?.workspacePath);
+      if (!sanitized) {
+        setProjectActionMessage("Project could not be saved.");
+        return;
+      }
+      setSoftwareProjects((current) => upsertSoftwareProjectPlan(current, sanitized));
+      setActiveSoftwareProjectId(sanitized.id);
+      setProjectActionMessage(`Saved project "${sanitized.name}".`);
+    }
+    function saveVirtualRoleDefinition(role) {
+      const sanitized = sanitizeVirtualRole({
+        ...role,
+        title: role.title.trim() || "Contributor",
+        responsibilities: normalizeStringList(role.responsibilities, ["Deliver assigned project responsibilities."]),
+        defaultTools: normalizeStringList(role.defaultTools, getDefaultTeamTools(role.title)),
+        updatedAt: Date.now()
+      });
+      if (!sanitized) {
+        setProjectActionMessage("Role could not be saved.");
+        return;
+      }
+      setVirtualRoles((current) => upsertVirtualRole(current, sanitized));
+      setVirtualEmployees((current) => current.map((employee) => employee.roleId === sanitized.id ? { ...employee, role: sanitized.title, updatedAt: Date.now() } : employee));
+      setSoftwareProjects((current) => current.map((project) => {
+        const supervisor = virtualEmployees.find((employee) => employee.id === project.supervisorEmployeeId);
+        const assignedEmployees = virtualEmployees.filter((employee) => project.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = getProjectTeams(project, projectTeams);
+        const nextRoles = upsertVirtualRole(virtualRoles, sanitized);
+        return {
+          ...project,
+          supervisorRole: supervisor ? getEmployeeRoleDefinition(
+            supervisor.roleId === sanitized.id ? { ...supervisor, role: sanitized.title } : supervisor,
+            nextRoles
+          )?.title ?? project.supervisorRole : project.supervisorRole,
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(
+              employee.roleId === sanitized.id ? { ...employee, role: sanitized.title } : employee,
+              nextRoles
+            )?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      }));
+      setProjectActionMessage(`Saved role "${sanitized.title}".`);
+    }
+    function deleteVirtualRoleDefinition(roleId) {
+      const remainingRoles = virtualRoles.filter((role) => role.id !== roleId);
+      const fallback = remainingRoles.find((role) => role.id === "role-developer") ?? remainingRoles[0] ?? createVirtualRoleDefinition("Developer");
+      const nextRoles = remainingRoles.length > 0 ? remainingRoles : [fallback];
+      const nextEmployees = virtualEmployees.map((employee) => employee.roleId === roleId ? { ...employee, roleId: fallback.id, role: fallback.title, updatedAt: Date.now() } : employee);
+      setVirtualRoles(nextRoles);
+      setVirtualEmployees(nextEmployees);
+      setSoftwareProjects((current) => current.map((project) => {
+        const supervisor = nextEmployees.find((employee) => employee.id === project.supervisorEmployeeId);
+        const assignedEmployees = nextEmployees.filter((employee) => project.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = getProjectTeams(project, projectTeams);
+        return {
+          ...project,
+          supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, nextRoles)?.title ?? supervisor.role : project.supervisorRole,
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, nextRoles)?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      }));
+      setProjectActionMessage("Deleted role and reassigned affected employees.");
+    }
+    function saveVirtualEmployeeProfile(employee) {
+      const role = getRoleDefinitionById(virtualRoles, employee.roleId, employee.role);
+      const sanitized = sanitizeVirtualEmployee({
+        ...employee,
+        name: employee.name.trim() || "Virtual employee",
+        roleId: role?.id ?? employee.roleId,
+        role: role?.title ?? (employee.role.trim() || "Contributor"),
+        permissions: normalizeStringList(employee.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+        updatedAt: Date.now()
+      });
+      if (!sanitized) {
+        setProjectActionMessage("Virtual employee could not be saved.");
+        return;
+      }
+      setVirtualEmployees((current) => upsertVirtualEmployee(current, sanitized));
+      setSoftwareProjects((current) => current.map((project) => {
+        if (project.supervisorEmployeeId !== sanitized.id && !project.assignedEmployeeIds.includes(sanitized.id)) {
+          return project;
+        }
+        const nextAssignedEmployees = virtualEmployees.map((employee2) => employee2.id === sanitized.id ? sanitized : employee2).filter((employee2) => project.assignedEmployeeIds.includes(employee2.id));
+        const assignedTeams = getProjectTeams(project, projectTeams);
+        return {
+          ...project,
+          supervisorRole: project.supervisorEmployeeId === sanitized.id ? getEmployeeRoleDefinition(sanitized, virtualRoles)?.title ?? sanitized.role : project.supervisorRole,
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...nextAssignedEmployees.map((employee2) => getEmployeeRoleDefinition(employee2, virtualRoles)?.title ?? employee2.role)
+          ],
+          updatedAt: Date.now()
+        };
+      }));
+      setProjectActionMessage(`Saved virtual employee "${sanitized.name}".`);
+    }
+    function saveProjectTeamDefinition(team) {
+      const supervisor = virtualEmployees.find((employee) => employee.id === team.supervisorEmployeeId) ?? virtualEmployees.find((employee) => isSupervisorEmployee(employee, virtualRoles)) ?? virtualEmployees[0];
+      const sanitized = sanitizeProjectTeam({
+        ...team,
+        name: team.name.trim() || "Project team",
+        mission: team.mission.trim() || "Deliver a scoped portion of the project mission.",
+        supervisorEmployeeId: supervisor?.id ?? team.supervisorEmployeeId,
+        memberEmployeeIds: normalizeStringList(team.memberEmployeeIds, []).filter((id) => id !== supervisor?.id && virtualEmployees.some((employee) => employee.id === id)),
+        updatedAt: Date.now()
+      });
+      if (!sanitized) {
+        setProjectActionMessage("Team could not be saved.");
+        return;
+      }
+      setProjectTeams((current) => upsertProjectTeam(current, sanitized));
+      setSoftwareProjects((current) => current.map((project) => {
+        if (!project.assignedTeamIds.includes(sanitized.id)) {
+          return project;
+        }
+        const nextTeams = upsertProjectTeam(projectTeams, sanitized);
+        const assignedTeams = getProjectTeams(project, nextTeams);
+        const assignedEmployees = virtualEmployees.filter((employee) => project.assignedEmployeeIds.includes(employee.id));
+        return {
+          ...project,
+          teamRoles: [
+            ...assignedTeams.map((team2) => team2.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, virtualRoles)?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      }));
+      setProjectActionMessage(`Saved team "${sanitized.name}".`);
+    }
+    function deleteProjectTeamDefinition(teamId) {
+      const deletedTeam = projectTeams.find((team) => team.id === teamId);
+      setProjectTeams((current) => current.filter((team) => team.id !== teamId));
+      setSoftwareProjects((current) => current.map((project) => project.assignedTeamIds.includes(teamId) ? {
+        ...project,
+        assignedTeamIds: project.assignedTeamIds.filter((id) => id !== teamId),
+        teamRoles: deletedTeam ? project.teamRoles.filter((role) => role !== deletedTeam.name) : project.teamRoles,
+        updatedAt: Date.now()
+      } : project));
+      setProjectActionMessage("Deleted team.");
+    }
+    function deleteVirtualEmployeeProfile(employeeId) {
+      setVirtualEmployees((current) => current.filter((employee) => employee.id !== employeeId));
+      setProjectTeams((current) => current.map((team) => {
+        if (team.supervisorEmployeeId === employeeId) {
+          const replacement = virtualEmployees.find((employee) => employee.id !== employeeId && isSupervisorEmployee(employee, virtualRoles)) ?? virtualEmployees.find((employee) => employee.id !== employeeId);
+          return {
+            ...team,
+            supervisorEmployeeId: replacement?.id ?? "",
+            memberEmployeeIds: team.memberEmployeeIds.filter((id) => id !== employeeId && id !== replacement?.id),
+            updatedAt: Date.now()
+          };
+        }
+        return {
+          ...team,
+          memberEmployeeIds: team.memberEmployeeIds.filter((id) => id !== employeeId),
+          updatedAt: Date.now()
+        };
+      }));
+      setSoftwareProjects((current) => current.map((project) => {
+        const assignedTeams = getProjectTeams(project, projectTeams);
+        const remainingAssignedEmployees = virtualEmployees.filter((employee) => employee.id !== employeeId && project.assignedEmployeeIds.includes(employee.id));
+        if (project.supervisorEmployeeId === employeeId) {
+          const replacement = virtualEmployees.find((employee) => employee.id !== employeeId && isSupervisorEmployee(employee, virtualRoles)) ?? virtualEmployees.find((employee) => employee.id !== employeeId);
+          return {
+            ...project,
+            supervisorEmployeeId: replacement?.id ?? "",
+            supervisorRole: replacement ? getEmployeeRoleDefinition(replacement, virtualRoles)?.title ?? replacement.role : "Supervisor",
+            assignedEmployeeIds: project.assignedEmployeeIds.filter((id) => id !== employeeId),
+            teamRoles: [
+              ...assignedTeams.map((team) => team.name),
+              ...remainingAssignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, virtualRoles)?.title ?? employee.role)
+            ],
+            updatedAt: Date.now()
+          };
+        }
+        return {
+          ...project,
+          assignedEmployeeIds: project.assignedEmployeeIds.filter((id) => id !== employeeId),
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...remainingAssignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, virtualRoles)?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      }));
+      setProjectActionMessage("Deleted virtual employee.");
+    }
+    function deleteSoftwareProjectPlan(projectId) {
+      setSoftwareProjects((current) => {
+        const next = current.filter((project) => project.id !== projectId);
+        if (activeSoftwareProjectId === projectId) {
+          setActiveSoftwareProjectId(next[0]?.id ?? "");
+        }
+        return next;
+      });
+      setProjectActionMessage("Deleted project.");
+    }
+    function markSoftwareProjectStatus(projectId, status2) {
+      const project = softwareProjects.find((candidate) => candidate.id === projectId);
+      setSoftwareProjects((current) => current.map((project2) => project2.id === projectId ? { ...project2, status: status2, updatedAt: Date.now() } : project2));
+      if (project) {
+        setProjectActionMessage(`Set "${project.name}" to ${formatProjectStatus(status2).toLowerCase()}.`);
+      }
+    }
+    function startProjectChat(project) {
+      const nextSession = createSessionSnapshot(
+        createSessionId(),
+        [
+          createMessage(
+            "assistant",
+            `Project workspace ready for "${project.name}". Send or edit the prepared prompt to begin.`,
+            { title: "Project Studio" }
+          )
+        ],
+        appInfo?.workspacePath
+      );
+      setSessions((current) => {
+        const previous = current.find((session) => session.id === currentSessionId);
+        const withCurrent = currentSessionId ? upsertSession(current, createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous)) : current;
+        return upsertSession(withCurrent, nextSession);
+      });
+      setCurrentSessionId(nextSession.id);
+      setMessages(nextSession.messages);
+      setInput(formatProjectPrompt(project, virtualEmployees, virtualRoles, projectTeams));
+      markSoftwareProjectStatus(project.id, "active");
+      setProjectActionMessage(`Opened a guided chat for "${project.name}".`);
+      setActiveView("chat");
+      window.setTimeout(() => inputRef.current?.focus(), 0);
     }
     function recordToolStart(data) {
       const activity = {
@@ -40572,7 +41432,7 @@ ${formatJson(data.data)}
         appendMessage(createMessage("system", "Opened Settings.", { title: prompt.slice(1) }));
         return true;
       }
-      if (prompt === "/login lmstudio" || prompt === "/login local") {
+      if (prompt === "/login local") {
         const localDefault = getProviderDefault("openai-compatible");
         updateSettingsDraft({
           llmProvider: "openai-compatible",
@@ -40583,10 +41443,10 @@ ${formatJson(data.data)}
           enableLlmTools: localDefault.enableLlmTools,
           apiKey: ""
         });
-        setSettingsMessage("Configured draft for LM Studio. Set the model ID, then Save.");
+        setSettingsMessage("Configured draft for an OpenAI-compatible backend. Set the model ID, then Save.");
         setActiveSettingsSection("model");
         setActiveView("settings");
-        appendMessage(createMessage("system", "Opened Settings with LM Studio defaults.", { title: "login" }));
+        appendMessage(createMessage("system", "Opened Settings with OpenAI-compatible defaults.", { title: "login" }));
         return true;
       }
       if (prompt === "/clear") {
@@ -40678,7 +41538,7 @@ ${formatJson(appConfig)}
         `Saved sessions: ${sessions.length}`
       ];
       if (provider === "openai-compatible" && !config?.enableLlmTools) {
-        lines.push("Local tool schemas are off by default to protect 8k-context LM Studio models.");
+        lines.push("Local tool schemas are off by default to protect small-context local models.");
       }
       return lines.join("\n");
     }
@@ -41114,6 +41974,12 @@ ${toolText}`;
               tokenUsage,
               currentSessionTitle: conversationTitle,
               sessionCount: sessions.length,
+              projects: softwareProjects,
+              activeProjectId: activeSoftwareProjectId,
+              roles: virtualRoles,
+              employees: virtualEmployees,
+              projectTeams,
+              projectMessage: projectActionMessage,
               workspacePath,
               workspaceEntries,
               workspaceBrowserError,
@@ -41125,7 +41991,19 @@ ${toolText}`;
               onGoToWorkspaceParent: goToWorkspaceParent,
               onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
               mcpServers,
-              mcpTools
+              mcpTools,
+              onSaveProject: saveSoftwareProjectPlan,
+              onSaveRole: saveVirtualRoleDefinition,
+              onDeleteRole: deleteVirtualRoleDefinition,
+              onSaveEmployee: saveVirtualEmployeeProfile,
+              onDeleteEmployee: deleteVirtualEmployeeProfile,
+              onSaveTeam: saveProjectTeamDefinition,
+              onDeleteTeam: deleteProjectTeamDefinition,
+              onSelectProject: setActiveSoftwareProjectId,
+              onSetProjectStatus: markSoftwareProjectStatus,
+              onDeleteProject: deleteSoftwareProjectPlan,
+              onStartProjectChat: startProjectChat,
+              onChangeSection: setActiveProjectsSection
             }
           ),
           activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -41161,6 +42039,8 @@ ${toolText}`;
               teams: virtualTeams,
               teamRuns,
               runningTeamIds,
+              roles: virtualRoles,
+              employees: virtualEmployees,
               appConfig,
               workspacePath: appInfo?.workspacePath ?? workspacePath,
               message: automationMessage,
@@ -41232,7 +42112,7 @@ ${toolText}`;
               className: App_default.statusPane,
               type: "button",
               onClick: () => {
-                setActiveProjectsSection("files");
+                setActiveProjectsSection("studio");
                 setActiveView("projects");
               },
               children: [
@@ -41356,6 +42236,12 @@ ${toolText}`;
     tokenUsage,
     currentSessionTitle,
     sessionCount,
+    projects,
+    activeProjectId,
+    roles,
+    employees,
+    projectTeams,
+    projectMessage,
     workspacePath,
     workspaceEntries,
     workspaceBrowserError,
@@ -41367,16 +42253,1089 @@ ${toolText}`;
     onGoToWorkspaceParent,
     onRefreshWorkspace,
     mcpServers,
-    mcpTools
+    mcpTools,
+    onSaveProject,
+    onSaveRole,
+    onDeleteRole,
+    onSaveEmployee,
+    onDeleteEmployee,
+    onSaveTeam,
+    onDeleteTeam,
+    onSelectProject,
+    onSetProjectStatus,
+    onDeleteProject,
+    onStartProjectChat,
+    onChangeSection
   }) {
     const activeMenuItem = PROJECTS_MENU.find((item) => item.id === activeSection) ?? PROJECTS_MENU[0];
     const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
+    const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
+    const guidedProjects = projects.filter((project) => project.mode === "guided");
+    const autonomousProjects = projects.filter((project) => project.mode === "autonomous");
+    const selectedAutonomousProject = autonomousProjects.find((project) => project.id === activeProjectId) ?? autonomousProjects[0];
+    const selectedAutonomousSupervisor = selectedAutonomousProject ? getProjectSupervisor(selectedAutonomousProject, employees, roles) : employees.find((employee) => isSupervisorEmployee(employee, roles));
+    const selectedAutonomousTeams = selectedAutonomousProject ? getProjectTeams(selectedAutonomousProject, projectTeams) : [];
+    const selectedAutonomousDirectEmployees = selectedAutonomousProject ? getProjectAssignedEmployees(selectedAutonomousProject, employees, roles) : [];
+    const selectedAutonomousStaff = selectedAutonomousProject ? getProjectStaffingEmployees(selectedAutonomousProject, employees, roles, projectTeams) : employees.filter((employee) => employee.id !== selectedAutonomousSupervisor?.id);
+    const activeProjects = projects.filter((project) => project.status === "active");
+    const [draft, setDraft] = useState(() => createSoftwareProjectDraft(appInfo?.workspacePath));
+    const [roleDraft, setRoleDraft] = useState(() => createVirtualRoleDefinition("Developer"));
+    const [employeeDraft, setEmployeeDraft] = useState(() => createVirtualEmployeeProfile("Developer"));
+    const [teamDraft, setTeamDraft] = useState(() => createDefaultProjectTeams()[0]);
+    function startDraft(mode) {
+      const supervisor = employees.find((employee) => isSupervisorEmployee(employee, roles)) ?? employees[0];
+      setDraft({
+        ...createSoftwareProjectDraft(appInfo?.workspacePath),
+        mode,
+        permissionMode: mode === "autonomous" ? "full-access" : "supervised",
+        supervisorEmployeeId: supervisor?.id ?? "",
+        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+        assignedEmployeeIds: mode === "autonomous" ? [] : employees.filter((employee) => employee.id !== supervisor?.id).slice(0, 4).map((employee) => employee.id),
+        assignedTeamIds: mode === "autonomous" ? projectTeams.slice(0, 2).map((team) => team.id) : [],
+        teamRoles: mode === "autonomous" ? projectTeams.slice(0, 2).map((team) => team.name) : employees.filter((employee) => employee.id !== supervisor?.id).slice(0, 4).map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
+      });
+      onChangeSection("new");
+    }
+    function editProject(project) {
+      setDraft({
+        ...project,
+        artifacts: [...project.artifacts],
+        teamRoles: [...project.teamRoles],
+        assignedTeamIds: [...project.assignedTeamIds],
+        assignedEmployeeIds: [...project.assignedEmployeeIds]
+      });
+      onSelectProject(project.id);
+      onChangeSection("new");
+    }
+    function updateDraft(update) {
+      setDraft((current) => ({
+        ...current,
+        ...update,
+        updatedAt: Date.now()
+      }));
+    }
+    function saveDraft() {
+      const supervisor = employees.find((employee) => employee.id === draft.supervisorEmployeeId);
+      const assignedEmployees = employees.filter((employee) => draft.assignedEmployeeIds.includes(employee.id));
+      const assignedTeams = projectTeams.filter((team) => draft.assignedTeamIds.includes(team.id));
+      const next = {
+        ...draft,
+        name: draft.name.trim() || "Untitled software project",
+        workspacePath: draft.workspacePath || appInfo?.workspacePath,
+        artifacts: normalizeStringList(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
+        assignedTeamIds: assignedTeams.map((team) => team.id),
+        teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
+          ...assignedTeams.map((team) => team.name),
+          ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
+        ] : normalizeStringList(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+        updatedAt: Date.now()
+      };
+      onSaveProject(next);
+      setDraft(next);
+      return next;
+    }
+    function saveDraftAndViewOrganization() {
+      const project = saveDraft();
+      onSelectProject(project.id);
+      onChangeSection(project.mode === "autonomous" ? "autonomous" : "guided");
+    }
+    function saveRoleDraft() {
+      onSaveRole({
+        ...roleDraft,
+        title: roleDraft.title.trim() || "Contributor",
+        responsibilities: normalizeStringList(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
+        defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
+        defaultTools: normalizeStringList(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
+        updatedAt: Date.now()
+      });
+      setRoleDraft(createVirtualRoleDefinition("Developer"));
+    }
+    function selectEmployeeRole(roleId) {
+      const role = getRoleDefinitionById(roles, roleId);
+      setEmployeeDraft((current) => ({
+        ...current,
+        roleId,
+        role: role?.title ?? current.role,
+        updatedAt: Date.now()
+      }));
+    }
+    function saveEmployeeDraft() {
+      const role = getRoleDefinitionById(roles, employeeDraft.roleId, employeeDraft.role);
+      onSaveEmployee({
+        ...employeeDraft,
+        name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Virtual employee",
+        roleId: role?.id ?? employeeDraft.roleId,
+        role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
+        permissions: normalizeStringList(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+        updatedAt: Date.now()
+      });
+      setEmployeeDraft(createVirtualEmployeeProfile("Developer"));
+    }
+    function saveTeamDraft() {
+      onSaveTeam({
+        ...teamDraft,
+        name: teamDraft.name.trim() || "Project team",
+        mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
+        memberEmployeeIds: normalizeStringList(teamDraft.memberEmployeeIds, []),
+        updatedAt: Date.now()
+      });
+      setTeamDraft({
+        ...createDefaultProjectTeams()[0],
+        id: createProjectTeamId("Project team"),
+        name: "New Project Team",
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    }
+    function selectTeamSupervisor(employeeId) {
+      setTeamDraft((current) => ({
+        ...current,
+        supervisorEmployeeId: employeeId,
+        memberEmployeeIds: current.memberEmployeeIds.filter((id) => id !== employeeId),
+        updatedAt: Date.now()
+      }));
+    }
+    function toggleTeamMember(employeeId) {
+      setTeamDraft((current) => {
+        const members = new Set(current.memberEmployeeIds);
+        if (members.has(employeeId)) {
+          members.delete(employeeId);
+        } else {
+          members.add(employeeId);
+        }
+        members.delete(current.supervisorEmployeeId);
+        return {
+          ...current,
+          memberEmployeeIds: Array.from(members),
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function toggleDraftEmployee(employeeId) {
+      setDraft((current) => {
+        const assigned = new Set(current.assignedEmployeeIds);
+        if (assigned.has(employeeId)) {
+          assigned.delete(employeeId);
+        } else {
+          assigned.add(employeeId);
+        }
+        assigned.delete(current.supervisorEmployeeId);
+        const assignedEmployees = employees.filter((employee) => assigned.has(employee.id));
+        const assignedTeams = projectTeams.filter((team) => current.assignedTeamIds.includes(team.id));
+        return {
+          ...current,
+          assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function selectDraftSupervisor(employeeId) {
+      const supervisor = employees.find((employee) => employee.id === employeeId);
+      updateDraft({
+        supervisorEmployeeId: employeeId,
+        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+        assignedEmployeeIds: draft.assignedEmployeeIds.filter((id) => id !== employeeId)
+      });
+    }
+    function toggleDraftTeam(teamId) {
+      setDraft((current) => {
+        const assigned = new Set(current.assignedTeamIds);
+        if (assigned.has(teamId)) {
+          assigned.delete(teamId);
+        } else {
+          assigned.add(teamId);
+        }
+        const assignedTeams = projectTeams.filter((team) => assigned.has(team.id));
+        return {
+          ...current,
+          assignedTeamIds: assignedTeams.map((team) => team.id),
+          teamRoles: [
+            ...assignedTeams.map((team) => team.name),
+            ...employees.filter((employee) => current.assignedEmployeeIds.includes(employee.id)).map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
+          ],
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function renderRoleCard(role) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.employeeCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: role.title.slice(0, 2).toUpperCase() }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: role.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: role.canSupervise ? "Supervisor-capable role" : "Contributor role" })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: role.defaultGoal }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: role.responsibilities.slice(0, 4).map((responsibility) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: responsibility }, responsibility)) })
+      ] }, role.id);
+    }
+    function renderEmployeeCard(employee, options = {}) {
+      const role = getEmployeeRoleDefinition(employee, roles);
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.employeeCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: employee.name.slice(0, 2).toUpperCase() }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: employee.name }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              role?.title ?? employee.role,
+              " / ",
+              employee.status
+            ] })
+          ] })
+        ] }),
+        !options.compact && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: role?.defaultGoal ?? employee.currentTask }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: responsibility }, responsibility)) })
+      ] }, employee.id);
+    }
+    function renderProjectTeamCard(team, options = {}) {
+      const supervisor = getTeamSupervisor(team, employees);
+      const members = getTeamMembers(team, employees);
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.employeeCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: team.name.slice(0, 2).toUpperCase() }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              "Supervisor: ",
+              supervisor?.name ?? "Unassigned"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: team.mission }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
+          members.slice(0, options.compact ? 3 : 6).map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: member.name }, member.id)),
+          members.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: "No members" })
+        ] })
+      ] }, team.id);
+    }
+    function getBoardTasks(project) {
+      const assigned = getProjectStaffingEmployees(project, employees, roles, projectTeams).filter((employee) => employee.id !== project.supervisorEmployeeId);
+      const supervisor = getProjectSupervisor(project, employees, roles);
+      const employeePool = assigned.length > 0 ? assigned : employees;
+      const baseTasks = [
+        { title: "Clarify requirements and acceptance criteria", status: "done", employee: supervisor },
+        ...project.artifacts.map((artifact, index) => ({
+          title: `Produce ${artifact}`,
+          status: index === 0 ? "doing" : index === 1 ? "review" : "todo",
+          employee: employeePool[index % Math.max(employeePool.length, 1)]
+        })),
+        { title: "Final integration and release notes", status: "todo", employee: supervisor }
+      ];
+      return baseTasks;
+    }
+    function renderTaskBoard(project) {
+      const tasks = getBoardTasks(project);
+      const columns = [
+        { id: "todo", title: "Todo" },
+        { id: "doing", title: "Doing" },
+        { id: "review", title: "Review" },
+        { id: "done", title: "Done" }
+      ];
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectBoard, children: columns.map((column) => {
+        const columnTasks = tasks.filter((task) => task.status === column.id);
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.projectBoardColumn, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectBoardColumnHeader, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: column.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: columnTasks.length })
+          ] }),
+          columnTasks.map((task) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectTaskCard, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.title }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              task.employee?.name ?? "Unassigned",
+              " / ",
+              task.employee ? getEmployeeRoleDefinition(task.employee, roles)?.title ?? task.employee.role : "Contributor"
+            ] })
+          ] }, `${column.id}-${task.title}`))
+        ] }, column.id);
+      }) });
+    }
+    function renderTeamChat(project) {
+      const supervisor = getProjectSupervisor(project, employees, roles);
+      const assignedTeams = getProjectTeams(project, projectTeams);
+      const assigned = getProjectStaffingEmployees(project, employees, roles, projectTeams).filter((employee) => employee.id !== supervisor?.id);
+      const chatEmployees = [supervisor, ...assigned].filter((employee) => Boolean(employee));
+      const messages = [
+        { author: supervisor, text: `I will coordinate "${project.name}" and keep work aligned to the project goal.` },
+        ...assignedTeams.slice(0, 3).map((team) => ({
+          author: getTeamSupervisor(team, employees) ?? supervisor,
+          text: `Team "${team.name}" is responsible for: ${team.mission}`
+        })),
+        ...assigned.slice(0, 4).map((employee, index) => ({
+          author: employee,
+          text: index === 0 ? `I am taking the first implementation task and will report blockers here.` : index === 1 ? `I will review architecture and integration risks before code changes fan out.` : index === 2 ? `I will prepare verification coverage for the planned deliverables.` : `I am available for the next queued task.`
+        }))
+      ];
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChatList, children: [
+        messages.map((message, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectChatMessage, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: message.author?.name.slice(0, 2).toUpperCase() ?? "CA" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: message.author?.name ?? "CodeAgent" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: message.text })
+          ] })
+        ] }, `${message.author?.id ?? "system"}-${index}`)),
+        chatEmployees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Assign employees to start team chat." })
+      ] });
+    }
+    function renderDeliverables(project) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectDeliverables, children: project.artifacts.map((artifact, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: artifact }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: index < 2 ? "Draft planned" : "Queued" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: index < 2 ? "Ready to be produced by the assigned team." : "Will be generated after upstream work completes." })
+      ] }, artifact)) });
+    }
+    function renderAutonomousProjectSelector() {
+      if (autonomousProjects.length === 0) {
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create an autonomous project before using this view." });
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Autonomous project" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: selectedAutonomousProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value), children: autonomousProjects.map((project) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: project.id, children: project.name }, project.id)) })
+      ] });
+    }
+    function renderAutonomousLifecycleControls(project) {
+      const canStart = project.status === "idea" || project.status === "planning";
+      const canStop = project.status === "active";
+      const canResume = project.status === "stopped" || project.status === "blocked";
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Lifecycle" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: formatProjectStatus(project.status) })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatProjectStatus(project.status) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Supervisor" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: selectedAutonomousSupervisor?.name ?? "Unassigned" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Assigned teams" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: selectedAutonomousTeams.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Total staff" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: selectedAutonomousStaff.length })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.primaryButton,
+              type: "button",
+              onClick: () => onSetProjectStatus(project.id, "active"),
+              disabled: !canStart,
+              children: "Start Project"
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.dangerButton,
+              type: "button",
+              onClick: () => onSetProjectStatus(project.id, "stopped"),
+              disabled: !canStop,
+              children: "Stop Project"
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.secondaryButton,
+              type: "button",
+              onClick: () => onSetProjectStatus(project.id, "active"),
+              disabled: !canResume,
+              children: "Resume Project"
+            }
+          )
+        ] })
+      ] });
+    }
+    function renderProjectCard(project, action) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: project.id === selectedProject?.id ? `${App_default.projectCard} ${App_default.projectCardSelected}` : App_default.projectCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              project.mode === "autonomous" ? "Autonomous project" : "Guided build",
+              " / ",
+              formatProjectStatus(project.status)
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => editProject(project), children: "Edit" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: summarizeProjectGoals(project) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
+          project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: artifact }, artifact)),
+          project.artifacts.length > 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectChip, children: [
+            "+",
+            project.artifacts.length - 4
+          ] })
+        ] }),
+        project.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorRow, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.supervisorRole }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: project.permissionMode === "full-access" ? "Full permission" : "Supervised" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.primaryButton,
+              type: "button",
+              onClick: () => {
+                if (action === "organization") {
+                  onSelectProject(project.id);
+                  onChangeSection("autonomous");
+                  return;
+                }
+                onStartProjectChat(project);
+              },
+              children: action === "organization" ? "View Organization" : "Open Chat"
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSelectProject(project.id), children: "Select" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteProject(project.id), children: "Delete" })
+        ] })
+      ] }, project.id);
+    }
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Projects", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.detailToolbar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Projects" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: activeMenuItem.title }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: activeMenuItem.description })
-      ] }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailToolbar, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Project Studio" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: activeMenuItem.title }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.settingsPageSubtitle, children: activeMenuItem.description })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: () => startDraft("guided"), children: "New Project" })
+      ] }),
+      projectMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: projectMessage }),
+      activeSection === "studio" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Turn ideas into software projects" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectModeGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.projectModeCard, type: "button", onClick: () => startDraft("guided"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Guided" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Human-led build" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Idea, goals, and artifacts become a focused project chat." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.projectModeCard, type: "button", onClick: () => startDraft("autonomous"), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Autonomous" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Autonomous project" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Assign roles, supervisor, permissions, and a delivery objective." })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Portfolio" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved projects" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projects.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Guided builds" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: guidedProjects.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Autonomous projects" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: autonomousProjects.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Running" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProjects.length })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
+            selectedProject ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { className: App_default.projectPanelTitle, children: selectedProject.name }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(selectedProject) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => editProject(selectedProject), children: "Edit" }),
+                selectedProject.mode === "autonomous" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => {
+                  onSelectProject(selectedProject.id);
+                  onChangeSection("autonomous");
+                }, children: "View Organization" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onStartProjectChat(selectedProject), children: "Open Chat" })
+              ] })
+            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No project selected." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Staffing" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Roles" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: roles.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Employees" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: employees.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Workspace" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: appInfo?.workspacePath || void 0, children: workspaceTitle })
+              ] })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Recent Projects" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
+            projects.slice(0, 6).map((project) => renderProjectCard(project, project.mode === "autonomous" ? "organization" : "chat")),
+            projects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No software projects created yet." })
+          ] })
+        ] })
+      ] }),
+      activeSection === "roles" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectConsoleGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Roles" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
+            roles.map((role) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardShell, children: [
+              renderRoleCard(role),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setRoleDraft({ ...role, responsibilities: [...role.responsibilities], defaultTools: [...role.defaultTools] }), children: "Edit" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteRole(role.id), disabled: roles.length <= 1, children: "Delete" })
+              ] })
+            ] }, role.id)),
+            roles.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No roles configured." })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Role Editor" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role title" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: roleDraft.title, onChange: (event) => setRoleDraft((current) => ({ ...current, title: event.target.value, updatedAt: Date.now() })) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Can supervise" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: roleDraft.canSupervise ? "yes" : "no", onChange: (event) => setRoleDraft((current) => ({ ...current, canSupervise: event.target.value === "yes", updatedAt: Date.now() })), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Default goal" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: roleDraft.defaultGoal, onChange: (event) => setRoleDraft((current) => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() })), rows: 3 })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Responsibilities" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "textarea",
+                {
+                  value: roleDraft.responsibilities.join("\n"),
+                  onChange: (event) => setRoleDraft((current) => ({
+                    ...current,
+                    responsibilities: normalizeStringList(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
+                    updatedAt: Date.now()
+                  })),
+                  rows: 7
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Default tools" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "textarea",
+                {
+                  value: roleDraft.defaultTools.join("\n"),
+                  onChange: (event) => setRoleDraft((current) => ({
+                    ...current,
+                    defaultTools: normalizeStringList(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
+                    updatedAt: Date.now()
+                  })),
+                  rows: 4
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: saveRoleDraft, children: "Save Role" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setRoleDraft(createVirtualRoleDefinition("Developer")), children: "New Role" })
+          ] })
+        ] })
+      ] }),
+      activeSection === "employees" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectConsoleGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Virtual Employees" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeGrid, children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardShell, children: [
+            renderEmployeeCard(employee),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setEmployeeDraft(employee), children: "Edit" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteEmployee(employee.id), children: "Delete" })
+            ] })
+          ] }, employee.id)) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Employee Editor" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Name" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.name, onChange: (event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: employeeDraft.roleId || getDefaultRoleId(employeeDraft.role), onChange: (event) => selectEmployeeRole(event.target.value), children: roles.map((role) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: role.id, children: role.title }, role.id)) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.model, onChange: (event) => setEmployeeDraft((current) => ({ ...current, model: event.target.value, updatedAt: Date.now() })) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: employeeDraft.status, onChange: (event) => setEmployeeDraft((current) => ({ ...current, status: event.target.value, updatedAt: Date.now() })), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idle", children: "Idle" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "working", children: "Working" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "approval", children: "Needs approval" })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Current task" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.currentTask, onChange: (event) => setEmployeeDraft((current) => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() })) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permissions" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "textarea",
+                {
+                  value: employeeDraft.permissions.join("\n"),
+                  onChange: (event) => setEmployeeDraft((current) => ({
+                    ...current,
+                    permissions: normalizeStringList(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS),
+                    updatedAt: Date.now()
+                  })),
+                  rows: 5
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: saveEmployeeDraft, children: "Save Employee" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setEmployeeDraft(createVirtualEmployeeProfile("Developer")), children: "New Employee" })
+          ] })
+        ] })
+      ] }),
+      activeSection === "teams" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectConsoleGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Teams" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
+            projectTeams.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardShell, children: [
+              renderProjectTeamCard(team),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "button",
+                  {
+                    className: App_default.secondaryButton,
+                    type: "button",
+                    onClick: () => setTeamDraft({
+                      ...team,
+                      memberEmployeeIds: [...team.memberEmployeeIds]
+                    }),
+                    children: "Edit"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => onDeleteTeam(team.id), children: "Delete" })
+              ] })
+            ] }, team.id)),
+            projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No project teams configured." })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Team Editor" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team name" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: teamDraft.name, onChange: (event) => setTeamDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: teamDraft.supervisorEmployeeId, onChange: (event) => selectTeamSupervisor(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
+                employee.name,
+                " / ",
+                getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
+              ] }, employee.id)) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mission" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: teamDraft.mission, onChange: (event) => setTeamDraft((current) => ({ ...current, mission: event.target.value, updatedAt: Date.now() })), rows: 4 })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Members" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeAssignGrid, children: employees.filter((employee) => employee.id !== teamDraft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "checkbox",
+                    checked: teamDraft.memberEmployeeIds.includes(employee.id),
+                    onChange: () => toggleTeamMember(employee.id)
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: employee.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role })
+              ] }, employee.id)) })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: saveTeamDraft, children: "Save Team" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setTeamDraft({
+              ...createDefaultProjectTeams()[0],
+              id: createProjectTeamId("Project team"),
+              name: "New Project Team",
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }), children: "New Team" })
+          ] })
+        ] })
+      ] }),
+      activeSection === "new" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Definition" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: draft.mode === "autonomous" ? "Autonomous project" : "Guided project chat" })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project name" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project type" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "select",
+              {
+                value: draft.mode,
+                onChange: (event) => {
+                  const mode = event.target.value;
+                  updateDraft({
+                    mode,
+                    permissionMode: mode === "autonomous" ? "full-access" : "supervised"
+                  });
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "guided", children: "Guided human/app project" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "autonomous", children: "Autonomous project" })
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idea", children: "Idea" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "planning", children: "Planning" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "active", children: "Running" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "stopped", children: "Stopped" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "blocked", children: "Blocked" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "done", children: "Done" })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace path" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Idea" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Goals" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Software artifacts" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "textarea",
+              {
+                value: draft.artifacts.join("\n"),
+                onChange: (event) => updateDraft({ artifacts: normalizeStringList(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
+                rows: 6
+              }
+            )
+          ] }),
+          draft.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor employee" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
+                employee.name,
+                " / ",
+                getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
+              ] }, employee.id)) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Execution permissions" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }), children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full access supervisor" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Ask for risky actions" })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Assigned teams" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeAssignGrid, children: [
+                projectTeams.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "input",
+                    {
+                      type: "checkbox",
+                      checked: draft.assignedTeamIds.includes(team.id),
+                      onChange: () => toggleDraftTeam(team.id)
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: team.name }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: team.mission })
+                ] }, team.id)),
+                projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create teams before assigning them to a project." })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct virtual employees" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeAssignGrid, children: employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "input",
+                  {
+                    type: "checkbox",
+                    checked: draft.assignedEmployeeIds.includes(employee.id),
+                    onChange: () => toggleDraftEmployee(employee.id)
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: employee.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role })
+              ] }, employee.id)) })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: saveDraft, children: "Save Project" }),
+          draft.mode === "autonomous" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, children: "Save And View Organization" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onStartProjectChat(saveDraft()), children: "Save And Open Chat" })
+        ] })
+      ] }),
+      activeSection === "guided" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Guided Builds" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
+          guidedProjects.map((project) => renderProjectCard(project, "chat")),
+          guidedProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No guided projects yet." })
+        ] })
+      ] }),
+      activeSection === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Autonomous Project" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
+          ] }) }),
+          renderAutonomousProjectSelector()
+        ] }),
+        selectedAutonomousProject && renderAutonomousLifecycleControls(selectedAutonomousProject),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Autonomous Project Organization" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "Select or create an autonomous project" })
+            ] }),
+            selectedAutonomousProject && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => editProject(selectedAutonomousProject), children: "Edit Project Members" }) })
+          ] }),
+          selectedAutonomousProject ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(selectedAutonomousProject) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTeamDiagram, children: [
+              selectedAutonomousSupervisor ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorNode, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor acting for human" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: selectedAutonomousSupervisor.name }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("em", { children: [
+                  selectedAutonomousSupervisor.role,
+                  " / ",
+                  selectedAutonomousProject.permissionMode === "full-access" ? "Full permission" : "Supervised"
+                ] })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No supervisor assigned." }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
+                selectedAutonomousTeams.map((team) => renderProjectTeamCard(team, { compact: true })),
+                selectedAutonomousTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No teams assigned to this project." })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorRow, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct employees" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: selectedAutonomousDirectEmployees.length }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "Assigned outside teams" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
+                selectedAutonomousDirectEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })),
+                selectedAutonomousDirectEmployees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No direct employees assigned outside teams." })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("board"), children: "Task Board" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("chat"), children: "Team Chat" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("deliverables"), children: "Deliverables" })
+            ] })
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No autonomous project yet." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Autonomous Projects" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
+            autonomousProjects.map((project) => renderProjectCard(project, "organization")),
+            autonomousProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No autonomous projects yet." })
+          ] })
+        ] })
+      ] }),
+      activeSection === "board" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Task Board" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
+        ] }) }),
+        renderAutonomousProjectSelector(),
+        selectedAutonomousProject ? renderTaskBoard(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see its task board." })
+      ] }),
+      activeSection === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Team Chat" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
+        ] }) }),
+        renderAutonomousProjectSelector(),
+        selectedAutonomousProject ? renderTeamChat(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see employee chat." })
+      ] }),
+      activeSection === "deliverables" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Deliverables" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
+        ] }) }),
+        renderAutonomousProjectSelector(),
+        selectedAutonomousProject ? renderDeliverables(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see deliverables." })
+      ] }),
+      activeSection === "context" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Files" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: appInfo?.workspacePath || void 0, children: workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries, children: "Up" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries, children: "Refresh" })
+            ] })
+          ] }),
+          workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineError, children: workspaceBrowserError }),
+          workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineSuccess, children: workspaceActionMessage }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileBrowser, "aria-label": "Workspace files", children: [
+            isLoadingWorkspaceEntries && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Loading files..." }),
+            !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No files in this directory" }),
+            !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+              const entryPath = joinWorkspacePath(workspacePath, entry.name);
+              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "div",
+                {
+                  className: entry.type === "directory" ? App_default.fileEntryDirectory : App_default.fileEntry,
+                  title: entry.name,
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.fileEntryMain,
+                        type: "button",
+                        onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath),
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.type === "directory" ? "Folder" : "File" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.name }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: entry.type === "directory" ? "Directory" : formatFileSize(entry.size) })
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileEntryActions, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath), children: "Open" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath), children: "Reveal" })
+                    ] })
+                  ]
+                },
+                `${entry.type}-${entry.name}`
+              );
+            })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Runtime" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "App" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo?.isDev ? "Development" : "Production" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+                  viewportSize.width,
+                  " x ",
+                  viewportSize.height
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
+              ] })
+            ] })
+          ] })
+        ] })
+      ] }),
       activeSection === "overview" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
@@ -41950,6 +43909,8 @@ ${toolText}`;
     teams,
     teamRuns,
     runningTeamIds,
+    roles,
+    employees,
     appConfig,
     workspacePath,
     message,
@@ -41986,6 +43947,7 @@ ${toolText}`;
     const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState("run-once");
     const [deviceName, setDeviceName] = useState("Phone");
     const [selectedTeamId, setSelectedTeamId] = useState("");
+    const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = useState("");
     const [teamDraft, setTeamDraft] = useState(() => createVirtualTeamDraft(workspacePath));
     const activeMenuItem = AUTOMATION_MENU.find((item) => item.id === activeSection) ?? AUTOMATION_MENU[0];
     const selectedTeam = teams.find((team) => team.id === selectedTeamId);
@@ -42031,6 +43993,32 @@ ${toolText}`;
           ...current,
           members: [...current.members, member],
           supervisorId: current.supervisorId || member.id,
+          updatedAt: Date.now()
+        };
+      });
+    }
+    function addSharedEmployeeToTeam(employeeId) {
+      const employee = employees.find((candidate) => candidate.id === employeeId);
+      if (!employee) {
+        return;
+      }
+      const role = getEmployeeRoleDefinition(employee, roles);
+      const member = {
+        id: `member-${employee.id}`,
+        name: employee.name,
+        role: role?.title ?? employee.role,
+        goal: role?.defaultGoal ?? getDefaultTeamGoal(employee.role),
+        tools: role?.defaultTools ?? getDefaultTeamTools(employee.role)
+      };
+      setTeamDraft((current) => {
+        const members = [
+          member,
+          ...current.members.filter((candidate) => candidate.id !== member.id)
+        ];
+        return {
+          ...current,
+          members,
+          supervisorId: current.supervisorId || (role?.canSupervise ? member.id : members[0]?.id ?? ""),
           updatedAt: Date.now()
         };
       });
@@ -42362,6 +44350,27 @@ ${toolText}`;
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl }),
             remoteControl.serverUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: remoteControl.serverUrl })
           ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Managed Relay", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.enrollmentStatus ?? "not-configured" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Broker" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.brokerUrl ?? "Not configured" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Account" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.accountId ?? "Not configured" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Device" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.deviceId ?? "Not configured" })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Off-network relay control stays disabled until the managed relay implements identity, encryption, token rotation, audit propagation, and emergency revocation." })
+          ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Approved Devices", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
             remoteControl.approvedDevices.map((device) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
@@ -42436,6 +44445,23 @@ ${toolText}`;
               teams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No virtual team blueprints configured." })
             ] })
           ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Shared Roles And Employees", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Roles" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: roles.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Employees" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: employees.length })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Supervisor roles" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: roles.filter((role) => role.canSupervise).length })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: roles.slice(0, 8).map((role) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: role.title }, role.id)) })
+          ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Team Editor", children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
@@ -42496,9 +44522,27 @@ ${toolText}`;
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team workspace path" }),
                 /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: teamDraft.workspacePath ?? workspacePath, onChange: (event) => updateTeamDraft({ workspacePath: event.target.value }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Add shared employee" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: selectedSharedEmployeeId || employees[0]?.id || "", onChange: (event) => setSelectedSharedEmployeeId(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
+                  employee.name,
+                  " / ",
+                  getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
+                ] }, employee.id)) })
               ] })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  className: App_default.secondaryButton,
+                  type: "button",
+                  onClick: () => addSharedEmployeeToTeam(selectedSharedEmployeeId || employees[0]?.id || ""),
+                  disabled: employees.length === 0,
+                  children: "Add Shared Employee"
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("Developer"), children: "Add Developer" }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("QA"), children: "Add QA" }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => addTeamMember("Reviewer"), children: "Add Reviewer" }),
@@ -43207,7 +45251,7 @@ ${toolText}`;
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
           ] })
         ] }),
-        activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Context", children: [
+        activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Prompts & Directories", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),

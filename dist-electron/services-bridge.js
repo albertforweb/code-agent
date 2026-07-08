@@ -66,7 +66,7 @@ function sendToRenderer(getMainWindow, channel, payload) {
     window.webContents.send(channel, payload);
 }
 function registerServiceBridges(ipcBridge, options) {
-    const workspacePath = options.cwd ?? process.cwd();
+    const workspacePath = resolveWorkspacePath(options.cwd);
     const automationExecutionScope = new async_hooks_1.AsyncLocalStorage();
     const pendingFileWriteReviews = new Map();
     const pendingCommandReviews = new Map();
@@ -321,6 +321,16 @@ function registerServiceBridges(ipcBridge, options) {
         }).show();
     };
     automationService.setNotificationEmitter(automationNotificationEmitter);
+    automationService.setApprovalResolutionEmitter(event => {
+        sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['tool:approvalResolved'], {
+            requestId: event.approvalId,
+            type: event.type,
+            title: event.title,
+            approved: event.approved,
+            resolvedBy: event.resolvedBy,
+            reason: event.reason,
+        });
+    });
     apiService.setAuthTokenProvider(provider => authService.getToken(provider));
     apiService.setAppConfigProvider(() => appStateService.getConfig());
     apiService.setToolProvider(() => toolService.getTools(), (toolName, args) => toolService.executeToolAndReturn(toolName, args, createToolId()));
@@ -776,6 +786,16 @@ function registerServiceBridges(ipcBridge, options) {
         automationService,
         historyService,
     };
+}
+function resolveWorkspacePath(value) {
+    const fallback = electron_1.app.getPath('home');
+    const candidate = typeof value === 'string' && value.trim()
+        ? path.resolve(value.trim())
+        : fallback;
+    if (!candidate || candidate === path.parse(candidate).root) {
+        return fallback;
+    }
+    return candidate;
 }
 function createBridgeTools({ apiService, filesService, appStateService, mcpService, commandService, automationService, webService, financeService, getScopedFileService, getScopedCommandService, requestFileWriteReview, requestCommandReview, }) {
     const workspacePath = 'the current scoped workspace';

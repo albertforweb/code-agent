@@ -10,8 +10,8 @@ const cost = {
   name: 'cost',
   description: 'Show the total cost and duration of the current session',
   get isHidden() {
-    // Keep visible for Ants even if they're subscribers (they see cost breakdowns)
-    if (process.env.USER_TYPE === 'ant') {
+    // Keep visible for Internal users even if they're subscribers (they see cost breakdowns)
+    if (process.env.USER_TYPE === 'internal') {
       return false
     }
     return isSubscriptionAuthSubscriber()

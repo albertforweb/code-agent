@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import addDir from './commands/add-dir/index.js'
 import autofixPr from './commands/autofix-pr/index.js'
 import backfillSessions from './commands/backfill-sessions/index.js'
@@ -46,7 +46,7 @@ import tasks from './commands/tasks/index.js'
 import teleport from './commands/teleport/index.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const agentsPlatform =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? require('./commands/agents-platform/index.js').default
     : null
 /* eslint-enable @typescript-eslint/no-require-imports */
@@ -144,7 +144,7 @@ import {
   resetLimits,
   resetLimitsNonInteractive,
 } from './commands/reset-limits/index.js'
-import antTrace from './commands/ant-trace/index.js'
+import internalTrace from './commands/internal-trace/index.js'
 import perfIssue from './commands/perf-issue/index.js'
 import sandboxToggle from './commands/sandbox-toggle/index.js'
 import chrome from './commands/chrome/index.js'
@@ -244,7 +244,7 @@ export const INTERNAL_ONLY_COMMANDS = [
   share,
   summary,
   teleport,
-  antTrace,
+  internalTrace,
   perfIssue,
   env,
   oauthRefresh,
@@ -340,7 +340,7 @@ const COMMANDS = memoize((): Command[] => [
   tasks,
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(torch ? [torch] : []),
-  ...(process.env.USER_TYPE === 'ant' && !process.env.IS_DEMO
+  ...(process.env.USER_TYPE === 'internal' && !process.env.IS_DEMO
     ? INTERNAL_ONLY_COMMANDS
     : []),
 ])

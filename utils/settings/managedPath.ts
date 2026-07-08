@@ -11,7 +11,7 @@ export const getManagedFilePath = memoize(function (): string {
     process.env.CODE_AGENT_MANAGED_SETTINGS_PATH
   // Allow override for testing/demos.
   if (
-    (process.env.USER_TYPE === 'ant' ||
+    (process.env.USER_TYPE === 'internal' ||
       process.env.CODEAGENT_MANAGED_SETTINGS_PATH) &&
     override
   ) {

@@ -140,7 +140,7 @@ export function attachErrorLogSink(newSink: ErrorLogSink): void {
  * - Debug logs (visible via `code-agent --debug` or `tail -f ~/.codeAgent/debug/latest`)
  * - In-memory error log (accessible via `getInMemoryErrors()`, useful for including
  *   in bug reports or displaying recent errors to users)
- * - Persistent error log file (only for internal 'ant' users, stored in ~/.codeAgent/errors/)
+ * - Persistent error log file (only for internal users, stored in ~/.codeAgent/errors/)
  *
  * Usage:
  * ```ts
@@ -343,12 +343,12 @@ export function captureAPIRequest(
   // available via React state.
   const { messages, ...paramsWithoutMessages } = params
   setLastAPIRequest(paramsWithoutMessages)
-  // For ant users only: also keep a reference to the final messages array so
+  // For internal users only: also keep a reference to the final messages array so
   // /share's serialized_conversation.json captures the exact post-compaction,
   // AGENTS.md-injected payload the API received. Overwritten each turn;
-  // dumpPrompts.ts already holds 5 full request bodies for ants, so this is
+  // dumpPrompts.ts already holds 5 full request bodies for internal users, so this is
   // not a new retention class.
-  setLastAPIRequestMessages(process.env.USER_TYPE === 'ant' ? messages : null)
+  setLastAPIRequestMessages(process.env.USER_TYPE === 'internal' ? messages : null)
 }
 
 /**

@@ -1,4 +1,4 @@
-// biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+// biome-ignore-all assist/source/organizeImports: INTERNAL-ONLY import markers must not be reordered
 import { randomUUID } from 'crypto'
 import {
   createBridgeApiClient,
@@ -324,10 +324,10 @@ export async function initBridgeCore(
     onAuth401,
     getTrustedDeviceToken,
   })
-  // Ant-only: interpose so /bridge-kick can inject poll/register/heartbeat
+  // Internal-only: interpose so /bridge-kick can inject poll/register/heartbeat
   // failures. Zero cost in external builds (rawApi passes through unchanged).
   const api =
-    process.env.USER_TYPE === 'ant' ? wrapApiForFaultInjection(rawApi) : rawApi
+    process.env.USER_TYPE === 'internal' ? wrapApiForFaultInjection(rawApi) : rawApi
 
   const bridgeConfig: BridgeConfig = {
     dir,
@@ -539,7 +539,7 @@ export async function initBridgeCore(
   // Session-Ingress) or SSETransport+CCRClient (v2: SSE reads + POST
   // writes to CCR /worker/*). The v1/v2 choice is made in onWorkReceived:
   // server-driven via secret.use_code_sessions, with CODE_AGENT_BRIDGE_USE_CCR_V2
-  // as an ant-dev override.
+  // as an internal-dev override.
   let transport: ReplBridgeTransport | null = null
   // Bumped on every onWorkReceived. Captured in createV2ReplTransport's .then()
   // closure to detect stale resolutions: if two calls race while transport is
@@ -965,11 +965,11 @@ export async function initBridgeCore(
     })
   }
 
-  // Ant-only: SIGUSR2 → force doReconnect() for manual testing. Skips the
+  // Internal-only: SIGUSR2 → force doReconnect() for manual testing. Skips the
   // ~30s poll wait — fire-and-observe in the debug log immediately.
   // Windows has no USR signals; `process.on` would throw there.
   let sigusr2Handler: (() => void) | undefined
-  if (process.env.USER_TYPE === 'ant' && process.platform !== 'win32') {
+  if (process.env.USER_TYPE === 'internal' && process.platform !== 'win32') {
     sigusr2Handler = () => {
       logForDebugging(
         '[bridge:repl] SIGUSR2 received — forcing doReconnect() for testing',
@@ -979,12 +979,12 @@ export async function initBridgeCore(
     process.on('SIGUSR2', sigusr2Handler)
   }
 
-  // Ant-only: /bridge-kick fault injection. handleTransportPermanentClose
+  // Internal-only: /bridge-kick fault injection. handleTransportPermanentClose
   // is defined below and assigned into this slot so the slash command can
   // invoke it directly — the real setOnClose callback is buried inside
   // wireTransport which is itself inside onWorkReceived.
   let debugFireClose: ((code: number) => void) | null = null
-  if (process.env.USER_TYPE === 'ant') {
+  if (process.env.USER_TYPE === 'internal') {
     registerBridgeDebugHandle({
       fireClose: code => {
         if (!debugFireClose) {
@@ -1128,7 +1128,7 @@ export async function initBridgeCore(
       currentIngressToken = ingressToken
 
       // Server decides per-session (secret.use_code_sessions from the work
-      // secret, threaded through runWorkPollLoop). The env var is an ant-dev
+      // secret, threaded through runWorkPollLoop). The env var is an internal-dev
       // override for forcing v2 before the server flag is on for your user —
       // requires ccr_v2_compat_enabled server-side or registerWorker 404s.
       //
@@ -1572,7 +1572,7 @@ export async function initBridgeCore(
     if (sigusr2Handler) {
       process.off('SIGUSR2', sigusr2Handler)
     }
-    if (process.env.USER_TYPE === 'ant') {
+    if (process.env.USER_TYPE === 'internal') {
       clearBridgeDebugHandle()
       debugFireClose = null
     }

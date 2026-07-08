@@ -742,8 +742,8 @@ export function logAPISuccessAndDuration({
         )
         .join('\n') || undefined
 
-    // Thinking output - Ant-only (build-time gated)
-    if (process.env.USER_TYPE === 'ant') {
+    // Thinking output - internal-only (build-time gated)
+    if (process.env.USER_TYPE === 'internal') {
       thinkingOutput =
         newMessages
           .flatMap(m =>

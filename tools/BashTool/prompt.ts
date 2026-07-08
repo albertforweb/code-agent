@@ -46,14 +46,14 @@ function getCommitAndPRInstructions(): string {
   // your cover" instructions are the last line of defense against the model
   // volunteering an internal codename in a commit message.
   const undercoverSection =
-    process.env.USER_TYPE === 'ant' && isUndercover()
+    process.env.USER_TYPE === 'internal' && isUndercover()
       ? getUndercoverInstructions() + '\n'
       : ''
 
   if (!shouldIncludeGitInstructions()) return undercoverSection
 
-  // For ant users, use the short version pointing to skills
-  if (process.env.USER_TYPE === 'ant') {
+  // For internal users, use the short version pointing to skills
+  if (process.env.USER_TYPE === 'internal') {
     const skillsSection = !isEnvTruthy(process.env.CODE_AGENT_SIMPLE)
       ? `For git commits and pull requests, use the \`/commit\` and \`/commit-push-pr\` skills:
 - \`/commit\` - Create a git commit with staged changes
@@ -273,7 +273,7 @@ function getSimpleSandboxSection(): string {
 }
 
 export function getSimplePrompt(): string {
-  // Ant-native builds alias find/grep to embedded bfs/ugrep in CodeAgent's shell,
+  // Internal-native builds alias find/grep to embedded bfs/ugrep in CodeAgent's shell,
   // so we don't steer away from them (and Glob/Grep tools are removed).
   const embedded = hasEmbeddedSearchTools()
 

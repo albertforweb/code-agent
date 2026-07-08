@@ -18,8 +18,8 @@ function isDevMode(): boolean {
   // Local builds from build directories are dev mode even with NODE_ENV=production
   const pathsToCheck = [process.argv[1] || '', process.execPath || '']
   const buildDirs = [
-    '/build-ant/',
-    '/build-ant-native/',
+    '/build-internal/',
+    '/build-internal-native/',
     '/build-external/',
     '/build-external-native/',
   ]

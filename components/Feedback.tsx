@@ -71,13 +71,13 @@ type FeedbackData = {
 export function redactSensitiveInfo(text: string): string {
   let redacted = text;
 
-  // LlmProvider API keys (sk-ant...) with or without quotes
+  // LlmProvider API keys (sk-codeagent...) with or without quotes
   // First handle the case with quotes
-  redacted = redacted.replace(/"(sk-ant[^\s"']{24,})"/g, '"[REDACTED_API_KEY]"');
+  redacted = redacted.replace(/"(sk-codeagent[^\s"']{24,})"/g, '"[REDACTED_API_KEY]"');
   // Then handle the cases without quotes - more general pattern
   redacted = redacted.replace(
   // eslint-disable-next-line custom-rules/no-lookbehind-regex -- .replace(re, string) on /bug path: no-match returns same string (Object.is)
-  /(?<![A-Za-z0-9"'])(sk-ant-?[A-Za-z0-9_-]{10,})(?![A-Za-z0-9"'])/g, '[REDACTED_API_KEY]');
+  /(?<![A-Za-z0-9"'])(sk-codeagent-?[A-Za-z0-9_-]{10,})(?![A-Za-z0-9"'])/g, '[REDACTED_API_KEY]');
 
   // AWS keys - AWSXXXX format - add the pattern we need for the test
   redacted = redacted.replace(/AWS key: "(AWS[A-Z0-9]{20,})"/g, 'AWS key: "[REDACTED_AWS_KEY]"');

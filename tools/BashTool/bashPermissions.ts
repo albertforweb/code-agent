@@ -110,17 +110,17 @@ export const MAX_SUBCOMMANDS_FOR_SECURITY_CHECK = 50
 export const MAX_SUGGESTED_RULES_FOR_COMPOUND = 5
 
 /**
- * [ANT-ONLY] Log classifier evaluation results for analysis.
+ * [INTERNAL-ONLY] Log classifier evaluation results for analysis.
  * This helps us understand which classifier rules are being evaluated
  * and how the classifier is deciding on commands.
  */
-function logClassifierResultForAnts(
+function logClassifierResultForInternal(
   command: string,
   behavior: ClassifierBehavior,
   descriptions: string[],
   result: ClassifierResult,
 ): void {
-  if (process.env.USER_TYPE !== 'ant') {
+  if (process.env.USER_TYPE !== 'internal') {
     return
   }
 
@@ -137,7 +137,7 @@ function logClassifierResultForAnts(
       result.confidence as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
     reason:
       result.reason as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-    // Note: command contains code/filepaths - this is ANT-ONLY so it's OK
+    // Note: command contains code/filepaths - this is INTERNAL-ONLY so it's OK
     command:
       command as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
   })
@@ -146,7 +146,7 @@ function logClassifierResultForAnts(
 /**
  * Extract a stable command prefix (command + subcommand) from a raw command string.
  * Skips leading env var assignments only if they are in SAFE_ENV_VARS (or
- * ANT_ONLY_SAFE_ENV_VARS for ant users). Returns null if a non-safe env var is
+ * ANT_ONLY_SAFE_ENV_VARS for internal users). Returns null if a non-safe env var is
  * encountered (to fall back to exact match), or if the second token doesn't look
  * like a subcommand (lowercase alphanumeric, e.g., "commit", "run").
  *
@@ -163,7 +163,7 @@ export function getSimpleCommandPrefix(command: string): string | null {
   if (tokens.length === 0) return null
 
   // Skip env var assignments (VAR=value) at the start, but only if they are
-  // in SAFE_ENV_VARS (or ANT_ONLY_SAFE_ENV_VARS for ant users). If a non-safe
+  // in SAFE_ENV_VARS (or ANT_ONLY_SAFE_ENV_VARS for internal users). If a non-safe
   // env var is encountered, return null to fall back to exact match. This
   // prevents generating prefix rules like Bash(npm run:*) that can never match
   // at allow-rule check time, because stripSafeWrappers only strips safe vars.
@@ -171,7 +171,7 @@ export function getSimpleCommandPrefix(command: string): string | null {
   while (i < tokens.length && ENV_VAR_ASSIGN_RE.test(tokens[i]!)) {
     const varName = tokens[i]!.split('=')[0]!
     const isAntOnlySafe =
-      process.env.USER_TYPE === 'ant' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
+      process.env.USER_TYPE === 'internal' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
     if (!SAFE_ENV_VARS.has(varName) && !isAntOnlySafe) {
       return null
     }
@@ -247,7 +247,7 @@ export function getFirstWordPrefix(command: string): string | null {
   while (i < tokens.length && ENV_VAR_ASSIGN_RE.test(tokens[i]!)) {
     const varName = tokens[i]!.split('=')[0]!
     const isAntOnlySafe =
-      process.env.USER_TYPE === 'ant' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
+      process.env.USER_TYPE === 'internal' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
     if (!SAFE_ENV_VARS.has(varName) && !isAntOnlySafe) {
       return null
     }
@@ -326,7 +326,7 @@ function extractPrefixBeforeHeredoc(command: string): string | null {
   while (i < tokens.length && ENV_VAR_ASSIGN_RE.test(tokens[i]!)) {
     const varName = tokens[i]!.split('=')[0]!
     const isAntOnlySafe =
-      process.env.USER_TYPE === 'ant' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
+      process.env.USER_TYPE === 'internal' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
     if (!SAFE_ENV_VARS.has(varName) && !isAntOnlySafe) {
       return null
     }
@@ -430,12 +430,12 @@ const SAFE_ENV_VARS = new Set([
 ])
 
 /**
- * ANT-ONLY environment variables that are safe to strip from commands.
- * These are only enabled when USER_TYPE === 'ant'.
+ * INTERNAL-ONLY environment variables that are safe to strip from commands.
+ * These are only enabled when USER_TYPE === 'internal'.
  *
  * SECURITY: These env vars are stripped before permission-rule matching, which
  * means `DOCKER_HOST=tcp://evil.com docker ps` matches a `Bash(docker ps:*)`
- * rule after stripping. This is INTENTIONALLY ANT-ONLY (gated at line ~380)
+ * rule after stripping. This is INTENTIONALLY INTERNAL-ONLY (gated at line ~380)
  * and MUST NEVER ship to external users. DOCKER_HOST redirects the Docker
  * daemon endpoint — stripping it defeats prefix-based permission restrictions
  * by hiding the network endpoint from the permission check. KUBECONFIG
@@ -588,7 +588,7 @@ export function stripSafeWrappers(command: string): string {
     if (envVarMatch) {
       const varName = envVarMatch[1]!
       const isAntOnlySafe =
-        process.env.USER_TYPE === 'ant' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
+        process.env.USER_TYPE === 'internal' && ANT_ONLY_SAFE_ENV_VARS.has(varName)
       if (SAFE_ENV_VARS.has(varName) || isAntOnlySafe) {
         stripped = stripped.replace(ENV_VAR_PATTERN, '')
       }
@@ -1570,7 +1570,7 @@ export async function awaitClassifierAutoApproval(
         isNonInteractiveSession,
       )
 
-  logClassifierResultForAnts(command, 'allow', descriptions, classifierResult)
+  logClassifierResultForInternal(command, 'allow', descriptions, classifierResult)
 
   if (
     feature('BASH_CLASSIFIER') &&
@@ -1635,7 +1635,7 @@ export async function executeAsyncClassifierCheck(
     throw error
   }
 
-  logClassifierResultForAnts(command, 'allow', descriptions, classifierResult)
+  logClassifierResultForInternal(command, 'allow', descriptions, classifierResult)
 
   // Don't auto-approve if user already made a decision or has interacted
   // with the permission dialog (e.g., arrow keys, tab, typing)
@@ -1901,7 +1901,7 @@ export async function bashToolHasPermission(
       }
 
       if (denyResult) {
-        logClassifierResultForAnts(
+        logClassifierResultForInternal(
           input.command,
           'deny',
           denyDescriptions,
@@ -1909,7 +1909,7 @@ export async function bashToolHasPermission(
         )
       }
       if (askResult) {
-        logClassifierResultForAnts(
+        logClassifierResultForInternal(
           input.command,
           'ask',
           askDescriptions,

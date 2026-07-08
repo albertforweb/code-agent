@@ -649,9 +649,8 @@ function resolveModel(model?: string): string {
   const provider = getOpenAICompatibleProviderKind() ?? 'openai-compatible'
   const envModel = firstDefined(
     process.env.CODE_AGENT_MODEL,
+    process.env.OPENAI_COMPATIBLE_MODEL,
     process.env.OPENAI_MODEL,
-    process.env.LM_STUDIO_MODEL,
-    process.env.LMSTUDIO_MODEL,
   )
   if (envModel) return envModel
 
@@ -668,9 +667,8 @@ function getChatCompletionsUrl(): string {
     firstDefined(
       process.env.CODE_AGENT_BASE_URL,
       process.env.CODE_AGENT_LLM_BASE_URL,
+      process.env.OPENAI_COMPATIBLE_BASE_URL,
       process.env.OPENAI_BASE_URL,
-      process.env.LM_STUDIO_BASE_URL,
-      process.env.LMSTUDIO_BASE_URL,
     ) ?? DEFAULT_BASE_URLS[provider]
 
   if (baseUrl.endsWith('/chat/completions')) {
@@ -682,9 +680,8 @@ function getChatCompletionsUrl(): string {
 function getAuthHeaders(): Record<string, string> {
   const apiKey = firstDefined(
     process.env.CODE_AGENT_API_KEY,
+    process.env.OPENAI_COMPATIBLE_API_KEY,
     process.env.OPENAI_API_KEY,
-    process.env.LM_STUDIO_API_KEY,
-    process.env.LMSTUDIO_API_KEY,
   )
   return apiKey ? { Authorization: `Bearer ${apiKey}` } : {}
 }

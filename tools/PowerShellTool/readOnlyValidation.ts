@@ -1350,7 +1350,7 @@ export function isAllowlistedCommand(
   // SECURITY: whitelist arg elementTypes — only StringConstant and Parameter
   // are statically verifiable. Everything else expands/evaluates at runtime:
   //   'Variable'          → `Get-Process $env:AWS_SECRET_ACCESS_KEY` expands,
-  //                         errors "Cannot find process 'sk-ant-...'", model
+  //                         errors "Cannot find process 'sk-codeagent-...'", model
   //                         reads the secret from the error
   //   'Other' (Hashtable) → `Get-Process @{k=$env:SECRET}` same leak
   //   'Other' (Convert)   → `Get-Process [string]$env:SECRET` same leak
@@ -1701,8 +1701,8 @@ function isGitSafe(args: string[]): boolean {
 }
 
 function isGhSafe(args: string[]): boolean {
-  // gh commands are network-dependent; only allow for ant users
-  if (process.env.USER_TYPE !== 'ant') {
+  // gh commands are network-dependent; only allow for internal users
+  if (process.env.USER_TYPE !== 'internal') {
     return false
   }
 

@@ -250,7 +250,7 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
     spawn(opts: SessionSpawnOpts, dir: string): SessionHandle {
       // Debug file resolution:
       // 1. If deps.debugFile is provided, use it with session ID suffix for uniqueness
-      // 2. If verbose or ant build, auto-generate a temp file path
+      // 2. If verbose or internal build, auto-generate a temp file path
       // 3. Otherwise, no debug file
       const safeId = safeFilenameId(opts.sessionId)
       let debugFile: string | undefined
@@ -261,7 +261,7 @@ export function createSessionSpawner(deps: SessionSpawnerDeps): SessionSpawner {
         } else {
           debugFile = `${deps.debugFile}-${safeId}`
         }
-      } else if (deps.verbose || process.env.USER_TYPE === 'ant') {
+      } else if (deps.verbose || process.env.USER_TYPE === 'internal') {
         debugFile = join(tmpdir(), 'code-agent', `bridge-session-${safeId}.log`)
       }
 

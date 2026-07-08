@@ -121,7 +121,7 @@ function ensureCleanupInterval(): void {
 
 /**
  * Check if enhanced telemetry is enabled.
- * Priority: env var override > ant build > GrowthBook gate
+ * Priority: env var override > internal build > GrowthBook gate
  */
 export function isEnhancedTelemetryEnabled(): boolean {
   if (feature('ENHANCED_TELEMETRY_BETA')) {
@@ -135,7 +135,7 @@ export function isEnhancedTelemetryEnabled(): boolean {
       return false
     }
     return (
-      process.env.USER_TYPE === 'ant' ||
+      process.env.USER_TYPE === 'internal' ||
       getFeatureValue_CACHED_MAY_BE_STALE('enhanced_telemetry_beta', false)
     )
   }

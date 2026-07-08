@@ -34,7 +34,7 @@ import { init, initializeTelemetryAfterTrust } from './entrypoints/init.js';
 import { addToHistory } from './history.js';
 import type { Root } from './ink.js';
 import { launchRepl } from './replLauncher.js';
-import { hasGrowthBookEnvOverride, initializeGrowthBook, refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
+import { refreshGrowthBookAfterAuthChange } from './services/analytics/growthbook.js';
 import { fetchBootstrapData } from './services/api/bootstrap.js';
 import { type DownloadResult, downloadSessionFiles, type FilesApiConfig, parseFileSpecs } from './services/api/filesApi.js';
 import { prefetchPassesEligibility } from './services/api/referral.js';
@@ -98,9 +98,8 @@ function applyLlmProviderCliOptions(options: {
   const configuredModel =
     options.model ||
     process.env.CODE_AGENT_MODEL ||
+    process.env.OPENAI_COMPATIBLE_MODEL ||
     process.env.OPENAI_MODEL ||
-    process.env.LM_STUDIO_MODEL ||
-    process.env.LMSTUDIO_MODEL ||
     defaultModel
 
   if (!configuredModel) return
@@ -184,7 +183,7 @@ import { validateUuid } from './utils/uuid.js';
 
 import { registerMcpAddCommand } from 'src/commands/mcp/addCommand.js';
 import { registerMcpXaaIdpCommand } from 'src/commands/mcp/xaaIdpCommand.js';
-import { logPermissionContextForAnts } from 'src/services/internalLogging.js';
+import { logPermissionContextForInternal } from 'src/services/internalLogging.js';
 import { fetchHostedMcpConfigsIfEligible } from 'src/services/mcp/hostedProxy.js';
 import { clearServerCache } from 'src/services/mcp/client.js';
 import { areMcpConfigsAllowedWithEnterpriseMcpConfig, dedupHostedMcpServers, doesEnterpriseMcpConfigExist, filterMcpServersByPolicy, getCodeAgentCodeMcpConfigs, getMcpServerSignature, parseMcpConfig, parseMcpConfigFromFilePath } from 'src/services/mcp/config.js';
@@ -307,7 +306,7 @@ function isBeingDebugged() {
 }
 
 // Exit if we detect node debugging or inspection
-if ("external" !== 'ant' && isBeingDebugged()) {
+if ("external" !== 'internal' && isBeingDebugged()) {
   // Use process.exit directly here since we're in the top-level code before imports
   // and gracefulShutdown is not yet available
   // eslint-disable-next-line custom-rules/no-top-level-side-effects
@@ -381,7 +380,7 @@ function runMigrations(): void {
     if (feature('TRANSCRIPT_CLASSIFIER')) {
       resetAutoModeOptInForDefaultOffer();
     }
-    if ("external" === 'ant') {
+    if ("external" === 'internal') {
       migrateFennecToOpus();
     }
     saveGlobalConfig(prev => prev.migrationVersion === CURRENT_MIGRATION_VERSION ? prev : {
@@ -469,7 +468,7 @@ export function startDeferredPrefetches(): void {
   }
 
   // Event loop stall detector — logs when the main thread is blocked >500ms
-  if ("external" === 'ant') {
+  if ("external" === 'internal') {
     void import('./utils/eventLoopStallDetector.js').then(m => m.startEventLoopStallDetector());
   }
 }
@@ -1034,7 +1033,7 @@ async function run(): Promise<CommanderCommand> {
     return Number.isFinite(n) ? n : undefined;
   }).hideHelp()).option('--from-pr [value]', 'Resume a session linked to a PR by PR number/URL, or open interactive picker with optional search term', value => value || true).option('--no-session-persistence', 'Disable session persistence - sessions will not be saved to disk and cannot be resumed (only works with --print)').addOption(new Option('--resume-session-at <message id>', 'When resuming, only messages up to and including the assistant message with <message.id> (use with --resume in print mode)').argParser(String).hideHelp()).addOption(new Option('--rewind-files <user-message-id>', 'Restore files to state at the specified user message and exit (requires --resume)').hideHelp())
   // @[MODEL LAUNCH]: Update the example model ID in the --model help text.
-  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'codeAgent-sonnet-4-6').`).addOption(new Option('--llm-provider <provider>', 'LLM provider for API requests: llmProvider, openai, or openai-compatible').choices(['llmProvider', 'openai', 'openai-compatible', 'lmstudio', 'lm-studio', 'local'])).addOption(new Option('--base-url <url>', 'Base URL for OpenAI-compatible API requests (for example, http://127.0.0.1:1234/v1)')).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
+  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'codeAgent-sonnet-4-6').`).addOption(new Option('--llm-provider <provider>', 'LLM provider for API requests: llmProvider, openai, or openai-compatible').choices(['llmProvider', 'openai', 'openai-compatible', 'local'])).addOption(new Option('--base-url <url>', 'Base URL for OpenAI-compatible API requests (for example, http://127.0.0.1:1234/v1)')).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
     const value = rawValue.toLowerCase();
     const allowed = ['low', 'medium', 'high', 'max'];
     if (!allowed.includes(value)) {
@@ -1178,12 +1177,12 @@ async function run(): Promise<CommanderCommand> {
     // Extract disable slash commands flag
     const disableSlashCommands = options.disableSlashCommands || false;
 
-    // Extract tasks mode options (ant-only)
-    const tasksOption = "external" === 'ant' && (options as {
+    // Extract tasks mode options (internal-only)
+    const tasksOption = "external" === 'internal' && (options as {
       tasks?: boolean | string;
     }).tasks;
     const taskListId = tasksOption ? typeof tasksOption === 'string' ? tasksOption : DEFAULT_TASKS_MODE_TASK_LIST_ID : undefined;
-    if ("external" === 'ant' && taskListId) {
+    if ("external" === 'internal' && taskListId) {
       process.env.CODE_AGENT_TASK_LIST_ID = taskListId;
     }
 
@@ -1567,13 +1566,13 @@ async function run(): Promise<CommanderCommand> {
       }
     }
 
-    // Extract CodeAgent in Chrome option and enforce codeAgent.ai subscriber check (unless user is ant)
+    // Extract CodeAgent in Chrome option and enforce codeAgent.ai subscriber check for external users
     const chromeOpts = options as {
       chrome?: boolean;
     };
     // Store the explicit CLI flag so teammates can inherit it
     setChromeFlagOverride(chromeOpts.chrome);
-    const enableBrowserControl = shouldEnableBrowserControl(chromeOpts.chrome) && ("external" === 'ant' || isSubscriptionAuthSubscriber());
+    const enableBrowserControl = shouldEnableBrowserControl(chromeOpts.chrome) && ("external" === 'internal' || isSubscriptionAuthSubscriber());
     const autoEnableBrowserControl = !enableBrowserControl && shouldAutoEnableBrowserControl();
     if (enableBrowserControl) {
       const platform = getPlatform();
@@ -1640,14 +1639,14 @@ async function run(): Promise<CommanderCommand> {
     }
 
     // chicago MCP: guarded Computer Use (app allowlist + frontmost gate +
-    // SCContentFilter screenshots). Ant-only, GrowthBook-gated — failures
+    // SCContentFilter screenshots). Internal-only, GrowthBook-gated — failures
     // are silent (this is dogfooding). Platform + interactive checks inline
-    // so non-macOS / print-mode ants skip the heavy @ant/computer-use-mcp
+    // so non-macOS / print-mode internal users skip the heavy @codeagent/computer-use-mcp
     // import entirely. gates.js is light (type-only package import).
     //
     // Placed AFTER the enterprise-MCP-config check: that check rejects any
     // dynamicMcpConfig entry with `type !== 'sdk'`, and our config is
-    // `type: 'stdio'`. An enterprise-config ant with the GB gate on would
+    // `type: 'stdio'`. An enterprise internal config with the GB gate on would
     // otherwise process.exit(1). Chrome has the same latent issue but has
     // shipped without incident; chicago places itself correctly.
     if (feature('CHICAGO_MCP') && getPlatform() === 'macos' && !getIsNonInteractiveSession()) {
@@ -1804,8 +1803,8 @@ async function run(): Promise<CommanderCommand> {
       overlyBroadBashPermissions
     } = initResult;
 
-    // Handle overly broad shell allow rules for ant users (Bash(*), PowerShell(*))
-    if ("external" === 'ant' && overlyBroadBashPermissions.length > 0) {
+    // Handle overly broad shell allow rules for internal users (Bash(*), PowerShell(*))
+    if ("external" === 'internal' && overlyBroadBashPermissions.length > 0) {
       for (const permission of overlyBroadBashPermissions) {
         logForDebugging(`Ignoring overly broad shell permission ${permission.ruleDisplay} from ${permission.sourceDisplay}`);
       }
@@ -2043,22 +2042,6 @@ async function run(): Promise<CommanderCommand> {
       cacheSessionTitle(sessionNameArg);
     }
 
-    // Ant model aliases (capybara-fast etc.) resolve via the
-    // tengu_ant_model_override GrowthBook flag. _CACHED_MAY_BE_STALE reads
-    // disk synchronously; disk is populated by a fire-and-forget write. On a
-    // cold cache, parseUserSpecifiedModel returns the unresolved alias, the
-    // API 404s, and -p exits before the async write lands — crashloop on
-    // fresh pods. Awaiting init here populates the in-memory payload map that
-    // _CACHED_MAY_BE_STALE now checks first. Gated so the warm path stays
-    // non-blocking:
-    //  - explicit model via --model or LLM_PROVIDER_MODEL (both feed alias resolution)
-    //  - no env override (which short-circuits _CACHED_MAY_BE_STALE before disk)
-    //  - flag absent from disk (== null also catches pre-#22279 poisoned null)
-    const explicitModel = options.model || process.env.LLM_PROVIDER_MODEL;
-    if ("external" === 'ant' && explicitModel && explicitModel !== 'default' && !hasGrowthBookEnvOverride('tengu_ant_model_override') && getGlobalConfig().cachedGrowthBookFeatures?.['tengu_ant_model_override'] == null) {
-      await initializeGrowthBook();
-    }
-
     // Special case the default model with the null keyword
     // NOTE: Model resolution happens after setup() to ensure trust is established before AWS auth
     const userSpecifiedModel = options.model === 'default' ? getDefaultMainLoopModel() : options.model;
@@ -2201,7 +2184,7 @@ async function run(): Promise<CommanderCommand> {
         // Log agent memory loaded event for tmux teammates
         if (customAgent.memory) {
           logEvent('tengu_agent_memory_loaded', {
-            ...("external" === 'ant' && {
+            ...("external" === 'internal' && {
               agent_type: customAgent.agentType as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
             }),
             scope: customAgent.memory as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
@@ -2264,8 +2247,8 @@ async function run(): Promise<CommanderCommand> {
       const ctx = getRenderContext(false);
       getFpsMetrics = ctx.getFpsMetrics;
       stats = ctx.stats;
-      // Install asciicast recorder before Ink mounts (ant-only, opt-in via CODE_AGENT_TERMINAL_RECORDING=1)
-      if ("external" === 'ant') {
+      // Install asciicast recorder before Ink mounts (internal-only, opt-in via CODE_AGENT_TERMINAL_RECORDING=1)
+      if ("external" === 'internal') {
         installAsciicastRecorder();
       }
       const {
@@ -2299,7 +2282,7 @@ async function run(): Promise<CommanderCommand> {
         }
       }
 
-      // Check for pending agent memory snapshot updates (only for --agent mode, ant-only)
+      // Check for pending agent memory snapshot updates (only for --agent mode, internal-only)
       if (feature('AGENT_MEMORY_SNAPSHOT') && mainThreadAgentDefinition && isCustomAgent(mainThreadAgentDefinition) && mainThreadAgentDefinition.memory && mainThreadAgentDefinition.pendingSnapshotUpdate) {
         const agentDef = mainThreadAgentDefinition;
         const choice = await launchSnapshotUpdateDialog(root, {
@@ -2565,7 +2548,7 @@ async function run(): Promise<CommanderCommand> {
 
     // Log context metrics once at initialization
     void logContextMetrics(regularMcpConfigs, toolPermissionContext);
-    void logPermissionContextForAnts(null, 'initialization');
+    void logPermissionContextForInternal(null, 'initialization');
     logManagedSettings();
 
     // Register PID file for concurrent-session detection.
@@ -2861,7 +2844,7 @@ async function run(): Promise<CommanderCommand> {
       if (!isBareMode()) {
         startDeferredPrefetches();
         void import('./utils/backgroundHousekeeping.js').then(m => m.startBackgroundHousekeeping());
-        if ("external" === 'ant') {
+        if ("external" === 'internal') {
           void import('./utils/sdkHeapDumpMonitor.js').then(m => m.startSdkMemoryMonitor());
         }
       }
@@ -2946,7 +2929,7 @@ async function run(): Promise<CommanderCommand> {
       const n = displayList.length;
       initialNotifications.push({
         key: 'overly-broad-bash-notification',
-        text: `${displays} allow ${plural(n, 'rule')} from ${sources} ${plural(n, 'was', 'were')} ignored \u2014 not available for Ants, please use auto-mode instead`,
+        text: `${displays} allow ${plural(n, 'rule')} from ${sources} ${plural(n, 'was', 'were')} ignored \u2014 not available for Internal users, please use auto-mode instead`,
         color: 'warning',
         priority: 'high'
       });
@@ -3098,15 +3081,15 @@ async function run(): Promise<CommanderCommand> {
       logSessionTelemetry();
     });
 
-    // Set up per-turn session environment data uploader (ant-only build).
-    // Default-enabled for all ant users when working in an LlmProvider-owned
+    // Set up per-turn session environment data uploader (internal-only build).
+    // Default-enabled for all internal users when working in an LlmProvider-owned
     // repo. Captures git/filesystem state (NOT transcripts) at each turn so
     // environments can be recreated at any user message index. Gating:
     //   - Build-time: this import is stubbed in external builds.
     //   - Runtime: uploader checks github.com/llmProviders/* remote + gcloud auth.
     //   - Safety: CODE_AGENT_DISABLE_SESSION_DATA_UPLOAD=1 bypasses (tests set this).
     // Import is dynamic + async to avoid adding startup latency.
-    const sessionUploaderPromise = "external" === 'ant' ? import('./utils/sessionDataUploader.js') : null;
+    const sessionUploaderPromise = "external" === 'internal' ? import('./utils/sessionDataUploader.js') : null;
 
     // Defer session uploader resolution to the onTurnComplete callback to avoid
     // adding a new top-level await in main.tsx (performance-critical path).
@@ -3398,7 +3381,7 @@ async function run(): Promise<CommanderCommand> {
       }, renderAndRun);
       return;
     } else if (options.resume || options.fromPr || teleport || remote !== null) {
-      // Handle resume flow - from file (ant-only), session ID, or interactive selector
+      // Handle resume flow - from file (internal-only), session ID, or interactive selector
 
       // Clear stale caches before resuming to ensure fresh file/skill discovery
       const {
@@ -3623,7 +3606,7 @@ async function run(): Promise<CommanderCommand> {
           }
         }
       }
-      if ("external" === 'ant') {
+      if ("external" === 'internal') {
         if (options.resume && typeof options.resume === 'string' && !maybeSessionId) {
           // Check for ccshare URL (e.g. https://go/ccshare/boris-20260311-211036)
           const {
@@ -3858,18 +3841,18 @@ async function run(): Promise<CommanderCommand> {
   if (canUserConfigureAdvisor()) {
     program.addOption(new Option('--advisor <model>', 'Enable the server-side advisor tool with the specified model (alias or full ID).').hideHelp());
   }
-  if ("external" === 'ant') {
-    program.addOption(new Option('--delegate-permissions', '[ANT-ONLY] Alias for --permission-mode auto.').implies({
+  if ("external" === 'internal') {
+    program.addOption(new Option('--delegate-permissions', '[INTERNAL-ONLY] Alias for --permission-mode auto.').implies({
       permissionMode: 'auto'
     }));
-    program.addOption(new Option('--dangerously-skip-permissions-with-classifiers', '[ANT-ONLY] Deprecated alias for --permission-mode auto.').hideHelp().implies({
+    program.addOption(new Option('--dangerously-skip-permissions-with-classifiers', '[INTERNAL-ONLY] Deprecated alias for --permission-mode auto.').hideHelp().implies({
       permissionMode: 'auto'
     }));
-    program.addOption(new Option('--afk', '[ANT-ONLY] Deprecated alias for --permission-mode auto.').hideHelp().implies({
+    program.addOption(new Option('--afk', '[INTERNAL-ONLY] Deprecated alias for --permission-mode auto.').hideHelp().implies({
       permissionMode: 'auto'
     }));
-    program.addOption(new Option('--tasks [id]', '[ANT-ONLY] Tasks mode: watch for tasks and auto-process them. Optional id is used as both the task list ID and agent ID (defaults to "tasklist").').argParser(String).hideHelp());
-    program.option('--agent-teams', '[ANT-ONLY] Force CodeAgent to use multi-agent mode for solving problems', () => true);
+    program.addOption(new Option('--tasks [id]', '[INTERNAL-ONLY] Tasks mode: watch for tasks and auto-process them. Optional id is used as both the task list ID and agent ID (defaults to "tasklist").').argParser(String).hideHelp());
+    program.option('--agent-teams', '[INTERNAL-ONLY] Force CodeAgent to use multi-agent mode for solving problems', () => true);
   }
   if (feature('TRANSCRIPT_CLASSIFIER')) {
     program.addOption(new Option('--enable-auto-mode', 'Opt in to auto mode').hideHelp());
@@ -4041,7 +4024,7 @@ async function run(): Promise<CommanderCommand> {
         process.stderr.write(`A codeAgent server is already running (pid ${existing.pid}) at ${existing.httpUrl}\n`);
         process.exit(1);
       }
-      const authToken = opts.authToken ?? `sk-ant-cc-${randomBytes(16).toString('base64url')}`;
+      const authToken = opts.authToken ?? `sk-codeagent-cc-${randomBytes(16).toString('base64url')}`;
       const config = {
         port: parseInt(opts.port, 10),
         host: opts.host,
@@ -4306,7 +4289,7 @@ async function run(): Promise<CommanderCommand> {
     } = await import('./cli/handlers/plugins.js');
     await pluginUpdateHandler(plugin, options);
   });
-  // END ANT-ONLY
+  // END INTERNAL-ONLY
 
   // Setup token command
   program.command('setup-token').description('Set up a long-lived authentication token for subscription auth').action(async () => {
@@ -4416,6 +4399,25 @@ async function run(): Promise<CommanderCommand> {
       automationRemoteServeHandler
     } = await import('./cli/handlers/automation.js');
     await automationRemoteServeHandler();
+  });
+  const automationRemoteRelay = automationRemote.command('relay').description('Manage managed-relay enrollment metadata');
+  automationRemoteRelay.command('status').description('Show managed-relay enrollment metadata').action(async () => {
+    const {
+      automationRemoteRelayStatusHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationRemoteRelayStatusHandler();
+  });
+  automationRemoteRelay.command('configure').description('Store managed-relay enrollment metadata without starting a relay connection').requiredOption('--broker-url <url>', 'Managed relay broker HTTPS URL').option('--account-id <id>', 'Relay account id').option('--device-id <id>', 'Relay device id').option('--relay-public-key <key>', 'Relay public key identifier or material').option('--client-key-id <id>', 'Local client key id').option('--audit-cursor <cursor>', 'Last synchronized relay audit cursor').option('--token-rotates-at <timestamp>', 'Expected token rotation timestamp').action(async options => {
+    const {
+      automationRemoteRelayConfigureHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationRemoteRelayConfigureHandler(options);
+  });
+  automationRemoteRelay.command('disable').description('Disable managed-relay enrollment metadata').action(async () => {
+    const {
+      automationRemoteRelayDisableHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationRemoteRelayDisableHandler();
   });
   const automationTeam = automation.command('team').alias('teams').description('Manage virtual team blueprints');
   automationTeam.command('list').description('List virtual teams').action(async () => {
@@ -4539,8 +4541,8 @@ async function run(): Promise<CommanderCommand> {
   });
 
   // codeAgent up — run the project's AGENTS.md "# codeAgent up" setup instructions.
-  if ("external" === 'ant') {
-    program.command('up').description('[ANT-ONLY] Initialize or upgrade the local dev environment using the "# codeAgent up" section of the nearest AGENTS.md').action(async () => {
+  if ("external" === 'internal') {
+    program.command('up').description('[INTERNAL-ONLY] Initialize or upgrade the local dev environment using the "# codeAgent up" section of the nearest AGENTS.md').action(async () => {
       const {
         up
       } = await import('src/cli/up.js');
@@ -4548,10 +4550,10 @@ async function run(): Promise<CommanderCommand> {
     });
   }
 
-  // codeAgent rollback (ant-only)
+  // codeAgent rollback (internal-only)
   // Rolls back to previous releases
-  if ("external" === 'ant') {
-    program.command('rollback [target]').description('[ANT-ONLY] Roll back to a previous release\n\nExamples:\n  codeAgent rollback                                    Go 1 version back from current\n  codeAgent rollback 3                                  Go 3 versions back from current\n  codeAgent rollback 2.0.73-dev.20251217.t190658        Roll back to a specific version').option('-l, --list', 'List recent published versions with ages').option('--dry-run', 'Show what would be installed without installing').option('--safe', 'Roll back to the server-pinned safe version (set by oncall during incidents)').action(async (target?: string, options?: {
+  if ("external" === 'internal') {
+    program.command('rollback [target]').description('[INTERNAL-ONLY] Roll back to a previous release\n\nExamples:\n  codeAgent rollback                                    Go 1 version back from current\n  codeAgent rollback 3                                  Go 3 versions back from current\n  codeAgent rollback 2.0.73-dev.20251217.t190658        Roll back to a specific version').option('-l, --list', 'List recent published versions with ages').option('--dry-run', 'Show what would be installed without installing').option('--safe', 'Roll back to the server-pinned safe version (set by oncall during incidents)').action(async (target?: string, options?: {
       list?: boolean;
       dryRun?: boolean;
       safe?: boolean;
@@ -4573,31 +4575,31 @@ async function run(): Promise<CommanderCommand> {
     await installHandler(target, options);
   });
 
-  // ant-only commands
-  if ("external" === 'ant') {
+  // internal-only commands
+  if ("external" === 'internal') {
     const validateLogId = (value: string) => {
       const maybeSessionId = validateUuid(value);
       if (maybeSessionId) return maybeSessionId;
       return Number(value);
     };
     // codeAgent log
-    program.command('log').description('[ANT-ONLY] Manage conversation logs.').argument('[number|sessionId]', 'A number (0, 1, 2, etc.) to display a specific log, or the sesssion ID (uuid) of a log', validateLogId).action(async (logId: string | number | undefined) => {
+    program.command('log').description('[INTERNAL-ONLY] Manage conversation logs.').argument('[number|sessionId]', 'A number (0, 1, 2, etc.) to display a specific log, or the sesssion ID (uuid) of a log', validateLogId).action(async (logId: string | number | undefined) => {
       const {
         logHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await import('./cli/handlers/internal.js');
       await logHandler(logId);
     });
 
     // codeAgent error
-    program.command('error').description('[ANT-ONLY] View error logs. Optionally provide a number (0, -1, -2, etc.) to display a specific log.').argument('[number]', 'A number (0, 1, 2, etc.) to display a specific log', parseInt).action(async (number: number | undefined) => {
+    program.command('error').description('[INTERNAL-ONLY] View error logs. Optionally provide a number (0, -1, -2, etc.) to display a specific log.').argument('[number]', 'A number (0, 1, 2, etc.) to display a specific log', parseInt).action(async (number: number | undefined) => {
       const {
         errorHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await import('./cli/handlers/internal.js');
       await errorHandler(number);
     });
 
     // codeAgent export
-    program.command('export').description('[ANT-ONLY] Export a conversation to a text file.').usage('<source> <outputFile>').argument('<source>', 'Session ID, log index (0, 1, 2...), or path to a .json/.jsonl log file').argument('<outputFile>', 'Output file path for the exported text').addHelpText('after', `
+    program.command('export').description('[INTERNAL-ONLY] Export a conversation to a text file.').usage('<source> <outputFile>').argument('<source>', 'Session ID, log index (0, 1, 2...), or path to a .json/.jsonl log file').argument('<outputFile>', 'Output file path for the exported text').addHelpText('after', `
 Examples:
   $ codeAgent export 0 conversation.txt                Export conversation at log index 0
   $ codeAgent export <uuid> conversation.txt           Export conversation by session ID
@@ -4605,18 +4607,18 @@ Examples:
   $ codeAgent export <uuid>.jsonl output.txt           Render JSONL session file to text`).action(async (source: string, outputFile: string) => {
       const {
         exportHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await import('./cli/handlers/internal.js');
       await exportHandler(source, outputFile);
     });
-    if ("external" === 'ant') {
-      const taskCmd = program.command('task').description('[ANT-ONLY] Manage task list tasks');
+    if ("external" === 'internal') {
+      const taskCmd = program.command('task').description('[INTERNAL-ONLY] Manage task list tasks');
       taskCmd.command('create <subject>').description('Create a new task').option('-d, --description <text>', 'Task description').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (subject: string, opts: {
         description?: string;
         list?: string;
       }) => {
         const {
           taskCreateHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await import('./cli/handlers/internal.js');
         await taskCreateHandler(subject, opts);
       });
       taskCmd.command('list').description('List all tasks').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').option('--pending', 'Show only pending tasks').option('--json', 'Output as JSON').action(async (opts: {
@@ -4626,7 +4628,7 @@ Examples:
       }) => {
         const {
           taskListHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await import('./cli/handlers/internal.js');
         await taskListHandler(opts);
       });
       taskCmd.command('get <id>').description('Get details of a task').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (id: string, opts: {
@@ -4634,7 +4636,7 @@ Examples:
       }) => {
         const {
           taskGetHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await import('./cli/handlers/internal.js');
         await taskGetHandler(id, opts);
       });
       taskCmd.command('update <id>').description('Update a task').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').option('-s, --status <status>', `Set status (${TASK_STATUSES.join(', ')})`).option('--subject <text>', 'Update subject').option('-d, --description <text>', 'Update description').option('--owner <agentId>', 'Set owner').option('--clear-owner', 'Clear owner').action(async (id: string, opts: {
@@ -4647,7 +4649,7 @@ Examples:
       }) => {
         const {
           taskUpdateHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await import('./cli/handlers/internal.js');
         await taskUpdateHandler(id, opts);
       });
       taskCmd.command('dir').description('Show the tasks directory path').option('-l, --list <id>', 'Task list ID (defaults to "tasklist")').action(async (opts: {
@@ -4655,7 +4657,7 @@ Examples:
       }) => {
         const {
           taskDirHandler
-        } = await import('./cli/handlers/ant.js');
+        } = await import('./cli/handlers/internal.js');
         await taskDirHandler(opts);
       });
     }
@@ -4668,7 +4670,7 @@ Examples:
     }) => {
       const {
         completionHandler
-      } = await import('./cli/handlers/ant.js');
+      } = await import('./cli/handlers/internal.js');
       await completionHandler(shell, opts, program);
     });
   }
@@ -4767,7 +4769,7 @@ async function logTenguInit({
         assistantActivationPath: assistantActivationPath as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       }),
       autoUpdatesChannel: (getInitialSettings().autoUpdatesChannel ?? 'latest') as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
-      ...("external" === 'ant' ? (() => {
+      ...("external" === 'internal' ? (() => {
         const cwd = getCwd();
         const gitRoot = findGitRoot(cwd);
         const rp = gitRoot ? relative(gitRoot, cwd) || '.' : undefined;

@@ -228,7 +228,7 @@ const command = {
   name: 'init',
   get description() {
     return feature('NEW_INIT') &&
-      (process.env.USER_TYPE === 'ant' ||
+      (process.env.USER_TYPE === 'internal' ||
         isEnvTruthy(process.env.CODE_AGENT_NEW_INIT))
       ? 'Initialize new AGENTS.md file(s) and optional skills/hooks with codebase documentation'
       : 'Initialize a new AGENTS.md file with codebase documentation'
@@ -244,7 +244,7 @@ const command = {
         type: 'text',
         text:
           feature('NEW_INIT') &&
-          (process.env.USER_TYPE === 'ant' ||
+          (process.env.USER_TYPE === 'internal' ||
             isEnvTruthy(process.env.CODE_AGENT_NEW_INIT))
             ? NEW_INIT_PROMPT
             : OLD_INIT_PROMPT,

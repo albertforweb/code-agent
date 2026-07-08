@@ -4,7 +4,7 @@ export const PRODUCT_URL = 'https://github.com/albertforweb/code-agent'
 // is the local Automation Remote Control feature; these constants remain only
 // for compatibility with inherited CLI flows until those flows are rehomed.
 export const SUBSCRIPTION_BASE_URL = 'https://codeAgent.ai'
-export const SUBSCRIPTION_STAGING_BASE_URL = 'https://codeAgent-ai.staging.ant.dev'
+export const SUBSCRIPTION_STAGING_BASE_URL = 'https://codeAgent-ai.staging.codeagent.local'
 export const SUBSCRIPTION_LOCAL_BASE_URL = 'http://localhost:4000'
 
 /**

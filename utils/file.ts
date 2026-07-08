@@ -272,7 +272,7 @@ export async function suggestPathUnderCwd(
  * 1.35B Read calls × 132 lines avg this is 2.18% of fleet uncached input
  * (bq-queries/read_line_prefix_overhead_verify.sql).
  *
- * Ant soak validated no Edit error regression (6.29% vs 6.86% baseline).
+ * Internal soak validated no Edit error regression (6.29% vs 6.86% baseline).
  * Killswitch pattern: GB can disable if issues surface externally.
  */
 export function isCompactLinePrefixEnabled(): boolean {

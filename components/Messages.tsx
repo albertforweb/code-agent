@@ -282,7 +282,7 @@ const MAX_MESSAGES_TO_SHOW_IN_TRANSCRIPT_MODE = 30;
 // of fibers, and per-frame write costs that push the process into a GC
 // death spiral (observed: 59 GB RSS, 14k mmap/munmap/sec). Content dropped
 // from this slice has already been printed to terminal scrollback — users
-// can still scroll up natively. VirtualMessageList (the default ant path)
+// can still scroll up natively. VirtualMessageList (the default internal path)
 // bypasses this cap entirely. Headless one-shot renders (e.g. /export)
 // pass disableRenderCap to opt out — they have no scrollback and the
 // memory concern doesn't apply to renderToString.

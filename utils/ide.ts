@@ -845,7 +845,7 @@ export function hasAccessToIDEExtensionDiffFeature(
 }
 
 const EXTENSION_ID =
-  process.env.USER_TYPE === 'ant'
+  process.env.USER_TYPE === 'internal'
     ? 'llmProvider.codeAgent-code-internal'
     : 'llmProvider.codeAgent-code'
 
@@ -881,7 +881,7 @@ async function installIDEExtension(ideType: IdeType): Promise<string | null> {
     const command = await getVSCodeIDECommand(ideType)
 
     if (command) {
-      if (process.env.USER_TYPE === 'ant') {
+      if (process.env.USER_TYPE === 'internal') {
         return await installFromArtifactory(command)
       }
       let version = await getInstalledVSCodeExtensionVersion(command)
@@ -1403,7 +1403,7 @@ async function installFromArtifactory(command: string): Promise<string> {
     for (const line of lines) {
       // Look for the artifactory auth token line
       const match = line.match(
-        /\/\/artifactory\.infra\.ant\.dev\/artifactory\/api\/npm\/npm-all\/:_authToken=(.+)/,
+        /\/\/artifacts\.codeagent\.local\/artifactory\/api\/npm\/npm-all\/:_authToken=(.+)/,
       )
       if (match && match[1]) {
         authToken = match[1].trim()
@@ -1421,7 +1421,7 @@ async function installFromArtifactory(command: string): Promise<string> {
 
   // Fetch the version from artifactory
   const versionUrl =
-    'https://artifactory.infra.ant.dev/artifactory/armorcode-codeAgent-code-internal/codeAgent-vscode-releases/stable'
+    'https://artifacts.codeagent.local/artifactory/armorcode-codeAgent-code-internal/codeAgent-vscode-releases/stable'
 
   try {
     const versionResponse = await axios.get(versionUrl, {
@@ -1436,7 +1436,7 @@ async function installFromArtifactory(command: string): Promise<string> {
     }
 
     // Download the .vsix file from artifactory
-    const vsixUrl = `https://artifactory.infra.ant.dev/artifactory/armorcode-codeAgent-code-internal/codeAgent-vscode-releases/${version}/codeAgent-code.vsix`
+    const vsixUrl = `https://artifacts.codeagent.local/artifactory/armorcode-codeAgent-code-internal/codeAgent-vscode-releases/${version}/codeAgent-code.vsix`
     const tempVsixPath = join(
       os.tmpdir(),
       `codeAgent-code-${version}-${Date.now()}.vsix`,

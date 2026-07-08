@@ -67,7 +67,7 @@ export function ApproveApiKey(t0) {
   }
   let t4;
   if ($[6] !== customApiKeyTruncated) {
-    t4 = <Text>{t3}<Text>: sk-ant-...{customApiKeyTruncated}</Text></Text>;
+    t4 = <Text>{t3}<Text>: sk-codeagent-...{customApiKeyTruncated}</Text></Text>;
     $[6] = customApiKeyTruncated;
     $[7] = t4;
   } else {

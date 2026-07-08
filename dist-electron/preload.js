@@ -19,6 +19,7 @@ const IPC_CHANNELS = {
     'tool:commandReviewResponse': 'tool:commandReviewResponse',
     'tool:permissionReview': 'tool:permissionReview',
     'tool:permissionReviewResponse': 'tool:permissionReviewResponse',
+    'tool:approvalResolved': 'tool:approvalResolved',
     'api:chat': 'api:chat',
     'api:chatStream': 'api:chatStream',
     'api:chatDelta': 'api:chatDelta',
@@ -344,6 +345,11 @@ const api = {
         const handler = (_event, data) => callback(data);
         electron_1.ipcRenderer.on(IPC_CHANNELS['tool:permissionReview'], handler);
         return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:permissionReview'], handler);
+    },
+    onToolApprovalResolved: (callback) => {
+        const handler = (_event, data) => callback(data);
+        electron_1.ipcRenderer.on(IPC_CHANNELS['tool:approvalResolved'], handler);
+        return () => electron_1.ipcRenderer.removeListener(IPC_CHANNELS['tool:approvalResolved'], handler);
     },
     onChatDelta: (callback) => {
         const handler = (_event, data) => callback(data);

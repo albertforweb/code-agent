@@ -382,7 +382,7 @@ export function getCacheControl({
  * Determines if 1h TTL should be used for prompt caching.
  *
  * Only applied when:
- * 1. User is eligible (ant or subscriber within rate limits)
+ * 1. User is eligible (internal or subscriber within rate limits)
  * 2. The query source matches a pattern in the GrowthBook allowlist
  *
  * GrowthBook config shape: { allowlist: string[] }
@@ -411,7 +411,7 @@ function should1hCacheTTL(querySource?: QuerySource): boolean {
   let userEligible = getPromptCache1hEligible()
   if (userEligible === null) {
     userEligible =
-      process.env.USER_TYPE === 'ant' ||
+      process.env.USER_TYPE === 'internal' ||
       (isSubscriptionAuthSubscriber() && !currentLimits.isUsingOverage)
     setPromptCache1hEligible(userEligible)
   }
@@ -459,8 +459,8 @@ function configureEffortParams(
     // Send string effort level as is
     outputConfig.effort = effortValue
     betas.push(EFFORT_BETA_HEADER)
-  } else if (process.env.USER_TYPE === 'ant') {
-    // Numeric effort override - ant-only (uses llmProvider_internal)
+  } else if (process.env.USER_TYPE === 'internal') {
+    // Numeric effort override - internal-only (uses llmProvider_internal)
     const existingInternal =
       (extraBodyParams.llmProvider_internal as Record<string, unknown>) || {}
     extraBodyParams.llmProvider_internal = {
@@ -1202,7 +1202,7 @@ async function* queryModel(
   // Determine if cached microcompact is enabled for this model.
   // Computed once here (in async context) and captured by paramsFromContext.
   // The beta header is also captured here to avoid a top-level import of the
-  // ant-only CACHE_EDITING_BETA_HEADER constant.
+  // internal-only CACHE_EDITING_BETA_HEADER constant.
   let cachedMCEnabled = false
   let cacheEditingBetaHeader = ''
   if (feature('CACHED_MICROCOMPACT')) {
@@ -2009,7 +2009,7 @@ async function* queryModel(
             // Capture research from message_start if available (internal only).
             // Always overwrite with the latest value.
             if (
-              process.env.USER_TYPE === 'ant' &&
+              process.env.USER_TYPE === 'internal' &&
               'research' in (part.message as unknown as Record<string, unknown>)
             ) {
               research = (part.message as unknown as Record<string, unknown>)
@@ -2188,7 +2188,7 @@ async function* queryModel(
             }
             // Capture research from content_block_delta if available (internal only).
             // Always overwrite with the latest value.
-            if (process.env.USER_TYPE === 'ant' && 'research' in part) {
+            if (process.env.USER_TYPE === 'internal' && 'research' in part) {
               research = (part as { research: unknown }).research
             }
             break
@@ -2227,7 +2227,7 @@ async function* queryModel(
               type: 'assistant',
               uuid: randomUUID(),
               timestamp: new Date().toISOString(),
-              ...(process.env.USER_TYPE === 'ant' &&
+              ...(process.env.USER_TYPE === 'internal' &&
                 research !== undefined && { research }),
               ...(advisorModel && { advisorModel }),
             }
@@ -2242,7 +2242,7 @@ async function* queryModel(
             // already-yielded messages since message_delta arrives after
             // content_block_stop.
             if (
-              process.env.USER_TYPE === 'ant' &&
+              process.env.USER_TYPE === 'internal' &&
               'research' in (part as unknown as Record<string, unknown>)
             ) {
               research = (part as unknown as Record<string, unknown>).research
@@ -2606,7 +2606,7 @@ async function* queryModel(
         type: 'assistant',
         uuid: randomUUID(),
         timestamp: new Date().toISOString(),
-        ...(process.env.USER_TYPE === 'ant' &&
+        ...(process.env.USER_TYPE === 'internal' &&
           research !== undefined && {
             research,
           }),
@@ -2703,7 +2703,7 @@ async function* queryModel(
           type: 'assistant',
           uuid: randomUUID(),
           timestamp: new Date().toISOString(),
-          ...(process.env.USER_TYPE === 'ant' &&
+          ...(process.env.USER_TYPE === 'internal' &&
             research !== undefined && { research }),
           ...(advisorModel && { advisorModel }),
         }

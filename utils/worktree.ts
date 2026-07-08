@@ -1392,8 +1392,8 @@ export async function execIntoTmuxWorktree(args: string[]): Promise<{
     )
   }
 
-  // For ants in codeAgent-cli-internal, set up dev panes (watch + start)
-  const isAnt = process.env.USER_TYPE === 'ant'
+  // For internal users in codeAgent-cli-internal, set up dev panes (watch + start)
+  const isAnt = process.env.USER_TYPE === 'internal'
   const isCodeAgentCliInternal = repoName === 'codeAgent-cli-internal'
   const shouldSetupDevPanes = isAnt && isCodeAgentCliInternal && !sessionExists
 

@@ -107,7 +107,7 @@ import {
 } from '../api/errors.js'
 import { notifyCompaction } from '../api/promptCacheBreakDetection.js'
 import { getRetryDelay } from '../api/withRetry.js'
-import { logPermissionContextForAnts } from '../internalLogging.js'
+import { logPermissionContextForInternal } from '../internalLogging.js'
 import {
   roughTokenCountEstimation,
   roughTokenCountEstimationForMessages,
@@ -401,7 +401,10 @@ export async function compactConversation(
     const preCompactTokenCount = tokenCountWithEstimation(messages)
 
     const appState = context.getAppState()
-    void logPermissionContextForAnts(appState.toolPermissionContext, 'summary')
+    void logPermissionContextForInternal(
+      appState.toolPermissionContext,
+      'summary',
+    )
 
     context.onCompactProgress?.({
       type: 'hooks_start',
@@ -524,8 +527,8 @@ export async function compactConversation(
     // Intentionally NOT resetting sentSkillNames: re-injecting the full
     // skill_listing (~4K tokens) post-compact is pure cache_creation with
     // marginal benefit. The model still has SkillTool in its schema and
-    // invoked_skills attachment (below) preserves used-skill content. Ants
-    // with EXPERIMENTAL_SKILL_SEARCH already skip re-injection via the
+    // invoked_skills attachment (below) preserves used-skill content. Internal
+    // users with EXPERIMENTAL_SKILL_SEARCH already skip re-injection via the
     // early-return in getSkillListingAttachments.
 
     // Run async attachment generation in parallel

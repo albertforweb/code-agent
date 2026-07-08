@@ -396,7 +396,7 @@ export function resolveFastModeStatusFromCache(): void {
   if (orgStatus.status !== 'pending') {
     return
   }
-  const isAnt = process.env.USER_TYPE === 'ant'
+  const isAnt = process.env.USER_TYPE === 'internal'
   const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
   orgStatus =
     isAnt || cachedEnabled
@@ -428,7 +428,7 @@ export async function prefetchFastModeStatus(): Promise<void> {
   const hasUsableOAuth =
     getSubscriptionOAuthTokens()?.accessToken && hasProfileScope()
   if (!hasUsableOAuth && !apiKey) {
-    const isAnt = process.env.USER_TYPE === 'ant'
+    const isAnt = process.env.USER_TYPE === 'internal'
     const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
     orgStatus =
       isAnt || cachedEnabled
@@ -508,10 +508,10 @@ export async function prefetchFastModeStatus(): Promise<void> {
         `Org fast mode: ${status.enabled ? 'enabled' : `disabled (${status.disabled_reason ?? 'preference'})`}`,
       )
     } catch (err) {
-      // On failure: ants default to enabled (don't block internal users).
+      // On failure: internal users default to enabled (don't block internal users).
       // External users: fall back to the cached penguinModeOrgEnabled value;
       // if no positive cache, disable with network_error reason.
-      const isAnt = process.env.USER_TYPE === 'ant'
+      const isAnt = process.env.USER_TYPE === 'internal'
       const cachedEnabled = getGlobalConfig().penguinModeOrgEnabled === true
       orgStatus =
         isAnt || cachedEnabled

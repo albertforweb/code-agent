@@ -47,7 +47,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
     const defaultEndpoint = 'https://api.llmProvider.com/api/code_agent/metrics'
 
     if (
-      process.env.USER_TYPE === 'ant' &&
+      process.env.USER_TYPE === 'internal' &&
       process.env.ANT_CODE_AGENT_METRICS_ENDPOINT
     ) {
       this.endpoint =

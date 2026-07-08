@@ -207,11 +207,11 @@ export function useManagePlugins({
         hook_count,
         mcp_count,
         lsp_count,
-        // Ant-only: which plugins are enabled, to correlate with RSS/FPS.
+        // Internal-only: which plugins are enabled, to correlate with RSS/FPS.
         // Kept separate from base metrics so it doesn't flow into
         // logForDiagnosticsNoPII.
         ant_enabled_names:
-          process.env.USER_TYPE === 'ant' && enabled.length > 0
+          process.env.USER_TYPE === 'internal' && enabled.length > 0
             ? (enabled
                 .map(p => p.name)
                 .sort()

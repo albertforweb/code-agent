@@ -15,8 +15,8 @@ export const call: LocalCommandCall = async () => {
         'You are currently using your subscription to power your CodeAgent usage'
     }
 
-    if (process.env.USER_TYPE === 'ant') {
-      value += `\n\n[ANT-ONLY] Showing cost anyway:\n ${formatTotalCost()}`
+    if (process.env.USER_TYPE === 'internal') {
+      value += `\n\n[INTERNAL-ONLY] Showing cost anyway:\n ${formatTotalCost()}`
     }
     return { type: 'text', value }
   }

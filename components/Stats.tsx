@@ -396,7 +396,7 @@ function OverviewTab({
   // Calculate range days based on selected date range
   const rangeDays = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : stats.totalDays;
 
-  // Compute shot stats data (ant-only, gated by feature flag)
+  // Compute shot stats data (internal-only, gated by feature flag)
   let shotStatsData: {
     avgShots: string;
     buckets: {
@@ -528,8 +528,8 @@ function OverviewTab({
         </Box>
       </Box>
 
-      {/* Speculation time saved (ant-only) */}
-      {"external" === 'ant' && stats.totalSpeculationTimeSavedMs > 0 && <Box flexDirection="row" gap={4}>
+      {/* Speculation time saved (internal-only) */}
+      {"external" === 'internal' && stats.totalSpeculationTimeSavedMs > 0 && <Box flexDirection="row" gap={4}>
             <Box flexDirection="column" width={28}>
               <Text wrap="truncate">
                 Speculation saved:{' '}
@@ -540,7 +540,7 @@ function OverviewTab({
             </Box>
           </Box>}
 
-      {/* Shot stats (ant-only) */}
+      {/* Shot stats (internal-only) */}
       {shotStatsData && <>
           <Box marginTop={1}>
             <Text>Shot distribution</Text>
@@ -1167,13 +1167,13 @@ function renderOverviewToAnsi(stats: CodeAgentCodeStats): string[] {
   const peakHourVal = stats.peakActivityHour !== null ? `${stats.peakActivityHour}:00-${stats.peakActivityHour + 1}:00` : 'N/A';
   lines.push(row('Active days', activeDaysVal, 'Peak hour', peakHourVal));
 
-  // Speculation time saved (ant-only)
-  if ("external" === 'ant' && stats.totalSpeculationTimeSavedMs > 0) {
+  // Speculation time saved (internal-only)
+  if ("external" === 'internal' && stats.totalSpeculationTimeSavedMs > 0) {
     const label = 'Speculation saved:'.padEnd(COL1_LABEL_WIDTH);
     lines.push(label + h(formatDuration(stats.totalSpeculationTimeSavedMs)));
   }
 
-  // Shot stats (ant-only)
+  // Shot stats (internal-only)
   if (feature('SHOT_STATS') && stats.shotDistribution) {
     const dist = stats.shotDistribution;
     const totalWithShots = Object.values(dist).reduce((s, n) => s + n, 0);

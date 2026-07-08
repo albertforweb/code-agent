@@ -233,7 +233,7 @@ export type BridgeLogger = {
   clearStatus(): void
   /** Set repository info for status line display. */
   setRepoInfo(repoName: string, branch: string): void
-  /** Set debug log glob shown above the status line (ant users). */
+  /** Set debug log glob shown above the status line (internal users). */
   setDebugLogPath(path: string): void
   /** Transition to "Attached" state when a session starts. */
   setAttached(sessionId: string): void

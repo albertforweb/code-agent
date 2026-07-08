@@ -377,7 +377,7 @@ export function buildSearchingPastContextSection(autoMemDir: string): string[] {
     return []
   }
   const projectDir = getProjectDir(getOriginalCwd())
-  // Ant-native builds alias grep to embedded ugrep and remove the dedicated
+  // Internal-native builds alias grep to embedded ugrep and remove the dedicated
   // Grep tool, so give the model a real shell invocation there.
   // In REPL mode, both Grep and Bash are hidden from direct use — the model
   // calls them from inside REPL scripts, so the grep shell form is what it

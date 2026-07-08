@@ -139,8 +139,8 @@ export function onChangeAppState({
     }))
   }
 
-  // tungstenPanelVisible (ant-only tmux panel sticky toggle)
-  if (process.env.USER_TYPE === 'ant') {
+  // tungstenPanelVisible (internal-only tmux panel sticky toggle)
+  if (process.env.USER_TYPE === 'internal') {
     if (
       newState.tungstenPanelVisible !== oldState.tungstenPanelVisible &&
       newState.tungstenPanelVisible !== undefined &&

@@ -14,6 +14,28 @@ import { getPlatform } from '../utils/platform.js'
 
 const CLIPBOARD_CHECK_DEBOUNCE_MS = 50
 const PASTE_COMPLETION_TIMEOUT_MS = 100
+const PLAIN_TEXT_KEY: Key = {
+  upArrow: false,
+  downArrow: false,
+  leftArrow: false,
+  rightArrow: false,
+  pageDown: false,
+  pageUp: false,
+  wheelUp: false,
+  wheelDown: false,
+  home: false,
+  end: false,
+  return: false,
+  escape: false,
+  ctrl: false,
+  shift: false,
+  fn: false,
+  tab: false,
+  backspace: false,
+  delete: false,
+  meta: false,
+  super: false,
+}
 
 type PasteHandlerProps = {
   onPaste?: (text: string) => void
@@ -51,6 +73,7 @@ export function usePasteHandler({
   // reads stale pasteState.timeoutId (null) and takes the onInput path. If
   // that key is Enter, it submits the old input and the paste is lost.
   const pastePendingRef = React.useRef(false)
+  const queuedPlainTextPasteReturnRef = React.useRef<string | null>(null)
 
   const isMacOS = React.useMemo(() => getPlatform() === 'macos', [])
 
@@ -101,10 +124,12 @@ export function usePasteHandler({
           setPasteState,
           onImagePaste,
           onPaste,
+          onInput,
           setIsPasting,
           checkClipboardForImage,
           isMacOS,
           pastePendingRef,
+          queuedPlainTextPasteReturnRef,
         ) => {
           pastePendingRef.current = false
           setPasteState(({ chunks }) => {
@@ -186,6 +211,12 @@ export function usePasteHandler({
             // Handle regular paste
             if (onPaste) {
               onPaste(pastedText)
+            } else {
+              const queuedReturn = queuedPlainTextPasteReturnRef.current
+              queuedPlainTextPasteReturnRef.current = null
+              if (pastedText.length > 0 || queuedReturn) {
+                onInput(`${pastedText}${queuedReturn ?? ''}`, PLAIN_TEXT_KEY)
+              }
             }
             // Reset isPasting state after paste is complete
             setIsPasting(false)
@@ -196,13 +227,15 @@ export function usePasteHandler({
         setPasteState,
         onImagePaste,
         onPaste,
+        onInput,
         setIsPasting,
         checkClipboardForImage,
         isMacOS,
         pastePendingRef,
+        queuedPlainTextPasteReturnRef,
       )
     },
-    [checkClipboardForImage, isMacOS, onImagePaste, onPaste],
+    [checkClipboardForImage, isMacOS, onImagePaste, onInput, onPaste],
   )
 
   // Paste detection is now done via the InputEvent's keypress.isPasted flag,
@@ -216,7 +249,9 @@ export function usePasteHandler({
     // The keypress parser sets isPasted=true for content within bracketed paste.
     const isFromPaste = event.keypress.isPasted
 
-    // If this is pasted content, set isPasting state for UI feedback
+    // Bracketed paste is buffered even for plain TextInput fields so a fast
+    // Enter can be replayed with the pasted text instead of submitting the
+    // previous value.
     if (isFromPaste) {
       setIsPasting(true)
     }
@@ -249,9 +284,14 @@ export function usePasteHandler({
       return
     }
 
+    if (!onPaste && pastePendingRef.current && key.return) {
+      queuedPlainTextPasteReturnRef.current = input || '\r'
+      return
+    }
+
     // Check if we should handle as paste (from bracketed paste, large input, or continuation)
     const shouldHandleAsPaste =
-      onPaste &&
+      (onPaste || isFromPaste) &&
       (input.length > PASTE_THRESHOLD ||
         pastePendingRef.current ||
         hasImageFilePath ||
@@ -268,7 +308,7 @@ export function usePasteHandler({
       return
     }
     onInput(input, key)
-    if (input.length > 10) {
+    if (isFromPaste || input.length > 10) {
       // Ensure that setIsPasting is turned off on any other multicharacter
       // input, because the stdin buffer may chunk at arbitrary points and split
       // the closing escape sequence if the input length is too long for the

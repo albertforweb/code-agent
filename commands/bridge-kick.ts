@@ -3,7 +3,7 @@ import type { Command } from '../commands.js'
 import type { LocalCommandCall } from '../types/command.js'
 
 /**
- * Ant-only: inject bridge failure states to manually test recovery paths.
+ * Internal-only: inject bridge failure states to manually test recovery paths.
  *
  *   /bridge-kick close 1002            — fire ws_closed with code 1002
  *   /bridge-kick close 1006            — fire ws_closed with code 1006
@@ -54,7 +54,7 @@ const call: LocalCommandCall = async args => {
     return {
       type: 'text',
       value:
-        'No bridge debug handle registered. Remote Control must be connected (USER_TYPE=ant).',
+        'No bridge debug handle registered. Remote Control must be connected (USER_TYPE=internal).',
     }
   }
 
@@ -192,7 +192,7 @@ const bridgeKick = {
   type: 'local',
   name: 'bridge-kick',
   description: 'Inject bridge failure states for manual recovery testing',
-  isEnabled: () => process.env.USER_TYPE === 'ant',
+  isEnabled: () => process.env.USER_TYPE === 'internal',
   supportsNonInteractive: false,
   load: () => Promise.resolve({ call }),
 } satisfies Command

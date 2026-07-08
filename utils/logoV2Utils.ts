@@ -306,12 +306,12 @@ export function formatModelAndBilling(
 
 /**
  * Gets recent release notes for Logo v2 display
- * For ants, uses commits bundled at build time
+ * For internal users, uses commits bundled at build time
  * For external users, uses public changelog
  */
 export function getRecentReleaseNotesSync(maxItems: number): string[] {
-  // For ants, use bundled changelog
-  if (process.env.USER_TYPE === 'ant') {
+  // For internal users, use bundled changelog
+  if (process.env.USER_TYPE === 'internal') {
     const changelog = MACRO.VERSION_CHANGELOG
     if (changelog) {
       const commits = changelog.trim().split('\n').filter(Boolean)

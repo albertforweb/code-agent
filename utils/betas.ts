@@ -164,7 +164,7 @@ export function modelSupportsAutoMode(model: string): boolean {
     // External: firstParty-only at launch (PI probes not wired for
     // Bedrock/Vertex/Foundry yet). Checked before allowModels so the GB
     // override can't enable auto mode on unsupported providers.
-    if (process.env.USER_TYPE !== 'ant' && getAPIProvider() !== 'firstParty') {
+    if (process.env.USER_TYPE !== 'internal' && getAPIProvider() !== 'firstParty') {
       return false
     }
     // GrowthBook override: tengu_auto_mode_config.allowModels force-enables
@@ -182,8 +182,8 @@ export function modelSupportsAutoMode(model: string): boolean {
     ) {
       return true
     }
-    if (process.env.USER_TYPE === 'ant') {
-      // Denylist: block known-unsupported codeAgent models, allow everything else (ant-internal models etc.)
+    if (process.env.USER_TYPE === 'internal') {
+      // Denylist: block known-unsupported codeAgent models, allow everything else (internal models etc.)
       if (m.includes('codeAgent-3-')) return false
       // codeAgent-*-4 not followed by -[6-9]: blocks bare -4, -4-YYYYMMDD, -4@, -4-0 thru -4-5
       if (/codeAgent-(opus|sonnet|haiku)-4(?!-[6-9])/.test(m)) return false
@@ -243,7 +243,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   if (!isHaiku) {
     betaHeaders.push(CODE_AGENT_20250219_BETA_HEADER)
     if (
-      process.env.USER_TYPE === 'ant' &&
+      process.env.USER_TYPE === 'internal' &&
       process.env.CODE_AGENT_ENTRYPOINT === 'cli'
     ) {
       if (CLI_INTERNAL_BETA_HEADER) {
@@ -282,7 +282,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   // POC: server-side connector-text summarization (anti-distillation). The
   // API buffers assistant text between tool calls, summarizes it, and returns
   // the summary with a signature so the original can be restored on subsequent
-  // turns — same mechanism as thinking blocks. Ant-only while we measure
+  // turns — same mechanism as thinking blocks. Internal-only while we measure
   // TTFT/TTLT/capacity; betas already flow to tengu_api_success for splitting.
   // Backend independently requires Capability.LLM_PROVIDER_INTERNAL_RESEARCH.
   //
@@ -291,7 +291,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   // into), unset defers to GB.
   if (
     SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER &&
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     includeFirstPartyOnlyBetas &&
     !isEnvDefinedFalsy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) &&
     (isEnvTruthy(process.env.USE_CONNECTOR_TEXT_SUMMARIZATION) ||
@@ -300,10 +300,10 @@ export const getAllModelBetas = memoize((model: string): string[] => {
     betaHeaders.push(SUMMARIZE_CONNECTOR_TEXT_BETA_HEADER)
   }
 
-  // Add context management beta for tool clearing (ant opt-in) or thinking preservation
+  // Add context management beta for tool clearing (internal opt-in) or thinking preservation
   const antOptedIntoToolClearing =
     isEnvTruthy(process.env.USE_API_CONTEXT_MANAGEMENT) &&
-    process.env.USER_TYPE === 'ant'
+    process.env.USER_TYPE === 'internal'
 
   const thinkingPreservationEnabled = modelSupportsContextManagement(model)
 
@@ -335,10 +335,10 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   }
   // JSON tool_use format (FC v3) — ~4.5% output token reduction vs ANTML.
   // Sends the v2 header (2026-03-28) added in llmProviders/llmProvider#337072 to
-  // isolate the CC A/B cohort from ~9.2M/week existing v1 senders. Ant-only
+  // isolate the CC A/B cohort from ~9.2M/week existing v1 senders. Internal-only
   // while the restored JsonToolUseOutputParser soaks.
   if (
-    process.env.USER_TYPE === 'ant' &&
+    process.env.USER_TYPE === 'internal' &&
     includeFirstPartyOnlyBetas &&
     tokenEfficientToolsEnabled
   ) {
@@ -411,7 +411,7 @@ export function getMergedBetas(
       baseBetas.push(CODE_AGENT_20250219_BETA_HEADER)
     }
     if (
-      process.env.USER_TYPE === 'ant' &&
+      process.env.USER_TYPE === 'internal' &&
       process.env.CODE_AGENT_ENTRYPOINT === 'cli' &&
       CLI_INTERNAL_BETA_HEADER &&
       !baseBetas.includes(CLI_INTERNAL_BETA_HEADER)
