@@ -13,6 +13,7 @@ import {
   type CommandReviewResponse,
   type FileWritePreview,
   type FileWriteReviewResponse,
+  type ToolEventScope,
   type ToolPermissionMode,
   type ToolPermissionReviewResponse,
   type ToolExecuteMessage,
@@ -32,6 +33,7 @@ import {
   type SkillDetail,
   type ScheduledTask,
   type VirtualTeamBlueprint,
+  type VirtualTeamAssignmentPlan,
   type VirtualTeamMember,
   type VirtualTeamPermissionMode,
   type VirtualTeamRunRecord,
@@ -80,9 +82,22 @@ function createToolPermissionReviewId(): string {
 }
 
 type AutomationExecutionScope = {
-  source: 'scheduled-task' | 'virtual-team';
+  source: 'scheduled-task' | 'virtual-team' | 'project-chat';
   permissionMode: VirtualTeamPermissionMode;
   workspacePath: string;
+  runId?: string;
+  taskId?: string;
+  taskName?: string;
+  teamId?: string;
+  teamName?: string;
+  projectId?: string;
+  projectName?: string;
+  projectChatKey?: string;
+  channel?: 'guided' | 'team';
+  memberId?: string;
+  memberName?: string;
+  assignmentId?: string;
+  assignmentTitle?: string;
 };
 
 function sendToRenderer(
@@ -130,6 +145,38 @@ export function registerServiceBridges(
     return path.resolve(automationExecutionScope.getStore()?.workspacePath || workspacePath);
   }
 
+  function getProjectIdFromAutomationTeamId(teamId: string | undefined): string | undefined {
+    const prefix = 'project-auto-';
+    return typeof teamId === 'string' && teamId.startsWith(prefix)
+      ? teamId.slice(prefix.length)
+      : undefined;
+  }
+
+  function getAutomationToolEventScope(): ToolEventScope | undefined {
+    const scope = automationExecutionScope.getStore();
+    if (!scope) {
+      return undefined;
+    }
+
+    return {
+      source: scope.source,
+      workspacePath: path.resolve(scope.workspacePath || workspacePath),
+      runId: scope.runId,
+      taskId: scope.taskId,
+      taskName: scope.taskName,
+      teamId: scope.teamId,
+      teamName: scope.teamName,
+      projectId: scope.projectId ?? getProjectIdFromAutomationTeamId(scope.teamId),
+      projectName: scope.projectName,
+      projectChatKey: scope.projectChatKey,
+      channel: scope.channel,
+      memberId: scope.memberId,
+      memberName: scope.memberName,
+      assignmentId: scope.assignmentId,
+      assignmentTitle: scope.assignmentTitle,
+    };
+  }
+
   function getScopedFileService(): FileSystemServiceBridge {
     const scopedWorkspacePath = getScopedWorkspacePath();
     if (scopedWorkspacePath === workspacePath) {
@@ -170,6 +217,7 @@ export function registerServiceBridges(
       requestId,
       toolId,
       createdAt: Date.now(),
+      scope: getAutomationToolEventScope(),
     };
 
     return new Promise((resolve, reject) => {
@@ -229,6 +277,7 @@ export function registerServiceBridges(
       requestId,
       toolId,
       createdAt: Date.now(),
+      scope: getAutomationToolEventScope(),
     };
 
     return new Promise((resolve, reject) => {
@@ -293,6 +342,7 @@ export function registerServiceBridges(
       toolName,
       args,
       createdAt: Date.now(),
+      scope: getAutomationToolEventScope(),
     };
 
     return new Promise((resolve, reject) => {
@@ -410,6 +460,7 @@ export function registerServiceBridges(
       approved: event.approved,
       resolvedBy: event.resolvedBy,
       reason: event.reason,
+      scope: event.scope as ToolEventScope | undefined,
     } satisfies ToolApprovalResolvedMessage);
   });
 
@@ -451,6 +502,8 @@ export function registerServiceBridges(
       source: 'scheduled-task',
       permissionMode: 'supervised',
       workspacePath: context.workspacePath || workspacePath,
+      taskId: task.id,
+      taskName: task.name,
     }, () => apiService.chat({
       messages: [{
         role: 'user',
@@ -458,6 +511,32 @@ export function registerServiceBridges(
       }],
       enableTools: true,
       maxToolRounds: 8,
+    }));
+
+    return {
+      content: response.content,
+      model: response.model,
+      usage: response.usage,
+    };
+  });
+
+  automationService.setVirtualTeamPlannerExecutor(async (team, context) => {
+    const teamWorkspacePath = path.resolve(context.workspacePath || workspacePath);
+    await fs.mkdir(teamWorkspacePath, { recursive: true });
+    const response = await automationExecutionScope.run({
+      source: 'virtual-team',
+      permissionMode: 'supervised',
+      workspacePath: teamWorkspacePath,
+      teamId: team.id,
+      teamName: team.name,
+      projectId: getProjectIdFromAutomationTeamId(team.id),
+    }, () => apiService.chat({
+      messages: [{
+        role: 'user',
+        content: buildVirtualTeamPlannerPrompt(team, context.enabledSkills, teamWorkspacePath),
+      }],
+      enableTools: false,
+      maxToolRounds: 0,
     }));
 
     return {
@@ -475,10 +554,26 @@ export function registerServiceBridges(
       source: 'virtual-team',
       permissionMode,
       workspacePath: teamWorkspacePath,
+      teamId: team.id,
+      teamName: team.name,
+      projectId: getProjectIdFromAutomationTeamId(team.id),
+      runId: context.runId,
+      memberId: member.id,
+      memberName: member.name,
+      assignmentId: context.assignment.id,
+      assignmentTitle: context.assignment.title,
     }, () => apiService.chat({
       messages: [{
         role: 'user',
-        content: buildVirtualTeamMemberPrompt(team, member, context.previousSteps, context.enabledSkills, teamWorkspacePath),
+        content: buildVirtualTeamMemberPrompt(
+          team,
+          member,
+          context.assignment,
+          context.previousSteps,
+          context.sharedSteps,
+          context.enabledSkills,
+          teamWorkspacePath,
+        ),
       }],
       enableTools: true,
       maxToolRounds: 12,
@@ -514,6 +609,7 @@ export function registerServiceBridges(
         toolName,
         args,
         status: 'running',
+        scope: getAutomationToolEventScope(),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -523,6 +619,7 @@ export function registerServiceBridges(
       toolName,
       args,
       timestamp: Date.now(),
+      scope: getAutomationToolEventScope(),
     });
   });
 
@@ -535,6 +632,7 @@ export function registerServiceBridges(
         toolId,
         result: data,
         status: 'result',
+        scope: getAutomationToolEventScope(),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -543,6 +641,7 @@ export function registerServiceBridges(
       toolId,
       data,
       timestamp: Date.now(),
+      scope: getAutomationToolEventScope(),
     });
   });
 
@@ -556,6 +655,7 @@ export function registerServiceBridges(
         success,
         duration,
         status: success ? 'succeeded' : 'failed',
+        scope: getAutomationToolEventScope(),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -564,6 +664,7 @@ export function registerServiceBridges(
       toolId,
       success,
       duration,
+      scope: getAutomationToolEventScope(),
     });
   });
 
@@ -577,6 +678,7 @@ export function registerServiceBridges(
         error,
         stack,
         status: 'failed',
+        scope: getAutomationToolEventScope(),
       },
     }).catch(saveError => {
       console.warn('Failed to save tool history event:', saveError);
@@ -585,6 +687,7 @@ export function registerServiceBridges(
       toolId,
       error,
       stack,
+      scope: getAutomationToolEventScope(),
     });
   });
 
@@ -653,16 +756,43 @@ export function registerServiceBridges(
   ipcBridge.registerApiHandler('chatStream', async (request: ChatStreamRequest) => {
     const requestId = request.requestId ?? createChatRequestId();
     const startTime = Date.now();
+    const streamScope = request.toolScope
+      ? {
+          source: request.toolScope.source,
+          permissionMode: 'supervised' as VirtualTeamPermissionMode,
+          workspacePath: request.toolScope.workspacePath || workspacePath,
+          runId: request.toolScope.runId,
+          taskId: request.toolScope.taskId,
+          taskName: request.toolScope.taskName,
+          teamId: request.toolScope.teamId,
+          teamName: request.toolScope.teamName,
+          projectId: request.toolScope.projectId,
+          projectName: request.toolScope.projectName,
+          projectChatKey: request.toolScope.projectChatKey,
+          channel: request.toolScope.channel,
+          memberId: request.toolScope.memberId,
+          memberName: request.toolScope.memberName,
+          assignmentId: request.toolScope.assignmentId,
+          assignmentTitle: request.toolScope.assignmentTitle,
+        }
+      : undefined;
+    const runStream = async () => {
+      if (streamScope?.source === 'project-chat' && streamScope.workspacePath) {
+        await fs.mkdir(path.resolve(streamScope.workspacePath), { recursive: true });
+      }
 
-    apiService.streamChat(request, {
-      onDelta: delta => {
-        sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatDelta'], {
-          requestId,
-          delta,
-          timestamp: Date.now(),
-        });
-      },
-    }).then(response => {
+      return apiService.streamChat(request, {
+        onDelta: delta => {
+          sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatDelta'], {
+            requestId,
+            delta,
+            timestamp: Date.now(),
+          });
+        },
+      });
+    };
+
+    (streamScope ? automationExecutionScope.run(streamScope, runStream) : runStream()).then(response => {
       sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatComplete'], {
         requestId,
         response,
@@ -1419,23 +1549,84 @@ function buildScheduledTaskPrompt(task: ScheduledTask, skills: SkillDetail[], wo
   ].join('\n');
 }
 
-function buildVirtualTeamMemberPrompt(
+function buildVirtualTeamPlannerPrompt(
   team: VirtualTeamBlueprint,
-  member: VirtualTeamMember,
-  previousSteps: VirtualTeamRunRecord['steps'],
   skills: SkillDetail[],
   workspacePath: string,
 ): string {
-  const previousContext = previousSteps
+  const members = team.members.map(member => [
+    `- memberId: ${member.id}`,
+    `  name: ${member.name}`,
+    `  role: ${member.role}`,
+    `  goal: ${member.goal}`,
+    `  tools: ${member.tools.join(', ') || 'default tools'}`,
+  ].join('\n')).join('\n');
+
+  return [
+    'You are the supervisor/orchestrator for a local virtual software delivery team.',
+    '',
+    `Workspace: ${workspacePath}`,
+    `Team: ${team.name}`,
+    `Objective: ${team.objective}`,
+    '',
+    'Team members:',
+    members || 'No members were configured.',
+    '',
+    'Enabled workspace skills:',
+    buildSkillContext(skills),
+    '',
+    'Create an execution plan that mirrors a real software team:',
+    '- Break the objective into concrete assignments.',
+    '- Assign each assignment to exactly one listed memberId.',
+    '- Use dependencies only when an assignment truly needs another output first.',
+    '- Leave dependencies empty for work that can run in parallel.',
+    '- Include review, merge, or signoff assignments after implementation work when useful.',
+    '- Keep the plan small enough for one automation run.',
+    '',
+    'Return only JSON with this shape:',
+    '{',
+    '  "assignments": [',
+    '    {',
+    '      "id": "short-stable-id",',
+    '      "title": "Concrete assignment title",',
+    '      "description": "What this worker should produce or decide",',
+    '      "memberId": "one listed memberId",',
+    '      "dependencies": ["assignment-id-that-must-complete-first"]',
+    '    }',
+    '  ]',
+    '}',
+  ].join('\n');
+}
+
+function buildVirtualTeamMemberPrompt(
+  team: VirtualTeamBlueprint,
+  member: VirtualTeamMember,
+  assignment: VirtualTeamAssignmentPlan,
+  dependencySteps: VirtualTeamRunRecord['steps'],
+  sharedSteps: VirtualTeamRunRecord['steps'],
+  skills: SkillDetail[],
+  workspacePath: string,
+): string {
+  const dependencyContext = dependencySteps
     .filter(step => step.status !== 'running' && (step.output || step.error))
     .map(step => [
-      `## ${step.iteration ? `Iteration ${step.iteration} - ` : ''}${step.role} - ${step.memberName}`,
+      `## ${step.assignmentTitle ?? `${step.role} - ${step.memberName}`}`,
+      step.output ?? `Error: ${step.error}`,
+    ].join('\n'))
+    .join('\n\n');
+  const sharedContext = sharedSteps
+    .filter(step => !dependencySteps.some(dependencyStep => dependencyStep.assignmentId === step.assignmentId) && (step.output || step.error))
+    .map(step => [
+      `## ${step.assignmentTitle ?? `${step.role} - ${step.memberName}`}`,
       step.output ?? `Error: ${step.error}`,
     ].join('\n'))
     .join('\n\n');
   const permissionInstruction = team.permissionMode === 'supervised'
     ? '- Risky tool calls must go through the normal permission review path.'
     : '- This team run has full-access automation permission. Use tools responsibly and do not pause for approval unless blocked by workspace safety rules or missing information.';
+  const workspaceInstruction = assignment.workspacePath === team.workspacePath
+    ? '- This is a shared review/merge workspace. Inspect dependency outputs and merge only approved deliverables into the project workspace.'
+    : '- This is your private assignment workspace. Do not assume parallel workers can see your local draft until you publish a clear handoff.';
 
   return [
     'You are participating in a local virtual software delivery team.',
@@ -1449,18 +1640,28 @@ function buildVirtualTeamMemberPrompt(
     `Your goal: ${member.goal}`,
     `Available role tool families: ${member.tools.join(', ') || 'default tools'}`,
     '',
+    `Assignment ID: ${assignment.id}`,
+    `Assignment title: ${assignment.title}`,
+    `Assignment description: ${assignment.description}`,
+    `Dependency IDs: ${assignment.dependencies.join(', ') || 'none'}`,
+    `Parallel group: ${assignment.parallelGroup}`,
+    '',
     'Enabled workspace skills:',
     buildSkillContext(skills),
     '',
-    'Previous team outputs:',
-    previousContext || 'No previous team outputs yet.',
+    'Required dependency outputs:',
+    dependencyContext || 'No required dependency outputs.',
+    '',
+    'Other completed shared team outputs:',
+    sharedContext || 'No other completed outputs yet.',
     '',
     'Execution rules:',
     '- Stay within your role and produce concrete artifacts or decisions.',
     '- If the objective asks to build or create an app/project, create the needed files in the workspace with fs.write; do not only describe the code.',
+    workspaceInstruction,
     '- Use filesystem, Bash, web, finance, time, or MCP tools only when needed.',
     permissionInstruction,
     '- If this role cannot safely continue without human input, say exactly what approval or information is needed.',
-    '- End with a short handoff for the next team member.',
+    '- End with a short handoff for dependent team members and mention any files you created or changed.',
   ].join('\n');
 }

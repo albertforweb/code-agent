@@ -550,8 +550,17 @@ body.App_dark .App_footer {
 .App_secondaryButton,
 .App_dangerButton,
 .App_textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border-radius: var(--radius-sm);
   font-weight: 600;
+}
+.App_icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -2px;
 }
 .App_primaryButton {
   background: var(--color-primary);
@@ -586,7 +595,7 @@ body.App_dark .App_footer {
   background: #ffeaea;
 }
 .App_textButton:hover {
-  background: rgba(0, 102, 204, 0.08);
+  background: rgba(var(--color-primary-rgb), 0.08);
 }
 body.App_dark .App_secondaryButton {
   border-color: var(--color-border-dark);
@@ -608,11 +617,12 @@ body.App_dark .App_dangerButton:hover {
   background: #432424;
 }
 .App_container {
+  --workbench-editor-width: clamp(360px, 32vw, 440px);
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   height: 100%;
   min-width: 0;
-  background: #f7f5ef;
+  background: var(--color-background);
   color: var(--color-text);
 }
 .App_containerCollapsed {
@@ -629,8 +639,8 @@ body.App_dark .App_container {
   min-width: 0;
   min-height: 0;
   padding: 14px 12px;
-  border-right: 1px solid #e3ded4;
-  background: #eeeae1;
+  border-right: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-primary) 7%, #f8fafc);
 }
 .App_navSidebarCollapsed {
   padding-right: 8px;
@@ -692,11 +702,11 @@ body.App_dark .App_sidebarFooter span:not(.App_statusDot):not(.App_statusDotBusy
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 1px solid rgba(193, 95, 60, 0.28);
+  border: 1px solid var(--color-primary-border);
   border-radius: 999px;
-  background: #fff7ef;
-  color: #c15f3c;
-  font-size: 22px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0;
   font-weight: 700;
   line-height: 1;
 }
@@ -711,10 +721,10 @@ body.App_dark .App_brandMark {
   width: 28px;
   height: 28px;
   margin-left: auto;
-  border: 1px solid #d9d1c5;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.56);
-  color: #5f574d;
+  color: #4f5b6b;
   font-size: var(--font-size-sm);
   font-weight: 760;
 }
@@ -759,9 +769,9 @@ body.App_dark .App_navCollapseButton:hover {
   gap: 8px;
   margin: 4px 0 12px;
   padding: 0 10px;
-  border-color: #d9d1c5;
-  background: #fbfaf7;
-  box-shadow: 0 1px 2px rgba(42, 37, 30, 0.06);
+  border-color: var(--color-primary-border);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 .App_navSidebarCollapsed .App_newChatButton {
   justify-content: center;
@@ -779,7 +789,7 @@ body.App_dark .App_navCollapseButton:hover {
   font-weight: 760;
 }
 .App_newChatButton .App_navGlyph {
-  background: #c15f3c;
+  background: var(--color-primary);
   color: #fff;
   line-height: 1;
 }
@@ -790,14 +800,14 @@ body.App_dark .App_navCollapseButton:hover {
 }
 .App_navItem .App_navGlyph,
 .App_navItemActive .App_navGlyph {
-  border: 1px solid #d9d1c5;
+  border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.46);
   color: #6f665b;
 }
 .App_navItemActive .App_navGlyph {
-  border-color: #cbbdaa;
-  background: #fbfaf7;
-  color: #7a4d38;
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 .App_navLabel,
 .App_navChildLabel {
@@ -839,7 +849,7 @@ body.App_dark .App_navCollapseButton:hover {
 .App_navChildGlyph {
   width: 20px;
   height: 20px;
-  border: 1px solid #d9d1c5;
+  border: 1px solid var(--color-border);
   background: rgba(255, 255, 255, 0.42);
   color: #7a7267;
 }
@@ -901,7 +911,7 @@ body.App_dark .App_navCollapseButton:hover {
   width: 100%;
   min-height: 32px;
   padding: 0 9px;
-  border: 1px solid #d9d1c5;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.56);
   color: #403b34;
@@ -972,11 +982,11 @@ body.App_dark .App_navCollapseButton:hover {
   text-align: left;
 }
 .App_sidebarSettingsButton:hover {
-  background: #e8e1d7;
+  background: var(--color-primary-soft);
 }
 .App_sidebarSettingsButtonActive {
-  border-color: #d9d1c5;
-  background: #dfd8cd;
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
 }
 .App_statusDot {
   width: 9px;
@@ -986,8 +996,8 @@ body.App_dark .App_navCollapseButton:hover {
   box-shadow: 0 0 0 3px rgba(47, 122, 75, 0.12);
 }
 .App_statusDotBusy {
-  background: #c15f3c;
-  box-shadow: 0 0 0 3px rgba(193, 95, 60, 0.16);
+  background: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.16);
 }
 body.App_dark .App_newChatButton,
 body.App_dark .App_navItem,
@@ -1068,7 +1078,7 @@ body.App_dark .App_appShell {
 }
 .App_header {
   min-height: 58px;
-  padding: 0 24px;
+  padding: 0 16px;
   border-bottom: 1px solid #ebe6dc;
   background: rgba(251, 250, 247, 0.92);
   backdrop-filter: blur(14px);
@@ -1105,9 +1115,9 @@ body.App_dark .App_header h1 {
   font-weight: 650;
 }
 .App_statusBusy {
-  border-color: rgba(193, 95, 60, 0.35);
-  background: #fff3ec;
-  color: #9d482c;
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
 }
 body.App_dark .App_status {
   border-color: #484237;
@@ -1135,10 +1145,10 @@ body.App_dark .App_chatPanel {
   border-right-color: transparent;
 }
 .App_messageList {
-  width: min(860px, 100%);
-  align-self: center;
-  gap: 20px;
-  padding: 34px 28px 24px;
+  width: 100%;
+  align-self: stretch;
+  gap: 16px;
+  padding: 20px 14px 16px;
 }
 .App_message {
   width: 100%;
@@ -1153,7 +1163,7 @@ body.App_dark .App_message {
 }
 .App_message_user {
   width: fit-content;
-  max-width: min(680px, 86%);
+  max-width: min(760px, 78%);
   align-self: flex-end;
   padding: 11px 14px;
   border: 1px solid #e3ded4;
@@ -1166,14 +1176,14 @@ body.App_dark .App_message {
 }
 .App_message_system,
 .App_message_tool {
-  width: min(700px, 100%);
+  width: min(860px, 100%);
   padding: 10px 12px;
   border: 1px solid #eadccf;
   border-radius: var(--radius-md);
   background: #fff8f0;
 }
 .App_message_error {
-  width: min(700px, 100%);
+  width: min(860px, 100%);
   padding: 10px 12px;
   border: 1px solid #e5b5af;
   border-radius: var(--radius-md);
@@ -1199,7 +1209,7 @@ body.App_dark .App_message_error {
   min-height: 20px;
 }
 .App_message_assistant .App_messageRole {
-  color: #c15f3c;
+  color: var(--color-primary);
 }
 .App_message_user .App_messageHeader {
   display: none;
@@ -1220,14 +1230,41 @@ body.App_dark .App_message_error {
 body.App_dark .App_messageContent {
   color: var(--color-text-dark);
 }
+.App_toolTrace {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.App_toolTraceSummary {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.App_toolTraceDetails {
+  min-width: 0;
+}
+.App_toolTraceDetails summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 760;
+}
+.App_toolTraceDetails[open] summary {
+  margin-bottom: 8px;
+}
+body.App_dark .App_toolTraceSummary {
+  color: var(--color-text-dark-secondary);
+}
 .App_textBlock {
   line-height: 1.62;
 }
 .App_composer {
-  width: min(860px, calc(100% - 56px));
+  width: calc(100% - 28px);
   align-self: center;
   grid-template-columns: minmax(0, 1fr) auto;
-  margin: 0 0 22px;
+  margin: 0 14px 16px;
   padding: 10px;
   border: 1px solid #ded7cb;
   border-radius: 16px;
@@ -1313,6 +1350,10 @@ body.App_dark .App_commandPaletteItem span {
 .App_secondaryButton,
 .App_dangerButton,
 .App_textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border-radius: var(--radius-sm);
   transition:
     background 0.16s ease,
@@ -1320,14 +1361,14 @@ body.App_dark .App_commandPaletteItem span {
     color 0.16s ease;
 }
 .App_primaryButton {
-  background: #c15f3c;
+  background: var(--color-primary);
 }
 .App_primaryButton:hover {
-  background: #9d482c;
+  background: var(--color-primary-dark);
 }
 .App_secondaryButton {
-  border-color: #d8d0c2;
-  background: #fffdf9;
+  border-color: var(--color-border);
+  background: #ffffff;
 }
 .App_sidePanel {
   gap: 18px;
@@ -1448,24 +1489,48 @@ body.App_dark .App_statusPaneStatic strong {
   overflow-y: auto;
 }
 .App_detailView {
-  width: min(1040px, calc(100% - 48px));
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  width: calc(100% - 24px);
   margin: 0 auto;
-  padding: 34px 0 42px;
+  padding: 20px 0 28px;
+}
+.App_detailViewWithRail {
+  width: calc(100% - var(--workbench-editor-width) - 16px);
+  margin-right: calc(var(--workbench-editor-width) + 4px);
+  margin-left: 12px;
+}
+.App_detailViewWithWideRail {
+  --workbench-editor-width: clamp(560px, 48vw, 760px);
+}
+.App_detailViewWithRail .App_detailToolbar {
+  margin-bottom: 14px;
+}
+.App_detailViewWithRail .App_workbenchSplit {
+  display: block;
+}
+.App_detailViewWithRail .App_workbenchMain,
+.App_detailViewWithRail .App_workbenchMainStack {
+  max-height: none;
+  overflow: visible;
 }
 .App_detailHero,
 .App_detailToolbar {
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
 .App_detailHero h2,
 .App_detailToolbar h2 {
   margin: 2px 0 0;
   color: #2b2823;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 760;
 }
 .App_detailHero p {
   max-width: 760px;
-  margin-top: 8px;
+  margin-top: 5px;
   overflow: hidden;
   color: #746b5f;
   text-overflow: ellipsis;
@@ -1476,6 +1541,13 @@ body.App_dark .App_statusPaneStatic strong {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-md);
+}
+.App_pageActionBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-bottom: 12px;
 }
 .App_detailEyebrow {
   color: #a15b3f;
@@ -1488,13 +1560,13 @@ body.App_dark .App_statusPaneStatic strong {
 .App_automationGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--spacing-md);
+  gap: 12px;
 }
 .App_projectModeGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 .App_projectModeCard {
   display: grid;
@@ -1510,8 +1582,8 @@ body.App_dark .App_statusPaneStatic strong {
   text-align: left;
 }
 .App_projectModeCard:hover {
-  border-color: #cbbdaa;
-  background: #fffaf4;
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
 }
 .App_projectModeCard span {
   color: #a15b3f;
@@ -1530,6 +1602,116 @@ body.App_dark .App_statusPaneStatic strong {
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
+.App_projectMetricHeadline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectMetricHeadline strong {
+  color: #2b2823;
+  font-size: 34px;
+  font-weight: 780;
+  line-height: 1;
+}
+.App_projectMetricHeadline span {
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_projectMetricChart {
+  display: grid;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectMetricBar {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid #ded6ca;
+  border-radius: 999px;
+  background: #f3eee6;
+}
+.App_projectMetricSegment {
+  display: block;
+  min-width: 8px;
+  height: 100%;
+}
+.App_projectMetricEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: #81786b;
+  font-size: 10px;
+}
+.App_projectMetricLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+}
+.App_projectMetricLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6f665b;
+  font-size: 12px;
+}
+.App_projectMetricLegend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+.App_projectMetricGuided {
+  background: #4c7a8a;
+}
+.App_projectMetricAutonomous {
+  background: #9b6a3d;
+}
+.App_projectMetricActive,
+.App_projectMetricStaffed {
+  background: #3f7a55;
+}
+.App_projectMetricPlanning {
+  background: #5177a4;
+}
+.App_projectMetricBlocked,
+.App_projectMetricNeedsStaffing {
+  background: #b44c42;
+}
+.App_projectMetricStopped {
+  background: #8b8172;
+}
+.App_projectMetricDone {
+  background: #6f6aaa;
+}
+.App_projectMetricIdea {
+  background: #c89a45;
+}
+.App_projectStatusLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  min-width: 0;
+}
+.App_projectStatusLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6f665b;
+  font-size: 12px;
+}
+.App_projectStatusLegend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
 .App_projectList {
   display: grid;
   gap: var(--spacing-sm);
@@ -1539,6 +1721,286 @@ body.App_dark .App_statusPaneStatic strong {
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
   gap: var(--spacing-md);
   align-items: start;
+}
+.App_workbenchSplit {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+.App_workbenchSplitWithRail {
+  padding-right: calc(var(--workbench-editor-width) + var(--spacing-md));
+}
+.App_workbenchMain,
+.App_workbenchMainStack {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+.App_workbenchMainStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.App_workbenchEditorPanel {
+  display: flex;
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--workbench-editor-width);
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid #d8cec1;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: -16px 0 34px rgba(61, 47, 34, 0.16);
+  animation: App_workbenchEditorIn 150ms ease-out;
+}
+.App_workbenchEditorPanelWide {
+  width: var(--workbench-editor-width);
+}
+.App_workbenchEditorHeader,
+.App_workbenchEditorFooter {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: 12px;
+}
+.App_workbenchEditorHeader {
+  border-bottom: 1px solid #e4ddd1;
+}
+.App_workbenchEditorHeader > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.App_workbenchEditorHeader h3 {
+  margin: 0;
+  overflow: hidden;
+  color: #332d25;
+  font-size: var(--font-size-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_workbenchEditorHeader span {
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_workbenchEditorBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+}
+.App_workbenchEditorFooter {
+  border-top: 1px solid #e4ddd1;
+  background: rgba(252, 249, 244, 0.88);
+}
+@keyframes App_workbenchEditorIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.App_workbenchRecordList {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.42);
+}
+.App_workbenchRecordRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.65fr) minmax(220px, 1.35fr) minmax(150px, 0.75fr) minmax(260px, auto);
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 58px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e7dfd4;
+}
+.App_workbenchRecordRowSelected {
+  background: var(--color-primary-soft);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.App_workbenchRecordRow:last-child {
+  border-bottom: 0;
+}
+.App_workbenchRecordHeader {
+  min-height: 34px;
+  background: rgba(245, 241, 234, 0.78);
+  color: #81786b;
+  font-size: 11px;
+  font-weight: 760;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.App_workbenchRecordPrimary {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.App_workbenchRecordPrimary strong,
+.App_workbenchRecordPrimary span,
+.App_workbenchRecordCell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_workbenchRecordPrimary strong {
+  color: #2b2823;
+  font-weight: 760;
+}
+.App_workbenchRecordPrimary span,
+.App_workbenchRecordCell {
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_workbenchRecordActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_workbenchRecordActionsWide {
+  flex-wrap: nowrap;
+}
+.App_projectRecordList {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+.App_projectRecordRow {
+  grid-template-columns: minmax(160px, 0.9fr) minmax(220px, 1.2fr) minmax(150px, 0.7fr) minmax(140px, 0.7fr) minmax(310px, auto);
+  min-width: 980px;
+}
+.App_projectRecordActions {
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  row-gap: 6px;
+}
+.App_projectRecordActions button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+.App_projectRecordActions .App_projectIconButton {
+  padding: 0;
+}
+.App_projectIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 780;
+  line-height: 1;
+}
+.App_projectRecordRowActive {
+  background: rgba(63, 122, 85, 0.08);
+  box-shadow: inset 3px 0 0 #3f7a55;
+}
+.App_projectRecordRowPlanning {
+  background: rgba(81, 119, 164, 0.08);
+  box-shadow: inset 3px 0 0 #5177a4;
+}
+.App_projectRecordRowBlocked {
+  background: rgba(180, 76, 66, 0.08);
+  box-shadow: inset 3px 0 0 #b44c42;
+}
+.App_projectRecordRowStopped {
+  background: rgba(139, 129, 114, 0.08);
+  box-shadow: inset 3px 0 0 #8b8172;
+}
+.App_projectRecordRowDone {
+  background: rgba(111, 106, 170, 0.08);
+  box-shadow: inset 3px 0 0 #6f6aaa;
+}
+.App_projectRecordRowIdea {
+  background: rgba(200, 154, 69, 0.08);
+  box-shadow: inset 3px 0 0 #c89a45;
+}
+.App_projectPager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-top: 12px;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_projectPagerControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+.App_projectPagerControls strong {
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+  font-weight: 760;
+}
+.App_workbenchEmptyState {
+  padding: var(--spacing-md);
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_deleteConfirmation {
+  display: grid;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border: 1px solid #e2bbb1;
+  border-radius: var(--radius-md);
+  background: #fff4f1;
+}
+.App_deleteConfirmation strong {
+  color: #7f2f24;
+}
+.App_deleteConfirmation span,
+.App_deleteConfirmation li {
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+.App_deleteConfirmation ul {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding-left: 18px;
 }
 .App_employeeGrid {
   display: grid;
@@ -1576,7 +2038,7 @@ body.App_dark .App_statusPaneStatic strong {
   width: 34px;
   height: 34px;
   border-radius: var(--radius-sm);
-  background: #8d6748;
+  background: var(--color-primary);
   color: #fff;
   font-size: 12px;
   font-weight: 780;
@@ -1644,10 +2106,59 @@ body.App_dark .App_statusPaneStatic strong {
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.56);
 }
+.App_projectPortfolioGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.App_recordCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.App_recordSectionToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+.App_projectPortfolioCard {
+  align-content: start;
+}
 .App_projectCardSelected {
-  border-color: #bba58b;
-  background: #fff8ef;
-  box-shadow: inset 3px 0 0 #8d6748;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.App_projectStatusCardActive {
+  border-color: rgba(63, 122, 85, 0.22);
+  background: rgba(63, 122, 85, 0.08);
+  box-shadow: inset 3px 0 0 #3f7a55;
+}
+.App_projectStatusCardPlanning {
+  border-color: rgba(81, 119, 164, 0.22);
+  background: rgba(81, 119, 164, 0.08);
+  box-shadow: inset 3px 0 0 #5177a4;
+}
+.App_projectStatusCardBlocked {
+  border-color: rgba(180, 76, 66, 0.22);
+  background: rgba(180, 76, 66, 0.08);
+  box-shadow: inset 3px 0 0 #b44c42;
+}
+.App_projectStatusCardStopped {
+  border-color: rgba(139, 129, 114, 0.25);
+  background: rgba(139, 129, 114, 0.08);
+  box-shadow: inset 3px 0 0 #8b8172;
+}
+.App_projectStatusCardDone {
+  border-color: rgba(111, 106, 170, 0.22);
+  background: rgba(111, 106, 170, 0.08);
+  box-shadow: inset 3px 0 0 #6f6aaa;
+}
+.App_projectStatusCardIdea {
+  border-color: rgba(200, 154, 69, 0.25);
+  background: rgba(200, 154, 69, 0.08);
+  box-shadow: inset 3px 0 0 #c89a45;
 }
 .App_projectCardHeader {
   display: flex;
@@ -1674,11 +2185,91 @@ body.App_dark .App_statusPaneStatic strong {
   color: #81786b;
   font-size: var(--font-size-sm);
 }
+.App_projectStatusBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid #ded6ca;
+  border-radius: 999px;
+  background: #fbfaf7;
+  color: #5f574d;
+  font-size: 12px;
+  font-weight: 760;
+}
+.App_projectStatusBadgeActive {
+  border-color: rgba(63, 122, 85, 0.28);
+  background: rgba(63, 122, 85, 0.1);
+  color: #2f6845;
+}
+.App_projectStatusBadgePlanning {
+  border-color: rgba(81, 119, 164, 0.28);
+  background: rgba(81, 119, 164, 0.1);
+  color: #3d628d;
+}
+.App_projectStatusBadgeBlocked {
+  border-color: rgba(180, 76, 66, 0.28);
+  background: rgba(180, 76, 66, 0.1);
+  color: #94382f;
+}
+.App_projectStatusBadgeStopped {
+  border-color: rgba(139, 129, 114, 0.32);
+  background: rgba(139, 129, 114, 0.12);
+  color: #665c50;
+}
+.App_projectStatusBadgeDone {
+  border-color: rgba(111, 106, 170, 0.3);
+  background: rgba(111, 106, 170, 0.11);
+  color: #55509a;
+}
+.App_projectStatusBadgeIdea {
+  border-color: rgba(200, 154, 69, 0.32);
+  background: rgba(200, 154, 69, 0.12);
+  color: #8a6326;
+}
 .App_projectCard p {
   margin: 0;
   color: #6f665b;
   font-size: var(--font-size-sm);
   line-height: 1.5;
+}
+.App_projectCardMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.App_projectCardMeta div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 241, 234, 0.58);
+}
+.App_projectCardMeta dt {
+  color: #81786b;
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: uppercase;
+}
+.App_projectCardMeta dd {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #3b362f;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
 }
 .App_projectChipList {
   display: flex;
@@ -1801,7 +2392,7 @@ body.App_dark .App_statusPaneStatic strong {
   min-width: 0;
   padding: var(--spacing-sm);
   border: 1px solid #e0d6c8;
-  border-left: 3px solid #8d6748;
+  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.66);
 }
@@ -1825,6 +2416,95 @@ body.App_dark .App_statusPaneStatic strong {
 .App_projectDeliverables {
   display: grid;
   gap: var(--spacing-sm);
+}
+.App_projectTimeline {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+.App_projectTimelineItem {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectTimelineMarker {
+  position: relative;
+  min-height: 72px;
+}
+.App_projectTimelineMarker::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 10px;
+  width: 2px;
+  background: var(--color-primary-border);
+  content: "";
+}
+.App_projectTimelineMarker::after {
+  position: absolute;
+  top: 12px;
+  left: 5px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-primary);
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  content: "";
+}
+.App_projectTimelineContent {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid #e0d6c8;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.66);
+}
+.App_projectTimelineContentHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  align-items: baseline;
+  min-width: 0;
+}
+.App_projectTimelineContent strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #2b2823;
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_projectTimelineContent time {
+  flex: 0 0 auto;
+  color: #81786b;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.App_projectTimelineContent span,
+.App_projectTimelineContent p,
+.App_projectTimelineContent em {
+  margin: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  font-style: normal;
+  line-height: 1.5;
+}
+.App_projectTimelineContent p {
+  overflow-wrap: anywhere;
+}
+.App_projectTimelineContent em {
+  width: fit-content;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #efe6d8;
+  color: #665b4e;
+  font-size: 11px;
+  font-weight: 760;
+  text-transform: uppercase;
 }
 .App_projectChatMessage {
   display: grid;
@@ -1850,6 +2530,58 @@ body.App_dark .App_statusPaneStatic strong {
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
+.App_projectChatSurface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 520px;
+}
+.App_projectRailChatBody {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+  min-height: 0;
+}
+.App_projectRailChatBody > .App_mutedText {
+  margin: 0;
+}
+.App_projectChatTranscript {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+  min-height: 320px;
+  max-height: min(58vh, 620px);
+  padding: var(--spacing-sm);
+  overflow-y: auto;
+  border: 1px solid #e7dfd4;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.42);
+}
+.App_projectChatTranscript .App_message {
+  width: 100%;
+}
+.App_projectChatTranscript .App_message_user {
+  align-self: flex-end;
+}
+.App_projectChatComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid #ded7cb;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+.App_projectChatComposer textarea {
+  min-height: 72px;
+  max-height: 180px;
+  resize: vertical;
+}
 .App_projectDeliverableCard {
   display: grid;
   gap: 6px;
@@ -1859,9 +2591,32 @@ body.App_dark .App_statusPaneStatic strong {
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.56);
 }
+.App_projectDeliverableGroupHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  align-items: center;
+  min-width: 0;
+  padding: 0 2px;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+}
+.App_projectDeliverableGroupHeader strong {
+  color: #2b2823;
+}
+.App_projectDeliverableGroupHeader span {
+  color: #81786b;
+  font-size: 12px;
+}
 .App_projectDeliverableCard > div {
   display: flex;
   justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectDeliverableActions {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-sm);
   min-width: 0;
 }
@@ -1875,9 +2630,9 @@ body.App_dark .App_statusPaneStatic strong {
 .App_detailPanel {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 12px;
   min-width: 0;
-  padding: var(--spacing-md);
+  padding: 12px;
   border: 1px solid #e4ddd1;
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.58);
@@ -1905,7 +2660,127 @@ body.App_dark .App_statusPaneStatic strong {
 .App_panelActions {
   display: flex;
   flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--spacing-sm);
+}
+.App_segmentedControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #ded6ca;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 241, 234, 0.72);
+}
+.App_segmentedControlButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: transparent;
+  color: #6f665b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.App_segmentedControlButton:hover {
+  background: rgba(255, 255, 255, 0.7);
+  color: #3b362f;
+}
+.App_segmentedControlButtonActive {
+  background: #ffffff;
+  color: #2b2823;
+  box-shadow: 0 1px 2px rgba(42, 37, 30, 0.08);
+}
+.App_activityRunPicker {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  color: #6f665b;
+  font-size: var(--font-size-sm);
+  font-weight: 680;
+}
+.App_activityRunPicker span {
+  flex: 0 0 auto;
+}
+.App_activityRunPicker select {
+  max-width: min(360px, 38vw);
+  height: 32px;
+  min-width: 0;
+  padding: 0 8px;
+  font-size: var(--font-size-sm);
+}
+.App_projectNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 18px 8px 20px;
+  border: 1px solid transparent;
+  border-left-width: 4px;
+  border-right: 0;
+  border-radius: 0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+.App_projectNoticeContent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.App_projectNotice strong {
+  flex: 0 0 auto;
+  font-size: var(--font-size-sm);
+}
+.App_projectNotice span {
+  min-width: 0;
+  color: inherit;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.App_projectNoticeClose {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  opacity: 0.74;
+}
+.App_projectNoticeClose:hover {
+  background: rgba(255, 255, 255, 0.42);
+  opacity: 1;
+}
+.App_projectNoticeSuccess {
+  border-color: #9ec7aa;
+  background: #edf8ef;
+  color: #225b36;
+}
+.App_projectNoticeWarning {
+  border-color: #d7bc76;
+  background: #fff7df;
+  color: #74551e;
+}
+.App_projectNoticeError {
+  border-color: #dd9a95;
+  background: #fff0ef;
+  color: #8f2f2c;
 }
 .App_inlineError {
   color: #9a2f2f;
@@ -1942,7 +2817,7 @@ body.App_dark .App_statusPaneStatic strong {
   cursor: pointer;
 }
 .App_fileEntryDirectory:hover {
-  border-color: #d9d1c5;
+  border-color: var(--color-primary-border);
   background: rgba(255, 255, 255, 0.62);
 }
 .App_fileEntryMain {
@@ -1958,6 +2833,11 @@ body.App_dark .App_statusPaneStatic strong {
   color: inherit;
   font: inherit;
   text-align: left;
+}
+.App_fileEntryMain span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .App_fileEntryActions {
   display: flex;
@@ -2016,7 +2896,7 @@ body.App_dark .App_statusPaneStatic strong {
 }
 .App_toolCatalogGroup h4 {
   margin: var(--spacing-sm) 0 0;
-  color: #7a4d38;
+  color: var(--color-primary-dark);
   font-size: 12px;
   font-weight: 760;
   text-transform: uppercase;
@@ -2087,12 +2967,16 @@ body.App_dark .App_statusPaneStatic strong {
 }
 .App_toolExposureButton,
 .App_toolExposureButtonOff {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   flex: 0 0 auto;
   min-height: 28px;
   padding: 0 9px;
-  border: 1px solid #d8d0c2;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: #fffdf9;
+  background: #ffffff;
   color: #5b5248;
   font-size: var(--font-size-sm);
   font-weight: 650;
@@ -2112,9 +2996,9 @@ body.App_dark .App_statusPaneStatic strong {
   background: rgba(255, 255, 255, 0.52);
 }
 .App_toolCatalogItemSelected {
-  border-color: #bba58b;
-  background: #fff8ef;
-  box-shadow: inset 3px 0 0 #8d6748;
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 .App_toolCatalogItem > div {
   display: flex;
@@ -2235,34 +3119,47 @@ body.App_dark .App_detailToolbar h2,
 body.App_dark .App_detailPanel h3,
 body.App_dark .App_detailList dd,
 body.App_dark .App_projectModeCard strong,
+body.App_dark .App_projectMetricHeadline strong,
 body.App_dark .App_employeeCardHeader strong,
 body.App_dark .App_employeeAssignOption span,
 body.App_dark .App_projectCardHeader strong,
 body.App_dark .App_projectPanelTitle,
+body.App_dark .App_projectCardMeta dd,
+body.App_dark .App_projectPagerControls strong,
 body.App_dark .App_projectSupervisorRow strong,
 body.App_dark .App_projectSupervisorNode strong,
 body.App_dark .App_projectTeamNodes span,
 body.App_dark .App_projectTaskCard strong,
 body.App_dark .App_projectChatMessage strong,
+body.App_dark .App_projectDeliverableGroupHeader strong,
 body.App_dark .App_projectDeliverableCard strong,
+body.App_dark .App_projectTimelineContent strong,
 body.App_dark .App_toolCatalogItem strong {
   color: var(--color-text-dark);
 }
 body.App_dark .App_detailHero p,
 body.App_dark .App_detailList dt,
 body.App_dark .App_detailPanel .App_panelHeader span,
+body.App_dark .App_activityRunPicker,
 body.App_dark .App_toolRouterSummary span,
 body.App_dark .App_toolRouterMessage,
+body.App_dark .App_projectMetricHeadline span,
+body.App_dark .App_projectMetricLegend span,
+body.App_dark .App_projectStatusLegend span,
+body.App_dark .App_projectMetricEmpty,
 body.App_dark .App_toolCatalogGroup h4,
 body.App_dark .App_toolExposureRow span,
 body.App_dark .App_toolPermissionRow span,
 body.App_dark .App_toolActivityActions span,
+body.App_dark .App_segmentedControlButton,
 body.App_dark .App_projectModeCard p,
 body.App_dark .App_employeeCardHeader span,
 body.App_dark .App_employeeCard p,
 body.App_dark .App_employeeAssignOption em,
 body.App_dark .App_projectCardHeader span,
 body.App_dark .App_projectCard p,
+body.App_dark .App_projectCardMeta dt,
+body.App_dark .App_projectPager,
 body.App_dark .App_projectSupervisorRow span,
 body.App_dark .App_projectSupervisorRow em,
 body.App_dark .App_projectSupervisorNode span,
@@ -2270,8 +3167,13 @@ body.App_dark .App_projectSupervisorNode em,
 body.App_dark .App_projectBoardColumnHeader,
 body.App_dark .App_projectTaskCard span,
 body.App_dark .App_projectChatMessage p,
+body.App_dark .App_projectDeliverableGroupHeader span,
 body.App_dark .App_projectDeliverableCard span,
 body.App_dark .App_projectDeliverableCard p,
+body.App_dark .App_projectTimelineContent time,
+body.App_dark .App_projectTimelineContent span,
+body.App_dark .App_projectTimelineContent p,
+body.App_dark .App_projectTimelineContent em,
 body.App_dark .App_toolCatalogItem span,
 body.App_dark .App_toolCatalogItem p {
   color: var(--color-text-dark-secondary);
@@ -2291,6 +3193,21 @@ body.App_dark .App_toolRouterSummary div {
   border-color: #403b32;
   background: rgba(255, 255, 255, 0.04);
 }
+body.App_dark .App_segmentedControl,
+body.App_dark .App_projectCardMeta div {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+}
+body.App_dark .App_segmentedControlButton:hover,
+body.App_dark .App_segmentedControlButtonActive {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_projectStatusBadge {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark-secondary);
+}
 body.App_dark .App_toolRouterSummary strong {
   color: var(--color-text-dark);
 }
@@ -2309,6 +3226,21 @@ body.App_dark .App_inlineError {
 }
 body.App_dark .App_inlineSuccess {
   color: #9bd8b7;
+}
+body.App_dark .App_projectNoticeSuccess {
+  border-color: #3b7650;
+  background: #162d22;
+  color: #a9e4bd;
+}
+body.App_dark .App_projectNoticeWarning {
+  border-color: #8e7230;
+  background: #332914;
+  color: #f0d58a;
+}
+body.App_dark .App_projectNoticeError {
+  border-color: #8f4742;
+  background: #351f1f;
+  color: #ffb4b4;
 }
 body.App_dark .App_fileEntry,
 body.App_dark .App_fileEntryDirectory {
@@ -2344,6 +3276,7 @@ body.App_dark .App_toolCatalogItem .App_toolStatusError {
   color: #ffb4a8;
 }
 body.App_dark .App_detailPanel,
+body.App_dark .App_workbenchEditorPanel,
 body.App_dark .App_projectModeCard,
 body.App_dark .App_employeeCard,
 body.App_dark .App_employeeAssignOption,
@@ -2353,16 +3286,125 @@ body.App_dark .App_projectBoardColumn,
 body.App_dark .App_projectTaskCard,
 body.App_dark .App_projectChatMessage,
 body.App_dark .App_projectDeliverableCard,
+body.App_dark .App_projectTimelineContent,
 body.App_dark .App_toolCatalogItem {
   border-color: #403b32;
   background: rgba(255, 255, 255, 0.04);
 }
+body.App_dark .App_workbenchEditorHeader,
+body.App_dark .App_workbenchEditorFooter {
+  border-color: #403b32;
+}
+body.App_dark .App_projectTimelineMarker::before {
+  background: #4a4137;
+}
+body.App_dark .App_projectTimelineMarker::after {
+  border-color: #b48a65;
+  background: #25211d;
+}
+body.App_dark .App_workbenchEditorFooter {
+  background: rgba(255, 255, 255, 0.035);
+}
+body.App_dark .App_workbenchEditorHeader h3 {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_workbenchEditorHeader span {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_workbenchRecordList,
+body.App_dark .App_workbenchRecordRow {
+  border-color: #403b32;
+}
+body.App_dark .App_workbenchRecordRowSelected {
+  background: rgba(64, 53, 38, 0.72);
+  box-shadow: inset 3px 0 0 #c79a63;
+}
+body.App_dark .App_workbenchRecordList,
+body.App_dark .App_workbenchRecordHeader {
+  background: rgba(255, 255, 255, 0.035);
+}
+body.App_dark .App_workbenchRecordPrimary strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_workbenchRecordPrimary span,
+body.App_dark .App_workbenchRecordCell,
+body.App_dark .App_workbenchRecordHeader,
+body.App_dark .App_workbenchEmptyState {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_deleteConfirmation {
+  border-color: #8f4238;
+  background: #331d1a;
+}
+body.App_dark .App_deleteConfirmation strong {
+  color: #ffb4a8;
+}
+body.App_dark .App_deleteConfirmation span,
+body.App_dark .App_deleteConfirmation li {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_projectChatTranscript {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.035);
+}
+body.App_dark .App_projectChatComposer {
+  border-color: #454036;
+  background: #26231f;
+}
+body.App_dark .App_projectMetricBar {
+  border-color: #403b32;
+  background: rgba(255, 255, 255, 0.06);
+}
+body.App_dark .App_projectRecordRowActive {
+  background: rgba(63, 122, 85, 0.16);
+}
+body.App_dark .App_projectRecordRowPlanning {
+  background: rgba(81, 119, 164, 0.16);
+}
+body.App_dark .App_projectRecordRowBlocked {
+  background: rgba(180, 76, 66, 0.16);
+}
+body.App_dark .App_projectRecordRowStopped {
+  background: rgba(139, 129, 114, 0.14);
+}
+body.App_dark .App_projectRecordRowDone {
+  background: rgba(111, 106, 170, 0.16);
+}
+body.App_dark .App_projectRecordRowIdea {
+  background: rgba(200, 154, 69, 0.14);
+}
 body.App_dark .App_projectModeCard:hover,
-body.App_dark .App_projectCardSelected,
 body.App_dark .App_toolCatalogItemSelected {
   border-color: #6d5945;
   background: #302922;
   box-shadow: inset 3px 0 0 #c49868;
+}
+body.App_dark .App_projectCardSelected {
+  outline-color: #c49868;
+}
+body.App_dark .App_projectStatusCardActive {
+  border-color: rgba(63, 122, 85, 0.35);
+  background: rgba(63, 122, 85, 0.16);
+}
+body.App_dark .App_projectStatusCardPlanning {
+  border-color: rgba(81, 119, 164, 0.35);
+  background: rgba(81, 119, 164, 0.16);
+}
+body.App_dark .App_projectStatusCardBlocked {
+  border-color: rgba(180, 76, 66, 0.35);
+  background: rgba(180, 76, 66, 0.16);
+}
+body.App_dark .App_projectStatusCardStopped {
+  border-color: rgba(139, 129, 114, 0.36);
+  background: rgba(139, 129, 114, 0.14);
+}
+body.App_dark .App_projectStatusCardDone {
+  border-color: rgba(111, 106, 170, 0.35);
+  background: rgba(111, 106, 170, 0.16);
+}
+body.App_dark .App_projectStatusCardIdea {
+  border-color: rgba(200, 154, 69, 0.36);
+  background: rgba(200, 154, 69, 0.14);
 }
 body.App_dark .App_projectChip,
 body.App_dark .App_projectSupervisorRow {
@@ -2400,7 +3442,7 @@ body.App_dark .App_teamTranscriptStep span {
   display: flex;
   flex-direction: column;
   gap: 0;
-  width: min(980px, calc(100vw - 48px));
+  width: min(1080px, calc(100vw - 24px));
   height: 100vh;
   max-height: 100vh;
   padding: 0;
@@ -2419,10 +3461,10 @@ body.App_dark .App_settingsDialog {
 }
 .App_settingsView {
   display: flex;
-  width: min(1120px, calc(100% - 48px));
-  height: calc(100% - 48px);
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
   min-height: 520px;
-  margin: 24px auto;
+  margin: 12px auto;
 }
 .App_settingsPageForm {
   width: 100%;
@@ -2446,7 +3488,7 @@ body.App_dark .App_settingsPageSubtitle {
 .App_settingsDialog > .App_dialogHeader {
   flex: 0 0 auto;
   min-height: 62px;
-  padding: 0 var(--spacing-lg);
+  padding: 0 var(--spacing-md);
   border-bottom: 1px solid var(--color-border);
 }
 body.App_dark .App_settingsDialog > .App_dialogHeader {
@@ -2463,7 +3505,7 @@ body.App_dark .App_settingsDialog > .App_dialogHeader {
   flex-direction: column;
   gap: 4px;
   min-height: 0;
-  padding: var(--spacing-md);
+  padding: 12px;
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
   background: #f5f1ea;
@@ -2564,16 +3606,18 @@ body.App_dark .App_settingsMenuSummary strong {
   color: var(--color-text-dark);
 }
 .App_settingsContent {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-width: 0;
   min-height: 0;
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   overflow-y: auto;
 }
 .App_settingsContentHeader {
   display: grid;
   gap: 4px;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
 }
 .App_settingsContentHeader h3 {
   margin: 0;
@@ -2841,6 +3885,31 @@ body.App_dark .App_settingsMessage {
   .App_automationGrid {
     grid-template-columns: 1fr;
   }
+  .App_detailViewWithRail {
+    width: calc(100% - 24px);
+    margin-right: auto;
+    margin-left: auto;
+  }
+  .App_workbenchSplitWithRail {
+    padding-right: 0;
+  }
+  .App_workbenchEditorPanel {
+    position: static;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin-top: var(--spacing-md);
+    border: 1px solid #d8cec1;
+  }
+  .App_workbenchRecordRow {
+    grid-template-columns: minmax(150px, 1fr) minmax(120px, 0.7fr) minmax(130px, auto);
+  }
+  .App_workbenchRecordHeader span:nth-child(3),
+  .App_workbenchRecordHeader span:nth-child(4),
+  .App_workbenchRecordCell:nth-child(3),
+  .App_workbenchRecordCell:nth-child(4) {
+    display: none;
+  }
   .App_footer {
     padding-right: 12px;
     padding-left: 12px;
@@ -2914,6 +3983,22 @@ body.App_dark .App_settingsMessage {
   .App_composerActions {
     justify-content: flex-end;
   }
+  .App_projectTimelineItem {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+  .App_projectTimelineContent {
+    grid-column: 2;
+  }
+  .App_detailPanel .App_panelHeader {
+    flex-wrap: wrap;
+  }
+  .App_activityRunPicker {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .App_activityRunPicker select {
+    max-width: 100%;
+  }
   .App_footer {
     flex-wrap: nowrap;
     min-height: 30px;
@@ -2928,14 +4013,14 @@ body.App_dark .App_settingsMessage {
     grid-template-columns: 1fr;
   }
   .App_detailView {
-    width: calc(100% - 24px);
+    width: calc(100% - 16px);
     padding-top: var(--spacing-lg);
   }
   .App_settingsView {
-    width: calc(100% - 24px);
-    height: calc(100% - 24px);
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
     min-height: 0;
-    margin: var(--spacing-md) auto;
+    margin: var(--spacing-sm) auto;
   }
   .App_settingsDialog {
     width: 100vw;
@@ -2944,7 +4029,7 @@ body.App_dark .App_settingsMessage {
     width: 100%;
   }
   .App_settingsContent {
-    padding: var(--spacing-md);
+    padding: 12px;
   }
   .App_settingsDialog > .App_dialogHeader,
   .App_settingsDialog > .App_dialogFooter {
@@ -2962,13 +4047,19 @@ body.App_dark .App_settingsMessage {
 
 /* src/renderer/styles/global.css */
 :root {
-  --color-primary: #c15f3c;
-  --color-primary-dark: #9d482c;
-  --color-background: #fbfaf7;
-  --color-background-secondary: #f0eee8;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-soft: #eff6ff;
+  --color-primary-border: #bfdbfe;
+  --color-primary-rgb:
+    37,
+    99,
+    235;
+  --color-background: #f7f9fc;
+  --color-background-secondary: #eef3f8;
   --color-text: #26231f;
   --color-text-secondary: #6f6a60;
-  --color-border: #ded8cd;
+  --color-border: #d7dee8;
   --color-error: #b0443f;
   --color-success: #2f7a4b;
   --color-warning: #a66a14;

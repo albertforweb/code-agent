@@ -73,6 +73,7 @@ function normalizeAutomationWorkspacePath(value) {
 class AutomationServiceBridge {
     constructor(workspacePath = process.cwd()) {
         this.taskExecutor = null;
+        this.teamPlannerExecutor = null;
         this.teamMemberExecutor = null;
         this.notificationEmitter = null;
         this.schedulerTimer = null;
@@ -98,6 +99,9 @@ class AutomationServiceBridge {
     }
     setTaskExecutor(executor) {
         this.taskExecutor = executor;
+    }
+    setVirtualTeamPlannerExecutor(executor) {
+        this.teamPlannerExecutor = executor;
     }
     setVirtualTeamMemberExecutor(executor) {
         this.teamMemberExecutor = executor;
@@ -564,6 +568,7 @@ class AutomationServiceBridge {
                 approved,
                 resolvedBy,
                 reason,
+                scope: approval?.details?.scope,
             });
         }
         return { ok: Boolean(resolvedAction || resolver) };
@@ -660,7 +665,8 @@ class AutomationServiceBridge {
             workspacePath: team.workspacePath ?? this.workspacePath,
             status: 'running',
             startedAt: now,
-            milestones: this.createTeamRunMilestones(team, maxIterations, now),
+            milestones: [],
+            assignments: [],
             steps: [],
         };
         await this.ensureTeamWorkspaceSeed(team);
@@ -672,56 +678,11 @@ class AutomationServiceBridge {
         await this.writeStore(store);
         try {
             const enabledSkills = await this.getEnabledSkillContext();
-            for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
-                for (const member of team.members) {
-                    const stepStartedAt = Date.now();
-                    const step = {
-                        memberId: member.id,
-                        memberName: member.name,
-                        role: member.role,
-                        iteration,
-                        status: 'running',
-                        startedAt: stepStartedAt,
-                    };
-                    this.updateTeamRunMilestone(run, member.id, iteration, {
-                        status: 'running',
-                        startedAt: stepStartedAt,
-                    });
-                    run.steps.push(step);
-                    await this.upsertTeamRun(run);
-                    try {
-                        const result = this.teamMemberExecutor
-                            ? await this.teamMemberExecutor(team, member, {
-                                workspacePath: team.workspacePath ?? this.workspacePath,
-                                enabledSkills,
-                                previousSteps: run.steps,
-                            })
-                            : await this.createFallbackTeamStep(team, member, run.steps);
-                        this.assertExecutionCompleted(result.content);
-                        step.status = 'succeeded';
-                        step.completedAt = Date.now();
-                        step.output = result.content;
-                        this.updateTeamRunMilestone(run, member.id, iteration, {
-                            status: 'succeeded',
-                            completedAt: step.completedAt,
-                            summary: result.content,
-                        });
-                        await this.upsertTeamRun(run);
-                    }
-                    catch (error) {
-                        step.status = 'failed';
-                        step.completedAt = Date.now();
-                        step.error = error instanceof Error ? error.message : String(error);
-                        this.updateTeamRunMilestone(run, member.id, iteration, {
-                            status: 'failed',
-                            completedAt: step.completedAt,
-                            summary: step.error,
-                        });
-                        await this.upsertTeamRun(run);
-                        throw error;
-                    }
-                }
-            }
+            const assignments = await this.createTeamAssignmentPlan(team, run, enabledSkills, maxIterations);
+            run.assignments = assignments;
+            run.milestones = this.createTeamRunMilestonesFromAssignments(assignments, now);
+            await this.upsertTeamRun(run);
+            await this.executeTeamAssignments(team, run, assignments, enabledSkills);
             this.assertTeamGovernanceSatisfied(team, run);
             run.status = 'succeeded';
             run.completedAt = Date.now();
@@ -740,6 +701,408 @@ class AutomationServiceBridge {
         }
         finally {
             this.runningTeamIds.delete(teamId);
+        }
+    }
+    async createTeamAssignmentPlan(team, run, enabledSkills, maxIterations) {
+        const teamWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
+        if (this.teamPlannerExecutor) {
+            try {
+                const result = await this.teamPlannerExecutor(team, {
+                    workspacePath: teamWorkspacePath,
+                    enabledSkills,
+                });
+                const assignments = this.parseTeamAssignmentPlan(result.content, team);
+                if (assignments.length > 0) {
+                    return this.withAssignmentWorkspaces(team, run, assignments);
+                }
+            }
+            catch (error) {
+                console.warn('Virtual team planner failed; falling back to deterministic assignment plan:', error);
+            }
+        }
+        return this.withAssignmentWorkspaces(team, run, this.createFallbackTeamAssignmentPlan(team, maxIterations));
+    }
+    async executeTeamAssignments(team, run, assignments, enabledSkills) {
+        const completedAssignmentIds = new Set();
+        const pendingAssignmentIds = new Set(assignments.map(assignment => assignment.id));
+        while (pendingAssignmentIds.size > 0) {
+            const readyAssignments = assignments.filter(assignment => (pendingAssignmentIds.has(assignment.id)
+                && assignment.dependencies.every(dependencyId => completedAssignmentIds.has(dependencyId))));
+            if (readyAssignments.length === 0) {
+                throw new Error('Virtual team assignment plan has unresolved or circular dependencies.');
+            }
+            readyAssignments.forEach(assignment => this.beginTeamAssignment(run, assignment));
+            await this.upsertTeamRun(run);
+            const results = await Promise.allSettled(readyAssignments.map(assignment => this.runTeamAssignment(team, run, assignment, enabledSkills)));
+            await this.upsertTeamRun(run);
+            const failed = results.find((result) => result.status === 'rejected');
+            if (failed) {
+                throw failed.reason;
+            }
+            readyAssignments.forEach(assignment => {
+                pendingAssignmentIds.delete(assignment.id);
+                completedAssignmentIds.add(assignment.id);
+            });
+        }
+    }
+    beginTeamAssignment(run, assignment) {
+        const stepStartedAt = Date.now();
+        assignment.status = 'running';
+        assignment.startedAt = stepStartedAt;
+        run.steps.push({
+            memberId: assignment.memberId,
+            memberName: assignment.memberName,
+            role: assignment.role,
+            iteration: assignment.parallelGroup,
+            assignmentId: assignment.id,
+            assignmentTitle: assignment.title,
+            dependencyIds: assignment.dependencies,
+            parallelGroup: assignment.parallelGroup,
+            workspacePath: assignment.workspacePath,
+            status: 'running',
+            startedAt: stepStartedAt,
+        });
+        this.updateTeamAssignmentMilestone(run, assignment.id, {
+            status: 'running',
+            startedAt: stepStartedAt,
+        });
+    }
+    async runTeamAssignment(team, run, assignment, enabledSkills) {
+        const step = run.steps.find(candidate => candidate.assignmentId === assignment.id && candidate.status === 'running');
+        if (!step) {
+            throw new Error(`Virtual team assignment step not found: ${assignment.id}`);
+        }
+        try {
+            const member = this.getAssignmentMember(team, assignment);
+            await this.ensureAssignmentWorkspace(team, run, assignment);
+            const sharedSteps = run.steps.filter(candidate => candidate.status === 'succeeded');
+            const dependencySteps = sharedSteps.filter(candidate => (candidate.assignmentId ? assignment.dependencies.includes(candidate.assignmentId) : false));
+            const result = this.teamMemberExecutor
+                ? await this.teamMemberExecutor(team, member, {
+                    workspacePath: assignment.workspacePath ?? team.workspacePath ?? this.workspacePath,
+                    runId: run.id,
+                    enabledSkills,
+                    assignment,
+                    previousSteps: dependencySteps,
+                    sharedSteps,
+                })
+                : await this.createFallbackTeamStep(team, member, sharedSteps, assignment);
+            this.assertExecutionCompleted(result.content);
+            assignment.status = 'succeeded';
+            assignment.completedAt = Date.now();
+            assignment.output = result.content;
+            step.status = 'succeeded';
+            step.completedAt = assignment.completedAt;
+            step.output = result.content;
+            this.updateTeamAssignmentMilestone(run, assignment.id, {
+                status: 'succeeded',
+                completedAt: step.completedAt,
+                summary: result.content,
+            });
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            assignment.status = 'failed';
+            assignment.completedAt = Date.now();
+            assignment.error = message;
+            step.status = 'failed';
+            step.completedAt = assignment.completedAt;
+            step.error = message;
+            this.updateTeamAssignmentMilestone(run, assignment.id, {
+                status: 'failed',
+                completedAt: step.completedAt,
+                summary: message,
+            });
+            throw error;
+        }
+    }
+    parseTeamAssignmentPlan(content, team) {
+        const parsed = this.parseJsonFromText(content);
+        if (!parsed) {
+            return [];
+        }
+        const rawAssignments = Array.isArray(parsed)
+            ? parsed
+            : Array.isArray(parsed.assignments)
+                ? parsed.assignments
+                : [];
+        if (rawAssignments.length === 0) {
+            return [];
+        }
+        const usedIds = new Set();
+        const aliases = new Map();
+        const drafts = rawAssignments
+            .map((raw, index) => {
+            if (!raw || typeof raw !== 'object') {
+                return null;
+            }
+            const record = raw;
+            const member = this.resolveAssignmentMember(team, record, index);
+            const title = this.readString(record.title) || this.readString(record.name) || `${member.role} assignment`;
+            const sourceId = this.readString(record.id) || this.readString(record.key) || title;
+            const id = this.uniqueAssignmentId(sourceId, usedIds);
+            const description = this.readString(record.description)
+                || this.readString(record.goal)
+                || this.readString(record.prompt)
+                || member.goal
+                || `Complete the ${title} assignment.`;
+            const dependencyValues = this.readStringArray(record.dependencies ?? record.dependsOn ?? record.dependencyIds);
+            const assignment = {
+                id,
+                title,
+                description,
+                memberId: member.id,
+                memberName: member.name,
+                role: member.role,
+                dependencies: [],
+                parallelGroup: 1,
+                status: 'pending',
+            };
+            [sourceId, title, id].forEach(alias => {
+                aliases.set(alias, id);
+                aliases.set(this.slug(alias), id);
+            });
+            return { assignment, dependencyValues };
+        })
+            .filter((value) => Boolean(value));
+        drafts.forEach(draft => {
+            draft.assignment.dependencies = [...new Set(draft.dependencyValues
+                    .map(value => aliases.get(value) ?? aliases.get(this.slug(value)) ?? '')
+                    .filter(dependencyId => dependencyId && dependencyId !== draft.assignment.id))];
+        });
+        return this.assignParallelGroups(drafts.map(draft => draft.assignment));
+    }
+    parseJsonFromText(content) {
+        const trimmed = content.trim();
+        if (!trimmed) {
+            return null;
+        }
+        const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+        const candidate = fencedMatch?.[1]?.trim() ?? trimmed;
+        const objectStart = candidate.indexOf('{');
+        const objectEnd = candidate.lastIndexOf('}');
+        const arrayStart = candidate.indexOf('[');
+        const arrayEnd = candidate.lastIndexOf(']');
+        const startsWithArray = arrayStart >= 0 && (objectStart < 0 || arrayStart < objectStart);
+        const jsonText = startsWithArray && arrayEnd > arrayStart
+            ? candidate.slice(arrayStart, arrayEnd + 1)
+            : objectStart >= 0 && objectEnd > objectStart
+                ? candidate.slice(objectStart, objectEnd + 1)
+                : candidate;
+        try {
+            return JSON.parse(jsonText);
+        }
+        catch (error) {
+            return null;
+        }
+    }
+    createFallbackTeamAssignmentPlan(team, maxIterations) {
+        const members = team.members.length > 0 ? team.members : this.createDefaultMembers();
+        const assignments = [];
+        const usedIds = new Set();
+        let previousIterationDependencyIds = [];
+        for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
+            const planningMembers = members.filter(member => this.isPlanningRole(member, team));
+            const reviewMembers = members.filter(member => this.isReviewRole(member));
+            const deliveryMembers = members.filter(member => (!planningMembers.some(candidate => candidate.id === member.id)
+                && !reviewMembers.some(candidate => candidate.id === member.id)));
+            const planningAssignments = planningMembers.map(member => this.createFallbackAssignment(member, iteration, 'Plan work and coordinate execution', `Break down the project objective for iteration ${iteration}, clarify dependencies, and identify the handoff expected from each worker.`, previousIterationDependencyIds, usedIds));
+            const planningIds = planningAssignments.map(assignment => assignment.id);
+            const deliveryAssignments = (deliveryMembers.length > 0 ? deliveryMembers : members.filter(member => !this.isReviewRole(member))).map(member => this.createFallbackAssignment(member, iteration, `Deliver ${member.role} work`, `Complete the ${member.role} portion of the project objective and publish concrete artifacts or decisions.`, [...previousIterationDependencyIds, ...planningIds], usedIds));
+            const deliveryIds = deliveryAssignments.map(assignment => assignment.id);
+            const reviewAssignments = reviewMembers.map(member => this.createFallbackAssignment(member, iteration, `Review and sign off ${member.role} work`, 'Review dependent worker outputs, call out risks, and merge or approve only the deliverables that are ready for the shared project workspace.', deliveryIds.length > 0 ? deliveryIds : [...previousIterationDependencyIds, ...planningIds], usedIds));
+            assignments.push(...planningAssignments, ...deliveryAssignments, ...reviewAssignments);
+            previousIterationDependencyIds = (reviewAssignments.length > 0 ? reviewAssignments : deliveryAssignments.length > 0 ? deliveryAssignments : planningAssignments)
+                .map(assignment => assignment.id);
+        }
+        return this.assignParallelGroups(assignments);
+    }
+    createFallbackAssignment(member, iteration, title, description, dependencies, usedIds) {
+        return {
+            id: this.uniqueAssignmentId(`iteration-${iteration}-${member.id}-${title}`, usedIds),
+            title: iteration > 1 ? `Iteration ${iteration}: ${title}` : title,
+            description,
+            memberId: member.id,
+            memberName: member.name,
+            role: member.role,
+            dependencies: [...new Set(dependencies)],
+            parallelGroup: 1,
+            status: 'pending',
+        };
+    }
+    assignParallelGroups(assignments) {
+        const validIds = new Set(assignments.map(assignment => assignment.id));
+        assignments.forEach(assignment => {
+            assignment.dependencies = [...new Set(assignment.dependencies.filter(dependencyId => (validIds.has(dependencyId) && dependencyId !== assignment.id)))];
+        });
+        const completed = new Set();
+        const pending = new Set(assignments.map(assignment => assignment.id));
+        let parallelGroup = 1;
+        while (pending.size > 0) {
+            const ready = assignments.filter(assignment => (pending.has(assignment.id)
+                && assignment.dependencies.every(dependencyId => completed.has(dependencyId))));
+            if (ready.length === 0) {
+                return [];
+            }
+            ready.forEach(assignment => {
+                assignment.parallelGroup = parallelGroup;
+                pending.delete(assignment.id);
+                completed.add(assignment.id);
+            });
+            parallelGroup += 1;
+        }
+        return assignments;
+    }
+    withAssignmentWorkspaces(team, run, assignments) {
+        return assignments.map(assignment => ({
+            ...assignment,
+            workspacePath: this.getAssignmentWorkspacePath(team, run, assignment),
+        }));
+    }
+    getAssignmentWorkspacePath(team, run, assignment) {
+        const runWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
+        if (assignment.dependencies.length > 0 && this.isReviewOrMergeAssignment(assignment)) {
+            return runWorkspacePath;
+        }
+        return path.join(runWorkspacePath, '.code-agent', 'team-runs', run.id, 'workers', `${this.slug(assignment.memberName)}-${assignment.id}`);
+    }
+    async ensureAssignmentWorkspace(team, run, assignment) {
+        const workspacePath = assignment.workspacePath ?? this.getAssignmentWorkspacePath(team, run, assignment);
+        assignment.workspacePath = workspacePath;
+        await fs.mkdir(workspacePath, { recursive: true });
+        const dependentOutputs = run.steps
+            .filter(step => step.assignmentId && assignment.dependencies.includes(step.assignmentId) && (step.output || step.error))
+            .map(step => [
+            `## ${step.assignmentTitle ?? step.role}`,
+            '',
+            `- Owner: ${step.memberName} (${step.role})`,
+            step.workspacePath ? `- Workspace: ${step.workspacePath}` : '',
+            '',
+            step.output ?? `Error: ${step.error}`,
+        ].filter(Boolean).join('\n'))
+            .join('\n\n');
+        await fs.writeFile(path.join(workspacePath, 'ASSIGNMENT.md'), [
+            `# ${assignment.title}`,
+            '',
+            `- Assignment ID: ${assignment.id}`,
+            `- Team run: ${run.id}`,
+            `- Owner: ${assignment.memberName} (${assignment.role})`,
+            `- Parallel group: ${assignment.parallelGroup}`,
+            `- Dependencies: ${assignment.dependencies.join(', ') || 'none'}`,
+            '',
+            '## Objective',
+            '',
+            team.objective,
+            '',
+            '## Assignment',
+            '',
+            assignment.description,
+            '',
+            '## Dependency Outputs',
+            '',
+            dependentOutputs || 'No dependency outputs yet.',
+            '',
+        ].join('\n'), 'utf-8');
+    }
+    getAssignmentMember(team, assignment) {
+        return team.members.find(member => member.id === assignment.memberId)
+            ?? team.members.find(member => member.name === assignment.memberName)
+            ?? team.members[0]
+            ?? this.createDefaultMembers()[0];
+    }
+    resolveAssignmentMember(team, record, index) {
+        const members = team.members.length > 0 ? team.members : this.createDefaultMembers();
+        const memberId = this.readString(record.memberId) || this.readString(record.assigneeId) || this.readString(record.employeeId);
+        const memberName = this.readString(record.memberName) || this.readString(record.assignee) || this.readString(record.employee);
+        const role = this.readString(record.role) || this.readString(record.ownerRole);
+        return members.find(member => member.id === memberId)
+            ?? members.find(member => member.name.toLowerCase() === String(memberName ?? '').toLowerCase())
+            ?? members.find(member => member.role.toLowerCase() === String(role ?? '').toLowerCase())
+            ?? members.find(member => role && member.role.toLowerCase().includes(role.toLowerCase()))
+            ?? members[index % members.length];
+    }
+    readString(value) {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+    readStringArray(value) {
+        if (Array.isArray(value)) {
+            return value.map(item => this.readString(item)).filter(Boolean);
+        }
+        if (typeof value === 'string') {
+            return value.split(',').map(item => item.trim()).filter(Boolean);
+        }
+        return [];
+    }
+    uniqueAssignmentId(value, usedIds) {
+        const base = this.slug(value) || 'assignment';
+        let id = base;
+        let suffix = 2;
+        while (usedIds.has(id)) {
+            id = `${base}-${suffix}`;
+            suffix += 1;
+        }
+        usedIds.add(id);
+        return id;
+    }
+    isPlanningRole(member, team) {
+        const role = member.role.toLowerCase();
+        return member.id === team.supervisorId
+            || role.includes('supervisor')
+            || role.includes('lead')
+            || role.includes('manager')
+            || role.includes('planner')
+            || role.includes('product')
+            || role.includes('architect');
+    }
+    isReviewRole(member) {
+        const role = member.role.toLowerCase();
+        return role.includes('qa')
+            || role.includes('quality')
+            || role.includes('test')
+            || role.includes('review')
+            || role.includes('security')
+            || role.includes('release');
+    }
+    isReviewOrMergeAssignment(assignment) {
+        const text = `${assignment.role} ${assignment.title}`.toLowerCase();
+        return text.includes('qa')
+            || text.includes('quality')
+            || text.includes('test')
+            || text.includes('review')
+            || text.includes('merge')
+            || text.includes('sign off')
+            || text.includes('signoff')
+            || text.includes('supervisor')
+            || text.includes('lead');
+    }
+    createTeamRunMilestonesFromAssignments(assignments, createdAt) {
+        return assignments.map(assignment => ({
+            id: `assignment-${assignment.id}`,
+            title: assignment.title,
+            ownerRole: assignment.role,
+            memberId: assignment.memberId,
+            memberName: assignment.memberName,
+            iteration: assignment.parallelGroup,
+            status: 'pending',
+            createdAt,
+        }));
+    }
+    updateTeamAssignmentMilestone(run, assignmentId, update) {
+        const milestone = run.milestones?.find(candidate => candidate.id === `assignment-${assignmentId}`);
+        if (!milestone) {
+            return;
+        }
+        if (update.status) {
+            milestone.status = update.status;
+        }
+        if (update.startedAt) {
+            milestone.startedAt = update.startedAt;
+        }
+        if (update.completedAt) {
+            milestone.completedAt = update.completedAt;
+        }
+        if (update.summary) {
+            milestone.summary = update.summary;
         }
     }
     async executeTask(taskId, trigger) {
@@ -1266,19 +1629,22 @@ class AutomationServiceBridge {
     hashToken(token) {
         return crypto.createHash('sha256').update(token).digest('hex');
     }
-    async createFallbackTeamStep(team, member, previousSteps) {
+    async createFallbackTeamStep(team, member, previousSteps, assignment) {
         const previous = previousSteps
             .filter(step => step.output)
-            .map(step => `- ${step.role}: ${step.output}`)
+            .map(step => `- ${step.assignmentTitle ?? step.role}: ${step.output}`)
             .join('\n');
         return {
             content: [
-                `${member.role} step for "${team.name}"`,
+                `${member.role} assignment for "${team.name}"`,
+                assignment ? `Assignment: ${assignment.title}` : '',
                 `Objective: ${team.objective}`,
-                `Goal: ${member.goal}`,
+                `Goal: ${assignment?.description ?? member.goal}`,
+                assignment?.workspacePath ? `Workspace: ${assignment.workspacePath}` : '',
+                assignment?.dependencies.length ? `Dependencies: ${assignment.dependencies.join(', ')}` : 'Dependencies: none',
                 previous ? `Previous team context:\n${previous}` : 'No previous team context.',
                 'No LLM executor was configured, so this run produced a deterministic planning artifact only.',
-            ].join('\n\n'),
+            ].filter(Boolean).join('\n\n'),
         };
     }
     assertExecutionCompleted(content) {
@@ -1365,7 +1731,9 @@ class AutomationServiceBridge {
     summarizeTeamRun(run) {
         const succeeded = run.steps.filter(step => step.status === 'succeeded').length;
         const failed = run.steps.filter(step => step.status === 'failed').length;
-        return `Team run ${run.id} completed with ${succeeded} succeeded step(s) and ${failed} failed step(s).`;
+        const assignments = run.assignments?.length ?? run.steps.length;
+        const parallelGroups = new Set((run.assignments ?? []).map(assignment => assignment.parallelGroup)).size;
+        return `Team run ${run.id} completed ${succeeded}/${assignments} assignment(s) with ${failed} failed step(s) across ${parallelGroups || 1} execution group(s).`;
     }
     async ensureTeamWorkspaceSeed(team) {
         const runWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
@@ -1429,6 +1797,17 @@ class AutomationServiceBridge {
             '',
             run.summary ?? run.error ?? 'Run in progress.',
             '',
+            '## Assignment Plan',
+            '',
+            ...(run.assignments ?? []).map(assignment => [
+                `- [${assignment.status === 'succeeded' ? 'x' : ' '}] ${assignment.title} (${assignment.status})`,
+                `  - Owner: ${assignment.memberName} (${assignment.role})`,
+                `  - Parallel group: ${assignment.parallelGroup}`,
+                `  - Dependencies: ${assignment.dependencies.join(', ') || 'none'}`,
+                assignment.workspacePath ? `  - Workspace: ${assignment.workspacePath}` : '',
+            ].filter(Boolean).join('\n')),
+            (run.assignments ?? []).length === 0 ? 'No assignment plan recorded.' : '',
+            '',
             '## Milestones',
             '',
             ...(run.milestones ?? []).map(milestone => [
@@ -1440,13 +1819,16 @@ class AutomationServiceBridge {
             '## Steps',
             '',
             ...run.steps.flatMap(step => [
-                `### ${step.role} - ${step.memberName}`,
+                `### ${step.assignmentTitle ?? step.role} - ${step.memberName}`,
                 '',
                 `Status: ${step.status}`,
+                step.parallelGroup ? `Parallel group: ${step.parallelGroup}` : '',
+                step.dependencyIds?.length ? `Dependencies: ${step.dependencyIds.join(', ')}` : '',
+                step.workspacePath ? `Workspace: ${step.workspacePath}` : '',
                 '',
                 step.output ?? step.error ?? 'No output.',
                 '',
-            ]),
+            ].filter(Boolean)),
         ].filter(Boolean);
         await fs.writeFile(artifactPath, `${lines.join('\n')}\n`, 'utf-8');
         const relative = path.relative(this.workspacePath, artifactPath);

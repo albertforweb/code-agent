@@ -36,6 +36,7 @@ export class AppStateServiceBridge {
     disabledLlmTools: [],
     toolPermissionPolicies: {},
     theme: 'system',
+    accentColor: 'blue',
     language: 'en',
   };
 

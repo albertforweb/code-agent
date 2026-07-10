@@ -10,11 +10,30 @@ export interface ToolExecuteResponse {
   toolId: string;
 }
 
+export interface ToolEventScope {
+  source: 'scheduled-task' | 'virtual-team' | 'project-chat';
+  workspacePath?: string;
+  runId?: string;
+  taskId?: string;
+  taskName?: string;
+  teamId?: string;
+  teamName?: string;
+  projectId?: string;
+  projectName?: string;
+  projectChatKey?: string;
+  channel?: 'guided' | 'team';
+  memberId?: string;
+  memberName?: string;
+  assignmentId?: string;
+  assignmentTitle?: string;
+}
+
 export interface ToolStartMessage {
   toolId: string;
   toolName: string;
   args: Record<string, any>;
   timestamp: number;
+  scope?: ToolEventScope;
 }
 
 export interface FileWritePreview {
@@ -30,6 +49,7 @@ export interface FileWriteReviewRequest extends FileWritePreview {
   requestId: string;
   toolId: string;
   createdAt: number;
+  scope?: ToolEventScope;
 }
 
 export interface FileWriteReviewResponse {
@@ -47,6 +67,7 @@ export interface CommandReviewRequest {
   absoluteCwd: string;
   timeoutMs: number;
   createdAt: number;
+  scope?: ToolEventScope;
 }
 
 export interface CommandReviewResponse {
@@ -59,18 +80,21 @@ export interface ToolResultMessage {
   toolId: string;
   data: any;
   timestamp: number;
+  scope?: ToolEventScope;
 }
 
 export interface ToolCompleteMessage {
   toolId: string;
   success: boolean;
   duration: number;
+  scope?: ToolEventScope;
 }
 
 export interface ToolErrorMessage {
   toolId: string;
   error: string;
   stack?: string;
+  scope?: ToolEventScope;
 }
 
 export type ToolPermissionMode = 'allow' | 'ask' | 'deny';
@@ -81,6 +105,7 @@ export interface ToolPermissionReviewRequest {
   toolName: string;
   args: Record<string, any>;
   createdAt: number;
+  scope?: ToolEventScope;
 }
 
 export interface ToolPermissionReviewResponse {
@@ -96,6 +121,7 @@ export interface ToolApprovalResolvedMessage {
   approved: boolean;
   resolvedBy: string;
   reason?: string;
+  scope?: ToolEventScope;
 }
 
 export interface ChatMessage {
@@ -115,6 +141,7 @@ export interface ChatRequest {
   contextTokens?: number;
   enableTools?: boolean;
   maxToolRounds?: number;
+  toolScope?: ToolEventScope;
 }
 
 export interface ChatResponse {
@@ -184,6 +211,7 @@ export interface AppConfig {
   disabledLlmTools?: string[];
   toolPermissionPolicies?: Record<string, ToolPermissionMode>;
   theme?: 'light' | 'dark' | 'system';
+  accentColor?: 'blue' | 'teal' | 'violet' | 'graphite' | 'ember';
   language?: string;
   [key: string]: any;
 }
@@ -411,6 +439,40 @@ export interface VirtualTeamMilestone {
   summary?: string;
 }
 
+export interface VirtualTeamAssignmentPlan {
+  id: string;
+  title: string;
+  description: string;
+  memberId: string;
+  memberName: string;
+  role: string;
+  dependencies: string[];
+  parallelGroup: number;
+  workspacePath?: string;
+  status: 'pending' | 'running' | 'succeeded' | 'failed';
+  startedAt?: number;
+  completedAt?: number;
+  output?: string;
+  error?: string;
+}
+
+export interface VirtualTeamRunStep {
+  memberId: string;
+  memberName: string;
+  role: string;
+  iteration?: number;
+  assignmentId?: string;
+  assignmentTitle?: string;
+  dependencyIds?: string[];
+  parallelGroup?: number;
+  workspacePath?: string;
+  status: 'running' | 'succeeded' | 'failed';
+  startedAt: number;
+  completedAt?: number;
+  output?: string;
+  error?: string;
+}
+
 export interface VirtualTeamRunRecord {
   id: string;
   teamId: string;
@@ -424,17 +486,8 @@ export interface VirtualTeamRunRecord {
   summary?: string;
   error?: string;
   milestones?: VirtualTeamMilestone[];
-  steps: Array<{
-    memberId: string;
-    memberName: string;
-    role: string;
-    iteration?: number;
-    status: 'running' | 'succeeded' | 'failed';
-    startedAt: number;
-    completedAt?: number;
-    output?: string;
-    error?: string;
-  }>;
+  assignments?: VirtualTeamAssignmentPlan[];
+  steps: VirtualTeamRunStep[];
 }
 
 export interface AutomationSchedulerStatus {

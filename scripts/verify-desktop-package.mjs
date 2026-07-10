@@ -131,9 +131,14 @@ Options:
 function findMacAppPath(baseDir, expectedProductName) {
   const distBuildPath = path.join(baseDir, 'dist-build');
   const expectedAppName = `${expectedProductName}.app`;
+  const preferredMacArm64Path = path.join(distBuildPath, 'mac-arm64', expectedAppName);
 
   if (!existsSync(distBuildPath)) {
-    return path.join('dist-build', 'mac-arm64', expectedAppName);
+    return preferredMacArm64Path;
+  }
+
+  if (existsSync(preferredMacArm64Path)) {
+    return preferredMacArm64Path;
   }
 
   const matches = [];

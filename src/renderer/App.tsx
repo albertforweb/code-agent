@@ -33,6 +33,7 @@ import {
   type ScheduledTask,
   type SkillManifest,
   type Tool,
+  type ToolEventScope,
   type VirtualTeamBlueprint,
   type VirtualTeamMember,
   type VirtualTeamPermissionMode,
@@ -43,6 +44,7 @@ type MessageRole = 'assistant' | 'user' | 'system' | 'tool' | 'error';
 type MessageStatus = 'sent' | 'sending' | 'failed';
 type ToolActivityStatus = 'running' | 'succeeded' | 'failed';
 type AppView = 'chat' | 'projects' | 'tools' | 'automation' | 'history' | 'settings';
+type RecordViewMode = 'table' | 'cards';
 type ProjectsSectionId =
   | 'studio'
   | 'new'
@@ -51,6 +53,11 @@ type ProjectsSectionId =
   | 'teams'
   | 'guided'
   | 'autonomous'
+  | 'insights'
+  | 'execution'
+  | 'artifacts'
+  | 'timeline'
+  | 'governance'
   | 'board'
   | 'chat'
   | 'deliverables'
@@ -59,6 +66,29 @@ type ProjectsSectionId =
   | 'files'
   | 'session'
   | 'runtime';
+type ProjectEditorPanelId =
+  | 'project'
+  | 'project-chat'
+  | 'project-org'
+  | 'project-execution'
+  | 'project-board'
+  | 'project-team-chat'
+  | 'project-deliverables'
+  | 'role'
+  | 'employee'
+  | 'employee-profile'
+  | 'team'
+  | 'delete';
+type AutomationEditorPanelId = 'task' | 'team' | 'delete';
+type ProjectDeleteKind = 'project' | 'role' | 'employee' | 'team';
+type AutomationDeleteKind = 'task' | 'team' | 'device';
+interface DeleteTarget<TKind extends string> {
+  kind: TKind;
+  id: string;
+  name: string;
+  detail: string;
+  impact: string[];
+}
 type ToolsSectionId = 'bridge' | 'mcp' | 'command' | 'activity' | 'plugins';
 type AutomationSectionId = 'skills' | 'tasks' | 'remote' | 'team' | 'permissions';
 type HistorySectionId = 'overview' | 'chats' | 'tools' | 'automation' | 'events' | 'export';
@@ -69,10 +99,63 @@ type SettingsSectionId =
   | 'workspace'
   | 'sessions'
   | 'advanced';
+type AppSkinAccent = 'blue' | 'teal' | 'violet' | 'graphite' | 'ember';
+type IconName =
+  | 'activity'
+  | 'archive'
+  | 'arrow-left'
+  | 'arrow-right'
+  | 'bar-chart'
+  | 'board'
+  | 'bot'
+  | 'briefcase'
+  | 'calendar'
+  | 'chat'
+  | 'check'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'code'
+  | 'database'
+  | 'download'
+  | 'edit'
+  | 'external'
+  | 'file'
+  | 'folder'
+  | 'folder-open'
+  | 'history'
+  | 'key'
+  | 'grid'
+  | 'lock'
+  | 'list'
+  | 'message'
+  | 'network'
+  | 'pause'
+  | 'phone'
+  | 'play'
+  | 'plug'
+  | 'plus'
+  | 'puzzle'
+  | 'refresh'
+  | 'rotate'
+  | 'save'
+  | 'search'
+  | 'send'
+  | 'settings'
+  | 'shield'
+  | 'sliders'
+  | 'sparkles'
+  | 'stop'
+  | 'terminal'
+  | 'trash'
+  | 'user'
+  | 'users'
+  | 'wrench'
+  | 'x';
 type NavigationChildItem<T extends string> = {
   id: T;
   title: string;
   description: string;
+  icon: IconName;
 };
 
 interface UiMessage {
@@ -87,6 +170,10 @@ interface UiMessage {
     outputTokens: number;
   };
 }
+
+type ChatStreamTarget =
+  | { scope: 'main'; messageId: string }
+  | { scope: 'project'; projectChatKey: string; projectId: string; messageId: string };
 
 interface PersistedChatSession {
   id: string;
@@ -179,6 +266,19 @@ interface ToolActivity {
   resultPreview?: string;
   result?: unknown;
   error?: string;
+  scope?: ToolEventScope;
+}
+
+interface ProjectGeneratedOutput {
+  id: string;
+  projectId: string;
+  path: string;
+  absolutePath?: string;
+  toolName: string;
+  source: 'guided-chat' | 'team-chat' | 'automation' | 'tool';
+  summary?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface AnsiSegment {
@@ -201,6 +301,7 @@ interface SettingsDraft {
   contextTokens: number;
   enableLlmTools: boolean;
   theme: 'light' | 'dark' | 'system';
+  accentColor: AppSkinAccent;
   memoryEnabled: boolean;
   pluginsEnabled: boolean;
   autoUpdate: boolean;
@@ -296,7 +397,59 @@ const DESKTOP_PROJECTS_STATE_KEY = 'desktopSoftwareProjects';
 const DESKTOP_ROLES_STATE_KEY = 'desktopVirtualRoles';
 const DESKTOP_EMPLOYEES_STATE_KEY = 'desktopVirtualEmployees';
 const DESKTOP_PROJECT_TEAMS_STATE_KEY = 'desktopProjectTeams';
+const DESKTOP_PROJECT_CHATS_STATE_KEY = 'desktopProjectChats';
+const DESKTOP_PROJECT_OUTPUTS_STATE_KEY = 'desktopProjectOutputs';
+const CHAT_SESSION_HISTORY_ID_PREFIX = 'chat-session-';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codeAgentSidebarCollapsed';
+const SKIN_ACCENTS: Record<AppSkinAccent, {
+  label: string;
+  primary: string;
+  primaryDark: string;
+  primarySoft: string;
+  primaryBorder: string;
+  rgb: string;
+}> = {
+  blue: {
+    label: 'Blue',
+    primary: '#2563eb',
+    primaryDark: '#1d4ed8',
+    primarySoft: '#eff6ff',
+    primaryBorder: '#bfdbfe',
+    rgb: '37, 99, 235',
+  },
+  teal: {
+    label: 'Teal',
+    primary: '#0f766e',
+    primaryDark: '#115e59',
+    primarySoft: '#ecfdf5',
+    primaryBorder: '#99f6e4',
+    rgb: '15, 118, 110',
+  },
+  violet: {
+    label: 'Violet',
+    primary: '#7c3aed',
+    primaryDark: '#6d28d9',
+    primarySoft: '#f5f3ff',
+    primaryBorder: '#ddd6fe',
+    rgb: '124, 58, 237',
+  },
+  graphite: {
+    label: 'Graphite',
+    primary: '#475569',
+    primaryDark: '#334155',
+    primarySoft: '#f1f5f9',
+    primaryBorder: '#cbd5e1',
+    rgb: '71, 85, 105',
+  },
+  ember: {
+    label: 'Ember',
+    primary: '#c15f3c',
+    primaryDark: '#9d482c',
+    primarySoft: '#fff7ef',
+    primaryBorder: '#f0c9b8',
+    rgb: '193, 95, 60',
+  },
+};
 const TOOL_PERMISSION_OPTIONS: Array<{ value: ToolPermissionMode; label: string }> = [
   { value: 'allow', label: 'Allow' },
   { value: 'ask', label: 'Ask' },
@@ -360,6 +513,206 @@ function getProviderDefault(provider: LlmProviderType) {
   return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
 }
 
+function getSkinAccent(value: unknown): AppSkinAccent {
+  return typeof value === 'string' && value in SKIN_ACCENTS ? value as AppSkinAccent : 'blue';
+}
+
+function getSkinStyle(value: unknown): React.CSSProperties {
+  const accent = SKIN_ACCENTS[getSkinAccent(value)];
+  return {
+    '--color-primary': accent.primary,
+    '--color-primary-dark': accent.primaryDark,
+    '--color-primary-soft': accent.primarySoft,
+    '--color-primary-border': accent.primaryBorder,
+    '--color-primary-rgb': accent.rgb,
+  } as React.CSSProperties;
+}
+
+function Icon({
+  name,
+  className = styles.icon,
+  size = 16,
+}: {
+  name: IconName;
+  className?: string;
+  size?: number;
+}) {
+  const common = {
+    className,
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+    focusable: false,
+  };
+
+  switch (name) {
+    case 'activity':
+      return <svg {...common}><path d="M3 12h4l3-8 4 16 3-8h4" /></svg>;
+    case 'archive':
+      return <svg {...common}><path d="M4 7h16" /><path d="M5 7l1 13h12l1-13" /><path d="M8 4h8l1 3H7z" /><path d="M10 12h4" /></svg>;
+    case 'arrow-left':
+      return <svg {...common}><path d="M19 12H5" /><path d="M12 19l-7-7 7-7" /></svg>;
+    case 'arrow-right':
+      return <svg {...common}><path d="M5 12h14" /><path d="M12 5l7 7-7 7" /></svg>;
+    case 'bar-chart':
+      return <svg {...common}><path d="M4 19V5" /><path d="M4 19h16" /><path d="M8 16V9" /><path d="M12 16V6" /><path d="M16 16v-4" /></svg>;
+    case 'board':
+      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /><path d="M15 4v16" /><path d="M5 8h2" /><path d="M11 12h2" /><path d="M17 9h2" /></svg>;
+    case 'bot':
+      return <svg {...common}><rect x="5" y="8" width="14" height="11" rx="3" /><path d="M12 8V4" /><path d="M8 4h8" /><path d="M9 13h.01" /><path d="M15 13h.01" /><path d="M9 17h6" /></svg>;
+    case 'briefcase':
+      return <svg {...common}><rect x="3" y="7" width="18" height="13" rx="2" /><path d="M9 7V5h6v2" /><path d="M3 12h18" /></svg>;
+    case 'calendar':
+      return <svg {...common}><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4" /><path d="M16 3v4" /><path d="M4 10h16" /></svg>;
+    case 'chat':
+      return <svg {...common}><path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" /></svg>;
+    case 'check':
+      return <svg {...common}><path d="M20 6 9 17l-5-5" /></svg>;
+    case 'chevron-left':
+      return <svg {...common}><path d="M15 18 9 12l6-6" /></svg>;
+    case 'chevron-right':
+      return <svg {...common}><path d="m9 18 6-6-6-6" /></svg>;
+    case 'code':
+      return <svg {...common}><path d="m8 9-4 3 4 3" /><path d="m16 9 4 3-4 3" /><path d="m14 5-4 14" /></svg>;
+    case 'database':
+      return <svg {...common}><ellipse cx="12" cy="5" rx="7" ry="3" /><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5" /><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" /></svg>;
+    case 'download':
+      return <svg {...common}><path d="M12 3v12" /><path d="m7 10 5 5 5-5" /><path d="M5 21h14" /></svg>;
+    case 'edit':
+      return <svg {...common}><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4z" /><path d="m13 7 4 4" /></svg>;
+    case 'external':
+      return <svg {...common}><path d="M14 4h6v6" /><path d="m10 14 10-10" /><path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5" /></svg>;
+    case 'file':
+      return <svg {...common}><path d="M6 3h8l4 4v14H6z" /><path d="M14 3v5h5" /></svg>;
+    case 'folder':
+      return <svg {...common}><path d="M3 7h7l2 2h9v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>;
+    case 'folder-open':
+      return <svg {...common}><path d="M3 8h7l2 2h9" /><path d="M4 20h14l3-9H6z" /></svg>;
+    case 'grid':
+      return <svg {...common}><rect x="4" y="4" width="7" height="7" rx="1" /><rect x="13" y="4" width="7" height="7" rx="1" /><rect x="4" y="13" width="7" height="7" rx="1" /><rect x="13" y="13" width="7" height="7" rx="1" /></svg>;
+    case 'history':
+      return <svg {...common}><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 4v6h6" /><path d="M12 7v6l4 2" /></svg>;
+    case 'key':
+      return <svg {...common}><circle cx="8" cy="15" r="4" /><path d="m11 12 8-8" /><path d="m16 7 2 2" /><path d="m14 9 2 2" /></svg>;
+    case 'lock':
+      return <svg {...common}><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
+    case 'list':
+      return <svg {...common}><path d="M8 6h13" /><path d="M8 12h13" /><path d="M8 18h13" /><path d="M3 6h.01" /><path d="M3 12h.01" /><path d="M3 18h.01" /></svg>;
+    case 'message':
+      return <svg {...common}><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" /></svg>;
+    case 'network':
+      return <svg {...common}><circle cx="12" cy="5" r="2" /><circle cx="5" cy="19" r="2" /><circle cx="19" cy="19" r="2" /><path d="M12 7v4" /><path d="M12 11 5 17" /><path d="m12 11 7 6" /></svg>;
+    case 'pause':
+      return <svg {...common}><path d="M8 5v14" /><path d="M16 5v14" /></svg>;
+    case 'phone':
+      return <svg {...common}><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></svg>;
+    case 'play':
+      return <svg {...common}><path d="m8 5 12 7-12 7z" /></svg>;
+    case 'plug':
+      return <svg {...common}><path d="M8 2v6" /><path d="M16 2v6" /><path d="M7 8h10v4a5 5 0 0 1-10 0z" /><path d="M12 17v5" /></svg>;
+    case 'plus':
+      return <svg {...common}><path d="M12 5v14" /><path d="M5 12h14" /></svg>;
+    case 'puzzle':
+      return <svg {...common}><path d="M9 3h6v4a2 2 0 1 0 0 4v4h-4a2 2 0 1 1-4 0H3V9h4a2 2 0 1 0 2-2z" /></svg>;
+    case 'refresh':
+      return <svg {...common}><path d="M20 6v6h-6" /><path d="M4 18v-6h6" /><path d="M19 12a7 7 0 0 0-12-5" /><path d="M5 12a7 7 0 0 0 12 5" /></svg>;
+    case 'rotate':
+      return <svg {...common}><path d="M21 12a9 9 0 1 1-3-6.7" /><path d="M21 3v6h-6" /></svg>;
+    case 'save':
+      return <svg {...common}><path d="M5 3h12l2 2v16H5z" /><path d="M8 3v6h8" /><path d="M8 21v-7h8v7" /></svg>;
+    case 'search':
+      return <svg {...common}><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>;
+    case 'send':
+      return <svg {...common}><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4z" /></svg>;
+    case 'settings':
+      return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a8 8 0 0 0 .1-6l2-1.5-2-3.4-2.4 1a8 8 0 0 0-5.2-3L11.5 0h-4l-.4 2.9a8 8 0 0 0-5.2 3l-2.4-1-2 3.4L.5 9.8a8 8 0 0 0 .1 6l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 5.2 3l.4 2.9h4l.4-2.9a8 8 0 0 0 5.2-3l2.4 1 2-3.4z" transform="scale(.88) translate(2 1)" /></svg>;
+    case 'shield':
+      return <svg {...common}><path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z" /><path d="m9 12 2 2 4-5" /></svg>;
+    case 'sliders':
+      return <svg {...common}><path d="M4 6h10" /><path d="M18 6h2" /><path d="M4 12h2" /><path d="M10 12h10" /><path d="M4 18h12" /><path d="M20 18h0" /><circle cx="16" cy="6" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="18" cy="18" r="2" /></svg>;
+    case 'sparkles':
+      return <svg {...common}><path d="M12 3 14 9l6 3-6 3-2 6-2-6-6-3 6-3z" /><path d="M5 3v4" /><path d="M3 5h4" /></svg>;
+    case 'stop':
+      return <svg {...common}><rect x="6" y="6" width="12" height="12" rx="2" /></svg>;
+    case 'terminal':
+      return <svg {...common}><path d="m4 7 5 5-5 5" /><path d="M12 19h8" /></svg>;
+    case 'trash':
+      return <svg {...common}><path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M6 7l1 14h10l1-14" /><path d="M9 7V4h6v3" /></svg>;
+    case 'user':
+      return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>;
+    case 'users':
+      return <svg {...common}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2" /><path d="M3 21a6 6 0 0 1 12 0" /><path d="M14 18a5 5 0 0 1 7 3" /></svg>;
+    case 'wrench':
+      return <svg {...common}><path d="M14.7 6.3a4 4 0 0 0-5 5L3 18l3 3 6.7-6.7a4 4 0 0 0 5-5l-2.8 2.8-2.1-2.1z" /></svg>;
+    case 'x':
+      return <svg {...common}><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>;
+    default:
+      return <svg {...common}><circle cx="12" cy="12" r="8" /></svg>;
+  }
+}
+
+function RecordViewToggle({
+  view,
+  onChange,
+  label,
+}: {
+  view: RecordViewMode;
+  onChange: React.Dispatch<React.SetStateAction<RecordViewMode>>;
+  label: string;
+}) {
+  return (
+    <div className={styles.segmentedControl} aria-label={label}>
+      <button
+        className={view === 'table' ? `${styles.segmentedControlButton} ${styles.segmentedControlButtonActive}` : styles.segmentedControlButton}
+        type="button"
+        onClick={() => onChange('table')}
+        aria-pressed={view === 'table'}
+        title="Show records as a table"
+      >
+        <Icon name="list" size={14} />
+        Table
+      </button>
+      <button
+        className={view === 'cards' ? `${styles.segmentedControlButton} ${styles.segmentedControlButtonActive}` : styles.segmentedControlButton}
+        type="button"
+        onClick={() => onChange('cards')}
+        aria-pressed={view === 'cards'}
+        title="Show records as cards"
+      >
+        <Icon name="grid" size={14} />
+        Cards
+      </button>
+    </div>
+  );
+}
+
+function getProjectNoticeClassName(message: string): string {
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes('error') ||
+    normalized.includes('failed') ||
+    normalized.includes('blocked') ||
+    normalized.includes('rejected')
+  ) {
+    return `${styles.projectNotice} ${styles.projectNoticeError}`;
+  }
+  if (
+    normalized.includes('stopped') ||
+    normalized.includes('deleted') ||
+    normalized.includes('removed') ||
+    normalized.includes('approval')
+  ) {
+    return `${styles.projectNotice} ${styles.projectNoticeWarning}`;
+  }
+  return `${styles.projectNotice} ${styles.projectNoticeSuccess}`;
+}
+
 function readStoredSidebarCollapsed(): boolean {
   try {
     return window.localStorage?.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === 'true';
@@ -370,6 +723,7 @@ function readStoredSidebarCollapsed(): boolean {
 
 const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'bypassPermissions', 'auto'];
 const SETTING_SOURCE_OPTIONS = ['user', 'project', 'local'];
+const PROJECT_LIST_PAGE_SIZE = 10;
 const DESKTOP_COMMANDS: DesktopCommand[] = [
   { command: '/help', description: 'Show desktop commands' },
   { command: '/status', description: 'Show provider, runtime, tools, and MCP status' },
@@ -380,11 +734,11 @@ const DESKTOP_COMMANDS: DesktopCommand[] = [
   { command: '/settings', description: 'Open Settings' },
   { command: '/tools', description: 'List bridge and MCP tools' },
   { command: '/mcp', description: 'Refresh and list MCP servers/tools' },
-  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and virtual teams' },
+  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and automation permissions' },
   { command: '/skills', description: 'Open local skills and automation extensions' },
   { command: '/tasks', description: 'Open scheduled automation tasks' },
   { command: '/remote', description: 'Open remote-control setup' },
-  { command: '/team', description: 'Open virtual team blueprints' },
+  { command: '/team', description: 'Open project teams' },
   { command: '/history', description: 'Open local history and export records' },
   { command: '/sessions', description: 'List saved desktop sessions' },
   { command: '/config', description: 'Show persisted desktop configuration' },
@@ -395,56 +749,49 @@ const PRIMARY_NAV: Array<{
   id: AppView;
   label: string;
   description: string;
-  glyph: string;
+  icon: IconName;
 }> = [
-  { id: 'chat', label: 'Chats', description: 'Conversation workspace', glyph: 'C' },
-  { id: 'projects', label: 'Projects', description: 'Ideas, guided builds, and autonomous teams', glyph: 'P' },
-  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', glyph: 'T' },
-  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, teams', glyph: 'A' },
-  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', glyph: 'H' },
-  { id: 'settings', label: 'Settings', description: 'Model, tools, workspace, sessions', glyph: 'S' },
+  { id: 'chat', label: 'Chats', description: 'Conversation workspace', icon: 'chat' },
+  { id: 'projects', label: 'Projects', description: 'Ideas, guided builds, and autonomous teams', icon: 'briefcase' },
+  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', icon: 'wrench' },
+  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, and permissions', icon: 'bot' },
+  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', icon: 'history' },
+  { id: 'settings', label: 'Settings', description: 'Model, tools, workspace, sessions', icon: 'settings' },
 ];
 const PROJECTS_MENU: Array<NavigationChildItem<ProjectsSectionId>> = [
-  { id: 'studio', title: 'Project Studio', description: 'Create software from ideas or autonomous teams' },
-  { id: 'new', title: 'New Project', description: 'Capture an idea, goals, artifacts, and team model' },
-  { id: 'roles', title: 'Roles', description: 'Responsibilities, default goals, and tool scope' },
-  { id: 'employees', title: 'Virtual Employees', description: 'Create employees, roles, models, and permission scope' },
-  { id: 'teams', title: 'Teams', description: 'Scoped missions, supervisors, and members' },
-  { id: 'guided', title: 'Guided Builds', description: 'Human-led project chats that turn ideas into artifacts' },
-  { id: 'autonomous', title: 'Autonomous Projects', description: 'Team organization, supervisor, and project execution' },
-  { id: 'board', title: 'Task Board', description: 'Selected autonomous project tasks' },
-  { id: 'chat', title: 'Team Chat', description: 'Selected autonomous project employee conversation' },
-  { id: 'deliverables', title: 'Deliverables', description: 'Selected autonomous project artifacts' },
+  { id: 'studio', title: 'Project Studio', description: 'Create software from ideas or autonomous teams', icon: 'board' },
+  { id: 'roles', title: 'Roles', description: 'Responsibilities, default goals, and tool scope', icon: 'shield' },
+  { id: 'employees', title: 'Employees', description: 'Create employees, roles, models, and permission scope', icon: 'users' },
+  { id: 'teams', title: 'Teams', description: 'Scoped missions, supervisors, and members', icon: 'network' },
 ];
 const TOOLS_MENU: Array<NavigationChildItem<ToolsSectionId>> = [
-  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions' },
-  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools' },
-  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands' },
-  { id: 'activity', title: 'Activity', description: 'Tool-call timeline' },
-  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths' },
+  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions', icon: 'plug' },
+  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools', icon: 'database' },
+  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands', icon: 'terminal' },
+  { id: 'activity', title: 'Activity', description: 'Tool-call timeline', icon: 'activity' },
+  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths', icon: 'puzzle' },
 ];
 const SETTINGS_MENU: Array<NavigationChildItem<SettingsSectionId>> = [
-  { id: 'model', title: 'Model', description: 'Provider, tokens, theme' },
-  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs' },
-  { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety' },
-  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, directories' },
-  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser' },
-  { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata' },
+  { id: 'model', title: 'Model', description: 'Provider, tokens, theme', icon: 'sparkles' },
+  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs', icon: 'code' },
+  { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety', icon: 'lock' },
+  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, directories', icon: 'folder' },
+  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser', icon: 'rotate' },
+  { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata', icon: 'sliders' },
 ];
 const AUTOMATION_MENU: Array<NavigationChildItem<AutomationSectionId>> = [
-  { id: 'skills', title: 'Skills', description: 'Workspace extensions' },
-  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history' },
-  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals' },
-  { id: 'team', title: 'Team Blueprints', description: 'Reusable teams from shared employees and roles' },
-  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy' },
+  { id: 'skills', title: 'Skills', description: 'Workspace extensions', icon: 'sparkles' },
+  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history', icon: 'calendar' },
+  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals', icon: 'phone' },
+  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy', icon: 'shield' },
 ];
 const HISTORY_MENU: Array<NavigationChildItem<HistorySectionId>> = [
-  { id: 'overview', title: 'Overview', description: 'Storage and record counts' },
-  { id: 'chats', title: 'Chats', description: 'Saved conversations' },
-  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records' },
-  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history' },
-  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events' },
-  { id: 'export', title: 'Export', description: 'Download or copy local history' },
+  { id: 'overview', title: 'Overview', description: 'Storage and record counts', icon: 'bar-chart' },
+  { id: 'chats', title: 'Chats', description: 'Saved conversations', icon: 'chat' },
+  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records', icon: 'wrench' },
+  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history', icon: 'bot' },
+  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events', icon: 'activity' },
+  { id: 'export', title: 'Export', description: 'Download or copy local history', icon: 'download' },
 ];
 const AUTOMATION_PERMISSION_TOOLS = [
   'bash.run',
@@ -594,6 +941,27 @@ function upsertSession(sessions: PersistedChatSession[], session: PersistedChatS
   ]);
 }
 
+function isMeaningfulChatSession(session: PersistedChatSession): boolean {
+  return session.messages.some(message => message.role === 'user' && message.content.trim());
+}
+
+function getChatSessionIdFromHistoryRecord(recordId: string, record?: LocalHistoryRecord): string {
+  if (record && record.type !== 'chat-session') {
+    return '';
+  }
+
+  const session = record?.data && typeof record.data === 'object'
+    ? (record.data as { session?: Partial<PersistedChatSession> }).session
+    : undefined;
+  if (typeof session?.id === 'string' && session.id.trim()) {
+    return session.id;
+  }
+
+  return recordId.startsWith(CHAT_SESSION_HISTORY_ID_PREFIX)
+    ? recordId.slice(CHAT_SESSION_HISTORY_ID_PREFIX.length)
+    : '';
+}
+
 function createEmptySession(workspacePath?: string): PersistedChatSession {
   const id = createSessionId();
   return createSessionSnapshot(id, createReadyMessages(), workspacePath);
@@ -671,6 +1039,120 @@ function restoreSessionsFromHistory(
   };
 }
 
+type ProjectChatChannel = 'guided' | 'team';
+
+function getProjectChatKey(projectId: string, channel: ProjectChatChannel): string {
+  return `${projectId}:${channel}`;
+}
+
+function getProjectAutomationTeamId(projectId: string): string {
+  return `project-auto-${projectId}`;
+}
+
+function createProjectReadyMessages(project: SoftwareProjectPlan, channel: ProjectChatChannel): UiMessage[] {
+  return [
+    createMessage('assistant', channel === 'team'
+      ? `Team chat is ready for "${project.name}". Send direction to the supervisor or team here.`
+      : `Project chat is ready for "${project.name}". Send project-specific instructions here.`, {
+      title: channel === 'team' ? 'Project Team' : 'CodeAgent',
+    }),
+  ];
+}
+
+function restoreProjectChatsFromState(state: Record<string, any>): Record<string, UiMessage[]> {
+  const raw = state?.[DESKTOP_PROJECT_CHATS_STATE_KEY];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {};
+  }
+
+  return Object.entries(raw).reduce<Record<string, UiMessage[]>>((restored, [key, value]) => {
+    if (key.trim()) {
+      restored[key] = sanitizeMessages(value);
+    }
+    return restored;
+  }, {});
+}
+
+function serializeProjectChats(projectChats: Record<string, UiMessage[]>): Record<string, UiMessage[]> {
+  return Object.entries(projectChats).reduce<Record<string, UiMessage[]>>((serialized, [key, messages]) => {
+    if (key.trim()) {
+      serialized[key] = sanitizeMessages(messages);
+    }
+    return serialized;
+  }, {});
+}
+
+function sanitizeProjectGeneratedOutput(value: unknown): ProjectGeneratedOutput | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const raw = value as Partial<ProjectGeneratedOutput>;
+  if (!raw.projectId || !raw.path) {
+    return null;
+  }
+
+  const createdAt = Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : Date.now();
+  const source = raw.source === 'team-chat' || raw.source === 'automation' || raw.source === 'tool'
+    ? raw.source
+    : 'guided-chat';
+
+  return {
+    id: typeof raw.id === 'string' && raw.id.trim()
+      ? raw.id
+      : `${raw.projectId}:${raw.path}`,
+    projectId: String(raw.projectId),
+    path: String(raw.path),
+    absolutePath: typeof raw.absolutePath === 'string' && raw.absolutePath.trim() ? raw.absolutePath : undefined,
+    toolName: typeof raw.toolName === 'string' && raw.toolName.trim() ? raw.toolName : 'fs.write',
+    source,
+    summary: typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary : undefined,
+    createdAt,
+    updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : createdAt,
+  };
+}
+
+function restoreProjectOutputsFromState(state: Record<string, any>): Record<string, ProjectGeneratedOutput[]> {
+  const raw = state?.[DESKTOP_PROJECT_OUTPUTS_STATE_KEY];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {};
+  }
+
+  return Object.entries(raw).reduce<Record<string, ProjectGeneratedOutput[]>>((restored, [projectId, value]) => {
+    if (!Array.isArray(value)) {
+      return restored;
+    }
+
+    const outputs = value
+      .map(item => sanitizeProjectGeneratedOutput({ ...(typeof item === 'object' && item ? item : {}), projectId }))
+      .filter((output: ProjectGeneratedOutput | null): output is ProjectGeneratedOutput => Boolean(output))
+      .sort((left, right) => right.updatedAt - left.updatedAt)
+      .slice(0, 120);
+
+    if (outputs.length > 0) {
+      restored[projectId] = outputs;
+    }
+
+    return restored;
+  }, {});
+}
+
+function serializeProjectOutputs(outputs: Record<string, ProjectGeneratedOutput[]>): Record<string, ProjectGeneratedOutput[]> {
+  return Object.entries(outputs).reduce<Record<string, ProjectGeneratedOutput[]>>((serialized, [projectId, projectOutputs]) => {
+    const sanitized = projectOutputs
+      .map(output => sanitizeProjectGeneratedOutput({ ...output, projectId }))
+      .filter((output: ProjectGeneratedOutput | null): output is ProjectGeneratedOutput => Boolean(output))
+      .sort((left, right) => right.updatedAt - left.updatedAt)
+      .slice(0, 120);
+
+    if (sanitized.length > 0) {
+      serialized[projectId] = sanitized;
+    }
+
+    return serialized;
+  }, {});
+}
+
 const DEFAULT_PROJECT_ARTIFACTS = [
   'Product brief',
   'Requirements',
@@ -700,7 +1182,7 @@ const DEFAULT_ROLE_BLUEPRINTS = [
     title: 'Supervisor',
     responsibilities: [
       'Own project execution on behalf of the human',
-      'Assign work to virtual employees',
+      'Assign work to employees',
       'Approve or reject risky actions according to project permission mode',
       'Keep deliverables aligned to goals and acceptance criteria',
     ],
@@ -914,7 +1396,7 @@ function sanitizeVirtualEmployee(value: unknown): VirtualEmployeeProfile | null 
 
   return {
     id: typeof raw.id === 'string' && raw.id.trim() ? raw.id : createEmployeeId(),
-    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Virtual employee',
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Employee',
     roleId: typeof raw.roleId === 'string' && raw.roleId.trim()
       ? raw.roleId.trim()
       : getDefaultRoleId(typeof raw.role === 'string' ? raw.role : 'Developer'),
@@ -1311,7 +1793,7 @@ function formatProjectPrompt(
       'Assigned teams and scoped missions:',
       ...(teamLines.length > 0 ? teamLines : ['- No teams assigned.']),
       '',
-      'Assigned virtual employees and role responsibilities:',
+      'Assigned employees and role responsibilities:',
       ...(employeeLines.length > 0 ? employeeLines : ['- No employees assigned.']),
       '',
       `Execution mode: ${project.permissionMode === 'full-access' ? 'supervisor acts on behalf of the human with full permission' : 'supervised approvals for risky actions'}`,
@@ -1320,7 +1802,10 @@ function formatProjectPrompt(
     );
   } else {
     lines.push(
-      'Work with me directly. Start by asking the smallest useful set of clarifying questions, then help turn the idea into concrete software artifacts and an implementation path.',
+      'Work with me directly using the project brief above as accepted context.',
+      'Do not ask for details that are already covered by the idea, goals, or expected artifacts.',
+      'When the human asks to start work, infer reasonable defaults from the project brief, state assumptions briefly, and begin producing the next concrete artifact or implementation step.',
+      'Ask clarifying questions only when a missing decision blocks meaningful progress; keep those questions minimal and specific.',
     );
   }
 
@@ -1364,6 +1849,7 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
     contextTokens: Number(config?.contextTokens ?? providerDefault.contextTokens),
     enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
     theme: config?.theme || 'system',
+    accentColor: getSkinAccent(config?.accentColor),
     memoryEnabled: Boolean(config?.memoryEnabled ?? true),
     pluginsEnabled: Boolean(config?.pluginsEnabled ?? true),
     autoUpdate: Boolean(config?.autoUpdate ?? false),
@@ -1697,13 +2183,19 @@ function getHistoryRecordSummary(record: LocalHistoryRecord): string {
 }
 
 function normalizeWorkspacePath(value: string): string {
-  const normalized = value
+  const trimmed = value.trim();
+  const isAbsolute = trimmed.startsWith('/');
+  const normalized = trimmed
     .replace(/\\/g, '/')
     .split('/')
     .filter(part => part && part !== '.')
     .join('/');
 
-  return normalized || '.';
+  if (!normalized) {
+    return isAbsolute ? '/' : '.';
+  }
+
+  return isAbsolute ? `/${normalized}` : normalized;
 }
 
 function joinWorkspacePath(parent: string, child: string): string {
@@ -1811,12 +2303,37 @@ function groupToolsByCategory(tools: Tool[]): Array<{ id: ToolCategoryId; label:
 }
 
 function getToolResultPath(activity: ToolActivity): string | null {
-  if (!activity.toolName.startsWith('fs.') || !activity.result || typeof activity.result !== 'object') {
+  return getToolResultDataPath(activity.toolName, activity.result);
+}
+
+function getToolResultDataPath(toolName: string, result: unknown): string | null {
+  if (toolName !== 'fs.write' || !result || typeof result !== 'object') {
     return null;
   }
 
-  const pathValue = (activity.result as { path?: unknown }).path;
+  const pathValue = (result as { path?: unknown }).path;
   return typeof pathValue === 'string' && pathValue.trim() ? pathValue : null;
+}
+
+function formatProjectOutputSource(source: ProjectGeneratedOutput['source']): string {
+  if (source === 'automation') {
+    return 'Autonomous output';
+  }
+  if (source === 'team-chat') {
+    return 'Team chat output';
+  }
+  if (source === 'tool') {
+    return 'Tool output';
+  }
+  return 'Guided chat output';
+}
+
+function isAutomationScopedToolEvent(data: { scope?: ToolEventScope }): boolean {
+  return data.scope?.source === 'scheduled-task' || data.scope?.source === 'virtual-team' || data.scope?.source === 'project-chat';
+}
+
+function isProjectToolActivity(activity: ToolActivity, projectId: string, automationTeamId: string): boolean {
+  return activity.scope?.projectId === projectId || activity.scope?.teamId === automationTeamId;
 }
 
 function matchesSessionSearch(session: PersistedChatSession, query: string): boolean {
@@ -1941,6 +2458,51 @@ function getChatMessages(messages: UiMessage[], nextUserMessage: string): ChatMe
   return [...history, { role: 'user', content: nextUserMessage }];
 }
 
+function updateProjectChatMessage(
+  chats: Record<string, UiMessage[]>,
+  projectChatKey: string,
+  messageId: string,
+  update: (message: UiMessage) => UiMessage,
+): Record<string, UiMessage[]> {
+  const messages = chats[projectChatKey] ?? [];
+  return {
+    ...chats,
+    [projectChatKey]: messages.map(message => (
+      message.id === messageId ? update(message) : message
+    )),
+  };
+}
+
+function getProjectChatRequestMessages(
+  messages: UiMessage[],
+  project: SoftwareProjectPlan,
+  channel: ProjectChatChannel,
+  nextUserMessage: string,
+  employees: VirtualEmployeeProfile[],
+  roles: VirtualRoleDefinition[],
+  projectTeams: ProjectTeamDefinition[],
+): ChatMessage[] {
+  const projectContext = [
+    channel === 'team'
+      ? 'You are supporting an autonomous project team chat. Treat the human message as direction to the supervisor/team.'
+      : 'You are supporting a guided project chat. Treat the human message as project-scoped product/software direction.',
+    formatProjectPrompt(project, employees, roles, projectTeams),
+    channel === 'guided'
+      ? 'Use the project details above to infer intent and continue work. Avoid generic intake questions unless they are strictly necessary to unblock the next step.'
+      : 'Use the project details above as the team operating context.',
+    `Human message:\n${nextUserMessage}`,
+  ].join('\n\n');
+
+  const history = messages
+    .filter(message => message.role === 'user' || message.role === 'assistant')
+    .map(message => ({
+      role: message.role as 'user' | 'assistant',
+      content: message.content,
+    }));
+
+  return [...history, { role: 'user', content: projectContext }];
+}
+
 function parseAnsiText(text: string): AnsiSegment[] {
   const segments: AnsiSegment[] = [];
   const pattern = /\x1b\[([0-9;]*)m/g;
@@ -2036,10 +2598,17 @@ export function App() {
   const [currentSessionId, setCurrentSessionId] = useState(() => createSessionId());
   const [sessions, setSessions] = useState<PersistedChatSession[]>([]);
   const [softwareProjects, setSoftwareProjects] = useState<SoftwareProjectPlan[]>([]);
+  const softwareProjectsRef = useRef<SoftwareProjectPlan[]>([]);
   const [activeSoftwareProjectId, setActiveSoftwareProjectId] = useState('');
+  const [runningProjectIds, setRunningProjectIds] = useState<Set<string>>(() => new Set());
+  const runningProjectIdsRef = useRef<Set<string>>(new Set());
+  const stoppedProjectIdsRef = useRef<Set<string>>(new Set());
   const [virtualRoles, setVirtualRoles] = useState<VirtualRoleDefinition[]>([]);
   const [virtualEmployees, setVirtualEmployees] = useState<VirtualEmployeeProfile[]>([]);
   const [projectTeams, setProjectTeams] = useState<ProjectTeamDefinition[]>([]);
+  const [projectChatMessages, setProjectChatMessages] = useState<Record<string, UiMessage[]>>({});
+  const [projectGeneratedOutputs, setProjectGeneratedOutputs] = useState<Record<string, ProjectGeneratedOutput[]>>({});
+  const [projectChatSendingKeys, setProjectChatSendingKeys] = useState<Set<string>>(() => new Set());
   const [projectActionMessage, setProjectActionMessage] = useState('');
   const [messages, setMessages] = useState<UiMessage[]>(() => createReadyMessages());
   const [input, setInput] = useState('');
@@ -2060,12 +2629,15 @@ export function App() {
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
-  const streamMessageIds = useRef<Map<string, string>>(new Map());
+  const streamMessageIds = useRef<Map<string, ChatStreamTarget>>(new Map());
+  const toolActivityNamesRef = useRef<Map<string, string>>(new Map());
   const hasHydratedSessionsRef = useRef(false);
   const hasHydratedProjectsRef = useRef(false);
   const hasHydratedRolesRef = useRef(false);
   const hasHydratedEmployeesRef = useRef(false);
   const hasHydratedProjectTeamsRef = useRef(false);
+  const hasHydratedProjectChatsRef = useRef(false);
+  const hasHydratedProjectOutputsRef = useRef(false);
 
   const tokenUsage = useMemo(() => {
     return messages.reduce(
@@ -2090,6 +2662,50 @@ export function App() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    softwareProjectsRef.current = softwareProjects;
+  }, [softwareProjects]);
+
+  useEffect(() => {
+    if (!hasHydratedProjectsRef.current) {
+      return;
+    }
+
+    setSoftwareProjects(current => {
+      let changed = false;
+      const nextProjects = current.map(project => {
+        if (project.mode !== 'autonomous') {
+          return project;
+        }
+
+        if (project.status === 'stopped') {
+          return project;
+        }
+
+        const automationTeamId = getProjectAutomationTeamId(project.id);
+        const latestRun = teamRuns
+          .filter(run => run.teamId === automationTeamId)
+          .sort((left, right) => right.startedAt - left.startedAt)[0];
+        const nextStatus: SoftwareProjectStatus = runningProjectIds.has(project.id) || latestRun?.status === 'running'
+          ? 'active'
+          : latestRun?.status === 'succeeded'
+            ? 'done'
+            : latestRun?.status === 'failed'
+              ? 'blocked'
+              : project.status;
+
+        if (nextStatus === project.status) {
+          return project;
+        }
+
+        changed = true;
+        return { ...project, status: nextStatus, updatedAt: Date.now() };
+      });
+
+      return changed ? nextProjects : current;
+    });
+  }, [teamRuns, runningProjectIds]);
+
+  useEffect(() => {
     const handleResize = () => {
       setViewportSize({
         width: window.innerWidth,
@@ -2106,25 +2722,53 @@ export function App() {
 
     try {
       removers.push(ipcClient.onChatDelta(data => {
-        const messageId = streamMessageIds.current.get(data.requestId);
-        if (!messageId) {
+        const target = streamMessageIds.current.get(data.requestId);
+        if (!target) {
+          return;
+        }
+
+        if (target.scope === 'project') {
+          setProjectChatMessages(current => updateProjectChatMessage(
+            current,
+            target.projectChatKey,
+            target.messageId,
+            message => ({ ...message, content: `${message.content}${data.delta}` }),
+          ));
           return;
         }
 
         setMessages(current => current.map(message => (
-          message.id === messageId
+          message.id === target.messageId
             ? { ...message, content: `${message.content}${data.delta}` }
             : message
         )));
       }));
 
       removers.push(ipcClient.onChatComplete(data => {
-        const messageId = streamMessageIds.current.get(data.requestId);
+        const target = streamMessageIds.current.get(data.requestId);
         streamMessageIds.current.delete(data.requestId);
 
-        if (messageId) {
+        if (target?.scope === 'project') {
+          setProjectChatMessages(current => updateProjectChatMessage(
+            current,
+            target.projectChatKey,
+            target.messageId,
+            message => ({
+              ...message,
+              content: data.response.content || message.content || 'No response content.',
+              status: 'sent',
+              title: data.response.model,
+              usage: data.response.usage,
+            }),
+          ));
+          setProjectChatSendingKeys(current => {
+            const next = new Set(current);
+            next.delete(target.projectChatKey);
+            return next;
+          });
+        } else if (target?.scope === 'main') {
           setMessages(current => current.map(message => (
-            message.id === messageId
+            message.id === target.messageId
               ? {
                 ...message,
                 content: data.response.content || message.content || 'No response content.',
@@ -2134,20 +2778,34 @@ export function App() {
               }
               : message
           )));
+          setIsSending(false);
         }
 
-        setIsSending(false);
         setStatus('Ready');
-        inputRef.current?.focus();
+        if (target?.scope === 'main') {
+          inputRef.current?.focus();
+        }
       }));
 
       removers.push(ipcClient.onChatError(data => {
-        const messageId = streamMessageIds.current.get(data.requestId);
+        const target = streamMessageIds.current.get(data.requestId);
         streamMessageIds.current.delete(data.requestId);
 
-        if (messageId) {
+        if (target?.scope === 'project') {
+          setProjectChatMessages(current => updateProjectChatMessage(
+            current,
+            target.projectChatKey,
+            target.messageId,
+            message => ({ ...message, content: formatDesktopError(data.error), status: 'failed', title: 'Request failed', role: 'error' }),
+          ));
+          setProjectChatSendingKeys(current => {
+            const next = new Set(current);
+            next.delete(target.projectChatKey);
+            return next;
+          });
+        } else if (target?.scope === 'main') {
           setMessages(current => current.map(message => (
-            message.id === messageId
+            message.id === target.messageId
               ? { ...message, content: formatDesktopError(data.error), status: 'failed', title: 'Request failed', role: 'error' }
               : message
           )));
@@ -2158,9 +2816,13 @@ export function App() {
           }));
         }
 
-        setIsSending(false);
+        if (target?.scope !== 'project') {
+          setIsSending(false);
+        }
         setStatus('Error');
-        inputRef.current?.focus();
+        if (target?.scope !== 'project') {
+          inputRef.current?.focus();
+        }
       }));
 
       removers.push(ipcClient.onToolStart(data => {
@@ -2169,24 +2831,40 @@ export function App() {
 
       removers.push(ipcClient.onToolResult(data => {
         recordToolResult(data);
-        appendMessage(createMessage('tool', `\`\`\`json\n${formatJson(data.data)}\n\`\`\``, {
-          title: `Tool result ${data.toolId}`,
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('tool', `\`\`\`json\n${formatJson(data.data)}\n\`\`\``, {
+            title: `Tool result ${data.toolId}`,
+          }));
+        }
       }));
 
       removers.push(ipcClient.onToolComplete(data => {
         recordToolComplete(data);
-        appendMessage(createMessage('tool', `${data.success ? 'Completed' : 'Failed'} in ${data.duration} ms`, {
-          title: `Tool ${data.toolId}`,
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('tool', `${data.success ? 'Completed' : 'Failed'} in ${data.duration} ms`, {
+            title: `Tool ${data.toolId}`,
+          }));
+        }
       }));
 
       removers.push(ipcClient.onToolError(data => {
         recordToolError(data);
-        appendMessage(createMessage('error', formatDesktopError(data.error), {
-          title: `Tool error ${data.toolId}`,
-          status: 'failed',
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('error', formatDesktopError(data.error), {
+            title: `Tool error ${data.toolId}`,
+            status: 'failed',
+          }));
+        } else if ((data.scope?.source === 'virtual-team' || data.scope?.source === 'project-chat') && data.scope.projectId) {
+          const project = softwareProjectsRef.current.find(candidate => candidate.id === data.scope?.projectId);
+          if (project) {
+            appendProjectChatMessages(project, data.scope.source === 'project-chat' ? data.scope.channel ?? 'guided' : 'team', [
+              createMessage('error', formatDesktopError(data.error), {
+                title: data.scope.assignmentTitle ?? `Tool error ${data.toolId}`,
+                status: 'failed',
+              }),
+            ]);
+          }
+        }
       }));
 
       removers.push(ipcClient.onFileWriteReview(data => {
@@ -2195,9 +2873,11 @@ export function App() {
           data,
         ]);
         setStatus('Approval needed');
-        appendMessage(createMessage('system', `Review requested for ${data.path}`, {
-          title: 'File write approval',
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('system', `Review requested for ${data.path}`, {
+            title: 'File write approval',
+          }));
+        }
       }));
 
       removers.push(ipcClient.onCommandReview(data => {
@@ -2206,9 +2886,11 @@ export function App() {
           data,
         ]);
         setStatus('Approval needed');
-        appendMessage(createMessage('system', `Review requested for command: ${data.command}`, {
-          title: 'Command approval',
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('system', `Review requested for command: ${data.command}`, {
+            title: 'Command approval',
+          }));
+        }
       }));
 
       removers.push(ipcClient.onToolPermissionReview(data => {
@@ -2217,9 +2899,11 @@ export function App() {
           data,
         ]);
         setStatus('Approval needed');
-        appendMessage(createMessage('system', `Review requested for tool: ${data.toolName}`, {
-          title: 'Tool permission',
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('system', `Review requested for tool: ${data.toolName}`, {
+            title: 'Tool permission',
+          }));
+        }
       }));
 
       removers.push(ipcClient.onToolApprovalResolved(data => {
@@ -2227,9 +2911,11 @@ export function App() {
         setCommandReviews(current => current.filter(review => review.requestId !== data.requestId));
         setToolPermissionReviews(current => current.filter(review => review.requestId !== data.requestId));
         setStatus('Ready');
-        appendMessage(createMessage('system', `${data.approved ? 'Approved' : 'Rejected'} by ${data.resolvedBy}: ${data.title ?? data.requestId}`, {
-          title: 'Remote approval resolved',
-        }));
+        if (!isAutomationScopedToolEvent(data)) {
+          appendMessage(createMessage('system', `${data.approved ? 'Approved' : 'Rejected'} by ${data.resolvedBy}: ${data.title ?? data.requestId}`, {
+            title: 'Remote approval resolved',
+          }));
+        }
         inputRef.current?.focus();
       }));
 
@@ -2301,9 +2987,9 @@ export function App() {
         console.warn('Failed to persist desktop session state:', error);
       });
 
-      if (activeSession) {
+      if (activeSession && isMeaningfulChatSession(activeSession)) {
         ipcClient.history.saveRecord({
-          id: `chat-session-${activeSession.id}`,
+          id: `${CHAT_SESSION_HISTORY_ID_PREFIX}${activeSession.id}`,
           type: 'chat-session',
           workspacePath: activeSession.workspacePath ?? appInfo?.workspacePath,
           title: activeSession.title,
@@ -2323,7 +3009,7 @@ export function App() {
   }, [sessions, currentSessionId, appInfo?.workspacePath]);
 
   useEffect(() => {
-    if (!hasHydratedProjectsRef.current || !hasHydratedRolesRef.current || !hasHydratedEmployeesRef.current || !hasHydratedProjectTeamsRef.current) {
+    if (!hasHydratedProjectsRef.current || !hasHydratedRolesRef.current || !hasHydratedEmployeesRef.current || !hasHydratedProjectTeamsRef.current || !hasHydratedProjectChatsRef.current || !hasHydratedProjectOutputsRef.current) {
       return;
     }
 
@@ -2342,13 +3028,15 @@ export function App() {
         [DESKTOP_PROJECT_TEAMS_STATE_KEY]: {
           teams: projectTeams,
         },
+        [DESKTOP_PROJECT_CHATS_STATE_KEY]: serializeProjectChats(projectChatMessages),
+        [DESKTOP_PROJECT_OUTPUTS_STATE_KEY]: serializeProjectOutputs(projectGeneratedOutputs),
       }).catch(error => {
         console.warn('Failed to persist desktop project state:', error);
       });
     }, 500);
 
     return () => window.clearTimeout(timeout);
-  }, [softwareProjects, activeSoftwareProjectId, virtualRoles, virtualEmployees, projectTeams]);
+  }, [softwareProjects, activeSoftwareProjectId, virtualRoles, virtualEmployees, projectTeams, projectChatMessages, projectGeneratedOutputs]);
 
   useEffect(() => {
     const theme = appConfig?.theme || 'system';
@@ -2437,11 +3125,15 @@ export function App() {
       const restoredRoles = restoreVirtualRolesFromState(state);
       const restoredEmployees = restoreVirtualEmployeesFromState(state);
       const restoredProjectTeams = restoreProjectTeamsFromState(state);
+      const restoredProjectChats = restoreProjectChatsFromState(state);
+      const restoredProjectOutputs = restoreProjectOutputsFromState(state);
       setSoftwareProjects(restoredProjects.projects);
       setActiveSoftwareProjectId(restoredProjects.activeProjectId);
       setVirtualRoles(restoredRoles);
       setVirtualEmployees(restoredEmployees);
       setProjectTeams(restoredProjectTeams);
+      setProjectChatMessages(restoredProjectChats);
+      setProjectGeneratedOutputs(restoredProjectOutputs);
       setSessions(restoredSessions.sessions);
       setCurrentSessionId(restoredSessions.currentSessionId);
       setMessages(activeSession?.messages ?? createReadyMessages());
@@ -2450,6 +3142,8 @@ export function App() {
       hasHydratedRolesRef.current = true;
       hasHydratedEmployeesRef.current = true;
       hasHydratedProjectTeamsRef.current = true;
+      hasHydratedProjectChatsRef.current = true;
+      hasHydratedProjectOutputsRef.current = true;
       setStatus('Ready');
     } catch (error) {
       console.error('Failed to initialize app:', error);
@@ -2458,6 +3152,8 @@ export function App() {
       hasHydratedRolesRef.current = true;
       hasHydratedEmployeesRef.current = true;
       hasHydratedProjectTeamsRef.current = true;
+      hasHydratedProjectChatsRef.current = true;
+      hasHydratedProjectOutputsRef.current = true;
       setStatus('Startup error');
       appendMessage(createMessage('error', formatDesktopError(error), {
         title: 'Startup error',
@@ -2624,7 +3320,7 @@ export function App() {
     const role = getRoleDefinitionById(virtualRoles, employee.roleId, employee.role);
     const sanitized = sanitizeVirtualEmployee({
       ...employee,
-      name: employee.name.trim() || 'Virtual employee',
+      name: employee.name.trim() || 'Employee',
       roleId: role?.id ?? employee.roleId,
       role: role?.title ?? (employee.role.trim() || 'Contributor'),
       permissions: normalizeStringList(employee.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
@@ -2632,7 +3328,7 @@ export function App() {
     });
 
     if (!sanitized) {
-      setProjectActionMessage('Virtual employee could not be saved.');
+      setProjectActionMessage('Employee could not be saved.');
       return;
     }
 
@@ -2657,7 +3353,7 @@ export function App() {
         updatedAt: Date.now(),
       };
     }));
-    setProjectActionMessage(`Saved virtual employee "${sanitized.name}".`);
+    setProjectActionMessage(`Saved employee "${sanitized.name}".`);
   }
 
   function saveProjectTeamDefinition(team: ProjectTeamDefinition) {
@@ -2765,7 +3461,7 @@ export function App() {
         updatedAt: Date.now(),
       };
     }));
-    setProjectActionMessage('Deleted virtual employee.');
+    setProjectActionMessage('Deleted employee.');
   }
 
   function deleteSoftwareProjectPlan(projectId: string) {
@@ -2776,57 +3472,337 @@ export function App() {
       }
       return next;
     });
+    setProjectChatMessages(current => Object.entries(current).reduce<Record<string, UiMessage[]>>((next, [key, messages]) => {
+      if (!key.startsWith(`${projectId}:`)) {
+        next[key] = messages;
+      }
+      return next;
+    }, {}));
+    setProjectGeneratedOutputs(current => Object.entries(current).reduce<Record<string, ProjectGeneratedOutput[]>>((next, [key, outputs]) => {
+      if (key !== projectId) {
+        next[key] = outputs;
+      }
+      return next;
+    }, {}));
     setProjectActionMessage('Deleted project.');
+  }
+
+  function appendProjectChatMessages(project: SoftwareProjectPlan, channel: ProjectChatChannel, nextMessages: UiMessage[]) {
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    setProjectChatMessages(current => ({
+      ...current,
+      [projectChatKey]: [
+        ...(current[projectChatKey] ?? createProjectReadyMessages(project, channel)),
+        ...nextMessages,
+      ].slice(-MAX_PERSISTED_MESSAGES),
+    }));
+  }
+
+  function recordProjectGeneratedOutput(data: ToolResultMessage, toolName: string) {
+    const projectId = data.scope?.projectId;
+    if (!projectId) {
+      return;
+    }
+
+    const pathValue = getToolResultDataPath(toolName, data.data);
+    if (!pathValue) {
+      return;
+    }
+
+    const absolutePath = data.data && typeof data.data === 'object' && typeof (data.data as { absolutePath?: unknown }).absolutePath === 'string'
+      ? String((data.data as { absolutePath?: unknown }).absolutePath)
+      : undefined;
+    const now = data.timestamp || Date.now();
+    const source: ProjectGeneratedOutput['source'] = data.scope.source === 'virtual-team'
+      ? 'automation'
+      : data.scope.source === 'project-chat'
+        ? data.scope.channel === 'team' ? 'team-chat' : 'guided-chat'
+        : 'tool';
+    const output: ProjectGeneratedOutput = {
+      id: `${projectId}:${absolutePath || pathValue}`,
+      projectId,
+      path: pathValue,
+      absolutePath,
+      toolName,
+      source,
+      summary: summarizeToolResult(data.data),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setProjectGeneratedOutputs(current => {
+      const existing = current[projectId] ?? [];
+      const nextOutputs = [
+        output,
+        ...existing.filter(candidate => (
+          candidate.id !== output.id &&
+          candidate.path !== output.path &&
+          (!candidate.absolutePath || !output.absolutePath || candidate.absolutePath !== output.absolutePath)
+        )),
+      ]
+        .sort((left, right) => right.updatedAt - left.updatedAt)
+        .slice(0, 120);
+
+      return {
+        ...current,
+        [projectId]: nextOutputs,
+      };
+    });
+  }
+
+  function createProjectAutomationTeam(project: SoftwareProjectPlan): Partial<VirtualTeamBlueprint> {
+    const supervisor = getProjectSupervisor(project, virtualEmployees, virtualRoles);
+    const staffing = getProjectStaffingEmployees(project, virtualEmployees, virtualRoles, projectTeams);
+    const members = uniqueEmployees([
+      ...(supervisor ? [supervisor] : []),
+      ...staffing,
+    ]).map((employee): VirtualTeamMember => {
+      const role = getEmployeeRoleDefinition(employee, virtualRoles);
+      const roleTitle = role?.title ?? employee.role;
+      return {
+        id: employee.id,
+        name: employee.name,
+        role: roleTitle,
+        goal: employee.currentTask || role?.defaultGoal || `Contribute ${roleTitle} work for "${project.name}".`,
+        model: employee.model || undefined,
+        tools: normalizeStringList(role?.defaultTools ?? employee.permissions, ['filesystem', 'bash', 'review']),
+      };
+    });
+
+    return {
+      id: getProjectAutomationTeamId(project.id),
+      name: `${project.name} autonomous team`,
+      objective: formatProjectPrompt(project, virtualEmployees, virtualRoles, projectTeams),
+      workspacePath: project.workspacePath ?? workspacePath,
+      permissionMode: project.permissionMode,
+      maxIterations: 1,
+      requireQaSignoff: false,
+      supervisorId: supervisor?.id ?? members[0]?.id ?? 'supervisor',
+      members,
+      status: 'active',
+    };
+  }
+
+  async function saveProjectEvent(project: SoftwareProjectPlan, event: string, title: string, data: Record<string, any> = {}) {
+    try {
+      await ipcClient.history.saveRecord({
+        id: `project-${project.id}-${event}-${Date.now()}`,
+        type: 'project-event',
+        workspacePath: project.workspacePath ?? workspacePath,
+        title,
+        data: {
+          event,
+          projectId: project.id,
+          projectName: project.name,
+          ...data,
+        },
+      });
+      await refreshHistoryData();
+    } catch (error) {
+      console.warn('Failed to save project event:', error);
+    }
+  }
+
+  async function startAutonomousProjectRun(project: SoftwareProjectPlan) {
+    if (runningProjectIdsRef.current.has(project.id)) {
+      return;
+    }
+
+    stoppedProjectIdsRef.current.delete(project.id);
+    const automationTeamId = getProjectAutomationTeamId(project.id);
+    runningProjectIdsRef.current.add(project.id);
+    setRunningProjectIds(current => new Set(current).add(project.id));
+    setRunningTeamIds(current => new Set(current).add(automationTeamId));
+
+    appendProjectChatMessages(project, 'team', [
+      createMessage('system', `Started autonomous project "${project.name}".`, {
+        title: 'Project Lifecycle',
+      }),
+      createMessage('assistant', 'I am launching the assigned team and will report execution progress here.', {
+        title: getProjectSupervisor(project, virtualEmployees, virtualRoles)?.name ?? 'Supervisor',
+      }),
+    ]);
+    setProjectActionMessage(`Started autonomous project "${project.name}".`);
+    await saveProjectEvent(project, 'project-started', `Started autonomous project: ${project.name}`, {
+      status: 'active',
+      automationTeamId,
+    });
+
+    try {
+      const team = await ipcClient.automation.saveTeam(createProjectAutomationTeam(project));
+      await refreshAutomationData();
+      const runPromise = ipcClient.automation.runTeam(team.id);
+      const pollTimer = window.setInterval(() => {
+        void refreshAutomationData();
+      }, 2_000);
+      const run = await runPromise.finally(() => {
+        window.clearInterval(pollTimer);
+      });
+      await refreshAutomationData();
+      await refreshHistoryData();
+
+      if (run.status === 'running') {
+        if (isAutonomousProjectStopped(project.id)) {
+          return;
+        }
+
+        appendProjectChatMessages(project, 'team', [
+          createMessage('system', `Automation run ${run.id} is already running.`, {
+            title: 'Automation',
+          }),
+        ]);
+        setProjectActionMessage(`Autonomous project "${project.name}" is running.`);
+        await saveProjectEvent(project, 'project-run-running', `${project.name}: running`, {
+          status: 'active',
+          automationTeamId: team.id,
+          runId: run.id,
+          runStatus: run.status,
+        });
+        return;
+      }
+
+      if (isAutonomousProjectStopped(project.id)) {
+        await saveProjectEvent(project, 'project-run-finished-while-stopped', `${project.name}: run finished while stopped`, {
+          status: 'stopped',
+          automationTeamId: team.id,
+          runId: run.id,
+          runStatus: run.status,
+          summary: run.summary,
+          error: run.error,
+          artifactPath: run.artifactPath,
+        });
+        return;
+      }
+
+      const succeeded = run.status === 'succeeded';
+      const nextStatus: SoftwareProjectStatus = succeeded ? 'done' : 'blocked';
+      setSoftwareProjects(current => current.map(candidate => (
+        candidate.id === project.id
+          ? { ...candidate, status: nextStatus, updatedAt: Date.now() }
+          : candidate
+      )));
+
+      appendProjectChatMessages(project, 'team', [
+        createMessage(succeeded ? 'assistant' : 'error', run.summary ?? run.error ?? `Automation run ${run.status}.`, {
+          title: succeeded ? 'Run Complete' : 'Run Failed',
+          status: succeeded ? 'sent' : 'failed',
+        }),
+      ]);
+      setProjectActionMessage(`Autonomous project "${project.name}" ${succeeded ? 'completed' : 'blocked'}.`);
+      await saveProjectEvent(project, succeeded ? 'project-completed' : 'project-blocked', `${project.name}: ${succeeded ? 'completed' : 'blocked'}`, {
+        status: nextStatus,
+        automationTeamId: team.id,
+        runId: run.id,
+        runStatus: run.status,
+        summary: run.summary,
+        error: run.error,
+        artifactPath: run.artifactPath,
+      });
+    } catch (error) {
+      const message = formatDesktopError(error);
+      if (isAutonomousProjectStopped(project.id)) {
+        await saveProjectEvent(project, 'project-run-error-while-stopped', `${project.name}: run error while stopped`, {
+          status: 'stopped',
+          automationTeamId,
+          error: message,
+        });
+        return;
+      }
+
+      setSoftwareProjects(current => current.map(candidate => (
+        candidate.id === project.id
+          ? { ...candidate, status: 'blocked', updatedAt: Date.now() }
+          : candidate
+      )));
+      appendProjectChatMessages(project, 'team', [
+        createMessage('error', message, {
+          title: 'Run Failed',
+          status: 'failed',
+        }),
+      ]);
+      setProjectActionMessage(message);
+      await saveProjectEvent(project, 'project-blocked', `${project.name}: blocked`, {
+        status: 'blocked',
+        automationTeamId,
+        error: message,
+      });
+    } finally {
+      runningProjectIdsRef.current.delete(project.id);
+      setRunningProjectIds(current => {
+        const next = new Set(current);
+        next.delete(project.id);
+        return next;
+      });
+      setRunningTeamIds(current => {
+        const next = new Set(current);
+        next.delete(automationTeamId);
+        return next;
+      });
+    }
+  }
+
+  function isAutonomousProjectStopped(projectId: string): boolean {
+    return stoppedProjectIdsRef.current.has(projectId)
+      || softwareProjectsRef.current.find(candidate => candidate.id === projectId)?.status === 'stopped';
   }
 
   function markSoftwareProjectStatus(projectId: string, status: SoftwareProjectStatus) {
     const project = softwareProjects.find(candidate => candidate.id === projectId);
+    if (!project) {
+      return;
+    }
+
+    if (project.mode === 'autonomous') {
+      if (status === 'stopped') {
+        stoppedProjectIdsRef.current.add(project.id);
+        const automationTeamId = getProjectAutomationTeamId(project.id);
+        runningProjectIdsRef.current.delete(project.id);
+        setRunningProjectIds(current => {
+          const next = new Set(current);
+          next.delete(project.id);
+          return next;
+        });
+        setRunningTeamIds(current => {
+          const next = new Set(current);
+          next.delete(automationTeamId);
+          return next;
+        });
+      } else {
+        stoppedProjectIdsRef.current.delete(project.id);
+      }
+    }
+
     setSoftwareProjects(current => current.map(project => (
       project.id === projectId
         ? { ...project, status, updatedAt: Date.now() }
         : project
     )));
-    if (project) {
-      setProjectActionMessage(`Set "${project.name}" to ${formatProjectStatus(status).toLowerCase()}.`);
+
+    if (project.mode === 'autonomous' && status === 'active') {
+      void startAutonomousProjectRun({ ...project, status, updatedAt: Date.now() });
+      return;
     }
-  }
 
-  function startProjectChat(project: SoftwareProjectPlan) {
-    const nextSession = createSessionSnapshot(
-      createSessionId(),
-      [
-        createMessage(
-          'assistant',
-          `Project workspace ready for "${project.name}". Send or edit the prepared prompt to begin.`,
-          { title: 'Project Studio' },
-        ),
-      ],
-      appInfo?.workspacePath,
-    );
-
-    setSessions(current => {
-      const previous = current.find(session => session.id === currentSessionId);
-      const withCurrent = currentSessionId
-        ? upsertSession(current, createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous))
-        : current;
-      return upsertSession(withCurrent, nextSession);
+    appendProjectChatMessages(project, project.mode === 'autonomous' ? 'team' : 'guided', [
+      createMessage('system', `Set "${project.name}" to ${formatProjectStatus(status).toLowerCase()}.`, {
+        title: 'Project Lifecycle',
+      }),
+    ]);
+    void saveProjectEvent(project, `project-${status}`, `${project.name}: ${formatProjectStatus(status)}`, {
+      status,
     });
-    setCurrentSessionId(nextSession.id);
-    setMessages(nextSession.messages);
-    setInput(formatProjectPrompt(project, virtualEmployees, virtualRoles, projectTeams));
-    markSoftwareProjectStatus(project.id, 'active');
-    setProjectActionMessage(`Opened a guided chat for "${project.name}".`);
-    setActiveView('chat');
-    window.setTimeout(() => inputRef.current?.focus(), 0);
+    setProjectActionMessage(`Set "${project.name}" to ${formatProjectStatus(status).toLowerCase()}.`);
   }
 
   function recordToolStart(data: ToolStartMessage) {
+    toolActivityNamesRef.current.set(data.toolId, data.toolName);
     const activity: ToolActivity = {
       id: data.toolId,
       toolName: data.toolName,
       args: data.args || {},
       status: 'running',
       startedAt: data.timestamp,
+      scope: data.scope,
     };
 
     setToolActivities(current => [
@@ -2860,25 +3836,31 @@ export function App() {
   }
 
   function recordToolResult(data: ToolResultMessage) {
+    recordProjectGeneratedOutput(data, toolActivityNamesRef.current.get(data.toolId) ?? 'Tool');
     updateToolActivity(data.toolId, {
       resultPreview: summarizeToolResult(data.data),
       result: data.data,
+      scope: data.scope,
     });
   }
 
   function recordToolComplete(data: ToolCompleteMessage) {
+    toolActivityNamesRef.current.delete(data.toolId);
     updateToolActivity(data.toolId, {
       status: data.success ? 'succeeded' : 'failed',
       duration: data.duration,
       completedAt: Date.now(),
+      scope: data.scope,
     });
   }
 
   function recordToolError(data: ToolErrorMessage) {
+    toolActivityNamesRef.current.delete(data.toolId);
     updateToolActivity(data.toolId, {
       status: 'failed',
       error: data.error,
       completedAt: Date.now(),
+      scope: data.scope,
     });
   }
 
@@ -2933,13 +3915,44 @@ export function App() {
 
   async function deleteHistoryRecord(recordId: string) {
     setHistoryMessage('');
+    const deletedRecord = historyRecords.find(record => record.id === recordId);
     try {
       await ipcClient.history.deleteRecord(recordId);
+      const removedFromRecents = removeDeletedChatSession(recordId, deletedRecord);
       await refreshHistoryData();
-      setHistoryMessage('Deleted history record.');
+      setHistoryMessage(removedFromRecents
+        ? 'Deleted chat history and removed it from Recents.'
+        : 'Deleted history record.');
     } catch (error) {
       setHistoryMessage(formatDesktopError(error));
     }
+  }
+
+  function removeDeletedChatSession(recordId: string, record?: LocalHistoryRecord): boolean {
+    const deletedSessionId = getChatSessionIdFromHistoryRecord(recordId, record);
+    if (!deletedSessionId || !sessions.some(session => session.id === deletedSessionId)) {
+      return false;
+    }
+
+    const remainingSessions = sortSessions(sessions.filter(session => session.id !== deletedSessionId));
+    const nextSessions = remainingSessions.length > 0
+      ? remainingSessions
+      : [createEmptySession(appInfo?.workspacePath)];
+    const shouldSwitchActiveSession = currentSessionId === deletedSessionId
+      || !nextSessions.some(session => session.id === currentSessionId);
+    const nextActiveSession = shouldSwitchActiveSession
+      ? nextSessions[0]
+      : sessions.find(session => session.id === currentSessionId);
+
+    setSessions(nextSessions);
+    if (shouldSwitchActiveSession && nextActiveSession) {
+      setCurrentSessionId(nextActiveSession.id);
+      setMessages(nextActiveSession.messages);
+      setInput('');
+      setStatus('Ready');
+    }
+
+    return true;
   }
 
   async function restoreChatFromHistory(record: LocalHistoryRecord) {
@@ -3347,7 +4360,7 @@ export function App() {
         status: 'sending',
       });
 
-      streamMessageIds.current.set(requestId, assistantMessage.id);
+      streamMessageIds.current.set(requestId, { scope: 'main', messageId: assistantMessage.id });
       appendMessage(assistantMessage);
 
       await ipcClient.api.chatStream({
@@ -3373,10 +4386,96 @@ export function App() {
       }));
       setStatus('Error');
     } finally {
-      if (!streamMessageIds.current.size) {
+      if (!pendingStreamRequestId || !streamMessageIds.current.has(pendingStreamRequestId)) {
         setIsSending(false);
         inputRef.current?.focus();
       }
+    }
+  }
+
+  async function submitProjectPrompt(project: SoftwareProjectPlan, channel: ProjectChatChannel, prompt: string) {
+    const trimmedPrompt = prompt.trim();
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    if (!trimmedPrompt || projectChatSendingKeys.has(projectChatKey)) {
+      return;
+    }
+
+    const currentMessages = projectChatMessages[projectChatKey] ?? createProjectReadyMessages(project, channel);
+    const userMessage = createMessage('user', trimmedPrompt, { title: 'Human' });
+    const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
+    const activeProviderDefault = getProviderDefault(activeProvider);
+    const assistantMessage = createMessage('assistant', '', {
+      title: `${activeProviderDefault.label} / ${appConfig?.model || activeProviderDefault.model}`,
+      status: 'sending',
+    });
+    const requestId = `project-chat-${project.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    setProjectChatMessages(current => ({
+      ...current,
+      [projectChatKey]: [
+        ...(current[projectChatKey] ?? createProjectReadyMessages(project, channel)),
+        userMessage,
+        assistantMessage,
+      ].slice(-MAX_PERSISTED_MESSAGES),
+    }));
+    setProjectChatSendingKeys(current => new Set(current).add(projectChatKey));
+    streamMessageIds.current.set(requestId, {
+      scope: 'project',
+      projectChatKey,
+      projectId: project.id,
+      messageId: assistantMessage.id,
+    });
+    setStatus('Streaming');
+
+    try {
+      await ipcClient.api.chatStream({
+        requestId,
+        messages: getProjectChatRequestMessages(
+          currentMessages,
+          project,
+          channel,
+          trimmedPrompt,
+          virtualEmployees,
+          virtualRoles,
+          projectTeams,
+        ),
+        provider: activeProvider,
+        toolScope: {
+          source: 'project-chat',
+          workspacePath: project.workspacePath ?? appInfo?.workspacePath ?? workspacePath,
+          projectId: project.id,
+          projectName: project.name,
+          projectChatKey,
+          channel,
+        },
+        baseUrl: appConfig?.baseUrl || activeProviderDefault.baseUrl,
+        model: appConfig?.model || activeProviderDefault.model,
+        maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault.maxTokens),
+        contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault.contextTokens),
+        enableTools: true,
+        maxToolRounds: 12,
+        temperature: Number(appConfig?.temperature ?? 0.7),
+      });
+    } catch (error) {
+      streamMessageIds.current.delete(requestId);
+      setProjectChatMessages(current => updateProjectChatMessage(
+        current,
+        projectChatKey,
+        assistantMessage.id,
+        message => ({
+          ...message,
+          role: 'error',
+          title: 'Request failed',
+          status: 'failed',
+          content: formatDesktopError(error),
+        }),
+      ));
+      setProjectChatSendingKeys(current => {
+        const next = new Set(current);
+        next.delete(projectChatKey);
+        return next;
+      });
+      setStatus('Error');
     }
   }
 
@@ -3454,7 +4553,14 @@ export function App() {
       return true;
     }
 
-    if (prompt === '/automation' || prompt === '/skills' || prompt === '/tasks' || prompt === '/remote' || prompt === '/team') {
+    if (prompt === '/team') {
+      setActiveView('projects');
+      setActiveProjectsSection('teams');
+      appendMessage(createMessage('system', 'Opened Project Teams.', { title: 'team' }));
+      return true;
+    }
+
+    if (prompt === '/automation' || prompt === '/skills' || prompt === '/tasks' || prompt === '/remote') {
       await refreshAutomationData();
       if (prompt === '/skills') {
         setActiveAutomationSection('skills');
@@ -3462,8 +4568,6 @@ export function App() {
         setActiveAutomationSection('tasks');
       } else if (prompt === '/remote') {
         setActiveAutomationSection('remote');
-      } else if (prompt === '/team') {
-        setActiveAutomationSection('team');
       }
       setActiveView('automation');
       appendMessage(createMessage('system', 'Opened Automation.', { title: prompt.slice(1) }));
@@ -3705,6 +4809,7 @@ export function App() {
         contextTokens: Number(settingsDraft.contextTokens),
         enableLlmTools: settingsDraft.enableLlmTools,
         theme: settingsDraft.theme,
+        accentColor: settingsDraft.accentColor,
         memoryEnabled: settingsDraft.memoryEnabled,
         pluginsEnabled: settingsDraft.pluginsEnabled,
         autoUpdate: settingsDraft.autoUpdate,
@@ -3813,7 +4918,7 @@ export function App() {
   const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
   const activeSession = sessions.find(session => session.id === currentSessionId);
   const conversationTitle = activeSession?.title || getSessionTitle(messages);
-  const recentSessions = sortSessions(sessions);
+  const recentSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
   const visibleRecentSessions = recentSessions.filter(session => matchesSessionSearch(session, sessionSearch));
   const exposedBridgeToolCount = tools.filter(tool => isToolExposedToModel(tool, appConfig)).length;
   const commandSuggestions = filterDesktopCommands(input);
@@ -3847,12 +4952,14 @@ export function App() {
           : activeView === 'history'
             ? activeHistoryMenuItem.description
             : activeSettingsMenuItem.description;
+  const skinStyle = getSkinStyle(appConfig?.accentColor);
+  const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
 
   return (
-    <div className={`${styles.container} ${sidebarCollapsed ? styles.containerCollapsed : ''}`}>
+    <div className={`${styles.container} ${sidebarCollapsed ? styles.containerCollapsed : ''}`} style={skinStyle}>
       <aside className={`${styles.navSidebar} ${sidebarCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
         <div className={styles.brandBlock}>
-          <span className={styles.brandMark}>*</span>
+          <span className={styles.brandMark}><Icon name="bot" size={17} /></span>
           <div>
             <strong>CodeAgent</strong>
             <span>{activeProviderLabel}</span>
@@ -3864,12 +4971,12 @@ export function App() {
             aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
             onClick={() => setSidebarCollapsed(value => !value)}
           >
-            {sidebarCollapsed ? '>' : '<'}
+            <Icon name={sidebarCollapsed ? 'chevron-right' : 'chevron-left'} size={15} />
           </button>
         </div>
 
         <button className={styles.newChatButton} type="button" title="New chat" onClick={startNewChat}>
-          <span className={styles.navGlyph}>+</span>
+          <span className={styles.navGlyph}><Icon name="plus" size={14} /></span>
           <span className={styles.navLabel}>New chat</span>
         </button>
 
@@ -3882,7 +4989,7 @@ export function App() {
                 title={item.description}
                 onClick={() => openPrimaryView(item.id)}
               >
-                <span className={styles.navGlyph}>{item.glyph}</span>
+                <span className={styles.navGlyph}><Icon name={item.icon} size={14} /></span>
                 <span className={styles.navLabel}>{item.label}</span>
               </button>
 
@@ -3896,7 +5003,7 @@ export function App() {
                       title={`${child.title}: ${child.description}`}
                       onClick={() => openChildRoute(item.id, child.id)}
                     >
-                      <span className={styles.navChildGlyph}>{child.title.charAt(0)}</span>
+                      <span className={styles.navChildGlyph}><Icon name={child.icon} size={13} /></span>
                       <span className={styles.navChildLabel}>
                         <strong>{child.title}</strong>
                         <span>{child.description}</span>
@@ -3954,6 +5061,23 @@ export function App() {
       </aside>
 
       <div className={styles.appShell}>
+        {projectActionMessage && (
+          <div className={projectNotificationClassName} role="status">
+            <div className={styles.projectNoticeContent}>
+              <strong>Project update</strong>
+              <span>{projectActionMessage}</span>
+            </div>
+            <button
+              className={styles.projectNoticeClose}
+              type="button"
+              title="Dismiss notification"
+              aria-label="Dismiss project notification"
+              onClick={() => setProjectActionMessage('')}
+            >
+              <Icon name="x" size={14} />
+            </button>
+          </div>
+        )}
         <header className={styles.header}>
           <div className={styles.headerTitle}>
             <h1>{viewTitle}</h1>
@@ -4018,9 +5142,11 @@ export function App() {
                 />
                 <div className={styles.composerActions}>
                   <button className={styles.secondaryButton} type="button" onClick={clearChat} title="Clear chat">
+                    <Icon name="x" size={14} />
                     Clear
                   </button>
                   <button className={styles.primaryButton} type="submit" disabled={isSending || !input.trim()} title="Send message">
+                    <Icon name="send" size={14} />
                     Send
                   </button>
                 </div>
@@ -4038,6 +5164,9 @@ export function App() {
               activeProviderDefault={activeProviderDefault}
               viewportSize={viewportSize}
               tokenUsage={tokenUsage}
+              toolActivities={toolActivities}
+              teamRuns={teamRuns}
+              runningProjectIds={runningProjectIds}
               currentSessionTitle={conversationTitle}
               sessionCount={sessions.length}
               projects={softwareProjects}
@@ -4045,7 +5174,9 @@ export function App() {
               roles={virtualRoles}
               employees={virtualEmployees}
               projectTeams={projectTeams}
-              projectMessage={projectActionMessage}
+              projectChatMessages={projectChatMessages}
+              projectGeneratedOutputs={projectGeneratedOutputs}
+              projectChatSendingKeys={projectChatSendingKeys}
               workspacePath={workspacePath}
               workspaceEntries={workspaceEntries}
               workspaceBrowserError={workspaceBrowserError}
@@ -4068,7 +5199,7 @@ export function App() {
               onSelectProject={setActiveSoftwareProjectId}
               onSetProjectStatus={markSoftwareProjectStatus}
               onDeleteProject={deleteSoftwareProjectPlan}
-              onStartProjectChat={startProjectChat}
+              onSendProjectChat={submitProjectPrompt}
               onChangeSection={setActiveProjectsSection}
             />
           )}
@@ -4262,6 +5393,45 @@ export function App() {
   );
 }
 
+function WorkbenchEditorPanel({
+  title,
+  subtitle,
+  children,
+  footer,
+  onClose,
+  wide = false,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+}) {
+  return (
+    <aside className={wide ? `${styles.workbenchEditorPanel} ${styles.workbenchEditorPanelWide}` : styles.workbenchEditorPanel} aria-label={title}>
+      <div className={styles.workbenchEditorHeader}>
+        <div>
+          <h3>{title}</h3>
+          {subtitle && <span>{subtitle}</span>}
+        </div>
+        <button className={styles.secondaryButton} type="button" onClick={onClose} title="Close this panel">
+          <Icon name="x" size={14} />
+          Close
+        </button>
+      </div>
+      <div className={styles.workbenchEditorBody}>
+        {children}
+      </div>
+      {footer && (
+        <div className={styles.workbenchEditorFooter}>
+          {footer}
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function ProjectsView({
   activeSection,
   appInfo,
@@ -4271,6 +5441,9 @@ function ProjectsView({
   activeProviderDefault,
   viewportSize,
   tokenUsage,
+  toolActivities,
+  teamRuns,
+  runningProjectIds,
   currentSessionTitle,
   sessionCount,
   projects,
@@ -4278,7 +5451,9 @@ function ProjectsView({
   roles,
   employees,
   projectTeams,
-  projectMessage,
+  projectChatMessages,
+  projectGeneratedOutputs,
+  projectChatSendingKeys,
   workspacePath,
   workspaceEntries,
   workspaceBrowserError,
@@ -4301,7 +5476,7 @@ function ProjectsView({
   onSelectProject,
   onSetProjectStatus,
   onDeleteProject,
-  onStartProjectChat,
+  onSendProjectChat,
   onChangeSection,
 }: {
   activeSection: ProjectsSectionId;
@@ -4312,6 +5487,9 @@ function ProjectsView({
   activeProviderDefault: ReturnType<typeof getProviderDefault>;
   viewportSize: { width: number; height: number };
   tokenUsage: { inputTokens: number; outputTokens: number };
+  toolActivities: ToolActivity[];
+  teamRuns: VirtualTeamRunRecord[];
+  runningProjectIds: Set<string>;
   currentSessionTitle: string;
   sessionCount: number;
   projects: SoftwareProjectPlan[];
@@ -4319,7 +5497,9 @@ function ProjectsView({
   roles: VirtualRoleDefinition[];
   employees: VirtualEmployeeProfile[];
   projectTeams: ProjectTeamDefinition[];
-  projectMessage: string;
+  projectChatMessages: Record<string, UiMessage[]>;
+  projectGeneratedOutputs: Record<string, ProjectGeneratedOutput[]>;
+  projectChatSendingKeys: Set<string>;
   workspacePath: string;
   workspaceEntries: FileEntry[];
   workspaceBrowserError: string;
@@ -4342,10 +5522,12 @@ function ProjectsView({
   onSelectProject: (projectId: string) => void;
   onSetProjectStatus: (projectId: string, status: SoftwareProjectStatus) => void;
   onDeleteProject: (projectId: string) => void;
-  onStartProjectChat: (project: SoftwareProjectPlan) => void;
+  onSendProjectChat: (project: SoftwareProjectPlan, channel: ProjectChatChannel, prompt: string) => void;
   onChangeSection: (section: ProjectsSectionId) => void;
 }) {
-  const activeMenuItem = PROJECTS_MENU.find(item => item.id === activeSection) ?? PROJECTS_MENU[0];
+  const visibleActiveSection = PROJECTS_MENU.some(item => item.id === activeSection)
+    ? activeSection
+    : 'studio';
   const workspaceTitle = appInfo?.workspacePath?.split('/').filter(Boolean).pop() || 'Workspace';
   const selectedProject = projects.find(project => project.id === activeProjectId) ?? projects[0];
   const guidedProjects = projects.filter(project => project.mode === 'guided');
@@ -4357,11 +5539,113 @@ function ProjectsView({
   const selectedAutonomousStaff = selectedAutonomousProject
     ? getProjectStaffingEmployees(selectedAutonomousProject, employees, roles, projectTeams)
     : employees.filter(employee => employee.id !== selectedAutonomousSupervisor?.id);
-  const activeProjects = projects.filter(project => project.status === 'active');
+  function getProjectLatestRun(project: SoftwareProjectPlan): VirtualTeamRunRecord | undefined {
+    if (project.mode !== 'autonomous') {
+      return undefined;
+    }
+
+    const automationTeamId = getProjectAutomationTeamId(project.id);
+    return teamRuns
+      .filter(run => run.teamId === automationTeamId)
+      .sort((left, right) => right.startedAt - left.startedAt)[0];
+  }
+
+  function getProjectEffectiveStatus(project: SoftwareProjectPlan): SoftwareProjectStatus {
+    if (project.status === 'stopped') {
+      return 'stopped';
+    }
+
+    const latestRun = getProjectLatestRun(project);
+    if (project.mode === 'autonomous' && (runningProjectIds.has(project.id) || latestRun?.status === 'running')) {
+      return 'active';
+    }
+    if (latestRun?.status === 'succeeded') {
+      return 'done';
+    }
+    if (latestRun?.status === 'failed') {
+      return 'blocked';
+    }
+    return project.status;
+  }
+
+  const activeProjects = projects.filter(project => getProjectEffectiveStatus(project) === 'active');
+  const staffedProjectCount = projects.filter(project => (
+    project.mode === 'guided'
+      ? project.assignedEmployeeIds.length > 0
+      : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)
+  )).length;
+  const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
+  const projectModeMetrics = [
+    { label: 'Guided', value: guidedProjects.length, className: styles.projectMetricGuided },
+    { label: 'Autonomous', value: autonomousProjects.length, className: styles.projectMetricAutonomous },
+  ];
+  const projectStatusMetrics = ([
+    ['Active', 'active', styles.projectMetricActive],
+    ['Planning', 'planning', styles.projectMetricPlanning],
+    ['Blocked', 'blocked', styles.projectMetricBlocked],
+    ['Stopped', 'stopped', styles.projectMetricStopped],
+    ['Done', 'done', styles.projectMetricDone],
+    ['Idea', 'idea', styles.projectMetricIdea],
+  ] as Array<[string, SoftwareProjectStatus, string]>).map(([label, status, className]) => ({
+    label,
+    value: projects.filter(project => getProjectEffectiveStatus(project) === status).length,
+    className,
+  }));
+  const projectStaffingMetrics = [
+    { label: 'Staffed', value: staffedProjectCount, className: styles.projectMetricStaffed },
+    { label: 'Needs staffing', value: Math.max(0, projects.length - staffedProjectCount), className: styles.projectMetricNeedsStaffing },
+  ];
   const [draft, setDraft] = useState<SoftwareProjectPlan>(() => createSoftwareProjectDraft(appInfo?.workspacePath));
   const [roleDraft, setRoleDraft] = useState<VirtualRoleDefinition>(() => createVirtualRoleDefinition('Developer'));
   const [employeeDraft, setEmployeeDraft] = useState<VirtualEmployeeProfile>(() => createVirtualEmployeeProfile('Developer'));
   const [teamDraft, setTeamDraft] = useState<ProjectTeamDefinition>(() => createDefaultProjectTeams()[0]);
+  const [profileEmployeeId, setProfileEmployeeId] = useState('');
+  const [projectEditorPanel, setProjectEditorPanel] = useState<ProjectEditorPanelId | null>(null);
+  const [projectDeleteTarget, setProjectDeleteTarget] = useState<DeleteTarget<ProjectDeleteKind> | null>(null);
+  const [projectActionProjectId, setProjectActionProjectId] = useState('');
+  const [projectChatDrafts, setProjectChatDrafts] = useState<Record<string, string>>({});
+  const [activityRunSelections, setActivityRunSelections] = useState<Record<string, string>>({});
+  const [copiedProjectMessageId, setCopiedProjectMessageId] = useState<string | null>(null);
+  const [projectPortfolioView, setProjectPortfolioView] = useState<RecordViewMode>('table');
+  const [roleListView, setRoleListView] = useState<RecordViewMode>('table');
+  const [employeeListView, setEmployeeListView] = useState<RecordViewMode>('table');
+  const [teamListView, setTeamListView] = useState<RecordViewMode>('table');
+  const [projectPage, setProjectPage] = useState(1);
+  const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE));
+  const normalizedProjectPage = Math.min(projectPage, projectPageCount);
+  const projectPageStartIndex = (normalizedProjectPage - 1) * PROJECT_LIST_PAGE_SIZE;
+  const visibleProjects = projects.slice(projectPageStartIndex, projectPageStartIndex + PROJECT_LIST_PAGE_SIZE);
+  const projectPageFirstRecord = projects.length === 0 ? 0 : projectPageStartIndex + 1;
+  const projectPageLastRecord = Math.min(projectPageStartIndex + PROJECT_LIST_PAGE_SIZE, projects.length);
+  const projectChatTranscriptRef = useRef<HTMLDivElement | null>(null);
+  const profileEmployee = employees.find(employee => employee.id === profileEmployeeId);
+  const projectActionProject = projects.find(project => project.id === projectActionProjectId)
+    ?? selectedProject;
+  const projectWidePanels: ProjectEditorPanelId[] = [
+    'project-chat',
+    'project-org',
+    'project-execution',
+    'project-board',
+    'project-team-chat',
+    'project-deliverables',
+  ];
+  const projectRailOpen = Boolean(projectEditorPanel);
+  const projectRailWide = Boolean(projectEditorPanel && projectWidePanels.includes(projectEditorPanel));
+
+  useEffect(() => {
+    setProjectPage(current => Math.min(Math.max(1, current), Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE))));
+  }, [projects.length]);
+
+  useEffect(() => {
+    if (projectEditorPanel !== 'project-chat' && projectEditorPanel !== 'project-team-chat') {
+      return;
+    }
+
+    const transcript = projectChatTranscriptRef.current;
+    if (transcript) {
+      transcript.scrollTop = transcript.scrollHeight;
+    }
+  }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
 
   function startDraft(mode: SoftwareProjectMode) {
     const supervisor = employees.find(employee => isSupervisorEmployee(employee, roles)) ?? employees[0];
@@ -4385,7 +5669,10 @@ function ProjectsView({
           .slice(0, 4)
           .map(employee => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role),
     });
-    onChangeSection('new');
+    setProfileEmployeeId('');
+    setProjectDeleteTarget(null);
+    setProjectActionProjectId('');
+    setProjectEditorPanel('project');
   }
 
   function editProject(project: SoftwareProjectPlan) {
@@ -4397,7 +5684,10 @@ function ProjectsView({
       assignedEmployeeIds: [...project.assignedEmployeeIds],
     });
     onSelectProject(project.id);
-    onChangeSection('new');
+    setProfileEmployeeId('');
+    setProjectDeleteTarget(null);
+    setProjectActionProjectId(project.id);
+    setProjectEditorPanel('project');
   }
 
   function updateDraft(update: Partial<SoftwareProjectPlan>) {
@@ -4437,7 +5727,114 @@ function ProjectsView({
   function saveDraftAndViewOrganization() {
     const project = saveDraft();
     onSelectProject(project.id);
-    onChangeSection(project.mode === 'autonomous' ? 'autonomous' : 'guided');
+    setProjectActionProjectId(project.id);
+    setProjectEditorPanel(project.mode === 'autonomous' ? 'project-org' : 'project-chat');
+  }
+
+  function saveDraftAndOpenProjectChat() {
+    const project = saveDraft();
+    onSelectProject(project.id);
+    setProjectActionProjectId(project.id);
+    setProjectEditorPanel('project-chat');
+  }
+
+  function closeProjectEditorPanel() {
+    setProjectEditorPanel(null);
+    setProfileEmployeeId('');
+    setProjectDeleteTarget(null);
+    setProjectActionProjectId('');
+  }
+
+  function openProjectDeleteConfirmation(target: DeleteTarget<ProjectDeleteKind>) {
+    setProfileEmployeeId('');
+    setProjectActionProjectId(target.kind === 'project' ? target.id : '');
+    setProjectDeleteTarget(target);
+    setProjectEditorPanel('delete');
+  }
+
+  function openProjectActionPanel(project: SoftwareProjectPlan, panel: ProjectEditorPanelId) {
+    onSelectProject(project.id);
+    setProfileEmployeeId('');
+    setProjectDeleteTarget(null);
+    setProjectActionProjectId(project.id);
+    setProjectEditorPanel(panel);
+  }
+
+  function confirmProjectDelete() {
+    if (!projectDeleteTarget) {
+      return;
+    }
+
+    if (projectDeleteTarget.kind === 'project') {
+      onDeleteProject(projectDeleteTarget.id);
+    } else if (projectDeleteTarget.kind === 'role') {
+      onDeleteRole(projectDeleteTarget.id);
+    } else if (projectDeleteTarget.kind === 'employee') {
+      onDeleteEmployee(projectDeleteTarget.id);
+    } else if (projectDeleteTarget.kind === 'team') {
+      onDeleteTeam(projectDeleteTarget.id);
+    }
+
+    closeProjectEditorPanel();
+  }
+
+  function openNewRoleEditor() {
+    setRoleDraft(createVirtualRoleDefinition('Developer'));
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('role');
+  }
+
+  function openRoleEditor(role: VirtualRoleDefinition) {
+    setRoleDraft({
+      ...role,
+      responsibilities: [...role.responsibilities],
+      defaultTools: [...role.defaultTools],
+    });
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('role');
+  }
+
+  function openNewEmployeeEditor() {
+    setEmployeeDraft(createVirtualEmployeeProfile('Developer'));
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('employee');
+  }
+
+  function openEmployeeEditor(employee: VirtualEmployeeProfile) {
+    setEmployeeDraft({
+      ...employee,
+      permissions: [...employee.permissions],
+    });
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('employee');
+  }
+
+  function openEmployeeProfile(employeeId: string) {
+    setProjectDeleteTarget(null);
+    setProfileEmployeeId(employeeId);
+    setProjectEditorPanel('employee-profile');
+  }
+
+  function openNewProjectTeamEditor() {
+    setTeamDraft({
+      ...createDefaultProjectTeams()[0],
+      id: createProjectTeamId('Project team'),
+      name: 'New Project Team',
+      memberEmployeeIds: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('team');
+  }
+
+  function openProjectTeamEditor(team: ProjectTeamDefinition) {
+    setTeamDraft({
+      ...team,
+      memberEmployeeIds: [...team.memberEmployeeIds],
+    });
+    setProjectDeleteTarget(null);
+    setProjectEditorPanel('team');
   }
 
   function saveRoleDraft() {
@@ -4450,6 +5847,7 @@ function ProjectsView({
       updatedAt: Date.now(),
     });
     setRoleDraft(createVirtualRoleDefinition('Developer'));
+    closeProjectEditorPanel();
   }
 
   function selectEmployeeRole(roleId: string) {
@@ -4466,13 +5864,14 @@ function ProjectsView({
     const role = getRoleDefinitionById(roles, employeeDraft.roleId, employeeDraft.role);
     onSaveEmployee({
       ...employeeDraft,
-      name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || 'Virtual employee',
+      name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || 'Employee',
       roleId: role?.id ?? employeeDraft.roleId,
       role: role?.title ?? (employeeDraft.role.trim() || 'Contributor'),
       permissions: normalizeStringList(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
       updatedAt: Date.now(),
     });
     setEmployeeDraft(createVirtualEmployeeProfile('Developer'));
+    closeProjectEditorPanel();
   }
 
   function saveTeamDraft() {
@@ -4490,6 +5889,7 @@ function ProjectsView({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
+    closeProjectEditorPanel();
   }
 
   function selectTeamSupervisor(employeeId: string) {
@@ -4573,21 +5973,201 @@ function ProjectsView({
     });
   }
 
-  function renderRoleCard(role: VirtualRoleDefinition) {
+  function buildProjectDeleteTarget(project: SoftwareProjectPlan): DeleteTarget<ProjectDeleteKind> {
+    return {
+      kind: 'project',
+      id: project.id,
+      name: project.name,
+      detail: 'Delete this saved software project from Project Studio.',
+      impact: [
+        `${formatProjectStatus(getProjectEffectiveStatus(project))} ${project.mode} project record will be removed.`,
+        `${project.artifacts.length} planned artifact entry(ies) and project staffing selections will be removed from the local project list.`,
+      ],
+    };
+  }
+
+  function buildRoleDeleteTarget(role: VirtualRoleDefinition): DeleteTarget<ProjectDeleteKind> {
+    const affectedEmployees = employees.filter(employee => (
+      employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase()
+    ));
+    return {
+      kind: 'role',
+      id: role.id,
+      name: role.title,
+      detail: 'Delete this role definition from the shared project role library.',
+      impact: [
+        `${affectedEmployees.length} employee profile(s) currently reference this role and will be normalized by the existing delete handler.`,
+        `${role.responsibilities.length} responsibility entry(ies) and ${role.defaultTools.length} default tool entry(ies) will be removed.`,
+      ],
+    };
+  }
+
+  function buildEmployeeDeleteTarget(employee: VirtualEmployeeProfile): DeleteTarget<ProjectDeleteKind> {
+    const assignedProjects = projects.filter(project => (
+      project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id)
+    ));
+    const assignedTeams = projectTeams.filter(team => (
+      team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+    ));
+    return {
+      kind: 'employee',
+      id: employee.id,
+      name: employee.name,
+      detail: 'Delete this employee profile from the shared staffing pool.',
+      impact: [
+        `${assignedProjects.length} project(s) reference this employee directly or as supervisor.`,
+        `${assignedTeams.length} project team(s) reference this employee as supervisor or member.`,
+      ],
+    };
+  }
+
+  function buildProjectTeamDeleteTarget(team: ProjectTeamDefinition): DeleteTarget<ProjectDeleteKind> {
+    const assignedProjects = projects.filter(project => project.assignedTeamIds.includes(team.id));
+    return {
+      kind: 'team',
+      id: team.id,
+      name: team.name,
+      detail: 'Delete this reusable project team.',
+      impact: [
+        `${assignedProjects.length} project(s) currently assign this team.`,
+        `${team.memberEmployeeIds.length} member assignment(s) and the team mission will be removed.`,
+      ],
+    };
+  }
+
+  function renderRoleRow(role: VirtualRoleDefinition) {
+    const assignedEmployees = employees.filter(employee => (
+      employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase()
+    ));
+    const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
     return (
-      <article className={styles.employeeCard} key={role.id}>
-        <div className={styles.employeeCardHeader}>
-          <span className={styles.employeeAvatar}>{role.title.slice(0, 2).toUpperCase()}</span>
+      <article className={styles.workbenchRecordRow} key={role.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{role.title}</strong>
+          <span>{assignedEmployees.length} employee profile(s)</span>
+        </div>
+        <span className={styles.workbenchRecordCell}>
+          {role.canSupervise ? 'Supervisor-capable' : 'Contributor'}
+        </span>
+        <span className={styles.workbenchRecordCell} title={role.defaultGoal}>
+          {role.defaultGoal}
+        </span>
+        <span className={styles.workbenchRecordCell}>
+          {summary}
+        </span>
+        <div className={styles.workbenchRecordActions}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openRoleEditor(role)} title={`Edit role ${role.title}`}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => openProjectDeleteConfirmation(buildRoleDeleteTarget(role))}
+            disabled={roles.length <= 1}
+            title={`Delete role ${role.title}`}
+          >
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderRoleCard(role: VirtualRoleDefinition) {
+    const assignedEmployees = employees.filter(employee => (
+      employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase()
+    ));
+    const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
+
+    return (
+      <article className={styles.projectCard} key={role.id}>
+        <div className={styles.projectCardHeader}>
           <div>
             <strong>{role.title}</strong>
-            <span>{role.canSupervise ? 'Supervisor-capable role' : 'Contributor role'}</span>
+            <span>{assignedEmployees.length} employee profile(s)</span>
           </div>
         </div>
-        <p>{role.defaultGoal}</p>
+        <p title={role.defaultGoal}>{role.defaultGoal}</p>
+        <dl className={styles.projectCardMeta}>
+          <div>
+            <dt>Scope</dt>
+            <dd>{role.canSupervise ? 'Supervisor-capable' : 'Contributor'}</dd>
+          </div>
+          <div>
+            <dt>Definition</dt>
+            <dd>{summary}</dd>
+          </div>
+        </dl>
         <div className={styles.projectChipList}>
           {role.responsibilities.slice(0, 4).map(responsibility => (
             <span className={styles.projectChip} key={responsibility}>{responsibility}</span>
           ))}
+          {role.responsibilities.length > 4 && <span className={styles.projectChip}>+{role.responsibilities.length - 4}</span>}
+        </div>
+        <div className={styles.projectCardActions}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openRoleEditor(role)} title={`Edit role ${role.title}`}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => openProjectDeleteConfirmation(buildRoleDeleteTarget(role))}
+            disabled={roles.length <= 1}
+            title={`Delete role ${role.title}`}
+          >
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderEmployeeRow(employee: VirtualEmployeeProfile) {
+    const role = getEmployeeRoleDefinition(employee, roles);
+    const teamsForEmployee = projectTeams.filter(team => (
+      team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+    ));
+    const projectsForEmployee = projects.filter(project => (
+      project.supervisorEmployeeId === employee.id ||
+      project.assignedEmployeeIds.includes(employee.id) ||
+      getProjectTeams(project, projectTeams).some(team => (
+        team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+      ))
+    ));
+    const activeWork = employee.currentTask || role?.defaultGoal || 'No current task';
+
+    return (
+      <article className={styles.workbenchRecordRow} key={employee.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{employee.name}</strong>
+          <span>{projectsForEmployee.length} project(s) / {teamsForEmployee.length} team(s)</span>
+        </div>
+        <span className={styles.workbenchRecordCell} title={role?.title ?? employee.role}>
+          {role?.title ?? employee.role}
+        </span>
+        <span className={styles.workbenchRecordCell}>
+          {employee.status} / {employee.model}
+        </span>
+        <span className={styles.workbenchRecordCell} title={activeWork}>
+          {activeWork}
+        </span>
+        <div className={`${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}`}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openEmployeeProfile(employee.id)} title={`View profile for ${employee.name}`}>
+            <Icon name="user" size={14} />
+            Profile
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openEmployeeEditor(employee)} title={`Edit employee ${employee.name}`}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee))} title={`Delete employee ${employee.name}`}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
         </div>
       </article>
     );
@@ -4609,6 +6189,144 @@ function ProjectsView({
           {(role?.responsibilities ?? employee.permissions).slice(0, 4).map(responsibility => (
             <span className={styles.projectChip} key={responsibility}>{responsibility}</span>
           ))}
+        </div>
+      </article>
+    );
+  }
+
+  function renderEmployeeManagementCard(employee: VirtualEmployeeProfile) {
+    const role = getEmployeeRoleDefinition(employee, roles);
+    const teamsForEmployee = projectTeams.filter(team => (
+      team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+    ));
+    const projectsForEmployee = projects.filter(project => (
+      project.supervisorEmployeeId === employee.id ||
+      project.assignedEmployeeIds.includes(employee.id) ||
+      getProjectTeams(project, projectTeams).some(team => (
+        team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+      ))
+    ));
+    const activeWork = employee.currentTask || role?.defaultGoal || 'No current task';
+
+    return (
+      <article className={styles.projectCard} key={employee.id}>
+        <div className={styles.employeeCardHeader}>
+          <span className={styles.employeeAvatar}>{employee.name.slice(0, 2).toUpperCase()}</span>
+          <div>
+            <strong>{employee.name}</strong>
+            <span>{role?.title ?? employee.role} / {employee.status}</span>
+          </div>
+        </div>
+        <p title={activeWork}>{activeWork}</p>
+        <dl className={styles.projectCardMeta}>
+          <div>
+            <dt>Assignments</dt>
+            <dd>{projectsForEmployee.length} project(s), {teamsForEmployee.length} team(s)</dd>
+          </div>
+          <div>
+            <dt>Model</dt>
+            <dd>{employee.model}</dd>
+          </div>
+        </dl>
+        <div className={styles.projectChipList}>
+          {(role?.responsibilities ?? employee.permissions).slice(0, 4).map(responsibility => (
+            <span className={styles.projectChip} key={responsibility}>{responsibility}</span>
+          ))}
+        </div>
+        <div className={styles.projectCardActions}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openEmployeeProfile(employee.id)} title={`View profile for ${employee.name}`}>
+            <Icon name="user" size={14} />
+            Profile
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openEmployeeEditor(employee)} title={`Edit employee ${employee.name}`}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee))} title={`Delete employee ${employee.name}`}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderEmployeeProfile(employee: VirtualEmployeeProfile) {
+    const role = getEmployeeRoleDefinition(employee, roles);
+    const teamsForEmployee = projectTeams.filter(team => (
+      team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+    ));
+    const projectsForEmployee = projects.filter(project => (
+      project.supervisorEmployeeId === employee.id ||
+      project.assignedEmployeeIds.includes(employee.id) ||
+      getProjectTeams(project, projectTeams).some(team => (
+        team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)
+      ))
+    ));
+
+    return (
+      <>
+        <dl className={styles.detailList}>
+          <div>
+            <dt>Model</dt>
+            <dd>{employee.model}</dd>
+          </div>
+          <div>
+            <dt>Teams</dt>
+            <dd>{teamsForEmployee.length}</dd>
+          </div>
+          <div>
+            <dt>Projects</dt>
+            <dd>{projectsForEmployee.length}</dd>
+          </div>
+          <div>
+            <dt>Current task</dt>
+            <dd>{employee.currentTask}</dd>
+          </div>
+        </dl>
+        <div className={styles.projectChipList}>
+          {(role?.responsibilities ?? employee.permissions).map(item => (
+            <span className={styles.projectChip} key={item}>{item}</span>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  function renderProjectTeamRow(team: ProjectTeamDefinition) {
+    const supervisor = getTeamSupervisor(team, employees);
+    const members = getTeamMembers(team, employees);
+    const assignedProjects = projects.filter(project => project.assignedTeamIds.includes(team.id));
+
+    return (
+      <article className={styles.workbenchRecordRow} key={team.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{team.name}</strong>
+          <span>{assignedProjects.length} assigned project(s)</span>
+        </div>
+        <span className={styles.workbenchRecordCell} title={supervisor?.name ?? 'Unassigned'}>
+          {supervisor?.name ?? 'Unassigned'}
+        </span>
+        <span className={styles.workbenchRecordCell}>
+          {members.length} member(s)
+        </span>
+        <span className={styles.workbenchRecordCell} title={team.mission}>
+          {team.mission}
+        </span>
+        <div className={styles.workbenchRecordActions}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => openProjectTeamEditor(team)}
+            title={`Edit team ${team.name}`}
+          >
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team))} title={`Delete team ${team.name}`}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
         </div>
       </article>
     );
@@ -4637,19 +6355,103 @@ function ProjectsView({
     );
   }
 
+  function renderProjectTeamManagementCard(team: ProjectTeamDefinition) {
+    const supervisor = getTeamSupervisor(team, employees);
+    const members = getTeamMembers(team, employees);
+    const assignedProjects = projects.filter(project => project.assignedTeamIds.includes(team.id));
+
+    return (
+      <article className={styles.projectCard} key={team.id}>
+        <div className={styles.projectCardHeader}>
+          <div>
+            <strong>{team.name}</strong>
+            <span>{assignedProjects.length} assigned project(s)</span>
+          </div>
+        </div>
+        <p title={team.mission}>{team.mission}</p>
+        <dl className={styles.projectCardMeta}>
+          <div>
+            <dt>Supervisor</dt>
+            <dd>{supervisor?.name ?? 'Unassigned'}</dd>
+          </div>
+          <div>
+            <dt>Members</dt>
+            <dd>{members.length} member(s)</dd>
+          </div>
+        </dl>
+        <div className={styles.projectChipList}>
+          {members.slice(0, 6).map(member => (
+            <span className={styles.projectChip} key={member.id}>{member.name}</span>
+          ))}
+          {members.length === 0 && <span className={styles.projectChip}>No members</span>}
+        </div>
+        <div className={styles.projectCardActions}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => openProjectTeamEditor(team)}
+            title={`Edit team ${team.name}`}
+          >
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team))} title={`Delete team ${team.name}`}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
   function getBoardTasks(project: SoftwareProjectPlan) {
+    const latestRun = getProjectLatestRun(project);
+    const assignmentTasks = (latestRun?.assignments ?? []).map(assignment => ({
+      title: assignment.title,
+      status: assignment.status === 'pending'
+        ? 'todo'
+        : assignment.status === 'running'
+          ? 'doing'
+          : assignment.status === 'failed'
+            ? 'review'
+            : 'done',
+      employee: employees.find(employee => employee.id === assignment.memberId),
+      detail: [
+        assignment.description,
+        assignment.dependencies.length > 0 ? `Depends on: ${assignment.dependencies.join(', ')}` : '',
+        assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : '',
+      ].filter(Boolean).join('\n'),
+    }));
+    if (assignmentTasks.length > 0) {
+      return assignmentTasks;
+    }
+
+    const stepTasks = (latestRun?.steps ?? []).map(step => ({
+      title: step.assignmentTitle ?? `${step.role} work`,
+      status: step.status === 'running' ? 'doing' : step.status === 'failed' ? 'review' : 'done',
+      employee: employees.find(employee => employee.id === step.memberId),
+      detail: [
+        step.dependencyIds?.length ? `Depends on: ${step.dependencyIds.join(', ')}` : '',
+        step.workspacePath ? `Workspace: ${step.workspacePath}` : '',
+      ].filter(Boolean).join('\n'),
+    }));
+    if (stepTasks.length > 0) {
+      return stepTasks;
+    }
+
     const assigned = getProjectStaffingEmployees(project, employees, roles, projectTeams)
       .filter(employee => employee.id !== project.supervisorEmployeeId);
     const supervisor = getProjectSupervisor(project, employees, roles);
     const employeePool = assigned.length > 0 ? assigned : employees;
+    const effectiveStatus = getProjectEffectiveStatus(project);
     const baseTasks = [
       { title: 'Clarify requirements and acceptance criteria', status: 'done', employee: supervisor },
       ...project.artifacts.map((artifact, index) => ({
         title: `Produce ${artifact}`,
-        status: index === 0 ? 'doing' : index === 1 ? 'review' : 'todo',
+        status: effectiveStatus === 'done' ? 'done' : index === 0 ? 'doing' : index === 1 ? 'review' : 'todo',
         employee: employeePool[index % Math.max(employeePool.length, 1)],
       })),
-      { title: 'Final integration and release notes', status: 'todo', employee: supervisor },
+      { title: 'Final integration and release notes', status: effectiveStatus === 'done' ? 'done' : 'todo', employee: supervisor },
     ];
 
     return baseTasks;
@@ -4680,6 +6482,7 @@ function ProjectsView({
                   <span>
                     {task.employee?.name ?? 'Unassigned'} / {task.employee ? getEmployeeRoleDefinition(task.employee, roles)?.title ?? task.employee.role : 'Contributor'}
                   </span>
+                  {'detail' in task && typeof task.detail === 'string' && task.detail && <span>{task.detail}</span>}
                 </article>
               ))}
             </section>
@@ -4730,18 +6533,251 @@ function ProjectsView({
   }
 
   function renderDeliverables(project: SoftwareProjectPlan) {
+    const latestRun = getProjectLatestRun(project);
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const projectRootPath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
+    const projectAutomationTeamId = getProjectAutomationTeamId(project.id);
+    function resolveDeliverablePath(targetPath: string): string {
+      if (!targetPath.trim()) {
+        return projectRootPath;
+      }
+      return targetPath.startsWith('/')
+        ? targetPath
+        : joinWorkspacePath(projectRootPath, targetPath);
+    }
+    function getExpectedArtifactPath(artifact: string, index: number): string {
+      const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `artifact-${index + 1}`;
+      return `artifacts/${slug}.md`;
+    }
+    function renderDeliverableActions(targetPath: string, label = 'Open') {
+      const resolvedPath = resolveDeliverablePath(targetPath);
+      return (
+        <div className={styles.projectDeliverableActions}>
+          <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(resolvedPath)} title={`Open ${resolvedPath}`}>
+            <Icon name="external" size={13} />
+            {label}
+          </button>
+          <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(resolvedPath)} title={`Reveal ${resolvedPath}`}>
+            <Icon name="folder-open" size={13} />
+            Reveal
+          </button>
+        </div>
+      );
+    }
+    const assignmentOutputs = (latestRun?.assignments ?? [])
+      .filter(assignment => assignment.output || assignment.error || assignment.workspacePath)
+      .map(assignment => ({
+        title: assignment.title,
+        status: assignment.status === 'succeeded' ? 'Completed' : assignment.status === 'failed' ? 'Needs review' : assignment.status === 'running' ? 'Running' : 'Pending',
+        workspacePath: assignment.workspacePath,
+        detail: [
+          `${assignment.memberName} / ${assignment.role}`,
+          assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : '',
+          assignment.output ? assignment.output.slice(0, 240) : assignment.error ? assignment.error.slice(0, 240) : '',
+        ].filter(Boolean).join('\n'),
+      }));
+    const activityOutputs = toolActivities
+      .filter(activity => activity.status === 'succeeded' && isProjectToolActivity(activity, project.id, projectAutomationTeamId))
+      .map((activity): ProjectGeneratedOutput | null => {
+        const outputPath = getToolResultPath(activity);
+        if (!outputPath) {
+          return null;
+        }
+
+        const absolutePath = activity.result && typeof activity.result === 'object' && typeof (activity.result as { absolutePath?: unknown }).absolutePath === 'string'
+          ? String((activity.result as { absolutePath?: unknown }).absolutePath)
+          : undefined;
+
+        return {
+          id: `${project.id}:${absolutePath || outputPath}`,
+          projectId: project.id,
+          path: outputPath,
+          absolutePath,
+          toolName: activity.toolName,
+          source: activity.scope?.source === 'virtual-team'
+            ? 'automation'
+            : activity.scope?.channel === 'team' ? 'team-chat' : 'guided-chat',
+          summary: activity.resultPreview,
+          createdAt: activity.startedAt,
+          updatedAt: activity.completedAt ?? activity.startedAt,
+        };
+      })
+      .filter((output: ProjectGeneratedOutput | null): output is ProjectGeneratedOutput => Boolean(output));
+    const generatedOutputs = [
+      ...(projectGeneratedOutputs[project.id] ?? []),
+      ...activityOutputs,
+    ].reduce<ProjectGeneratedOutput[]>((outputs, output) => {
+      if (!outputs.some(candidate => (
+        candidate.id === output.id ||
+        candidate.path === output.path ||
+        Boolean(candidate.absolutePath && output.absolutePath && candidate.absolutePath === output.absolutePath)
+      ))) {
+        outputs.push(output);
+      }
+      return outputs;
+    }, []).sort((left, right) => right.updatedAt - left.updatedAt);
+
     return (
       <div className={styles.projectDeliverables}>
+        {generatedOutputs.length > 0 && (
+          <div className={styles.projectDeliverableGroupHeader}>
+            <strong>Generated files</strong>
+            <span>{generatedOutputs.length} tracked output{generatedOutputs.length === 1 ? '' : 's'}</span>
+          </div>
+        )}
+        {generatedOutputs.map(output => (
+          <article className={styles.projectDeliverableCard} key={`generated-${output.id}`}>
+            <div>
+              <strong title={output.absolutePath ?? output.path}>{output.path}</strong>
+              <span>{formatProjectOutputSource(output.source)}</span>
+            </div>
+            <p>{output.summary || `${output.toolName} at ${new Date(output.updatedAt).toLocaleString()}`}</p>
+            {renderDeliverableActions(output.absolutePath ?? output.path, 'Open file')}
+          </article>
+        ))}
+        {latestRun?.artifactPath && (
+          <article className={styles.projectDeliverableCard}>
+            <div>
+              <strong>Automation run artifact</strong>
+              <span>{latestRun.status === 'succeeded' ? 'Completed' : latestRun.status}</span>
+            </div>
+            <p>{latestRun.artifactPath}</p>
+            {renderDeliverableActions(latestRun.artifactPath, 'Open artifact')}
+          </article>
+        )}
         {project.artifacts.map((artifact, index) => (
           <article className={styles.projectDeliverableCard} key={artifact}>
             <div>
               <strong>{artifact}</strong>
-              <span>{index < 2 ? 'Draft planned' : 'Queued'}</span>
+              <span>{effectiveStatus === 'done' ? 'Completed' : index < 2 ? 'Draft planned' : 'Queued'}</span>
             </div>
-            <p>{index < 2 ? 'Ready to be produced by the assigned team.' : 'Will be generated after upstream work completes.'}</p>
+            <p>{effectiveStatus === 'done'
+              ? latestRun?.summary ?? 'Completed by the latest autonomous project run.'
+              : index < 2 ? 'Ready to be produced by the assigned team.' : 'Will be generated after upstream work completes.'}</p>
+            {effectiveStatus === 'done' && renderDeliverableActions(getExpectedArtifactPath(artifact, index), 'Open expected file')}
           </article>
         ))}
+        {assignmentOutputs.map(output => (
+          <article className={styles.projectDeliverableCard} key={`assignment-${output.title}`}>
+            <div>
+              <strong>{output.title}</strong>
+              <span>{output.status}</span>
+            </div>
+            <p>{output.detail}</p>
+            {output.workspacePath && renderDeliverableActions(output.workspacePath, 'Open workspace')}
+          </article>
+        ))}
+        {project.artifacts.length === 0 && generatedOutputs.length === 0 && assignmentOutputs.length === 0 && !latestRun?.artifactPath && (
+          <span className={styles.mutedText}>No deliverables or run artifacts recorded yet.</span>
+        )}
       </div>
+    );
+  }
+
+  function getProjectPanelMessages(project: SoftwareProjectPlan, channel: ProjectChatChannel): UiMessage[] {
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    return projectChatMessages[projectChatKey] ?? createProjectReadyMessages(project, channel);
+  }
+
+  function updateProjectChatDraft(project: SoftwareProjectPlan, channel: ProjectChatChannel, value: string) {
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    setProjectChatDrafts(current => ({
+      ...current,
+      [projectChatKey]: value,
+    }));
+  }
+
+  function submitProjectChatDraft(project: SoftwareProjectPlan, channel: ProjectChatChannel) {
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    const draftValue = projectChatDrafts[projectChatKey] ?? '';
+    if (!draftValue.trim() || projectChatSendingKeys.has(projectChatKey)) {
+      return;
+    }
+
+    setProjectChatDrafts(current => ({
+      ...current,
+      [projectChatKey]: '',
+    }));
+    onSendProjectChat(project, channel, draftValue);
+  }
+
+  function handleProjectChatKeyDown(
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    project: SoftwareProjectPlan,
+    channel: ProjectChatChannel,
+  ) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      submitProjectChatDraft(project, channel);
+    }
+  }
+
+  async function copyProjectMessage(message: UiMessage) {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopiedProjectMessageId(message.id);
+      window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
+    } catch {
+      // Copy feedback is non-critical in the project side panel.
+    }
+  }
+
+  function renderProjectChatSurface(project: SoftwareProjectPlan, channel: ProjectChatChannel) {
+    const projectChatKey = getProjectChatKey(project.id, channel);
+    const panelMessages = getProjectPanelMessages(project, channel);
+    const draftValue = projectChatDrafts[projectChatKey] ?? '';
+    const isProjectSending = projectChatSendingKeys.has(projectChatKey);
+
+    return (
+      <section className={styles.projectChatSurface}>
+        <div className={styles.projectChatTranscript} ref={projectChatTranscriptRef}>
+          {panelMessages.map(message => (
+            <MessageItem
+              key={message.id}
+              message={message}
+              copied={copiedProjectMessageId === message.id}
+              onCopy={() => copyProjectMessage(message)}
+            />
+          ))}
+          {isProjectSending && (
+            <div className={styles.typingIndicator} role="status">
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
+        </div>
+        <form className={styles.projectChatComposer} onSubmit={event => {
+          event.preventDefault();
+          submitProjectChatDraft(project, channel);
+        }}>
+          <textarea
+            value={draftValue}
+            onChange={event => updateProjectChatDraft(project, channel, event.target.value)}
+            onKeyDown={event => handleProjectChatKeyDown(event, project, channel)}
+            placeholder={channel === 'team' ? 'Send direction to the supervisor or team...' : 'Reply in this project...'}
+            rows={3}
+            disabled={isProjectSending}
+            aria-label={channel === 'team' ? 'Team chat message' : 'Project chat message'}
+          />
+          <div className={styles.composerActions}>
+            <button
+              className={styles.secondaryButton}
+              type="button"
+              onClick={() => updateProjectChatDraft(project, channel, '')}
+              disabled={!draftValue || isProjectSending}
+              title="Clear the draft message"
+            >
+              <Icon name="x" size={14} />
+              Clear
+            </button>
+            <button className={styles.primaryButton} type="submit" disabled={isProjectSending || !draftValue.trim()} title="Send this project message">
+              <Icon name="send" size={14} />
+              Send
+            </button>
+          </div>
+        </form>
+      </section>
     );
   }
 
@@ -4764,76 +6800,821 @@ function ProjectsView({
     );
   }
 
-  function renderAutonomousLifecycleControls(project: SoftwareProjectPlan) {
-    const canStart = project.status === 'idea' || project.status === 'planning';
-    const canStop = project.status === 'active';
-    const canResume = project.status === 'stopped' || project.status === 'blocked';
+  function renderProjectSelector() {
+    if (projects.length === 0) {
+      return <span className={styles.mutedText}>Create a project before using this view.</span>;
+    }
+
+    return (
+      <label className={styles.field}>
+        <span>Project</span>
+        <select value={selectedProject?.id ?? ''} onChange={event => onSelectProject(event.target.value)}>
+          {projects.map(project => (
+            <option value={project.id} key={project.id}>
+              {project.name} / {project.mode === 'autonomous' ? 'autonomous' : 'guided'}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  function renderProjectInsights(project: SoftwareProjectPlan) {
+    const assignedTeams = getProjectTeams(project, projectTeams);
+    const supervisor = getProjectSupervisor(project, employees, roles);
+    const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const risks = [
+      !project.goals.trim()
+        ? { title: 'Goals missing', detail: 'Project goals are empty or underspecified.', level: 'Risk' }
+        : null,
+      project.mode === 'autonomous' && !supervisor
+        ? { title: 'Supervisor missing', detail: 'Autonomous execution needs a supervisor employee.', level: 'Risk' }
+        : null,
+      project.mode === 'autonomous' && assignedTeams.length === 0 && project.assignedEmployeeIds.length === 0
+        ? { title: 'No staffing assigned', detail: 'Assign at least one team or direct employee.', level: 'Risk' }
+        : null,
+      project.artifacts.length < 3
+        ? { title: 'Artifact scope thin', detail: 'Expected deliverables may not cover requirements, design, and verification.', level: 'Watch' }
+        : null,
+      effectiveStatus === 'blocked'
+        ? { title: 'Project blocked', detail: 'Resume requires resolving the active blocker.', level: 'Risk' }
+        : null,
+    ].filter((item): item is { title: string; detail: string; level: string } => Boolean(item));
+    const signals = [
+      { title: 'Staffing', detail: `${assignedTeams.length} team(s), ${assignedStaff.length} total employee(s)` },
+      { title: 'Delivery shape', detail: `${project.artifacts.length} artifact(s), ${getBoardTasks(project).length} planned task(s)` },
+      { title: 'Execution posture', detail: project.permissionMode === 'full-access' ? 'Supervisor has full project permission' : 'Risky actions require approval' },
+    ];
+
+    return (
+      <div className={styles.detailGrid}>
+        <section className={styles.detailPanel}>
+          <h3>Risk Signals</h3>
+          <div className={styles.projectDeliverables}>
+            {risks.map(risk => (
+              <article className={styles.projectDeliverableCard} key={risk.title}>
+                <div>
+                  <strong>{risk.title}</strong>
+                  <span>{risk.level}</span>
+                </div>
+                <p>{risk.detail}</p>
+              </article>
+            ))}
+            {risks.length === 0 && <span className={styles.mutedText}>No immediate project risks detected.</span>}
+          </div>
+        </section>
+        <section className={styles.detailPanel}>
+          <h3>Operational Signals</h3>
+          <div className={styles.projectDeliverables}>
+            {signals.map(signal => (
+              <article className={styles.projectDeliverableCard} key={signal.title}>
+                <div>
+                  <strong>{signal.title}</strong>
+                  <span>{formatProjectStatus(effectiveStatus)}</span>
+                </div>
+                <p>{signal.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  function renderExecutionConsole(project: SoftwareProjectPlan) {
+    const projectSupervisor = getProjectSupervisor(project, employees, roles);
+    const projectAutomationTeamId = getProjectAutomationTeamId(project.id);
+    const projectRunRecords = teamRuns
+      .filter(run => run.teamId === projectAutomationTeamId)
+      .sort((left, right) => right.startedAt - left.startedAt);
+    const latestRun = projectRunRecords[0];
+    const selectedRunId = activityRunSelections[project.id] ?? '';
+    const selectedRun = selectedRunId
+      ? projectRunRecords.find(run => run.id === selectedRunId)
+      : undefined;
+    const visibleRun = selectedRun ?? latestRun;
+    const allProjectToolActivities = toolActivities.filter(activity => isProjectToolActivity(activity, project.id, projectAutomationTeamId));
+    const projectToolActivities = visibleRun
+      ? allProjectToolActivities.filter(activity => activity.scope?.runId === visibleRun.id)
+      : allProjectToolActivities;
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const isProjectRunning = effectiveStatus === 'active';
+    type ActivityTimelineEntry = {
+      id: string;
+      timestamp: number;
+      employee: string;
+      title: string;
+      summary: string;
+      status: string;
+    };
+    const activityEntries: ActivityTimelineEntry[] = [];
+    const pushActivity = (entry: ActivityTimelineEntry | null | undefined) => {
+      if (entry) {
+        activityEntries.push(entry);
+      }
+    };
+
+    if (!visibleRun) {
+      pushActivity({
+        id: `project-ready-${project.id}`,
+        timestamp: project.updatedAt,
+        employee: 'Project Studio',
+        title: 'Project ready',
+        summary: `${project.mode === 'autonomous' ? 'Autonomous' : 'Guided'} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
+        status: effectiveStatus,
+      });
+    }
+    if (!visibleRun && projectSupervisor) {
+      pushActivity({
+        id: `project-supervisor-${project.id}`,
+        timestamp: project.updatedAt,
+        employee: projectSupervisor.name,
+        title: 'Supervisor assigned',
+        summary: `${getEmployeeRoleDefinition(projectSupervisor, roles)?.title ?? projectSupervisor.role} owns project coordination.`,
+        status: 'ready',
+      });
+    }
+
+    for (const run of visibleRun ? [visibleRun] : []) {
+      pushActivity({
+        id: `${run.id}-started`,
+        timestamp: run.startedAt,
+        employee: run.teamName,
+        title: 'Automation run started',
+        summary: `${run.objective.slice(0, 180)}${run.objective.length > 180 ? '...' : ''}`,
+        status: run.status === 'running' ? 'running' : 'ready',
+      });
+
+      for (const assignment of run.assignments ?? []) {
+        pushActivity(assignment.startedAt ? {
+          id: `${run.id}-${assignment.id}-started`,
+          timestamp: assignment.startedAt,
+          employee: assignment.memberName,
+          title: assignment.title,
+          summary: [
+            assignment.description,
+            assignment.dependencies.length > 0 ? `Depends on ${assignment.dependencies.join(', ')}` : 'No blocking dependencies',
+            `Parallel group ${assignment.parallelGroup}`,
+          ].join(' / '),
+          status: 'running',
+        } : null);
+        pushActivity(assignment.completedAt ? {
+          id: `${run.id}-${assignment.id}-completed`,
+          timestamp: assignment.completedAt,
+          employee: assignment.memberName,
+          title: `${assignment.title} ${assignment.status === 'succeeded' ? 'completed' : 'finished'}`,
+          summary: assignment.output?.slice(0, 220) ?? assignment.error?.slice(0, 220) ?? assignment.workspacePath ?? 'Assignment finished.',
+          status: assignment.status,
+        } : null);
+      }
+
+      if (!run.assignments?.length) {
+        for (const step of run.steps) {
+          pushActivity({
+            id: `${run.id}-${step.memberId}-${step.startedAt}-started`,
+            timestamp: step.startedAt,
+            employee: step.memberName,
+            title: step.assignmentTitle ?? `${step.role} work started`,
+            summary: step.dependencyIds?.length ? `Depends on ${step.dependencyIds.join(', ')}` : step.workspacePath ?? 'Worker started.',
+            status: 'running',
+          });
+          pushActivity(step.completedAt ? {
+            id: `${run.id}-${step.memberId}-${step.completedAt}-completed`,
+            timestamp: step.completedAt,
+            employee: step.memberName,
+            title: step.assignmentTitle ? `${step.assignmentTitle} completed` : `${step.role} work completed`,
+            summary: step.output?.slice(0, 220) ?? step.error?.slice(0, 220) ?? 'Worker finished.',
+            status: step.status,
+          } : null);
+        }
+      }
+
+      pushActivity(run.completedAt ? {
+        id: `${run.id}-completed`,
+        timestamp: run.completedAt,
+        employee: run.teamName,
+        title: `Automation run ${run.status}`,
+        summary: run.summary ?? run.error ?? run.artifactPath ?? `Run ${run.status}.`,
+        status: run.status,
+      } : null);
+    }
+
+    for (const activity of projectToolActivities) {
+      pushActivity({
+        id: `${activity.id}-tool-start`,
+        timestamp: activity.startedAt,
+        employee: activity.scope?.memberName ?? activity.scope?.teamName ?? 'Automation',
+        title: `Tool call: ${activity.toolName}`,
+        summary: activity.scope?.assignmentTitle
+          ? `${activity.scope.assignmentTitle} / ${summarizeToolResult(activity.args)}`
+          : summarizeToolResult(activity.args),
+        status: activity.status === 'running' ? 'running' : 'ready',
+      });
+      pushActivity(activity.completedAt ? {
+        id: `${activity.id}-tool-complete`,
+        timestamp: activity.completedAt,
+        employee: activity.scope?.memberName ?? activity.scope?.teamName ?? 'Automation',
+        title: `Tool ${activity.status}`,
+        summary: activity.error ?? activity.resultPreview ?? `${activity.toolName} finished${activity.duration ? ` in ${activity.duration} ms` : ''}.`,
+        status: activity.status,
+      } : null);
+    }
+
+    if (isProjectRunning && !visibleRun) {
+      pushActivity({
+        id: `project-${project.id}-starting`,
+        timestamp: Date.now(),
+        employee: projectSupervisor?.name ?? 'Supervisor',
+        title: 'Automation run starting',
+        summary: 'The project run has been requested and the planner is preparing assignments.',
+        status: 'running',
+      });
+    }
+
+    const timelineEntries = activityEntries
+      .sort((left, right) => left.timestamp - right.timestamp)
+      .slice(-160);
 
     return (
       <section className={styles.detailPanel}>
         <div className={styles.panelHeader}>
           <div>
-            <h3>Project Lifecycle</h3>
-            <span>{formatProjectStatus(project.status)}</span>
+            <h3>Activity Timeline</h3>
+            <span>
+              {visibleRun
+                ? `${visibleRun.id === latestRun?.id ? 'Current run' : 'Past run'}: ${visibleRun.status} / ${projectToolActivities.length} tool call(s)`
+                : 'No automation run yet'}
+            </span>
           </div>
+          {projectRunRecords.length > 0 && (
+            <label className={styles.activityRunPicker}>
+              <span>Run</span>
+              <select
+                value={visibleRun?.id ?? ''}
+                onChange={event => setActivityRunSelections(current => ({
+                  ...current,
+                  [project.id]: event.target.value,
+                }))}
+              >
+                {projectRunRecords.map((run, index) => (
+                  <option value={run.id} key={run.id}>
+                    {index === 0 ? 'Current' : 'Past'} / {run.status} / {new Date(run.startedAt).toLocaleString()}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
-        <dl className={styles.detailList}>
-          <div>
-            <dt>Status</dt>
-            <dd>{formatProjectStatus(project.status)}</dd>
-          </div>
-          <div>
-            <dt>Supervisor</dt>
-            <dd>{selectedAutonomousSupervisor?.name ?? 'Unassigned'}</dd>
-          </div>
-          <div>
-            <dt>Assigned teams</dt>
-            <dd>{selectedAutonomousTeams.length}</dd>
-          </div>
-          <div>
-            <dt>Total staff</dt>
-            <dd>{selectedAutonomousStaff.length}</dd>
-          </div>
-        </dl>
-        <div className={styles.toolRouterActions}>
-          <button
-            className={styles.primaryButton}
-            type="button"
-            onClick={() => onSetProjectStatus(project.id, 'active')}
-            disabled={!canStart}
-          >
-            Start Project
-          </button>
-          <button
-            className={styles.dangerButton}
-            type="button"
-            onClick={() => onSetProjectStatus(project.id, 'stopped')}
-            disabled={!canStop}
-          >
-            Stop Project
-          </button>
-          <button
-            className={styles.secondaryButton}
-            type="button"
-            onClick={() => onSetProjectStatus(project.id, 'active')}
-            disabled={!canResume}
-          >
-            Resume Project
-          </button>
+        <div className={styles.projectTimeline}>
+          {timelineEntries.map(entry => (
+            <article className={styles.projectTimelineItem} key={entry.id}>
+              <div className={styles.projectTimelineMarker} />
+              <div className={styles.projectTimelineContent}>
+                <div className={styles.projectTimelineContentHeader}>
+                  <strong>{entry.title}</strong>
+                  <time dateTime={new Date(entry.timestamp).toISOString()}>
+                    {new Date(entry.timestamp).toLocaleString()}
+                  </time>
+                </div>
+                <span>{entry.employee}</span>
+                <p>{entry.summary}</p>
+                <em>{entry.status}</em>
+              </div>
+            </article>
+          ))}
+          {timelineEntries.length === 0 && (
+            <span className={styles.mutedText}>
+              {isProjectRunning ? 'Automation run is starting.' : 'No activity recorded for this project yet.'}
+            </span>
+          )}
         </div>
       </section>
     );
   }
 
-  function renderProjectCard(project: SoftwareProjectPlan, action: 'chat' | 'organization') {
+  function renderArtifactsExplorer(project: SoftwareProjectPlan) {
     return (
-      <article className={project.id === selectedProject?.id ? `${styles.projectCard} ${styles.projectCardSelected}` : styles.projectCard} key={project.id}>
+      <section className={styles.detailPanel}>
+        <h3>Artifact Explorer</h3>
+        <div className={styles.projectDeliverables}>
+          {project.artifacts.map((artifact, index) => {
+            const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || `artifact-${index + 1}`;
+            return (
+              <article className={styles.projectDeliverableCard} key={artifact}>
+                <div>
+                  <strong>{artifact}</strong>
+                  <span>{index < 2 ? 'Planned' : 'Queued'}</span>
+                </div>
+                <p>{`artifacts/${slug}.md`}</p>
+              </article>
+            );
+          })}
+          {project.artifacts.length === 0 && <span className={styles.mutedText}>No artifacts defined.</span>}
+        </div>
+      </section>
+    );
+  }
+
+  function renderProjectTimeline(project: SoftwareProjectPlan) {
+    const tasks = getBoardTasks(project);
+    return (
+      <section className={styles.detailPanel}>
+        <h3>Timeline</h3>
+        <div className={styles.projectDeliverables}>
+          {tasks.map((task, index) => (
+            <article className={styles.projectDeliverableCard} key={`${task.title}-${index}`}>
+              <div>
+                <strong>{task.title}</strong>
+                <span>{task.status}</span>
+              </div>
+              <p>{task.employee ? `${task.employee.name} / ${getEmployeeRoleDefinition(task.employee, roles)?.title ?? task.employee.role}` : 'Unassigned'}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  function renderGovernance(project: SoftwareProjectPlan) {
+    const projectSupervisor = getProjectSupervisor(project, employees, roles);
+    return (
+      <div className={styles.detailGrid}>
+        <section className={styles.detailPanel}>
+          <h3>Approval Policy</h3>
+          <dl className={styles.detailList}>
+            <div>
+              <dt>Mode</dt>
+              <dd>{project.permissionMode === 'full-access' ? 'Full supervisor permission' : 'Supervised approvals'}</dd>
+            </div>
+            <div>
+              <dt>Supervisor</dt>
+              <dd>{projectSupervisor?.name ?? 'Unassigned'}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{formatProjectStatus(getProjectEffectiveStatus(project))}</dd>
+            </div>
+          </dl>
+        </section>
+        <section className={styles.detailPanel}>
+          <h3>Tool Posture</h3>
+          <dl className={styles.detailList}>
+            <div>
+              <dt>Provider</dt>
+              <dd>{activeProviderLabel}</dd>
+            </div>
+            <div>
+              <dt>MCP tools</dt>
+              <dd>{mcpTools.length}</dd>
+            </div>
+            <div>
+              <dt>MCP servers</dt>
+              <dd>{mcpServers.length}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    );
+  }
+
+  function renderProjectFormFields() {
+    return (
+      <div className={styles.settingsGrid}>
+        <label className={styles.field}>
+          <span>Project name</span>
+          <input value={draft.name} onChange={event => updateDraft({ name: event.target.value })} />
+        </label>
+        <label className={styles.field}>
+          <span>Project type</span>
+          <select
+            value={draft.mode}
+            onChange={event => {
+              const mode = event.target.value as SoftwareProjectMode;
+              updateDraft({
+                mode,
+                permissionMode: mode === 'autonomous' ? 'full-access' : 'supervised',
+              });
+            }}
+          >
+            <option value="guided">Guided human/app project</option>
+            <option value="autonomous">Autonomous project</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          <span>Status</span>
+          <select value={draft.status} onChange={event => updateDraft({ status: event.target.value as SoftwareProjectStatus })}>
+            <option value="idea">Idea</option>
+            <option value="planning">Planning</option>
+            <option value="active">Running</option>
+            <option value="stopped">Stopped</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+        </label>
+        <label className={styles.field}>
+          <span>Workspace path</span>
+          <input value={draft.workspacePath ?? appInfo?.workspacePath ?? ''} onChange={event => updateDraft({ workspacePath: event.target.value })} />
+        </label>
+        <label className={`${styles.field} ${styles.fieldWide}`}>
+          <span>Idea</span>
+          <textarea value={draft.idea} onChange={event => updateDraft({ idea: event.target.value })} rows={4} />
+        </label>
+        <label className={`${styles.field} ${styles.fieldWide}`}>
+          <span>Goals</span>
+          <textarea value={draft.goals} onChange={event => updateDraft({ goals: event.target.value })} rows={4} />
+        </label>
+        <label className={`${styles.field} ${styles.fieldWide}`}>
+          <span>Software artifacts</span>
+          <textarea
+            value={draft.artifacts.join('\n')}
+            onChange={event => updateDraft({ artifacts: normalizeStringList(event.target.value.split('\n'), DEFAULT_PROJECT_ARTIFACTS) })}
+            rows={6}
+          />
+        </label>
+        {draft.mode === 'autonomous' && (
+          <>
+            <label className={styles.field}>
+              <span>Supervisor employee</span>
+              <select value={draft.supervisorEmployeeId} onChange={event => selectDraftSupervisor(event.target.value)}>
+                {employees.map(employee => (
+                  <option value={employee.id} key={employee.id}>
+                    {employee.name} / {getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span>Execution permissions</span>
+              <select value={draft.permissionMode} onChange={event => updateDraft({ permissionMode: event.target.value as VirtualTeamPermissionMode })}>
+                <option value="full-access">Full access supervisor</option>
+                <option value="supervised">Ask for risky actions</option>
+              </select>
+            </label>
+            <div className={`${styles.field} ${styles.fieldWide}`}>
+              <span>Assigned teams</span>
+              <div className={styles.employeeAssignGrid}>
+                {projectTeams.map(team => (
+                  <label className={styles.employeeAssignOption} key={team.id}>
+                    <input
+                      type="checkbox"
+                      checked={draft.assignedTeamIds.includes(team.id)}
+                      onChange={() => toggleDraftTeam(team.id)}
+                    />
+                    <span>{team.name}</span>
+                    <em>{team.mission}</em>
+                  </label>
+                ))}
+                {projectTeams.length === 0 && <span className={styles.mutedText}>Create teams before assigning them to a project.</span>}
+              </div>
+            </div>
+            <div className={`${styles.field} ${styles.fieldWide}`}>
+              <span>Direct employees</span>
+              <div className={styles.employeeAssignGrid}>
+                {employees
+                  .filter(employee => employee.id !== draft.supervisorEmployeeId)
+                  .map(employee => (
+                    <label className={styles.employeeAssignOption} key={employee.id}>
+                      <input
+                        type="checkbox"
+                        checked={draft.assignedEmployeeIds.includes(employee.id)}
+                        onChange={() => toggleDraftEmployee(employee.id)}
+                      />
+                      <span>{employee.name}</span>
+                      <em>{getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}</em>
+                    </label>
+                  ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  function saveProjectDraftAndClose() {
+    const project = saveDraft();
+    onSelectProject(project.id);
+    closeProjectEditorPanel();
+  }
+
+  function saveProjectDraftAndOpenPrimaryAction() {
+    const project = saveDraft();
+    onSelectProject(project.id);
+    setProjectActionProjectId(project.id);
+    setProjectEditorPanel(project.mode === 'autonomous' ? 'project-org' : 'project-chat');
+  }
+
+  function renderProjectFormPanel() {
+    return (
+      <WorkbenchEditorPanel
+        title={projects.some(project => project.id === draft.id) ? 'Edit Project' : 'New Project'}
+        subtitle={draft.mode === 'autonomous' ? 'Autonomous staffing, permissions, and deliverables' : 'Guided idea, goals, and deliverables'}
+        onClose={closeProjectEditorPanel}
+        footer={(
+          <div className={styles.toolRouterActions}>
+            <button className={styles.primaryButton} type="button" onClick={saveProjectDraftAndClose} title="Save this project and close the panel">
+              <Icon name="save" size={14} />
+              Save Project
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={saveProjectDraftAndOpenPrimaryAction} title={draft.mode === 'autonomous' ? 'Save this project and open its team view' : 'Save this project and open its chat'}>
+              <Icon name={draft.mode === 'autonomous' ? 'network' : 'chat'} size={14} />
+              {draft.mode === 'autonomous' ? 'Save And View Team' : 'Save And Open Chat'}
+            </button>
+          </div>
+        )}
+      >
+        {renderProjectFormFields()}
+      </WorkbenchEditorPanel>
+    );
+  }
+
+  function renderProjectDeleteConfirmation() {
+    if (!projectDeleteTarget) {
+      return null;
+    }
+
+    return (
+      <WorkbenchEditorPanel
+        title={`Delete ${projectDeleteTarget.kind}`}
+        subtitle={projectDeleteTarget.name}
+        onClose={closeProjectEditorPanel}
+        footer={(
+          <div className={styles.toolRouterActions}>
+            <button className={styles.dangerButton} type="button" onClick={confirmProjectDelete} title={`Confirm deletion of ${projectDeleteTarget.name}`}>
+              <Icon name="trash" size={14} />
+              Confirm Delete
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={closeProjectEditorPanel} title="Cancel deletion and close the panel">
+              <Icon name="x" size={14} />
+              Cancel
+            </button>
+          </div>
+        )}
+      >
+        <section className={styles.deleteConfirmation}>
+          <strong>{projectDeleteTarget.detail}</strong>
+          <span>This action updates local Project Studio state immediately.</span>
+          <ul>
+            {projectDeleteTarget.impact.map(item => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      </WorkbenchEditorPanel>
+    );
+  }
+
+  function renderGuidedProjectChat(project: SoftwareProjectPlan) {
+    return (
+      <div className={styles.projectRailChatBody}>
+        <p className={styles.mutedText}>{summarizeProjectGoals(project)}</p>
+        {renderProjectChatSurface(project, 'guided')}
+      </div>
+    );
+  }
+
+  function renderProjectOrganization(project: SoftwareProjectPlan) {
+    const supervisor = getProjectSupervisor(project, employees, roles);
+    const assignedTeams = getProjectTeams(project, projectTeams);
+    const directEmployees = getProjectAssignedEmployees(project, employees, roles);
+
+    return (
+      <>
+        <section className={styles.detailPanel}>
+          <div className={styles.panelHeader}>
+            <div>
+              <h3>Team Organization</h3>
+              <span>{project.name}</span>
+            </div>
+            <button className={styles.secondaryButton} type="button" onClick={() => editProject(project)} title="Edit project staffing and team assignments">
+              Edit Members
+            </button>
+          </div>
+          <p className={styles.mutedText}>{summarizeProjectGoals(project)}</p>
+          <div className={styles.projectTeamDiagram}>
+            {supervisor ? (
+              <div className={styles.projectSupervisorNode}>
+                <span>Supervisor acting for human</span>
+                <strong>{supervisor.name}</strong>
+                <em>{getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role} / {project.permissionMode === 'full-access' ? 'Full permission' : 'Supervised'}</em>
+              </div>
+            ) : (
+              <span className={styles.mutedText}>No supervisor assigned.</span>
+            )}
+            <div className={styles.employeeGrid}>
+              {assignedTeams.map(team => renderProjectTeamCard(team, { compact: true }))}
+              {assignedTeams.length === 0 && <span className={styles.mutedText}>No teams assigned to this project.</span>}
+            </div>
+            <div className={styles.projectSupervisorRow}>
+              <span>Direct employees</span>
+              <strong>{directEmployees.length}</strong>
+              <em>Assigned outside teams</em>
+            </div>
+            <div className={styles.employeeGrid}>
+              {directEmployees.map(employee => renderEmployeeCard(employee, { compact: true }))}
+              {directEmployees.length === 0 && <span className={styles.mutedText}>No direct employees assigned outside teams.</span>}
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  function renderProjectActionPanel() {
+    const project = projectActionProject;
+    if (!project) {
+      return null;
+    }
+
+    if (projectEditorPanel === 'project-chat') {
+      return (
+        <WorkbenchEditorPanel title="Project Chat" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          {renderGuidedProjectChat(project)}
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    if (projectEditorPanel === 'project-org') {
+      return (
+        <WorkbenchEditorPanel title="Team Organization" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          {renderProjectOrganization(project)}
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    if (projectEditorPanel === 'project-board') {
+      return (
+        <WorkbenchEditorPanel title="Task Board" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          {renderTaskBoard(project)}
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    if (projectEditorPanel === 'project-execution') {
+      return (
+        <WorkbenchEditorPanel title="Activity" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          {renderExecutionConsole(project)}
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    if (projectEditorPanel === 'project-team-chat') {
+      return (
+        <WorkbenchEditorPanel title="Team Chat" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          <div className={styles.projectRailChatBody}>
+            <p className={styles.mutedText}>{summarizeProjectGoals(project)}</p>
+            {renderProjectChatSurface(project, 'team')}
+          </div>
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    if (projectEditorPanel === 'project-deliverables') {
+      return (
+        <WorkbenchEditorPanel title="Deliverables" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+          {renderDeliverables(project)}
+        </WorkbenchEditorPanel>
+      );
+    }
+
+    return null;
+  }
+
+  function getLifecycleButton(project: SoftwareProjectPlan, showLabel = false) {
+    if (project.mode !== 'autonomous') {
+      return null;
+    }
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+    const iconSize = showLabel ? 14 : 15;
+
+    const renderLifecycleButton = (status: SoftwareProjectStatus, icon: IconName, label: string, title: string) => (
+      <button className={buttonClassName} type="button" onClick={() => onSetProjectStatus(project.id, status)} title={title} aria-label={title}>
+        <Icon name={icon} size={iconSize} />
+        {showLabel && label}
+      </button>
+    );
+
+    if (runningProjectIds.has(project.id)) {
+      return renderLifecycleButton('stopped', 'stop', 'Stop', 'Stop this running autonomous project');
+    }
+
+    if (effectiveStatus === 'active') {
+      return renderLifecycleButton('stopped', 'stop', 'Stop', 'Stop this autonomous project');
+    }
+
+    if (effectiveStatus === 'stopped') {
+      return renderLifecycleButton('active', 'play', 'Resume', 'Resume this autonomous project');
+    }
+
+    if (effectiveStatus === 'blocked') {
+      return renderLifecycleButton('active', 'rotate', 'Retry', 'Retry this blocked autonomous project');
+    }
+
+    if (effectiveStatus === 'done') {
+      return renderLifecycleButton('active', 'rotate', 'Re-run', 'Run this completed autonomous project again');
+    }
+
+    if (effectiveStatus === 'idea' || effectiveStatus === 'planning') {
+      return renderLifecycleButton('active', 'play', 'Start', 'Start this autonomous project');
+    }
+
+    return null;
+  }
+
+  function renderProjectPortfolioActions(project: SoftwareProjectPlan, variant: 'compact' | 'expanded') {
+    const showLabel = variant === 'expanded';
+    const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+    const iconSize = showLabel ? 14 : 15;
+    const actionsClassName = showLabel
+      ? styles.projectCardActions
+      : `${styles.workbenchRecordActions} ${styles.projectRecordActions}`;
+
+    const renderActionButton = (
+      panel: ProjectEditorPanelId,
+      icon: IconName,
+      label: string,
+      title: string,
+    ) => (
+      <button className={buttonClassName} type="button" onClick={() => openProjectActionPanel(project, panel)} title={title} aria-label={title}>
+        <Icon name={icon} size={iconSize} />
+        {showLabel && label}
+      </button>
+    );
+
+    return (
+      <div className={actionsClassName}>
+        {project.mode === 'guided' ? (
+          <>
+            {renderActionButton('project-chat', 'chat', 'Chat', 'Open this guided project chat')}
+            {renderActionButton('project-deliverables', 'archive', 'Deliverables', 'View project deliverables')}
+          </>
+        ) : (
+          <>
+            {getLifecycleButton(project, showLabel)}
+            {renderActionButton('project-org', 'network', 'Team', 'View team organization for this project')}
+            {renderActionButton('project-board', 'board', 'Board', 'Open this project task board')}
+            {renderActionButton('project-execution', 'activity', 'Activity', 'Open this project activity')}
+            {renderActionButton('project-team-chat', 'message', 'Team Chat', 'Open this autonomous team chat')}
+            {renderActionButton('project-deliverables', 'archive', 'Deliverables', 'View project deliverables')}
+          </>
+        )}
+        <button className={buttonClassName} type="button" onClick={() => editProject(project)} title="Edit this project" aria-label="Edit this project">
+          <Icon name="edit" size={iconSize} />
+          {showLabel && 'Edit'}
+        </button>
+        <button className={buttonClassName} type="button" onClick={() => openProjectDeleteConfirmation(buildProjectDeleteTarget(project))} title="Delete this project" aria-label="Delete this project">
+          <Icon name="trash" size={iconSize} />
+          {showLabel && 'Delete'}
+        </button>
+      </div>
+    );
+  }
+
+  function renderProjectRow(project: SoftwareProjectPlan) {
+    const assignedTeams = getProjectTeams(project, projectTeams);
+    const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
+    const effectiveStatus = getProjectEffectiveStatus(project);
+
+    return (
+      <article className={`${styles.workbenchRecordRow} ${styles.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`} key={project.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{project.name}</strong>
+          <span>{project.mode === 'autonomous' ? 'Autonomous' : 'Guided'} / {formatProjectStatus(effectiveStatus)}</span>
+        </div>
+        <span className={styles.workbenchRecordCell} title={summarizeProjectGoals(project)}>
+          {summarizeProjectGoals(project)}
+        </span>
+        <span className={styles.workbenchRecordCell}>
+          {project.mode === 'autonomous'
+            ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)`
+            : `${project.artifacts.length} deliverable(s)`}
+        </span>
+        <span className={styles.workbenchRecordCell} title={project.workspacePath ?? appInfo?.workspacePath ?? undefined}>
+          {project.workspacePath ?? workspaceTitle}
+        </span>
+        {renderProjectPortfolioActions(project, 'compact')}
+      </article>
+    );
+  }
+
+  function renderProjectCard(project: SoftwareProjectPlan, action: 'chat' | 'organization') {
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const cardClassName = [
+      styles.projectCard,
+      getProjectStatusCardClassName(effectiveStatus),
+      project.id === selectedProject?.id ? styles.projectCardSelected : '',
+    ].filter(Boolean).join(' ');
+    return (
+      <article className={cardClassName} key={project.id}>
         <div className={styles.projectCardHeader}>
           <div>
             <strong>{project.name}</strong>
-            <span>{project.mode === 'autonomous' ? 'Autonomous project' : 'Guided build'} / {formatProjectStatus(project.status)}</span>
+            <span>{project.mode === 'autonomous' ? 'Autonomous project' : 'Guided build'} / {formatProjectStatus(effectiveStatus)}</span>
           </div>
-          <button className={styles.textButton} type="button" onClick={() => editProject(project)}>
+          <button className={styles.textButton} type="button" onClick={() => editProject(project)} title="Edit this project">
+            <Icon name="edit" size={13} />
             Edit
           </button>
         </div>
@@ -4853,23 +7634,26 @@ function ProjectsView({
         )}
         <div className={styles.toolRouterActions}>
           <button
-            className={styles.primaryButton}
+            className={styles.secondaryButton}
             type="button"
+            title={action === 'organization' ? 'View this project team' : 'Open this project chat'}
             onClick={() => {
               if (action === 'organization') {
-                onSelectProject(project.id);
-                onChangeSection('autonomous');
+                openProjectActionPanel(project, 'project-org');
                 return;
               }
-              onStartProjectChat(project);
+              openProjectActionPanel(project, 'project-chat');
             }}
           >
-            {action === 'organization' ? 'View Organization' : 'Open Chat'}
+            <Icon name={action === 'organization' ? 'network' : 'chat'} size={14} />
+            {action === 'organization' ? 'Team' : 'Open Chat'}
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={() => onSelectProject(project.id)}>
+          <button className={styles.secondaryButton} type="button" onClick={() => onSelectProject(project.id)} title="Select this project">
+            <Icon name="check" size={14} />
             Select
           </button>
-          <button className={styles.dangerButton} type="button" onClick={() => onDeleteProject(project.id)}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openProjectDeleteConfirmation(buildProjectDeleteTarget(project))} title="Delete this project">
+            <Icon name="trash" size={14} />
             Delete
           </button>
         </div>
@@ -4877,22 +7661,188 @@ function ProjectsView({
     );
   }
 
-  return (
-    <section className={styles.detailView} aria-label="Projects">
-      <div className={styles.detailToolbar}>
-        <div>
-          <span className={styles.detailEyebrow}>Project Studio</span>
-          <h2>{activeMenuItem.title}</h2>
-          <p className={styles.settingsPageSubtitle}>{activeMenuItem.description}</p>
+  function renderProjectPortfolioCard(project: SoftwareProjectPlan) {
+    const assignedTeams = getProjectTeams(project, projectTeams);
+    const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
+    const effectiveStatus = getProjectEffectiveStatus(project);
+    const workspace = project.workspacePath ?? workspaceTitle;
+    const cardClassName = [
+      styles.projectCard,
+      styles.projectPortfolioCard,
+      getProjectStatusCardClassName(effectiveStatus),
+      project.id === selectedProject?.id ? styles.projectCardSelected : '',
+    ].filter(Boolean).join(' ');
+
+    return (
+      <article className={cardClassName} key={project.id}>
+        <div className={styles.projectCardHeader}>
+          <div>
+            <strong>{project.name}</strong>
+            <span>{project.mode === 'autonomous' ? 'Autonomous project' : 'Guided project'} / {formatProjectStatus(effectiveStatus)}</span>
+          </div>
+          <span className={`${styles.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}`}>{formatProjectStatus(effectiveStatus)}</span>
         </div>
-        <button className={styles.primaryButton} type="button" onClick={() => startDraft('guided')}>
-          New Project
-        </button>
+        <p title={summarizeProjectGoals(project)}>{summarizeProjectGoals(project)}</p>
+        <dl className={styles.projectCardMeta}>
+          <div>
+            <dt>Scope</dt>
+            <dd>
+              {project.mode === 'autonomous'
+                ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)`
+                : `${project.artifacts.length} deliverable(s)`}
+            </dd>
+          </div>
+          <div>
+            <dt>Workspace</dt>
+            <dd title={workspace}>{workspace}</dd>
+          </div>
+        </dl>
+        <div className={styles.projectChipList}>
+          {project.artifacts.slice(0, 4).map(artifact => (
+            <span className={styles.projectChip} key={artifact}>{artifact}</span>
+          ))}
+          {project.artifacts.length > 4 && <span className={styles.projectChip}>+{project.artifacts.length - 4}</span>}
+        </div>
+        {renderProjectPortfolioActions(project, 'expanded')}
+      </article>
+    );
+  }
+
+  function renderProjectMetricBar(segments: Array<{ label: string; value: number; className: string }>, total: number) {
+    const visibleSegments = segments.filter(segment => segment.value > 0);
+
+    return (
+      <div className={styles.projectMetricChart}>
+        <div className={styles.projectMetricBar} aria-label="Project metric distribution">
+          {visibleSegments.length > 0 ? visibleSegments.map(segment => {
+            const width = total > 0 ? Math.max(8, (segment.value / total) * 100) : 0;
+            return (
+              <span
+                className={`${styles.projectMetricSegment} ${segment.className}`}
+                key={segment.label}
+                style={{ width: `${width}%` }}
+                title={`${segment.label}: ${segment.value}`}
+              />
+            );
+          }) : <span className={styles.projectMetricEmpty}>No data</span>}
+        </div>
+        <div className={styles.projectMetricLegend}>
+          {segments.map(segment => (
+            <span key={segment.label}>
+              <i className={segment.className} />
+              {segment.label}: {segment.value}
+            </span>
+          ))}
+        </div>
       </div>
+    );
+  }
 
-      {projectMessage && <p className={styles.inlineSuccess}>{projectMessage}</p>}
+  function getProjectStatusRowClassName(status: SoftwareProjectStatus): string {
+    if (status === 'active') {
+      return styles.projectRecordRowActive;
+    }
+    if (status === 'planning') {
+      return styles.projectRecordRowPlanning;
+    }
+    if (status === 'blocked') {
+      return styles.projectRecordRowBlocked;
+    }
+    if (status === 'stopped') {
+      return styles.projectRecordRowStopped;
+    }
+    if (status === 'done') {
+      return styles.projectRecordRowDone;
+    }
+    return styles.projectRecordRowIdea;
+  }
 
-      {activeSection === 'studio' && (
+  function getProjectStatusCardClassName(status: SoftwareProjectStatus): string {
+    if (status === 'active') {
+      return styles.projectStatusCardActive;
+    }
+    if (status === 'planning') {
+      return styles.projectStatusCardPlanning;
+    }
+    if (status === 'blocked') {
+      return styles.projectStatusCardBlocked;
+    }
+    if (status === 'stopped') {
+      return styles.projectStatusCardStopped;
+    }
+    if (status === 'done') {
+      return styles.projectStatusCardDone;
+    }
+    return styles.projectStatusCardIdea;
+  }
+
+  function getProjectStatusBadgeClassName(status: SoftwareProjectStatus): string {
+    if (status === 'active') {
+      return styles.projectStatusBadgeActive;
+    }
+    if (status === 'planning') {
+      return styles.projectStatusBadgePlanning;
+    }
+    if (status === 'blocked') {
+      return styles.projectStatusBadgeBlocked;
+    }
+    if (status === 'stopped') {
+      return styles.projectStatusBadgeStopped;
+    }
+    if (status === 'done') {
+      return styles.projectStatusBadgeDone;
+    }
+    return styles.projectStatusBadgeIdea;
+  }
+
+  function renderProjectPagination() {
+    if (projects.length <= PROJECT_LIST_PAGE_SIZE) {
+      return null;
+    }
+
+    return (
+      <div className={styles.projectPager}>
+        <span>
+          Showing {projectPageFirstRecord}-{projectPageLastRecord} of {projects.length}
+        </span>
+        <div className={styles.projectPagerControls}>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => setProjectPage(page => Math.max(1, page - 1))}
+            disabled={normalizedProjectPage <= 1}
+            title="Previous project page"
+          >
+            <Icon name="chevron-left" size={14} />
+            Previous
+          </button>
+          <strong>Page {normalizedProjectPage} / {projectPageCount}</strong>
+          <button
+            className={styles.secondaryButton}
+            type="button"
+            onClick={() => setProjectPage(page => Math.min(projectPageCount, page + 1))}
+            disabled={normalizedProjectPage >= projectPageCount}
+            title="Next project page"
+          >
+            Next
+            <Icon name="chevron-right" size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const projectDetailViewClassName = projectRailOpen
+    ? `${styles.detailView} ${styles.detailViewWithRail} ${projectRailWide ? styles.detailViewWithWideRail : ''}`
+    : styles.detailView;
+
+  return (
+    <section className={projectDetailViewClassName} aria-label="Projects">
+      {projectEditorPanel === 'project' && renderProjectFormPanel()}
+      {projectEditorPanel === 'delete' && renderProjectDeleteConfirmation()}
+      {renderProjectActionPanel()}
+
+      {visibleActiveSection === 'studio' && (
         <>
           <div className={styles.detailHero}>
             <span className={styles.detailEyebrow}>Current workspace</span>
@@ -4900,342 +7850,411 @@ function ProjectsView({
             <p title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath || 'Workspace path unavailable'}</p>
           </div>
 
-          <div className={styles.projectModeGrid}>
-            <button className={styles.projectModeCard} type="button" onClick={() => startDraft('guided')}>
-              <span>Guided</span>
-              <strong>Human-led build</strong>
-              <p>Idea, goals, and artifacts become a focused project chat.</p>
-            </button>
-            <button className={styles.projectModeCard} type="button" onClick={() => startDraft('autonomous')}>
-              <span>Autonomous</span>
-              <strong>Autonomous project</strong>
-              <p>Assign roles, supervisor, permissions, and a delivery objective.</p>
-            </button>
-          </div>
-
           <div className={styles.detailGrid}>
             <section className={styles.detailPanel}>
               <h3>Project Portfolio</h3>
-              <dl className={styles.detailList}>
-                <div>
-                  <dt>Saved projects</dt>
-                  <dd>{projects.length}</dd>
-                </div>
-                <div>
-                  <dt>Guided builds</dt>
-                  <dd>{guidedProjects.length}</dd>
-                </div>
-                <div>
-                  <dt>Autonomous projects</dt>
-                  <dd>{autonomousProjects.length}</dd>
-                </div>
-                <div>
-                  <dt>Running</dt>
-                  <dd>{activeProjects.length}</dd>
-                </div>
-              </dl>
+              <div className={styles.projectMetricHeadline}>
+                <strong>{projects.length}</strong>
+                <span>Total project(s)</span>
+              </div>
+              {renderProjectMetricBar(projectModeMetrics, projects.length)}
+              <p className={styles.mutedText}>Use project row actions to open chat, team, board, or deliverables.</p>
             </section>
             <section className={styles.detailPanel}>
-              <h3>Selected Project</h3>
-              {selectedProject ? (
-                <>
-                  <strong className={styles.projectPanelTitle}>{selectedProject.name}</strong>
-                  <p className={styles.mutedText}>{summarizeProjectGoals(selectedProject)}</p>
-                  <div className={styles.toolRouterActions}>
-                    <button className={styles.secondaryButton} type="button" onClick={() => editProject(selectedProject)}>
-                      Edit
-                    </button>
-                    {selectedProject.mode === 'autonomous' ? (
-                      <button className={styles.secondaryButton} type="button" onClick={() => {
-                        onSelectProject(selectedProject.id);
-                        onChangeSection('autonomous');
-                      }}>
-                        View Organization
-                      </button>
-                    ) : (
-                      <button className={styles.secondaryButton} type="button" onClick={() => onStartProjectChat(selectedProject)}>
-                        Open Chat
-                      </button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <span className={styles.mutedText}>No project selected.</span>
-              )}
+              <h3>Project Status</h3>
+              <div className={styles.projectMetricHeadline}>
+                <strong>{activeProjects.length}</strong>
+                <span>Active project(s)</span>
+              </div>
+              {renderProjectMetricBar(projectStatusMetrics, projects.length)}
+              <p className={styles.mutedText}>
+                Multiple autonomous projects can run at once; the table below is the source of project navigation.
+              </p>
             </section>
             <section className={styles.detailPanel}>
               <h3>Project Staffing</h3>
+              <div className={styles.projectMetricHeadline}>
+                <strong>{employees.length}</strong>
+                <span>Employee profile(s)</span>
+              </div>
+              {renderProjectMetricBar(projectStaffingMetrics, projects.length)}
               <dl className={styles.detailList}>
                 <div>
                   <dt>Roles</dt>
                   <dd>{roles.length}</dd>
                 </div>
                 <div>
-                  <dt>Employees</dt>
-                  <dd>{employees.length}</dd>
+                  <dt>Teams</dt>
+                  <dd>{projectTeams.length}</dd>
                 </div>
                 <div>
-                  <dt>Workspace</dt>
-                  <dd title={appInfo?.workspacePath || undefined}>{workspaceTitle}</dd>
+                  <dt>Deliverables</dt>
+                  <dd>{deliverableCount}</dd>
                 </div>
               </dl>
             </section>
           </div>
 
           <section className={styles.detailPanel}>
-            <h3>Recent Projects</h3>
-            <div className={styles.projectList}>
-              {projects.slice(0, 6).map(project => renderProjectCard(project, project.mode === 'autonomous' ? 'organization' : 'chat'))}
-              {projects.length === 0 && <span className={styles.mutedText}>No software projects created yet.</span>}
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Projects</h3>
+                <span>{projects.length} saved project(s)</span>
+              </div>
+              <div className={styles.panelActions}>
+                <RecordViewToggle view={projectPortfolioView} onChange={setProjectPortfolioView} label="Project list view" />
+                <button className={styles.primaryButton} type="button" onClick={() => startDraft('guided')} title="Create a human-guided project">
+                  <Icon name="chat" size={14} />
+                  New Guided
+                </button>
+                <button className={styles.secondaryButton} type="button" onClick={() => startDraft('autonomous')} title="Create an autonomous project">
+                  <Icon name="bot" size={14} />
+                  New Autonomous
+                </button>
+              </div>
             </div>
+              <div className={styles.projectStatusLegend} aria-label="Project status color legend">
+                {projectStatusMetrics.map(segment => (
+                  <span key={segment.label} title={`${segment.label}: ${segment.value} project(s)`}>
+                    <i className={segment.className} />
+                    {segment.label}
+                  </span>
+                ))}
+              </div>
+              {projectPortfolioView === 'table' ? (
+                <div className={`${styles.workbenchRecordList} ${styles.projectRecordList}`}>
+                  <div className={`${styles.workbenchRecordRow} ${styles.workbenchRecordHeader} ${styles.projectRecordRow}`}>
+                    <span>Project</span>
+                    <span>Goal</span>
+                    <span>Scope</span>
+                    <span>Workspace</span>
+                    <span>Actions</span>
+                  </div>
+                  {visibleProjects.map(project => renderProjectRow(project))}
+                  {projects.length === 0 && <span className={styles.workbenchEmptyState}>No software projects created yet.</span>}
+                </div>
+              ) : (
+                <div className={styles.projectPortfolioGrid}>
+                  {visibleProjects.map(project => renderProjectPortfolioCard(project))}
+                  {projects.length === 0 && <span className={styles.workbenchEmptyState}>No software projects created yet.</span>}
+                </div>
+              )}
+              {renderProjectPagination()}
           </section>
         </>
       )}
 
-      {activeSection === 'roles' && (
-        <div className={styles.projectConsoleGrid}>
-          <section className={styles.detailPanel}>
-            <h3>Roles</h3>
-            <div className={styles.employeeGrid}>
-              {roles.map(role => (
-                <div className={styles.employeeCardShell} key={role.id}>
-                  {renderRoleCard(role)}
-                  <div className={styles.toolRouterActions}>
-                    <button className={styles.secondaryButton} type="button" onClick={() => setRoleDraft({ ...role, responsibilities: [...role.responsibilities], defaultTools: [...role.defaultTools] })}>
-                      Edit
-                    </button>
-                    <button className={styles.dangerButton} type="button" onClick={() => onDeleteRole(role.id)} disabled={roles.length <= 1}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {roles.length === 0 && <span className={styles.mutedText}>No roles configured.</span>}
-            </div>
-          </section>
-
-          <section className={styles.detailPanel}>
-            <h3>Role Editor</h3>
-            <div className={styles.settingsGrid}>
-              <label className={styles.field}>
-                <span>Role title</span>
-                <input value={roleDraft.title} onChange={event => setRoleDraft(current => ({ ...current, title: event.target.value, updatedAt: Date.now() }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Can supervise</span>
-                <select value={roleDraft.canSupervise ? 'yes' : 'no'} onChange={event => setRoleDraft(current => ({ ...current, canSupervise: event.target.value === 'yes', updatedAt: Date.now() }))}>
-                  <option value="no">No</option>
-                  <option value="yes">Yes</option>
-                </select>
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Default goal</span>
-                <textarea value={roleDraft.defaultGoal} onChange={event => setRoleDraft(current => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() }))} rows={3} />
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Responsibilities</span>
-                <textarea
-                  value={roleDraft.responsibilities.join('\n')}
-                  onChange={event => setRoleDraft(current => ({
-                    ...current,
-                    responsibilities: normalizeStringList(event.target.value.split('\n'), ['Deliver assigned project responsibilities.']),
-                    updatedAt: Date.now(),
-                  }))}
-                  rows={7}
-                />
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Default tools</span>
-                <textarea
-                  value={roleDraft.defaultTools.join('\n')}
-                  onChange={event => setRoleDraft(current => ({
-                    ...current,
-                    defaultTools: normalizeStringList(event.target.value.split('\n'), getDefaultTeamTools(current.title)),
-                    updatedAt: Date.now(),
-                  }))}
-                  rows={4}
-                />
-              </label>
-            </div>
-            <div className={styles.toolRouterActions}>
-              <button className={styles.primaryButton} type="button" onClick={saveRoleDraft}>
-                Save Role
-              </button>
-              <button className={styles.secondaryButton} type="button" onClick={() => setRoleDraft(createVirtualRoleDefinition('Developer'))}>
-                New Role
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {activeSection === 'employees' && (
-        <div className={styles.projectConsoleGrid}>
-          <section className={styles.detailPanel}>
-            <h3>Virtual Employees</h3>
-            <div className={styles.employeeGrid}>
-              {employees.map(employee => (
-                <div className={styles.employeeCardShell} key={employee.id}>
-                  {renderEmployeeCard(employee)}
-                  <div className={styles.toolRouterActions}>
-                    <button className={styles.secondaryButton} type="button" onClick={() => setEmployeeDraft(employee)}>
-                      Edit
-                    </button>
-                    <button className={styles.dangerButton} type="button" onClick={() => onDeleteEmployee(employee.id)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.detailPanel}>
-            <h3>Employee Editor</h3>
-            <div className={styles.settingsGrid}>
-              <label className={styles.field}>
-                <span>Name</span>
-                <input value={employeeDraft.name} onChange={event => setEmployeeDraft(current => ({ ...current, name: event.target.value, updatedAt: Date.now() }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Role</span>
-                <select value={employeeDraft.roleId || getDefaultRoleId(employeeDraft.role)} onChange={event => selectEmployeeRole(event.target.value)}>
-                  {roles.map(role => (
-                    <option value={role.id} key={role.id}>
-                      {role.title}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={styles.field}>
-                <span>Model</span>
-                <input value={employeeDraft.model} onChange={event => setEmployeeDraft(current => ({ ...current, model: event.target.value, updatedAt: Date.now() }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Status</span>
-                <select value={employeeDraft.status} onChange={event => setEmployeeDraft(current => ({ ...current, status: event.target.value as VirtualEmployeeProfile['status'], updatedAt: Date.now() }))}>
-                  <option value="idle">Idle</option>
-                  <option value="working">Working</option>
-                  <option value="approval">Needs approval</option>
-                </select>
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Current task</span>
-                <input value={employeeDraft.currentTask} onChange={event => setEmployeeDraft(current => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() }))} />
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Permissions</span>
-                <textarea
-                  value={employeeDraft.permissions.join('\n')}
-                  onChange={event => setEmployeeDraft(current => ({
-                    ...current,
-                    permissions: normalizeStringList(event.target.value.split('\n'), DEFAULT_EMPLOYEE_PERMISSIONS),
-                    updatedAt: Date.now(),
-                  }))}
-                  rows={5}
-                />
-              </label>
-            </div>
-            <div className={styles.toolRouterActions}>
-              <button className={styles.primaryButton} type="button" onClick={saveEmployeeDraft}>
-                Save Employee
-              </button>
-              <button className={styles.secondaryButton} type="button" onClick={() => setEmployeeDraft(createVirtualEmployeeProfile('Developer'))}>
-                New Employee
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      {activeSection === 'teams' && (
-        <div className={styles.projectConsoleGrid}>
-          <section className={styles.detailPanel}>
-            <h3>Teams</h3>
-            <div className={styles.employeeGrid}>
-              {projectTeams.map(team => (
-                <div className={styles.employeeCardShell} key={team.id}>
-                  {renderProjectTeamCard(team)}
-                  <div className={styles.toolRouterActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => setTeamDraft({
-                        ...team,
-                        memberEmployeeIds: [...team.memberEmployeeIds],
-                      })}
-                    >
-                      Edit
-                    </button>
-                    <button className={styles.dangerButton} type="button" onClick={() => onDeleteTeam(team.id)}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {projectTeams.length === 0 && <span className={styles.mutedText}>No project teams configured.</span>}
-            </div>
-          </section>
-
-          <section className={styles.detailPanel}>
-            <h3>Team Editor</h3>
-            <div className={styles.settingsGrid}>
-              <label className={styles.field}>
-                <span>Team name</span>
-                <input value={teamDraft.name} onChange={event => setTeamDraft(current => ({ ...current, name: event.target.value, updatedAt: Date.now() }))} />
-              </label>
-              <label className={styles.field}>
-                <span>Supervisor</span>
-                <select value={teamDraft.supervisorEmployeeId} onChange={event => selectTeamSupervisor(event.target.value)}>
-                  {employees.map(employee => (
-                    <option value={employee.id} key={employee.id}>
-                      {employee.name} / {getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Mission</span>
-                <textarea value={teamDraft.mission} onChange={event => setTeamDraft(current => ({ ...current, mission: event.target.value, updatedAt: Date.now() }))} rows={4} />
-              </label>
-              <div className={`${styles.field} ${styles.fieldWide}`}>
-                <span>Members</span>
-                <div className={styles.employeeAssignGrid}>
-                  {employees
-                    .filter(employee => employee.id !== teamDraft.supervisorEmployeeId)
-                    .map(employee => (
-                      <label className={styles.employeeAssignOption} key={employee.id}>
-                        <input
-                          type="checkbox"
-                          checked={teamDraft.memberEmployeeIds.includes(employee.id)}
-                          onChange={() => toggleTeamMember(employee.id)}
-                        />
-                        <span>{employee.name}</span>
-                        <em>{getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}</em>
-                      </label>
-                    ))}
-                </div>
+      {visibleActiveSection === 'roles' && (
+        <div className={styles.workbenchSplit}>
+          <section className={`${styles.detailPanel} ${styles.workbenchMain}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Roles</h3>
+                <span>{roles.length} project role definition(s)</span>
+              </div>
+              <div className={styles.panelActions}>
+                <RecordViewToggle view={roleListView} onChange={setRoleListView} label="Role list view" />
+                <button className={styles.primaryButton} type="button" onClick={openNewRoleEditor} title="Create a new role definition">
+                  <Icon name="plus" size={14} />
+                  New Role
+                </button>
               </div>
             </div>
-            <div className={styles.toolRouterActions}>
-              <button className={styles.primaryButton} type="button" onClick={saveTeamDraft}>
-                Save Team
-              </button>
-              <button className={styles.secondaryButton} type="button" onClick={() => setTeamDraft({
-                ...createDefaultProjectTeams()[0],
-                id: createProjectTeamId('Project team'),
-                name: 'New Project Team',
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-              })}>
-                New Team
-              </button>
-            </div>
+            {roleListView === 'table' ? (
+              <div className={styles.workbenchRecordList}>
+                <div className={`${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}`}>
+                  <span>Role</span>
+                  <span>Scope</span>
+                  <span>Default goal</span>
+                  <span>Definition</span>
+                  <span>Actions</span>
+                </div>
+                {roles.map(role => renderRoleRow(role))}
+                {roles.length === 0 && <span className={styles.mutedText}>No roles configured.</span>}
+              </div>
+            ) : (
+              <div className={styles.recordCardGrid}>
+                {roles.map(role => renderRoleCard(role))}
+                {roles.length === 0 && <span className={styles.workbenchEmptyState}>No roles configured.</span>}
+              </div>
+            )}
           </section>
+
+          {projectEditorPanel === 'role' && (
+            <WorkbenchEditorPanel
+              title={roles.some(role => role.id === roleDraft.id) ? 'Edit Role' : 'New Role'}
+              subtitle="Responsibilities, default goal, and tool expectations"
+              onClose={closeProjectEditorPanel}
+              footer={(
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.primaryButton} type="button" onClick={saveRoleDraft} title="Save this role definition">
+                    <Icon name="save" size={14} />
+                    Save Role
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={openNewRoleEditor} title="Reset the form for a new role">
+                    <Icon name="rotate" size={14} />
+                    Reset New
+                  </button>
+                </div>
+              )}
+            >
+              <div className={styles.settingsGrid}>
+                <label className={styles.field}>
+                  <span>Role title</span>
+                  <input value={roleDraft.title} onChange={event => setRoleDraft(current => ({ ...current, title: event.target.value, updatedAt: Date.now() }))} />
+                </label>
+                <label className={styles.field}>
+                  <span>Can supervise</span>
+                  <select value={roleDraft.canSupervise ? 'yes' : 'no'} onChange={event => setRoleDraft(current => ({ ...current, canSupervise: event.target.value === 'yes', updatedAt: Date.now() }))}>
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Default goal</span>
+                  <textarea value={roleDraft.defaultGoal} onChange={event => setRoleDraft(current => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() }))} rows={3} />
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Responsibilities</span>
+                  <textarea
+                    value={roleDraft.responsibilities.join('\n')}
+                    onChange={event => setRoleDraft(current => ({
+                      ...current,
+                      responsibilities: normalizeStringList(event.target.value.split('\n'), ['Deliver assigned project responsibilities.']),
+                      updatedAt: Date.now(),
+                    }))}
+                    rows={7}
+                  />
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Default tools</span>
+                  <textarea
+                    value={roleDraft.defaultTools.join('\n')}
+                    onChange={event => setRoleDraft(current => ({
+                      ...current,
+                      defaultTools: normalizeStringList(event.target.value.split('\n'), getDefaultTeamTools(current.title)),
+                      updatedAt: Date.now(),
+                    }))}
+                    rows={4}
+                  />
+                </label>
+              </div>
+            </WorkbenchEditorPanel>
+          )}
         </div>
       )}
 
-      {activeSection === 'new' && (
+      {visibleActiveSection === 'employees' && (
+        <div className={styles.workbenchSplit}>
+          <section className={`${styles.detailPanel} ${styles.workbenchMain}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Employees</h3>
+                <span>{employees.length} reusable employee profile(s)</span>
+              </div>
+              <div className={styles.panelActions}>
+                <RecordViewToggle view={employeeListView} onChange={setEmployeeListView} label="Employee list view" />
+                <button className={styles.primaryButton} type="button" onClick={openNewEmployeeEditor} title="Create a new employee profile">
+                  <Icon name="plus" size={14} />
+                  New Employee
+                </button>
+              </div>
+            </div>
+            {employeeListView === 'table' ? (
+              <div className={styles.workbenchRecordList}>
+                <div className={`${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}`}>
+                  <span>Employee</span>
+                  <span>Role</span>
+                  <span>Status</span>
+                  <span>Current work</span>
+                  <span>Actions</span>
+                </div>
+                {employees.map(employee => renderEmployeeRow(employee))}
+                {employees.length === 0 && <span className={styles.workbenchEmptyState}>No employees configured.</span>}
+              </div>
+            ) : (
+              <div className={styles.recordCardGrid}>
+                {employees.map(employee => renderEmployeeManagementCard(employee))}
+                {employees.length === 0 && <span className={styles.workbenchEmptyState}>No employees configured.</span>}
+              </div>
+            )}
+          </section>
+
+          {projectEditorPanel === 'employee-profile' && profileEmployee && (
+            <WorkbenchEditorPanel
+              title={profileEmployee.name}
+              subtitle={`${getEmployeeRoleDefinition(profileEmployee, roles)?.title ?? profileEmployee.role} / ${profileEmployee.status}`}
+              onClose={closeProjectEditorPanel}
+            >
+              {renderEmployeeProfile(profileEmployee)}
+            </WorkbenchEditorPanel>
+          )}
+
+          {projectEditorPanel === 'employee' && (
+            <WorkbenchEditorPanel
+              title={employees.some(employee => employee.id === employeeDraft.id) ? 'Edit Employee' : 'New Employee'}
+              subtitle="Role, model, permissions, and current assignment"
+              onClose={closeProjectEditorPanel}
+              footer={(
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.primaryButton} type="button" onClick={saveEmployeeDraft} title="Save this employee profile">
+                    <Icon name="save" size={14} />
+                    Save Employee
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={openNewEmployeeEditor} title="Reset the form for a new employee">
+                    <Icon name="rotate" size={14} />
+                    Reset New
+                  </button>
+                </div>
+              )}
+            >
+              <div className={styles.settingsGrid}>
+                <label className={styles.field}>
+                  <span>Name</span>
+                  <input value={employeeDraft.name} onChange={event => setEmployeeDraft(current => ({ ...current, name: event.target.value, updatedAt: Date.now() }))} />
+                </label>
+                <label className={styles.field}>
+                  <span>Role</span>
+                  <select value={employeeDraft.roleId || getDefaultRoleId(employeeDraft.role)} onChange={event => selectEmployeeRole(event.target.value)}>
+                    {roles.map(role => (
+                      <option value={role.id} key={role.id}>
+                        {role.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={styles.field}>
+                  <span>Model</span>
+                  <input value={employeeDraft.model} onChange={event => setEmployeeDraft(current => ({ ...current, model: event.target.value, updatedAt: Date.now() }))} />
+                </label>
+                <label className={styles.field}>
+                  <span>Status</span>
+                  <select value={employeeDraft.status} onChange={event => setEmployeeDraft(current => ({ ...current, status: event.target.value as VirtualEmployeeProfile['status'], updatedAt: Date.now() }))}>
+                    <option value="idle">Idle</option>
+                    <option value="working">Working</option>
+                    <option value="approval">Needs approval</option>
+                  </select>
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Current task</span>
+                  <input value={employeeDraft.currentTask} onChange={event => setEmployeeDraft(current => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() }))} />
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Permissions</span>
+                  <textarea
+                    value={employeeDraft.permissions.join('\n')}
+                    onChange={event => setEmployeeDraft(current => ({
+                      ...current,
+                      permissions: normalizeStringList(event.target.value.split('\n'), DEFAULT_EMPLOYEE_PERMISSIONS),
+                      updatedAt: Date.now(),
+                    }))}
+                    rows={5}
+                  />
+                </label>
+              </div>
+            </WorkbenchEditorPanel>
+          )}
+        </div>
+      )}
+
+      {visibleActiveSection === 'teams' && (
+        <div className={styles.workbenchSplit}>
+          <section className={`${styles.detailPanel} ${styles.workbenchMain}`}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Teams</h3>
+                <span>{projectTeams.length} reusable project team(s)</span>
+              </div>
+              <div className={styles.panelActions}>
+                <RecordViewToggle view={teamListView} onChange={setTeamListView} label="Team list view" />
+                <button className={styles.primaryButton} type="button" onClick={openNewProjectTeamEditor} title="Create a new reusable team">
+                  <Icon name="plus" size={14} />
+                  New Team
+                </button>
+              </div>
+            </div>
+            {teamListView === 'table' ? (
+              <div className={styles.workbenchRecordList}>
+                <div className={`${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}`}>
+                  <span>Team</span>
+                  <span>Supervisor</span>
+                  <span>Members</span>
+                  <span>Mission</span>
+                  <span>Actions</span>
+                </div>
+                {projectTeams.map(team => renderProjectTeamRow(team))}
+                {projectTeams.length === 0 && <span className={styles.workbenchEmptyState}>No project teams configured.</span>}
+              </div>
+            ) : (
+              <div className={styles.recordCardGrid}>
+                {projectTeams.map(team => renderProjectTeamManagementCard(team))}
+                {projectTeams.length === 0 && <span className={styles.workbenchEmptyState}>No project teams configured.</span>}
+              </div>
+            )}
+          </section>
+
+          {projectEditorPanel === 'team' && (
+            <WorkbenchEditorPanel
+              title={projectTeams.some(team => team.id === teamDraft.id) ? 'Edit Team' : 'New Team'}
+              subtitle="Mission, supervisor, and members"
+              onClose={closeProjectEditorPanel}
+              footer={(
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.primaryButton} type="button" onClick={saveTeamDraft} title="Save this reusable team">
+                    <Icon name="save" size={14} />
+                    Save Team
+                  </button>
+                  <button className={styles.secondaryButton} type="button" onClick={openNewProjectTeamEditor} title="Reset the form for a new team">
+                    <Icon name="rotate" size={14} />
+                    Reset New
+                  </button>
+                </div>
+              )}
+            >
+              <div className={styles.settingsGrid}>
+                <label className={styles.field}>
+                  <span>Team name</span>
+                  <input value={teamDraft.name} onChange={event => setTeamDraft(current => ({ ...current, name: event.target.value, updatedAt: Date.now() }))} />
+                </label>
+                <label className={styles.field}>
+                  <span>Supervisor</span>
+                  <select value={teamDraft.supervisorEmployeeId} onChange={event => selectTeamSupervisor(event.target.value)}>
+                    {employees.map(employee => (
+                      <option value={employee.id} key={employee.id}>
+                        {employee.name} / {getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Mission</span>
+                  <textarea value={teamDraft.mission} onChange={event => setTeamDraft(current => ({ ...current, mission: event.target.value, updatedAt: Date.now() }))} rows={4} />
+                </label>
+                <div className={`${styles.field} ${styles.fieldWide}`}>
+                  <span>Members</span>
+                  <div className={styles.employeeAssignGrid}>
+                    {employees
+                      .filter(employee => employee.id !== teamDraft.supervisorEmployeeId)
+                      .map(employee => (
+                        <label className={styles.employeeAssignOption} key={employee.id}>
+                          <input
+                            type="checkbox"
+                            checked={teamDraft.memberEmployeeIds.includes(employee.id)}
+                            onChange={() => toggleTeamMember(employee.id)}
+                          />
+                          <span>{employee.name}</span>
+                          <em>{getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}</em>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </WorkbenchEditorPanel>
+          )}
+        </div>
+      )}
+
+      {visibleActiveSection === 'new' && (
         <section className={styles.detailPanel}>
           <div className={styles.panelHeader}>
             <div>
@@ -5333,7 +8352,7 @@ function ProjectsView({
                   </div>
                 </div>
                 <div className={`${styles.field} ${styles.fieldWide}`}>
-                  <span>Direct virtual employees</span>
+                  <span>Direct employees</span>
                   <div className={styles.employeeAssignGrid}>
                     {employees
                       .filter(employee => employee.id !== draft.supervisorEmployeeId)
@@ -5355,15 +8374,18 @@ function ProjectsView({
           </div>
 
           <div className={styles.toolRouterActions}>
-            <button className={styles.primaryButton} type="button" onClick={saveDraft}>
+            <button className={styles.primaryButton} type="button" onClick={saveDraft} title="Save this project">
+              <Icon name="save" size={14} />
               Save Project
             </button>
             {draft.mode === 'autonomous' ? (
-              <button className={styles.secondaryButton} type="button" onClick={saveDraftAndViewOrganization}>
-                Save And View Organization
+              <button className={styles.secondaryButton} type="button" onClick={saveDraftAndViewOrganization} title="Save this autonomous project and view its team organization">
+                <Icon name="network" size={14} />
+                Save And View Team
               </button>
             ) : (
-              <button className={styles.secondaryButton} type="button" onClick={() => onStartProjectChat(saveDraft())}>
+              <button className={styles.secondaryButton} type="button" onClick={saveDraftAndOpenProjectChat} title="Save this guided project and open chat">
+                <Icon name="chat" size={14} />
                 Save And Open Chat
               </button>
             )}
@@ -5371,7 +8393,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'guided' && (
+      {visibleActiveSection === 'guided' && (
         <section className={styles.detailPanel}>
           <h3>Guided Builds</h3>
           <div className={styles.projectList}>
@@ -5381,7 +8403,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'autonomous' && (
+      {visibleActiveSection === 'autonomous' && (
         <>
           <section className={styles.detailPanel}>
             <div className={styles.panelHeader}>
@@ -5392,7 +8414,6 @@ function ProjectsView({
             </div>
             {renderAutonomousProjectSelector()}
           </section>
-          {selectedAutonomousProject && renderAutonomousLifecycleControls(selectedAutonomousProject)}
           <section className={styles.detailPanel}>
             <div className={styles.panelHeader}>
               <div>
@@ -5401,7 +8422,8 @@ function ProjectsView({
               </div>
               {selectedAutonomousProject && (
                 <div className={styles.panelActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={() => editProject(selectedAutonomousProject)}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => editProject(selectedAutonomousProject)} title="Edit project staffing and team assignments">
+                    <Icon name="users" size={14} />
                     Edit Project Members
                   </button>
                 </div>
@@ -5435,13 +8457,16 @@ function ProjectsView({
                   </div>
                 </div>
                 <div className={styles.toolRouterActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('board')}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('board')} title="Open the task board for this autonomous project">
+                    <Icon name="board" size={14} />
                     Task Board
                   </button>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('chat')}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('chat')} title="Open team chat for this autonomous project">
+                    <Icon name="message" size={14} />
                     Team Chat
                   </button>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('deliverables')}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onChangeSection('deliverables')} title="View deliverables for this autonomous project">
+                    <Icon name="archive" size={14} />
                     Deliverables
                   </button>
                 </div>
@@ -5460,7 +8485,82 @@ function ProjectsView({
         </>
       )}
 
-      {activeSection === 'board' && (
+      {visibleActiveSection === 'insights' && (
+        <>
+          <section className={styles.detailPanel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Selected Project</h3>
+                <span>{selectedProject?.name ?? 'No project selected'}</span>
+              </div>
+            </div>
+            {renderProjectSelector()}
+          </section>
+          {selectedProject ? renderProjectInsights(selectedProject) : <span className={styles.mutedText}>Select a project to see insights.</span>}
+        </>
+      )}
+
+      {visibleActiveSection === 'execution' && (
+        <>
+          <section className={styles.detailPanel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Selected Project</h3>
+                <span>{selectedProject?.name ?? 'No project selected'}</span>
+              </div>
+            </div>
+            {renderProjectSelector()}
+          </section>
+          {selectedProject ? renderExecutionConsole(selectedProject) : <span className={styles.mutedText}>Select a project to see execution state.</span>}
+        </>
+      )}
+
+      {visibleActiveSection === 'artifacts' && (
+        <>
+          <section className={styles.detailPanel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Selected Project</h3>
+                <span>{selectedProject?.name ?? 'No project selected'}</span>
+              </div>
+            </div>
+            {renderProjectSelector()}
+          </section>
+          {selectedProject ? renderArtifactsExplorer(selectedProject) : <span className={styles.mutedText}>Select a project to see artifacts.</span>}
+        </>
+      )}
+
+      {visibleActiveSection === 'timeline' && (
+        <>
+          <section className={styles.detailPanel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Selected Project</h3>
+                <span>{selectedProject?.name ?? 'No project selected'}</span>
+              </div>
+            </div>
+            {renderProjectSelector()}
+          </section>
+          {selectedProject ? renderProjectTimeline(selectedProject) : <span className={styles.mutedText}>Select a project to see timeline.</span>}
+        </>
+      )}
+
+      {visibleActiveSection === 'governance' && (
+        <>
+          <section className={styles.detailPanel}>
+            <div className={styles.panelHeader}>
+              <div>
+                <h3>Selected Project</h3>
+                <span>{selectedProject?.name ?? 'No project selected'}</span>
+              </div>
+            </div>
+            {renderProjectSelector()}
+          </section>
+          {selectedProject ? renderGovernance(selectedProject) : <span className={styles.mutedText}>Select a project to see governance.</span>}
+        </>
+      )}
+
+      {visibleActiveSection === 'board' && (
         <section className={styles.detailPanel}>
           <div className={styles.panelHeader}>
             <div>
@@ -5473,7 +8573,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'chat' && (
+      {visibleActiveSection === 'chat' && (
         <section className={styles.detailPanel}>
           <div className={styles.panelHeader}>
             <div>
@@ -5486,7 +8586,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'deliverables' && (
+      {visibleActiveSection === 'deliverables' && (
         <section className={styles.detailPanel}>
           <div className={styles.panelHeader}>
             <div>
@@ -5499,7 +8599,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'context' && (
+      {visibleActiveSection === 'context' && (
         <>
           <section className={styles.detailPanel}>
             <div className={styles.panelHeader}>
@@ -5511,9 +8611,11 @@ function ProjectsView({
               </div>
               <div className={styles.panelActions}>
                 <button className={styles.secondaryButton} type="button" onClick={onGoToWorkspaceParent} disabled={workspacePath === '.' || isLoadingWorkspaceEntries}>
+                  <Icon name="arrow-left" size={14} />
                   Up
                 </button>
                 <button className={styles.secondaryButton} type="button" onClick={onRefreshWorkspace} disabled={isLoadingWorkspaceEntries}>
+                  <Icon name="refresh" size={14} />
                   Refresh
                 </button>
               </div>
@@ -5549,15 +8651,17 @@ function ProjectsView({
                       type="button"
                       onClick={() => entry.type === 'directory' ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)}
                     >
-                      <span>{entry.type === 'directory' ? 'Folder' : 'File'}</span>
+                      <span><Icon name={entry.type === 'directory' ? 'folder' : 'file'} size={13} />{entry.type === 'directory' ? 'Folder' : 'File'}</span>
                       <strong>{entry.name}</strong>
                       <em>{entry.type === 'directory' ? 'Directory' : formatFileSize(entry.size)}</em>
                     </button>
                     <div className={styles.fileEntryActions}>
                       <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(entryPath)}>
+                        <Icon name="external" size={13} />
                         Open
                       </button>
                       <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(entryPath)}>
+                        <Icon name="folder-open" size={13} />
                         Reveal
                       </button>
                     </div>
@@ -5643,7 +8747,7 @@ function ProjectsView({
         </>
       )}
 
-      {activeSection === 'overview' && (
+      {visibleActiveSection === 'overview' && (
         <>
           <div className={styles.detailHero}>
             <span className={styles.detailEyebrow}>Current workspace</span>
@@ -5699,7 +8803,7 @@ function ProjectsView({
         </>
       )}
 
-      {activeSection === 'files' && (
+      {visibleActiveSection === 'files' && (
         <section className={styles.detailPanel}>
           <div className={styles.panelHeader}>
             <div>
@@ -5710,9 +8814,11 @@ function ProjectsView({
             </div>
             <div className={styles.panelActions}>
               <button className={styles.secondaryButton} type="button" onClick={onGoToWorkspaceParent} disabled={workspacePath === '.' || isLoadingWorkspaceEntries}>
+                <Icon name="arrow-left" size={14} />
                 Up
               </button>
               <button className={styles.secondaryButton} type="button" onClick={onRefreshWorkspace} disabled={isLoadingWorkspaceEntries}>
+                <Icon name="refresh" size={14} />
                 Refresh
               </button>
             </div>
@@ -5748,15 +8854,17 @@ function ProjectsView({
                     type="button"
                     onClick={() => entry.type === 'directory' ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)}
                   >
-                    <span>{entry.type === 'directory' ? 'Folder' : 'File'}</span>
+                    <span><Icon name={entry.type === 'directory' ? 'folder' : 'file'} size={13} />{entry.type === 'directory' ? 'Folder' : 'File'}</span>
                     <strong>{entry.name}</strong>
                     <em>{entry.type === 'directory' ? 'Directory' : formatFileSize(entry.size)}</em>
                   </button>
                   <div className={styles.fileEntryActions}>
                     <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(entryPath)}>
+                      <Icon name="external" size={13} />
                       Open
                     </button>
                     <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(entryPath)}>
+                      <Icon name="folder-open" size={13} />
                       Reveal
                     </button>
                   </div>
@@ -5767,7 +8875,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'session' && (
+      {visibleActiveSection === 'session' && (
         <section className={styles.detailPanel}>
           <h3>Session</h3>
           <dl className={styles.detailList}>
@@ -5791,7 +8899,7 @@ function ProjectsView({
         </section>
       )}
 
-      {activeSection === 'runtime' && (
+      {visibleActiveSection === 'runtime' && (
         <section className={styles.detailPanel}>
           <h3>Runtime</h3>
           <dl className={styles.detailList}>
@@ -5870,22 +8978,16 @@ function ToolsView({
     },
     { allow: 0, ask: 0, deny: 0 },
   );
-  const activeMenuItem = TOOLS_MENU.find(item => item.id === activeSection) ?? TOOLS_MENU[0];
-
   return (
     <section className={styles.detailView} aria-label="Tools">
-      <div className={styles.detailToolbar}>
-        <div>
-          <span className={styles.detailEyebrow}>Agent capabilities</span>
-          <h2>{activeMenuItem.title}</h2>
-          <p className={styles.settingsPageSubtitle}>{activeMenuItem.description}</p>
-        </div>
-        {(activeSection === 'bridge' || activeSection === 'mcp') && (
+      {(activeSection === 'bridge' || activeSection === 'mcp') && (
+        <div className={styles.pageActionBar}>
           <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+            <Icon name="refresh" size={14} />
             Refresh
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {activeSection === 'bridge' && (
         <section className={styles.detailPanel}>
@@ -5910,21 +9012,27 @@ function ToolsView({
           </div>
           <div className={styles.toolRouterActions}>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPreset('all')}>
+              <Icon name="check" size={14} />
               Expose all
             </button>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPreset('read-only')}>
+              <Icon name="shield" size={14} />
               Read-only only
             </button>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPreset('mutating-off')}>
+              <Icon name="x" size={14} />
               Hide mutating
             </button>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('allow-all')}>
+              <Icon name="check" size={14} />
               Allow all
             </button>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('ask-mutating')}>
+              <Icon name="shield" size={14} />
               Ask mutating
             </button>
             <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('deny-mutating')}>
+              <Icon name="lock" size={14} />
               Deny mutating
             </button>
           </div>
@@ -5951,6 +9059,7 @@ function ToolsView({
                           type="button"
                           onClick={() => onToggleModelTool(tool.name, !exposed)}
                         >
+                          <Icon name={exposed ? 'x' : 'check'} size={13} />
                           {exposed ? 'Hide' : 'Expose'}
                         </button>
                       </div>
@@ -6069,7 +9178,6 @@ function HistoryView({
   onRestoreChat: (record: LocalHistoryRecord) => void;
   onExportRecords: (type?: LocalHistoryRecordType) => void;
 }) {
-  const activeMenuItem = HISTORY_MENU.find(item => item.id === activeSection) ?? HISTORY_MENU[0];
   const chatRecords = records.filter(record => record.type === 'chat-session');
   const toolRecords = records.filter(record => record.type === 'tool-event');
   const automationRecords = records.filter(record => record.type === 'automation-run');
@@ -6083,6 +9191,68 @@ function HistoryView({
         : activeSection === 'events'
           ? projectEventRecords
           : records;
+  const [historyDeleteTarget, setHistoryDeleteTarget] = useState<DeleteTarget<'record'> | null>(null);
+
+  function openHistoryDeleteConfirmation(record: LocalHistoryRecord) {
+    setHistoryDeleteTarget({
+      kind: 'record',
+      id: record.id,
+      name: getHistoryRecordTitle(record),
+      detail: 'Delete this local history record.',
+      impact: [
+        `${getHistoryRecordTypeLabel(record.type)} record will be removed from local history storage.`,
+        record.workspacePath ? `Workspace: ${record.workspacePath}` : 'This does not delete workspace files or project artifacts.',
+      ],
+    });
+  }
+
+  function closeHistoryDeleteConfirmation() {
+    setHistoryDeleteTarget(null);
+  }
+
+  function confirmHistoryDelete() {
+    if (!historyDeleteTarget) {
+      return;
+    }
+    onDeleteRecord(historyDeleteTarget.id);
+    closeHistoryDeleteConfirmation();
+  }
+
+  function renderHistoryDeleteConfirmation() {
+    if (!historyDeleteTarget) {
+      return null;
+    }
+
+    return (
+      <WorkbenchEditorPanel
+        title="Delete record"
+        subtitle={historyDeleteTarget.name}
+        onClose={closeHistoryDeleteConfirmation}
+        footer={(
+          <div className={styles.toolRouterActions}>
+            <button className={styles.dangerButton} type="button" onClick={confirmHistoryDelete}>
+              <Icon name="trash" size={14} />
+              Confirm Delete
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={closeHistoryDeleteConfirmation}>
+              <Icon name="x" size={14} />
+              Cancel
+            </button>
+          </div>
+        )}
+      >
+        <section className={styles.deleteConfirmation}>
+          <strong>{historyDeleteTarget.detail}</strong>
+          <span>This action updates local History state immediately.</span>
+          <ul>
+            {historyDeleteTarget.impact.map(item => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      </WorkbenchEditorPanel>
+    );
+  }
 
   async function copyExportText() {
     if (exportText) {
@@ -6106,25 +9276,17 @@ function HistoryView({
 
   return (
     <section className={styles.settingsView} aria-label="History">
-      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-labelledby="history-title">
-        <div className={styles.dialogHeader}>
-          <div>
-            <h2 id="history-title">History</h2>
-            <p className={styles.settingsPageSubtitle}>Browse local chat, tool, automation, and project-event records stored outside shareable project files.</p>
-          </div>
-          <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
-            Refresh
-          </button>
-        </div>
-
-        <div className={styles.settingsContent}>
-          <div className={styles.settingsContentHeader}>
-            <span className={styles.detailEyebrow}>Local history store</span>
-            <h3>{activeMenuItem.title}</h3>
-            <p>{activeMenuItem.description}</p>
+      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-label="History">
+        <div className={historyDeleteTarget ? `${styles.settingsContent} ${styles.workbenchSplitWithRail}` : styles.settingsContent}>
+          <div className={styles.pageActionBar}>
+            <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+              <Icon name="refresh" size={14} />
+              Refresh
+            </button>
           </div>
 
           {message && <p className={styles.inlineSuccess}>{message}</p>}
+          {historyDeleteTarget && renderHistoryDeleteConfirmation()}
 
           {activeSection === 'overview' && (
             <>
@@ -6155,7 +9317,7 @@ function HistoryView({
               </SettingsSection>
               <HistoryRecordList
                 records={records.slice(0, 12)}
-                onDeleteRecord={onDeleteRecord}
+                onRequestDeleteRecord={openHistoryDeleteConfirmation}
                 onRestoreChat={onRestoreChat}
               />
             </>
@@ -6164,7 +9326,7 @@ function HistoryView({
           {(activeSection === 'chats' || activeSection === 'tools' || activeSection === 'automation' || activeSection === 'events') && (
             <HistoryRecordList
               records={visibleRecords}
-              onDeleteRecord={onDeleteRecord}
+              onRequestDeleteRecord={openHistoryDeleteConfirmation}
               onRestoreChat={onRestoreChat}
             />
           )}
@@ -6175,18 +9337,23 @@ function HistoryView({
                 <p className={styles.mutedText}>Exports are local JSON snapshots. They do not include provider API keys.</p>
                 <div className={styles.toolRouterActions}>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords()}>
+                    <Icon name="download" size={14} />
                     Export All
                   </button>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('chat-session')}>
+                    <Icon name="chat" size={14} />
                     Export Chats
                   </button>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('tool-event')}>
+                    <Icon name="wrench" size={14} />
                     Export Tool Events
                   </button>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('automation-run')}>
+                    <Icon name="bot" size={14} />
                     Export Automation
                   </button>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('project-event')}>
+                    <Icon name="activity" size={14} />
                     Export Project Events
                   </button>
                 </div>
@@ -6196,9 +9363,11 @@ function HistoryView({
                 <textarea value={exportText} readOnly rows={14} placeholder="Choose an export option above." />
                 <div className={styles.toolRouterActions}>
                   <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={copyExportText}>
+                    <Icon name="file" size={14} />
                     Copy JSON
                   </button>
                   <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={downloadExportText}>
+                    <Icon name="download" size={14} />
                     Download JSON
                   </button>
                 </div>
@@ -6213,11 +9382,11 @@ function HistoryView({
 
 function HistoryRecordList({
   records,
-  onDeleteRecord,
+  onRequestDeleteRecord,
   onRestoreChat,
 }: {
   records: LocalHistoryRecord[];
-  onDeleteRecord: (recordId: string) => void;
+  onRequestDeleteRecord: (record: LocalHistoryRecord) => void;
   onRestoreChat: (record: LocalHistoryRecord) => void;
 }) {
   return (
@@ -6235,10 +9404,12 @@ function HistoryRecordList({
             <div className={styles.toolRouterActions}>
               {record.type === 'chat-session' && (
                 <button className={styles.secondaryButton} type="button" onClick={() => onRestoreChat(record)}>
+                  <Icon name="rotate" size={14} />
                   Restore Chat
                 </button>
               )}
-              <button className={styles.dangerButton} type="button" onClick={() => onDeleteRecord(record.id)}>
+              <button className={styles.dangerButton} type="button" onClick={() => onRequestDeleteRecord(record)}>
+                <Icon name="trash" size={14} />
                 Delete
               </button>
             </div>
@@ -6436,15 +9607,21 @@ function AutomationView({
   const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
   const [taskNotificationChannel, setTaskNotificationChannel] = useState<'desktop' | 'remote' | 'none'>('desktop');
   const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState<'run-once' | 'skip'>('run-once');
+  const [taskDraftId, setTaskDraftId] = useState('');
+  const [taskEnabled, setTaskEnabled] = useState(true);
   const [deviceName, setDeviceName] = useState('Phone');
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = useState('');
   const [teamDraft, setTeamDraft] = useState<VirtualTeamBlueprint>(() => createVirtualTeamDraft(workspacePath));
-  const activeMenuItem = AUTOMATION_MENU.find(item => item.id === activeSection) ?? AUTOMATION_MENU[0];
+  const [automationEditorPanel, setAutomationEditorPanel] = useState<AutomationEditorPanelId | null>(null);
+  const [automationDeleteTarget, setAutomationDeleteTarget] = useState<DeleteTarget<AutomationDeleteKind> | null>(null);
+  const [scheduledTaskView, setScheduledTaskView] = useState<RecordViewMode>('table');
   const selectedTeam = teams.find(team => team.id === selectedTeamId);
   const recentTeamRuns = selectedTeamId
     ? teamRuns.filter(run => run.teamId === selectedTeamId)
     : teamRuns;
+  const taskRailOpen = automationEditorPanel === 'task' || (automationEditorPanel === 'delete' && automationDeleteTarget?.kind === 'task');
+  const teamRailOpen = automationEditorPanel === 'team' || (automationEditorPanel === 'delete' && automationDeleteTarget?.kind === 'team');
 
   useEffect(() => {
     if (!selectedTeamId && teams[0]) {
@@ -6453,15 +9630,101 @@ function AutomationView({
     }
   }, [selectedTeamId, teams, workspacePath]);
 
+  function closeAutomationEditorPanel() {
+    setAutomationEditorPanel(null);
+    setAutomationDeleteTarget(null);
+  }
+
+  function openAutomationDeleteConfirmation(target: DeleteTarget<AutomationDeleteKind>) {
+    setAutomationDeleteTarget(target);
+    setAutomationEditorPanel('delete');
+  }
+
+  function confirmAutomationDelete() {
+    if (!automationDeleteTarget) {
+      return;
+    }
+
+    if (automationDeleteTarget.kind === 'task') {
+      onDeleteTask(automationDeleteTarget.id);
+    } else if (automationDeleteTarget.kind === 'team') {
+      onDeleteTeam(automationDeleteTarget.id);
+    } else if (automationDeleteTarget.kind === 'device') {
+      onRevokeRemoteDevice(automationDeleteTarget.id);
+    }
+
+    closeAutomationEditorPanel();
+  }
+
+  function openNewTaskEditor() {
+    setAutomationDeleteTarget(null);
+    setTaskDraftId('');
+    setTaskName('Daily project check');
+    setTaskPrompt('Summarize git status, failing tests, and next actions for this workspace.');
+    setTaskInterval(1440);
+    setTaskRetryEnabled(false);
+    setTaskMaxRetries(1);
+    setTaskRetryDelay(15);
+    setTaskNotifySuccess(false);
+    setTaskNotifyFailure(true);
+    setTaskNotificationChannel('desktop');
+    setTaskMissedRunPolicy('run-once');
+    setTaskEnabled(true);
+    setAutomationEditorPanel('task');
+  }
+
+  function openTaskEditor(task: ScheduledTask) {
+    setAutomationDeleteTarget(null);
+    setTaskDraftId(task.id);
+    setTaskName(task.name);
+    setTaskPrompt(task.prompt);
+    setTaskInterval(task.intervalMinutes);
+    setTaskRetryEnabled(Boolean(task.retryPolicy?.enabled));
+    setTaskMaxRetries(task.retryPolicy?.maxRetries ?? 1);
+    setTaskRetryDelay(task.retryPolicy?.retryDelayMinutes ?? 15);
+    setTaskNotifySuccess(Boolean(task.notificationPolicy?.onSuccess));
+    setTaskNotifyFailure(task.notificationPolicy?.onFailure !== false);
+    setTaskNotificationChannel(task.notificationPolicy?.channel ?? 'desktop');
+    setTaskMissedRunPolicy(task.missedRunPolicy ?? 'run-once');
+    setTaskEnabled(task.enabled);
+    setAutomationEditorPanel('task');
+  }
+
+  function saveTaskDraft() {
+    onSaveTask({
+      id: taskDraftId || undefined,
+      name: taskName,
+      prompt: taskPrompt,
+      intervalMinutes: taskInterval,
+      enabled: taskEnabled,
+      retryPolicy: {
+        enabled: taskRetryEnabled,
+        maxRetries: taskMaxRetries,
+        retryDelayMinutes: taskRetryDelay,
+      },
+      notificationPolicy: {
+        onSuccess: taskNotifySuccess,
+        onFailure: taskNotifyFailure,
+        channel: taskNotificationChannel,
+      },
+      missedRunPolicy: taskMissedRunPolicy,
+    });
+    closeAutomationEditorPanel();
+  }
+
   function startNewTeamDraft() {
     const draft = createVirtualTeamDraft(workspacePath);
     setSelectedTeamId('');
     setTeamDraft(draft);
+    setAutomationDeleteTarget(null);
+    setAutomationEditorPanel('team');
   }
 
   function selectTeam(team: VirtualTeamBlueprint) {
     setSelectedTeamId(team.id);
     setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
+    setAutomationDeleteTarget(null);
+    setAutomationEditorPanel('team');
   }
 
   function updateTeamDraft(update: Partial<VirtualTeamBlueprint>) {
@@ -6557,6 +9820,228 @@ function AutomationView({
         tools: normalizeToolNameList(member.tools),
       })),
     });
+    closeAutomationEditorPanel();
+  }
+
+  function buildScheduledTaskDeleteTarget(task: ScheduledTask): DeleteTarget<AutomationDeleteKind> {
+    return {
+      kind: 'task',
+      id: task.id,
+      name: task.name,
+      detail: 'Delete this scheduled automation task.',
+      impact: [
+        `The ${task.enabled ? 'enabled' : 'disabled'} schedule running every ${task.intervalMinutes} minute(s) will be removed.`,
+        'Existing task run history remains visible until history retention removes it.',
+      ],
+    };
+  }
+
+  function buildAutomationTeamDeleteTarget(team: VirtualTeamBlueprint): DeleteTarget<AutomationDeleteKind> {
+    return {
+      kind: 'team',
+      id: team.id,
+      name: team.name,
+      detail: 'Delete this automation team blueprint.',
+      impact: [
+        `${team.members.length} virtual team member definition(s) will be removed from this blueprint.`,
+        'Existing team run records are not deleted by this action.',
+      ],
+    };
+  }
+
+  function buildRemoteDeviceDeleteTarget(device: RemoteControlState['approvedDevices'][number]): DeleteTarget<AutomationDeleteKind> {
+    return {
+      kind: 'device',
+      id: device.id,
+      name: device.name,
+      detail: 'Revoke this approved remote-control device.',
+      impact: [
+        'The device token will no longer be accepted for remote approvals.',
+        device.lastSeenAt
+          ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}.`
+          : `Paired ${new Date(device.createdAt).toLocaleString()}.`,
+      ],
+    };
+  }
+
+  function getScheduledTaskPolicyLabels(task: ScheduledTask) {
+    const retryLabel = task.retryPolicy?.enabled
+      ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} retry`
+      : 'Retry off';
+    const notifyLabel = `${task.notificationPolicy?.channel ?? 'desktop'} notifications`;
+
+    return { retryLabel, notifyLabel };
+  }
+
+  function renderScheduledTaskRow(task: ScheduledTask) {
+    const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+
+    return (
+      <article className={styles.workbenchRecordRow} key={task.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{task.name}</strong>
+          <span>{task.enabled ? 'Enabled' : 'Disabled'} / {task.lastStatus ?? 'never run'}</span>
+        </div>
+        <span className={styles.workbenchRecordCell}>
+          Every {task.intervalMinutes} min
+        </span>
+        <span className={styles.workbenchRecordCell} title={new Date(task.nextRunAt).toLocaleString()}>
+          Next {new Date(task.nextRunAt).toLocaleString()}
+        </span>
+        <span className={styles.workbenchRecordCell} title={`${task.prompt} / ${retryLabel} / ${notifyLabel}`}>
+          {retryLabel} / {notifyLabel}
+        </span>
+        <div className={`${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}`}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openTaskEditor(task)}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => onRunTask(task.id)}>
+            <Icon name="play" size={14} />
+            Run Now
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => onSetTaskEnabled(task.id, !task.enabled)}>
+            <Icon name={task.enabled ? 'pause' : 'play'} size={14} />
+            {task.enabled ? 'Disable' : 'Enable'}
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task))}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderScheduledTaskCard(task: ScheduledTask) {
+    const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+
+    return (
+      <article className={styles.projectCard} key={task.id}>
+        <div className={styles.projectCardHeader}>
+          <div>
+            <strong>{task.name}</strong>
+            <span>{task.enabled ? 'Enabled' : 'Disabled'} / {task.lastStatus ?? 'never run'}</span>
+          </div>
+        </div>
+        <p title={task.prompt}>{task.prompt}</p>
+        <dl className={styles.projectCardMeta}>
+          <div>
+            <dt>Cadence</dt>
+            <dd>Every {task.intervalMinutes} min</dd>
+          </div>
+          <div>
+            <dt>Next Run</dt>
+            <dd title={new Date(task.nextRunAt).toLocaleString()}>{new Date(task.nextRunAt).toLocaleString()}</dd>
+          </div>
+        </dl>
+        <div className={styles.projectChipList}>
+          <span className={styles.projectChip}>{retryLabel}</span>
+          <span className={styles.projectChip}>{notifyLabel}</span>
+          <span className={styles.projectChip}>{task.missedRunPolicy ?? 'run-once'}</span>
+        </div>
+        <div className={styles.projectCardActions}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openTaskEditor(task)}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => onRunTask(task.id)}>
+            <Icon name="play" size={14} />
+            Run Now
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => onSetTaskEnabled(task.id, !task.enabled)}>
+            <Icon name={task.enabled ? 'pause' : 'play'} size={14} />
+            {task.enabled ? 'Disable' : 'Enable'}
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task))}>
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderAutomationTeamRow(team: VirtualTeamBlueprint) {
+    const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === 'running';
+    const status = teamIsRunning ? 'running' : team.status;
+    const governance = `${team.maxIterations ?? 1} iteration(s) / QA ${team.requireQaSignoff ? 'required' : 'optional'}`;
+    const rowClassName = team.id === selectedTeamId
+      ? `${styles.workbenchRecordRow} ${styles.workbenchRecordRowSelected}`
+      : styles.workbenchRecordRow;
+
+    return (
+      <article className={rowClassName} key={team.id}>
+        <div className={styles.workbenchRecordPrimary}>
+          <strong>{team.name}</strong>
+          <span title={team.workspacePath ?? workspacePath}>{team.workspacePath ?? workspacePath}</span>
+        </div>
+        <span className={styles.workbenchRecordCell}>
+          {status} / {getTeamPermissionLabel(team.permissionMode)}
+        </span>
+        <span className={styles.workbenchRecordCell}>
+          {team.members.length} member(s) / {governance}
+        </span>
+        <span className={styles.workbenchRecordCell} title={`${team.objective}${team.lastResult ? ` / ${team.lastResult}` : ''}`}>
+          {team.objective}
+        </span>
+        <div className={`${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}`}>
+          <button className={styles.secondaryButton} type="button" onClick={() => selectTeam(team)} disabled={teamIsRunning}>
+            <Icon name="edit" size={14} />
+            Edit
+          </button>
+          <button className={styles.secondaryButton} type="button" onClick={() => onRunTeam(team.id)} disabled={teamIsRunning}>
+            <Icon name={teamIsRunning ? 'activity' : 'play'} size={14} />
+            {teamIsRunning ? 'Running...' : 'Run Team'}
+          </button>
+          <button
+            className={styles.dangerButton}
+            type="button"
+            onClick={() => openAutomationDeleteConfirmation(buildAutomationTeamDeleteTarget(team))}
+            disabled={teamIsRunning}
+          >
+            <Icon name="trash" size={14} />
+            Delete
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function renderAutomationDeleteConfirmation() {
+    if (!automationDeleteTarget) {
+      return null;
+    }
+
+    return (
+      <WorkbenchEditorPanel
+        title={`Delete ${automationDeleteTarget.kind}`}
+        subtitle={automationDeleteTarget.name}
+        onClose={closeAutomationEditorPanel}
+        footer={(
+          <div className={styles.toolRouterActions}>
+            <button className={styles.dangerButton} type="button" onClick={confirmAutomationDelete}>
+              <Icon name="trash" size={14} />
+              Confirm Delete
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={closeAutomationEditorPanel}>
+              <Icon name="x" size={14} />
+              Cancel
+            </button>
+          </div>
+        )}
+      >
+        <section className={styles.deleteConfirmation}>
+          <strong>{automationDeleteTarget.detail}</strong>
+          <span>This action updates local Automation state immediately.</span>
+          <ul>
+            {automationDeleteTarget.impact.map(item => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </section>
+      </WorkbenchEditorPanel>
+    );
   }
 
   async function copyAutomationExportText() {
@@ -6581,27 +10066,18 @@ function AutomationView({
 
   return (
     <section className={styles.settingsView} aria-label="Automation">
-      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-labelledby="automation-title">
-        <div className={styles.dialogHeader}>
-          <div>
-            <h2 id="automation-title">Automation</h2>
-            <p className={styles.settingsPageSubtitle}>Manage skills, scheduled work, remote approvals, virtual teams, and unattended execution policy.</p>
-          </div>
-          <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
-            Refresh
-          </button>
-        </div>
-
+      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-label="Automation">
         <div className={styles.settingsContent}>
-            <div className={styles.settingsContentHeader}>
-              <span className={styles.detailEyebrow}>Local automation platform</span>
-              <h3>{activeMenuItem.title}</h3>
-              <p>{activeMenuItem.description}</p>
-            </div>
+          <div className={styles.pageActionBar}>
+            <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
+              <Icon name="refresh" size={14} />
+              Refresh
+            </button>
+          </div>
 
-            {message && <p className={styles.inlineSuccess}>{message}</p>}
+          {message && <p className={styles.inlineSuccess}>{message}</p>}
 
-            {activeSection === 'skills' && (
+          {activeSection === 'skills' && (
               <>
                 <SettingsSection title="Workspace Skills">
                   <p className={styles.mutedText}>Workspace skills are discovered from `.code-agent/skills` and `skills`.</p>
@@ -6616,6 +10092,7 @@ function AutomationView({
                         <p title={skill.path}>{skill.path}</p>
                         <div className={styles.toolRouterActions}>
                           <button className={styles.secondaryButton} type="button" onClick={() => onSetSkillEnabled(skill.id, !skill.enabled)}>
+                            <Icon name={skill.enabled ? 'pause' : 'play'} size={14} />
                             {skill.enabled ? 'Disable' : 'Enable'}
                           </button>
                         </div>
@@ -6629,18 +10106,23 @@ function AutomationView({
                   <p className={styles.mutedText}>Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included.</p>
                   <div className={styles.toolRouterActions}>
                     <button className={styles.secondaryButton} type="button" onClick={() => onExportProject(false)}>
+                      <Icon name="download" size={14} />
                       Export Config
                     </button>
                     <button className={styles.secondaryButton} type="button" onClick={() => onExportProject(true)}>
+                      <Icon name="archive" size={14} />
                       Export With Runs
                     </button>
                     <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={copyAutomationExportText}>
+                      <Icon name="file" size={14} />
                       Copy Export
                     </button>
                     <button className={styles.secondaryButton} type="button" disabled={!exportText} onClick={downloadAutomationExportText}>
+                      <Icon name="download" size={14} />
                       Download Export
                     </button>
                     <button className={styles.primaryButton} type="button" onClick={onImportProject} disabled={!importText.trim()}>
+                      <Icon name="folder-open" size={14} />
                       Import JSON
                     </button>
                   </div>
@@ -6659,8 +10141,9 @@ function AutomationView({
             )}
 
             {activeSection === 'tasks' && (
-              <>
-                <SettingsSection title="Scheduler">
+              <div className={taskRailOpen ? `${styles.workbenchSplit} ${styles.workbenchSplitWithRail}` : styles.workbenchSplit}>
+                <div className={styles.workbenchMainStack}>
+                  <SettingsSection title="Scheduler">
                   <dl className={styles.detailList}>
                     <div>
                       <dt>Status</dt>
@@ -6675,145 +10158,39 @@ function AutomationView({
                       <dd>{schedulerStatus.runningTaskIds.length}</dd>
                     </div>
                   </dl>
-                  <p className={styles.mutedText}>Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the Team Editor when trusted autonomous work should not pause for approvals.</p>
-                </SettingsSection>
-
-                <SettingsSection title="Create Task">
-                  <div className={styles.settingsGrid}>
-                    <label className={styles.field}>
-                      <span>Name</span>
-                      <input value={taskName} onChange={event => setTaskName(event.target.value)} />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Interval minutes</span>
-                      <input
-                        type="number"
-                        min={1}
-                        value={taskInterval}
-                        onChange={event => setTaskInterval(Math.max(1, Number(event.target.value) || 1))}
-                      />
-                    </label>
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span>Prompt</span>
-                      <textarea value={taskPrompt} onChange={event => setTaskPrompt(event.target.value)} rows={4} />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Retry failed runs</span>
-                      <select value={taskRetryEnabled ? 'enabled' : 'disabled'} onChange={event => setTaskRetryEnabled(event.target.value === 'enabled')}>
-                        <option value="disabled">Disabled</option>
-                        <option value="enabled">Enabled</option>
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Max retries</span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={10}
-                        value={taskMaxRetries}
-                        onChange={event => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))}
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Retry delay minutes</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={1440}
-                        value={taskRetryDelay}
-                        onChange={event => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))}
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Notify on success</span>
-                      <select value={taskNotifySuccess ? 'yes' : 'no'} onChange={event => setTaskNotifySuccess(event.target.value === 'yes')}>
-                        <option value="no">No</option>
-                        <option value="yes">Yes</option>
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Notify on failure</span>
-                      <select value={taskNotifyFailure ? 'yes' : 'no'} onChange={event => setTaskNotifyFailure(event.target.value === 'yes')}>
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Notification channel</span>
-                      <select value={taskNotificationChannel} onChange={event => setTaskNotificationChannel(event.target.value as 'desktop' | 'remote' | 'none')}>
-                        <option value="desktop">Desktop</option>
-                        <option value="remote">Remote</option>
-                        <option value="none">None</option>
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Missed runs</span>
-                      <select value={taskMissedRunPolicy} onChange={event => setTaskMissedRunPolicy(event.target.value as 'run-once' | 'skip')}>
-                        <option value="run-once">Run once after restart</option>
-                        <option value="skip">Skip and resume schedule</option>
-                      </select>
-                    </label>
-                  </div>
+                  <p className={styles.mutedText}>Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the team panel when trusted autonomous work should not pause for approvals.</p>
                   <div className={styles.toolRouterActions}>
-                    <button
-                      className={styles.primaryButton}
-                      type="button"
-                      onClick={() => onSaveTask({
-                        name: taskName,
-                        prompt: taskPrompt,
-                        intervalMinutes: taskInterval,
-                        enabled: true,
-                        retryPolicy: {
-                          enabled: taskRetryEnabled,
-                          maxRetries: taskMaxRetries,
-                          retryDelayMinutes: taskRetryDelay,
-                        },
-                        notificationPolicy: {
-                          onSuccess: taskNotifySuccess,
-                          onFailure: taskNotifyFailure,
-                          channel: taskNotificationChannel,
-                        },
-                        missedRunPolicy: taskMissedRunPolicy,
-                      })}
-                    >
-                      Save Task
+                    <button className={styles.primaryButton} type="button" onClick={openNewTaskEditor}>
+                      New Task
                     </button>
                   </div>
                 </SettingsSection>
 
-                <SettingsSection title="Configured Tasks">
-                  <div className={styles.toolCatalog}>
-                    {tasks.map(task => (
-                      <article className={styles.toolCatalogItem} key={task.id}>
-                        <div>
-                          <strong>{task.name}</strong>
-                          <span>{task.enabled ? 'Enabled' : 'Disabled'}</span>
+                  <SettingsSection title="Configured Tasks">
+                    <div className={styles.recordSectionToolbar}>
+                      <RecordViewToggle view={scheduledTaskView} onChange={setScheduledTaskView} label="Scheduled task list view" />
+                    </div>
+                    {scheduledTaskView === 'table' ? (
+                      <div className={styles.workbenchRecordList}>
+                        <div className={`${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}`}>
+                          <span>Task</span>
+                          <span>Cadence</span>
+                          <span>Next run</span>
+                          <span>Policy</span>
+                          <span>Actions</span>
                         </div>
-                        <p>{task.prompt}</p>
-                        <p>Every {task.intervalMinutes} min / next {new Date(task.nextRunAt).toLocaleString()}</p>
-                        <p>Status: {task.lastStatus ?? 'never run'}</p>
-                        <p>Retry: {task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} after ${task.retryPolicy.retryDelayMinutes} min` : 'disabled'}</p>
-                        <p>Notify: {task.notificationPolicy?.channel ?? 'desktop'} / success {task.notificationPolicy?.onSuccess ? 'on' : 'off'} / failure {task.notificationPolicy?.onFailure !== false ? 'on' : 'off'}</p>
-                        <p>Missed runs: {task.missedRunPolicy === 'skip' ? 'skip and resume schedule' : 'run once after restart'}</p>
-                        {task.lastResult && <p>{task.lastResult}</p>}
-                        <div className={styles.toolRouterActions}>
-                          <button className={styles.secondaryButton} type="button" onClick={() => onRunTask(task.id)}>
-                            Run Now
-                          </button>
-                          <button className={styles.secondaryButton} type="button" onClick={() => onSetTaskEnabled(task.id, !task.enabled)}>
-                            {task.enabled ? 'Disable' : 'Enable'}
-                          </button>
-                          <button className={styles.dangerButton} type="button" onClick={() => onDeleteTask(task.id)}>
-                            Delete
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                    {tasks.length === 0 && <span className={styles.mutedText}>No scheduled tasks configured.</span>}
-                  </div>
-                </SettingsSection>
+                        {tasks.map(task => renderScheduledTaskRow(task))}
+                        {tasks.length === 0 && <span className={styles.workbenchEmptyState}>No scheduled tasks configured.</span>}
+                      </div>
+                    ) : (
+                      <div className={styles.recordCardGrid}>
+                        {tasks.map(task => renderScheduledTaskCard(task))}
+                        {tasks.length === 0 && <span className={styles.workbenchEmptyState}>No scheduled tasks configured.</span>}
+                      </div>
+                    )}
+                  </SettingsSection>
 
-                <SettingsSection title="Recent Task Runs">
+                  <SettingsSection title="Recent Task Runs">
                   <div className={styles.toolCatalog}>
                     {taskRuns.slice(0, 8).map(run => (
                       <article className={styles.toolCatalogItem} key={run.id}>
@@ -6827,8 +10204,113 @@ function AutomationView({
                     ))}
                     {taskRuns.length === 0 && <span className={styles.mutedText}>No task runs yet.</span>}
                   </div>
-                </SettingsSection>
-              </>
+                  </SettingsSection>
+                </div>
+
+                {automationEditorPanel === 'task' && (
+                  <WorkbenchEditorPanel
+                    title={taskDraftId ? 'Edit Scheduled Task' : 'New Scheduled Task'}
+                    subtitle="Prompt, cadence, retries, notifications, and missed-run handling"
+                    onClose={closeAutomationEditorPanel}
+                    footer={(
+                      <div className={styles.toolRouterActions}>
+                        <button className={styles.primaryButton} type="button" onClick={saveTaskDraft}>
+                          <Icon name="save" size={14} />
+                          Save Task
+                        </button>
+                        <button className={styles.secondaryButton} type="button" onClick={openNewTaskEditor}>
+                          <Icon name="rotate" size={14} />
+                          Reset New
+                        </button>
+                      </div>
+                    )}
+                  >
+                    <div className={styles.settingsGrid}>
+                      <label className={styles.field}>
+                        <span>Name</span>
+                        <input value={taskName} onChange={event => setTaskName(event.target.value)} />
+                      </label>
+                      <label className={styles.field}>
+                        <span>Enabled</span>
+                        <select value={taskEnabled ? 'yes' : 'no'} onChange={event => setTaskEnabled(event.target.value === 'yes')}>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Interval minutes</span>
+                        <input
+                          type="number"
+                          min={1}
+                          value={taskInterval}
+                          onChange={event => setTaskInterval(Math.max(1, Number(event.target.value) || 1))}
+                        />
+                      </label>
+                      <label className={`${styles.field} ${styles.fieldWide}`}>
+                        <span>Prompt</span>
+                        <textarea value={taskPrompt} onChange={event => setTaskPrompt(event.target.value)} rows={4} />
+                      </label>
+                      <label className={styles.field}>
+                        <span>Retry failed runs</span>
+                        <select value={taskRetryEnabled ? 'enabled' : 'disabled'} onChange={event => setTaskRetryEnabled(event.target.value === 'enabled')}>
+                          <option value="disabled">Disabled</option>
+                          <option value="enabled">Enabled</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Max retries</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={10}
+                          value={taskMaxRetries}
+                          onChange={event => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))}
+                        />
+                      </label>
+                      <label className={styles.field}>
+                        <span>Retry delay minutes</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={1440}
+                          value={taskRetryDelay}
+                          onChange={event => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))}
+                        />
+                      </label>
+                      <label className={styles.field}>
+                        <span>Notify on success</span>
+                        <select value={taskNotifySuccess ? 'yes' : 'no'} onChange={event => setTaskNotifySuccess(event.target.value === 'yes')}>
+                          <option value="no">No</option>
+                          <option value="yes">Yes</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Notify on failure</span>
+                        <select value={taskNotifyFailure ? 'yes' : 'no'} onChange={event => setTaskNotifyFailure(event.target.value === 'yes')}>
+                          <option value="yes">Yes</option>
+                          <option value="no">No</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Notification channel</span>
+                        <select value={taskNotificationChannel} onChange={event => setTaskNotificationChannel(event.target.value as 'desktop' | 'remote' | 'none')}>
+                          <option value="desktop">Desktop</option>
+                          <option value="remote">Remote</option>
+                          <option value="none">None</option>
+                        </select>
+                      </label>
+                      <label className={styles.field}>
+                        <span>Missed runs</span>
+                        <select value={taskMissedRunPolicy} onChange={event => setTaskMissedRunPolicy(event.target.value as 'run-once' | 'skip')}>
+                          <option value="run-once">Run once after restart</option>
+                          <option value="skip">Skip and resume schedule</option>
+                        </select>
+                      </label>
+                    </div>
+                  </WorkbenchEditorPanel>
+                )}
+                {automationEditorPanel === 'delete' && automationDeleteTarget?.kind === 'task' && renderAutomationDeleteConfirmation()}
+              </div>
             )}
 
             {activeSection === 'remote' && (
@@ -6860,9 +10342,11 @@ function AutomationView({
                   </div>
                   <div className={styles.toolRouterActions}>
                     <button className={styles.secondaryButton} type="button" onClick={() => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? 'disabled' : 'local-network' })}>
+                      <Icon name={remoteControl.enabled ? 'pause' : 'play'} size={14} />
                       {remoteControl.enabled ? 'Disable' : 'Enable'}
                     </button>
                     <button className={styles.primaryButton} type="button" onClick={() => onCreatePairingCode(deviceName)}>
+                      <Icon name="phone" size={14} />
                       Pair Device
                     </button>
                   </div>
@@ -6921,7 +10405,8 @@ function AutomationView({
                         <p>Paired {new Date(device.createdAt).toLocaleString()}</p>
                         {device.lastSeenAt && <p>Last seen {new Date(device.lastSeenAt).toLocaleString()}</p>}
                         <div className={styles.toolRouterActions}>
-                          <button className={styles.dangerButton} type="button" onClick={() => onRevokeRemoteDevice(device.id)}>
+                          <button className={styles.dangerButton} type="button" onClick={() => openAutomationDeleteConfirmation(buildRemoteDeviceDeleteTarget(device))}>
+                            <Icon name="trash" size={14} />
                             Revoke
                           </button>
                         </div>
@@ -6946,255 +10431,7 @@ function AutomationView({
                     {(remoteControl.auditLog ?? []).length === 0 && <span className={styles.mutedText}>No remote-control audit events yet.</span>}
                   </div>
                 </SettingsSection>
-              </>
-            )}
-
-            {activeSection === 'team' && (
-              <>
-                <SettingsSection title="Team Blueprints">
-                  <div className={styles.toolRouterActions}>
-                    <button className={styles.secondaryButton} type="button" onClick={startNewTeamDraft}>
-                      New Team
-                    </button>
-                    <button className={styles.secondaryButton} type="button" onClick={() => onCreateDefaultTeam(teamDraft.objective)}>
-                      Add Default Template
-                    </button>
-                  </div>
-                  <div className={styles.toolCatalog}>
-                    {teams.map(team => {
-                      const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === 'running';
-                      return (
-                        <article className={team.id === selectedTeamId ? `${styles.toolCatalogItem} ${styles.toolCatalogItemSelected}` : styles.toolCatalogItem} key={team.id}>
-                          <div>
-                            <strong>{team.name}</strong>
-                            <span>{teamIsRunning ? 'running' : team.status}</span>
-                          </div>
-                          <p>{team.objective}</p>
-                          <p title={team.workspacePath ?? workspacePath}>Workspace: {team.workspacePath ?? workspacePath}</p>
-                          <p>Permissions: {getTeamPermissionLabel(team.permissionMode)}</p>
-                          <p>Governance: {team.maxIterations ?? 1} iteration(s) / QA {team.requireQaSignoff ? 'required' : 'optional'}</p>
-                          <div className={styles.tagList}>
-                            {team.members.map(member => (
-                              <span className={styles.tag} key={member.id}>{member.role}</span>
-                            ))}
-                          </div>
-                          {team.lastResult && <p>{team.lastResult}</p>}
-                          <div className={styles.toolRouterActions}>
-                            <button className={styles.secondaryButton} type="button" onClick={() => selectTeam(team)} disabled={teamIsRunning}>
-                              Edit
-                            </button>
-                            <button className={styles.secondaryButton} type="button" onClick={() => onRunTeam(team.id)} disabled={teamIsRunning}>
-                              {teamIsRunning ? 'Running...' : 'Run Team'}
-                            </button>
-                            <button className={styles.dangerButton} type="button" onClick={() => onDeleteTeam(team.id)} disabled={teamIsRunning}>
-                              Delete
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                    {teams.length === 0 && <span className={styles.mutedText}>No virtual team blueprints configured.</span>}
-                  </div>
-                </SettingsSection>
-
-                <SettingsSection title="Shared Roles And Employees">
-                  <dl className={styles.detailList}>
-                    <div>
-                      <dt>Roles</dt>
-                      <dd>{roles.length}</dd>
-                    </div>
-                    <div>
-                      <dt>Employees</dt>
-                      <dd>{employees.length}</dd>
-                    </div>
-                    <div>
-                      <dt>Supervisor roles</dt>
-                      <dd>{roles.filter(role => role.canSupervise).length}</dd>
-                    </div>
-                  </dl>
-                  <div className={styles.projectChipList}>
-                    {roles.slice(0, 8).map(role => (
-                      <span className={styles.projectChip} key={role.id}>{role.title}</span>
-                    ))}
-                  </div>
-                </SettingsSection>
-
-                <SettingsSection title="Team Editor">
-                  <div className={styles.settingsGrid}>
-                    <label className={styles.field}>
-                      <span>Team name</span>
-                      <input value={teamDraft.name} onChange={event => updateTeamDraft({ name: event.target.value })} />
-                    </label>
-                    <label className={styles.field}>
-                      <span>Supervisor</span>
-                      <select value={teamDraft.supervisorId} onChange={event => updateTeamDraft({ supervisorId: event.target.value })}>
-                        {teamDraft.members.map(member => (
-                          <option value={member.id} key={member.id}>{member.name || member.role}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Execution permissions</span>
-                      <select
-                        value={teamDraft.permissionMode ?? 'full-access'}
-                        onChange={event => updateTeamDraft({ permissionMode: event.target.value as VirtualTeamPermissionMode })}
-                      >
-                        <option value="full-access">Full access, no approval popups</option>
-                        <option value="supervised">Supervised, ask for risky tools</option>
-                      </select>
-                    </label>
-                    <label className={styles.field}>
-                      <span>Max iterations</span>
-                      <input
-                        type="number"
-                        min={1}
-                        max={5}
-                        value={teamDraft.maxIterations ?? 1}
-                        onChange={event => updateTeamDraft({
-                          maxIterations: Math.max(1, Math.min(5, Math.floor(Number(event.target.value) || 1))),
-                        })}
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span>QA/reviewer signoff</span>
-                      <select
-                        value={teamDraft.requireQaSignoff ? 'required' : 'optional'}
-                        onChange={event => updateTeamDraft({ requireQaSignoff: event.target.value === 'required' })}
-                      >
-                        <option value="required">Required before success</option>
-                        <option value="optional">Optional</option>
-                      </select>
-                    </label>
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span>Project objective</span>
-                      <textarea value={teamDraft.objective} onChange={event => updateTeamDraft({ objective: event.target.value })} rows={4} />
-                    </label>
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span>Team workspace path</span>
-                      <input value={teamDraft.workspacePath ?? workspacePath} onChange={event => updateTeamDraft({ workspacePath: event.target.value })} />
-                    </label>
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span>Add shared employee</span>
-                      <select value={selectedSharedEmployeeId || employees[0]?.id || ''} onChange={event => setSelectedSharedEmployeeId(event.target.value)}>
-                        {employees.map(employee => (
-                          <option value={employee.id} key={employee.id}>
-                            {employee.name} / {getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className={styles.toolRouterActions}>
-                    <button
-                      className={styles.secondaryButton}
-                      type="button"
-                      onClick={() => addSharedEmployeeToTeam(selectedSharedEmployeeId || employees[0]?.id || '')}
-                      disabled={employees.length === 0}
-                    >
-                      Add Shared Employee
-                    </button>
-                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('Developer')}>
-                      Add Developer
-                    </button>
-                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('QA')}>
-                      Add QA
-                    </button>
-                    <button className={styles.secondaryButton} type="button" onClick={() => addTeamMember('Reviewer')}>
-                      Add Reviewer
-                    </button>
-                    <button className={styles.primaryButton} type="button" onClick={saveTeamDraft}>
-                      Save Team
-                    </button>
-                  </div>
-
-                  <div className={styles.toolCatalog}>
-                    {teamDraft.members.map((member, index) => (
-                      <article className={styles.toolCatalogItem} key={member.id}>
-                        <div>
-                          <strong>{member.name || member.role || 'Team member'}</strong>
-                          <span>{member.id === teamDraft.supervisorId ? 'Supervisor' : 'Member'}</span>
-                        </div>
-                        <div className={styles.settingsGrid}>
-                          <label className={styles.field}>
-                            <span>Name</span>
-                            <input value={member.name} onChange={event => updateTeamMember(index, { name: event.target.value })} />
-                          </label>
-                          <label className={styles.field}>
-                            <span>Role</span>
-                            <input value={member.role} onChange={event => updateTeamMember(index, { role: event.target.value })} />
-                          </label>
-                          <label className={`${styles.field} ${styles.fieldWide}`}>
-                            <span>Goal</span>
-                            <textarea value={member.goal} onChange={event => updateTeamMember(index, { goal: event.target.value })} rows={3} />
-                          </label>
-                          <label className={styles.field}>
-                            <span>Model override</span>
-                            <input value={member.model ?? ''} onChange={event => updateTeamMember(index, { model: event.target.value || undefined })} />
-                          </label>
-                          <label className={styles.field}>
-                            <span>Tools</span>
-                            <input value={formatTeamTools(member.tools)} onChange={event => updateTeamMember(index, { tools: normalizeToolNameList(event.target.value) })} />
-                          </label>
-                        </div>
-                        <div className={styles.toolRouterActions}>
-                          <button className={styles.secondaryButton} type="button" onClick={() => updateTeamDraft({ supervisorId: member.id })}>
-                            Make Supervisor
-                          </button>
-                          <button className={styles.dangerButton} type="button" onClick={() => deleteTeamMember(member.id)} disabled={teamDraft.members.length <= 1}>
-                            Delete Member
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </SettingsSection>
-
-                <SettingsSection title="Team Communication">
-                  <p className={styles.mutedText}>
-                    {selectedTeam ? `Showing runs for ${selectedTeam.name}.` : 'Showing recent runs across all teams.'}
-                  </p>
-                  <div className={styles.toolCatalog}>
-                    {recentTeamRuns.slice(0, 6).map(run => (
-                      <article className={styles.toolCatalogItem} key={run.id}>
-                        <div>
-                          <strong>{run.teamName}</strong>
-                          <span>{run.status}</span>
-                        </div>
-                        <p>{run.summary ?? run.error ?? 'Running...'}</p>
-                        <p title={run.workspacePath ?? workspacePath}>Workspace: {run.workspacePath ?? workspacePath}</p>
-                        {run.artifactPath && <p title={run.artifactPath}>Artifact: {run.artifactPath}</p>}
-                        {(run.milestones?.length ?? 0) > 0 && (
-                          <div className={styles.teamTranscript}>
-                            {run.milestones?.map(milestone => (
-                              <section className={styles.teamTranscriptStep} key={`${run.id}-${milestone.id}`}>
-                                <div>
-                                  <strong>{milestone.title}</strong>
-                                  <span>{milestone.status}</span>
-                                </div>
-                                {milestone.summary && <p>{milestone.summary}</p>}
-                              </section>
-                            ))}
-                          </div>
-                        )}
-                        <div className={styles.teamTranscript}>
-                          {run.steps.map((step, index) => (
-                            <section className={styles.teamTranscriptStep} key={`${run.id}-${step.memberId}-${index}`}>
-                              <div>
-                                <strong>{step.iteration ? `Iteration ${step.iteration} / ` : ''}{step.role} / {step.memberName}</strong>
-                                <span>{step.status}</span>
-                              </div>
-                              <p>{step.output ?? step.error ?? 'Waiting for output.'}</p>
-                            </section>
-                          ))}
-                          {run.steps.length === 0 && <span className={styles.mutedText}>No team messages yet.</span>}
-                        </div>
-                        <p>{run.steps.length} step(s) / {new Date(run.startedAt).toLocaleString()}</p>
-                      </article>
-                    ))}
-                    {recentTeamRuns.length === 0 && <span className={styles.mutedText}>No team runs yet.</span>}
-                  </div>
-                </SettingsSection>
+                {automationEditorPanel === 'delete' && automationDeleteTarget?.kind === 'device' && renderAutomationDeleteConfirmation()}
               </>
             )}
 
@@ -7204,12 +10441,15 @@ function AutomationView({
                   <p className={styles.mutedText}>Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries.</p>
                   <div className={styles.toolRouterActions}>
                     <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('allow-all')}>
+                      <Icon name="check" size={14} />
                       Allow All Tools
                     </button>
                     <button className={styles.secondaryButton} type="button" onClick={() => onApplyPermissionPreset('ask-mutating')}>
+                      <Icon name="shield" size={14} />
                       Ask Before Changes
                     </button>
                     <button className={styles.dangerButton} type="button" onClick={() => onApplyPermissionPreset('deny-mutating')}>
+                      <Icon name="lock" size={14} />
                       Deny Mutating Tools
                     </button>
                   </div>
@@ -7269,6 +10509,7 @@ function RunCommandPanel({
           <input value={cwd} onChange={event => setCwd(event.target.value)} placeholder="." />
         </label>
         <button className={styles.primaryButton} type="button" onClick={() => onRunCommand(command, cwd)}>
+          <Icon name="terminal" size={14} />
           Review Run
         </button>
       </div>
@@ -7280,6 +10521,7 @@ function RunCommandPanel({
             key={helper.label}
             onClick={() => setCommand(helper.command)}
           >
+            <Icon name="terminal" size={14} />
             {helper.label}
           </button>
         ))}
@@ -7363,9 +10605,11 @@ function FileWriteReviewDialog({
           <span className={styles.settingsMessage}>The file is not written until you approve this review.</span>
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onReject}>
+              <Icon name="x" size={14} />
               Reject
             </button>
             <button className={styles.primaryButton} type="button" onClick={onApprove}>
+              <Icon name="check" size={14} />
               Approve Write
             </button>
           </div>
@@ -7426,9 +10670,11 @@ function CommandReviewDialog({
           <span className={styles.settingsMessage}>The command is not executed until you approve this review.</span>
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onReject}>
+              <Icon name="x" size={14} />
               Reject
             </button>
             <button className={styles.primaryButton} type="button" onClick={onApprove}>
+              <Icon name="check" size={14} />
               Approve Run
             </button>
           </div>
@@ -7482,9 +10728,11 @@ function ToolPermissionReviewDialog({
           <span className={styles.settingsMessage}>The tool call is blocked until you approve it.</span>
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onReject}>
+              <Icon name="x" size={14} />
               Reject
             </button>
             <button className={styles.primaryButton} type="button" onClick={onApprove}>
+              <Icon name="check" size={14} />
               Approve Tool
             </button>
           </div>
@@ -7534,6 +10782,7 @@ function ToolActivityPanel({
       <div className={styles.panelHeader}>
         <h2>Tool activity</h2>
         <button className={styles.textButton} type="button" onClick={onClear} disabled={activities.length === 0}>
+          <Icon name="x" size={13} />
           Clear
         </button>
       </div>
@@ -7564,9 +10813,11 @@ function ToolActivityPanel({
                 <div className={styles.toolActivityActions}>
                   <span title={filePath}>{filePath}</span>
                   <button className={styles.textButton} type="button" onClick={() => onOpenWorkspacePath(filePath)}>
+                    <Icon name="external" size={13} />
                     Open
                   </button>
                   <button className={styles.textButton} type="button" onClick={() => onRevealWorkspacePath(filePath)}>
+                    <Icon name="folder-open" size={13} />
                     Reveal
                   </button>
                 </div>
@@ -7601,16 +10852,38 @@ function MessageItem({
           <time>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
         </div>
         <button className={styles.textButton} type="button" onClick={onCopy}>
+          <Icon name={copied ? 'check' : 'file'} size={13} />
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <div className={styles.messageContent}>{renderMessageContent(message.content)}</div>
+      <div className={styles.messageContent}>
+        {message.role === 'tool' ? renderToolMessageContent(message) : renderMessageContent(message.content)}
+      </div>
       {message.usage && (
         <div className={styles.messageMeta}>
           {message.usage.inputTokens} input tokens / {message.usage.outputTokens} output tokens
         </div>
       )}
     </article>
+  );
+}
+
+function renderToolMessageContent(message: UiMessage): React.ReactNode {
+  const trimmed = message.content.trim();
+  const isJsonResult = trimmed.startsWith('```json');
+
+  if (!isJsonResult) {
+    return renderMessageContent(message.content);
+  }
+
+  return (
+    <div className={styles.toolTrace}>
+      <p className={styles.toolTraceSummary}>Tool result captured. Expand details only when debugging.</p>
+      <details className={styles.toolTraceDetails}>
+        <summary>Details</summary>
+        {renderMessageContent(message.content)}
+      </details>
+    </div>
   );
 }
 
@@ -7791,8 +11064,6 @@ function SettingsView({
     value: value as LlmProviderType,
     label: option.label,
   }));
-  const activeMenuItem = SETTINGS_MENU.find(item => item.id === activeSection) ?? SETTINGS_MENU[0];
-
   function changeProvider(provider: LlmProviderType) {
     const providerDefault = getProviderDefault(provider);
     onChange({
@@ -7808,21 +11079,8 @@ function SettingsView({
 
   return (
     <section className={styles.settingsView} aria-label="Settings">
-      <form className={`${styles.settingsDialog} ${styles.settingsPageForm}`} onSubmit={onSubmit} aria-labelledby="settings-title">
-        <div className={styles.dialogHeader}>
-          <div>
-            <h2 id="settings-title">Settings</h2>
-            <p className={styles.settingsPageSubtitle}>Configure model backends, agent tools, workspace context, and desktop compatibility options.</p>
-          </div>
-        </div>
-
+      <form className={`${styles.settingsDialog} ${styles.settingsPageForm}`} onSubmit={onSubmit} aria-label="Settings">
         <div className={styles.settingsContent}>
-            <div className={styles.settingsContentHeader}>
-              <span className={styles.detailEyebrow}>Settings</span>
-              <h3>{activeMenuItem.title}</h3>
-              <p>{activeMenuItem.description}</p>
-            </div>
-
         {activeSection === 'model' && (
         <SettingsSection title="Model">
           <div className={styles.settingsGrid}>
@@ -7858,6 +11116,15 @@ function SettingsView({
                 { value: 'dark', label: 'Dark' },
               ]}
               onChange={value => onChange({ theme: value })}
+            />
+            <SelectSetting
+              label="Skin accent"
+              value={draft.accentColor}
+              options={Object.entries(SKIN_ACCENTS).map(([value, accent]) => ({
+                value,
+                label: accent.label,
+              }))}
+              onChange={value => onChange({ accentColor: getSkinAccent(value) })}
             />
             <TextSetting
               label="Temperature"
@@ -8107,9 +11374,11 @@ function SettingsView({
           <span className={styles.settingsMessage}>{message}</span>
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onClearToken}>
+              <Icon name="key" size={14} />
               Clear auth
             </button>
             <button className={styles.primaryButton} type="submit" disabled={saving}>
+              <Icon name="save" size={14} />
               {saving ? 'Saving' : 'Save'}
             </button>
           </div>

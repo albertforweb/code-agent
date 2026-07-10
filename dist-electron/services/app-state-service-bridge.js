@@ -30,6 +30,7 @@ class AppStateServiceBridge {
             disabledLlmTools: [],
             toolPermissionPolicies: {},
             theme: 'system',
+            accentColor: 'blue',
             language: 'en',
         };
         // Initialize electron-store for persistent storage

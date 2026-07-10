@@ -23,6 +23,8 @@ const DEFAULT_MAX_TOKENS = {
 };
 const DEFAULT_MAX_TOOL_ROUNDS = 4;
 const MAX_ALLOWED_TOOL_ROUNDS = 16;
+const MAX_RECOVERED_PROJECT_ACTIONS = 8;
+const MAX_ACTION_RECOVERY_PROMPT_CHARS = 18000;
 /**
  * API Service Bridge - bridges API operations to IPC.
  */
@@ -86,14 +88,30 @@ class ApiServiceBridge {
     /**
      * Build system prompt for CodeAgent.
      */
-    buildSystemPrompt() {
+    buildSystemPrompt(request) {
+        const toolScope = request.toolScope;
+        const activeWorkspacePath = toolScope?.workspacePath || this.workspacePath;
+        const projectWorkspaceGuidance = toolScope?.source === 'project-chat'
+            ? [
+                '',
+                'Project workspace context:',
+                `- This is a ${toolScope.channel === 'team' ? 'team' : 'guided'} project chat${toolScope.projectName ? ` for "${toolScope.projectName}"` : ''}.`,
+                `- The active project workspace root is: ${activeWorkspacePath}`,
+                '- Desktop file and command tools are scoped to this project workspace for this request, even if individual tool descriptions mention the app workspace.',
+                '- Use workspace-relative paths when reading, writing, or running commands.',
+                '- If the human asks you to start, build, implement, create, scaffold, or prototype the project, take concrete workspace actions with tools. Do not only describe code.',
+                '- The project workspace may be empty or not exist yet; file writes will create parent directories as needed.',
+                '- After creating or changing files, summarize the generated paths so the project Deliverables panel can show them.',
+            ].join('\n')
+            : '';
         return `You are CodeAgent, a powerful AI assistant for software development.
 
 You have access to multiple tools and can execute code, analyze files, and help with various programming tasks.
 
-Current workspace root: ${this.workspacePath}
+Current workspace root: ${activeWorkspacePath}
 
 All desktop file tools are scoped to this workspace root. Use workspace-relative paths when calling file tools. When asked for a full file path, combine the workspace root with the relative path that was used. Do not invent generic paths such as /workspace.
+${projectWorkspaceGuidance}
 
 Tool use policy:
 - For current time or date questions, use time.now. Do not create scripts or files to answer time/date questions.
@@ -161,6 +179,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         let inputTokens = 0;
         let outputTokens = 0;
         let lastModel = config.model;
+        let toolExecutionCount = 0;
         for (let round = 0; round <= config.maxToolRounds; round += 1) {
             const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
                 method: 'POST',
@@ -177,8 +196,10 @@ Always be helpful, thorough, and provide clear explanations.`;
             inputTokens += Number(data.usage?.prompt_tokens ?? 0);
             outputTokens += Number(data.usage?.completion_tokens ?? 0);
             if (!toolCalls.length) {
+                const recovery = await this.recoverProjectActionsIfNeeded(request, config, messages, message.content ?? '', toolSet, toolExecutionCount);
+                const content = `${message.content ?? ''}${recovery.suffix}`;
                 return {
-                    content: message.content ?? '',
+                    content,
                     model: lastModel,
                     usage: { inputTokens, outputTokens },
                 };
@@ -195,7 +216,7 @@ Always be helpful, thorough, and provide clear explanations.`;
                 content: message.content || null,
                 tool_calls: toolCalls,
             });
-            await this.appendToolResults(messages, toolCalls, toolSet);
+            toolExecutionCount += await this.appendToolResults(messages, toolCalls, toolSet);
         }
         return {
             content: '',
@@ -210,6 +231,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         let inputTokens = 0;
         let outputTokens = 0;
         let lastModel = config.model;
+        let toolExecutionCount = 0;
         for (let round = 0; round <= config.maxToolRounds; round += 1) {
             const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
                 method: 'POST',
@@ -228,6 +250,11 @@ Always be helpful, thorough, and provide clear explanations.`;
             outputTokens += result.outputTokens;
             lastModel = result.model || lastModel;
             if (!result.toolCalls.length) {
+                const recovery = await this.recoverProjectActionsIfNeeded(request, config, messages, content, toolSet, toolExecutionCount);
+                if (recovery.suffix) {
+                    content += recovery.suffix;
+                    handlers.onDelta?.(recovery.suffix);
+                }
                 return {
                     content,
                     model: lastModel,
@@ -248,7 +275,7 @@ Always be helpful, thorough, and provide clear explanations.`;
                 content: result.assistantContent || null,
                 tool_calls: result.toolCalls,
             });
-            await this.appendToolResults(messages, result.toolCalls, toolSet);
+            toolExecutionCount += await this.appendToolResults(messages, result.toolCalls, toolSet);
         }
         return {
             content,
@@ -379,12 +406,14 @@ Always be helpful, thorough, and provide clear explanations.`;
         if (!this.toolExecutor) {
             throw new Error('Desktop tool executor is not configured');
         }
+        let executedCount = 0;
         for (const toolCall of toolCalls) {
             const requestedName = toolCall.function.name;
             const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
             const args = this.parseToolArguments(toolCall.function.arguments);
             try {
                 const result = await this.toolExecutor(toolName, args);
+                executedCount += 1;
                 messages.push({
                     role: 'tool',
                     tool_call_id: toolCall.id,
@@ -401,6 +430,225 @@ Always be helpful, thorough, and provide clear explanations.`;
                 });
             }
         }
+        return executedCount;
+    }
+    async recoverProjectActionsIfNeeded(request, config, messages, assistantContent, toolSet, toolExecutionCount) {
+        if (!this.shouldRecoverProjectActions(request, config, assistantContent, toolSet, toolExecutionCount)) {
+            return { suffix: '' };
+        }
+        try {
+            const plan = await this.requestProjectActionPlan(request, config, messages, assistantContent);
+            const actions = this.normalizeProjectActionPlan(plan).slice(0, MAX_RECOVERED_PROJECT_ACTIONS);
+            if (!actions.length) {
+                return {
+                    suffix: this.hasActionableProjectText(assistantContent)
+                        ? '\n\nNo executable workspace actions were produced by the action recovery pass.'
+                        : '',
+                };
+            }
+            const execution = await this.executeProjectActionPlan(actions);
+            return { suffix: this.formatProjectActionRecoverySuffix(execution.executed, execution.failed) };
+        }
+        catch (error) {
+            if (!this.hasActionableProjectText(assistantContent)) {
+                return { suffix: '' };
+            }
+            const message = error instanceof Error ? error.message : String(error);
+            return {
+                suffix: `\n\nWorkspace action recovery did not run: ${message}`,
+            };
+        }
+    }
+    shouldRecoverProjectActions(request, config, assistantContent, toolSet, toolExecutionCount) {
+        if (request.toolScope?.source !== 'project-chat' || !config.enableTools || toolExecutionCount > 0 || !this.toolExecutor) {
+            return false;
+        }
+        if (!assistantContent.trim()) {
+            return false;
+        }
+        const availableTools = new Set(Array.from(toolSet.nameMap.values()));
+        return availableTools.has('fs.write') && this.hasActionableProjectText(assistantContent);
+    }
+    hasActionableProjectText(content) {
+        const normalized = content.toLowerCase();
+        return [
+            'mkdir',
+            'touch ',
+            'create ',
+            'write ',
+            'file',
+            'requirements.txt',
+            'package.json',
+            'main.py',
+            'app.py',
+            'index.html',
+            '```',
+        ].some(marker => normalized.includes(marker));
+    }
+    async requestProjectActionPlan(request, config, messages, assistantContent) {
+        const activeWorkspacePath = request.toolScope?.workspacePath || this.workspacePath;
+        const recentMessages = messages
+            .slice(-8)
+            .map(message => `${message.role.toUpperCase()}:\n${message.content ?? ''}`)
+            .join('\n\n')
+            .slice(-MAX_ACTION_RECOVERY_PROMPT_CHARS);
+        const plannerMessages = [
+            {
+                role: 'system',
+                content: [
+                    'You are CodeAgent action recovery. Convert a project-chat assistant response into safe workspace actions.',
+                    'Output only valid JSON. Do not include markdown fences or commentary.',
+                    'Schema: {"summary":"short summary","actions":[{"type":"write_file","path":"relative/path","content":"file contents","description":"why"},{"type":"run_command","command":"single command","cwd":"relative/path","description":"why"}]}',
+                    'Prefer write_file actions with real useful starter contents. Do not output empty placeholder files.',
+                    'Do not include mkdir, cd, or touch actions. Parent directories are created automatically by write_file.',
+                    'Only use paths relative to the active project workspace. Never use absolute paths, "~", "..", or paths outside the workspace.',
+                    'Use run_command only when it is necessary after file creation. Commands must be single non-interactive commands without shell operators.',
+                    `Active project workspace root: ${activeWorkspacePath}`,
+                    `Maximum actions: ${MAX_RECOVERED_PROJECT_ACTIONS}`,
+                    'If no workspace mutation is clearly needed, output {"summary":"No action needed","actions":[]}.',
+                ].join('\n'),
+            },
+            {
+                role: 'user',
+                content: [
+                    'Recent project-chat context:',
+                    recentMessages,
+                    '',
+                    'Assistant response to convert:',
+                    assistantContent,
+                ].join('\n'),
+            },
+        ];
+        const plannerConfig = {
+            ...config,
+            enableTools: false,
+            maxToolRounds: 0,
+            maxTokens: Math.max(2048, Math.min(config.maxTokens, 8192)),
+            temperature: 0.1,
+        };
+        const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+            method: 'POST',
+            headers: this.getOpenAiHeaders(config),
+            body: JSON.stringify(this.buildOpenAiPayload(plannerConfig, plannerMessages, false, { tools: [], nameMap: new Map() })),
+        });
+        if (!response.ok) {
+            throw new Error(await this.formatOpenAiError(response));
+        }
+        const data = await response.json();
+        const rawContent = String(data.choices?.[0]?.message?.content ?? '');
+        return this.parseProjectActionPlan(rawContent);
+    }
+    parseProjectActionPlan(content) {
+        const stripped = content
+            .trim()
+            .replace(/^```(?:json)?/i, '')
+            .replace(/```$/i, '')
+            .trim();
+        const jsonText = stripped.startsWith('{')
+            ? stripped
+            : stripped.slice(stripped.indexOf('{'), stripped.lastIndexOf('}') + 1);
+        if (!jsonText.trim()) {
+            throw new Error('The action recovery model did not return JSON.');
+        }
+        const parsed = JSON.parse(jsonText);
+        return {
+            summary: typeof parsed.summary === 'string' ? parsed.summary : undefined,
+            actions: Array.isArray(parsed.actions) ? parsed.actions : [],
+        };
+    }
+    normalizeProjectActionPlan(plan) {
+        return plan.actions
+            .map(action => this.normalizeProjectAction(action))
+            .filter((action) => Boolean(action));
+    }
+    normalizeProjectAction(action) {
+        if (!action || typeof action !== 'object') {
+            return null;
+        }
+        if (action.type === 'write_file') {
+            const targetPath = this.normalizeWorkspaceRelativePath(action.path);
+            const content = typeof action.content === 'string' ? action.content : '';
+            if (!targetPath || !content.trim()) {
+                return null;
+            }
+            return {
+                type: 'write_file',
+                path: targetPath,
+                content,
+                description: typeof action.description === 'string' ? action.description : undefined,
+            };
+        }
+        if (action.type === 'run_command') {
+            const command = typeof action.command === 'string' ? action.command.trim() : '';
+            const cwd = this.normalizeWorkspaceRelativePath(action.cwd || '.');
+            if (!command || !cwd) {
+                return null;
+            }
+            return {
+                type: 'run_command',
+                command,
+                cwd,
+                description: typeof action.description === 'string' ? action.description : undefined,
+            };
+        }
+        return null;
+    }
+    normalizeWorkspaceRelativePath(value) {
+        const rawPath = typeof value === 'string' && value.trim() ? value.trim() : '.';
+        if (rawPath === '~' || rawPath.startsWith('~/') || rawPath.startsWith('/')) {
+            return null;
+        }
+        const normalized = rawPath.replace(/\\/g, '/').replace(/^\.\/+/, '') || '.';
+        if (normalized.split('/').some(part => part === '..')) {
+            return null;
+        }
+        return normalized;
+    }
+    async executeProjectActionPlan(actions) {
+        if (!this.toolExecutor) {
+            throw new Error('Desktop tool executor is not configured.');
+        }
+        const executed = [];
+        const failed = [];
+        for (const action of actions) {
+            try {
+                if (action.type === 'write_file') {
+                    await this.toolExecutor('fs.write', {
+                        path: action.path,
+                        content: action.content,
+                    });
+                    executed.push(`wrote ${action.path}`);
+                }
+                else {
+                    await this.toolExecutor('bash.run', {
+                        command: action.command,
+                        cwd: action.cwd || '.',
+                    });
+                    executed.push(`ran ${action.command}`);
+                }
+            }
+            catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                failed.push(`${action.type === 'write_file' ? action.path : action.command}: ${message}`);
+            }
+        }
+        return { executed, failed };
+    }
+    formatProjectActionRecoverySuffix(executed, failed) {
+        const lines = [];
+        if (executed.length > 0) {
+            lines.push('', 'Workspace actions executed:');
+            for (const item of executed) {
+                lines.push(`- ${item}`);
+            }
+        }
+        if (failed.length > 0) {
+            lines.push('', 'Workspace actions that need attention:');
+            for (const item of failed) {
+                lines.push(`- ${item}`);
+            }
+        }
+        return lines.length > 0 ? `\n${lines.join('\n')}` : '';
     }
     normalizeOpenAiToolCalls(value) {
         if (!Array.isArray(value)) {
@@ -526,7 +774,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     }
     toOpenAiMessages(request) {
         return [
-            { role: 'system', content: this.buildSystemPrompt() },
+            { role: 'system', content: this.buildSystemPrompt(request) },
             ...request.messages.map(message => ({
                 role: message.role,
                 content: message.content,

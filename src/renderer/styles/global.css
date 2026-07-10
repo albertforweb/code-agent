@@ -2,13 +2,16 @@
 
 :root {
   /* Colors */
-  --color-primary: #c15f3c;
-  --color-primary-dark: #9d482c;
-  --color-background: #fbfaf7;
-  --color-background-secondary: #f0eee8;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-soft: #eff6ff;
+  --color-primary-border: #bfdbfe;
+  --color-primary-rgb: 37, 99, 235;
+  --color-background: #f7f9fc;
+  --color-background-secondary: #eef3f8;
   --color-text: #26231f;
   --color-text-secondary: #6f6a60;
-  --color-border: #ded8cd;
+  --color-border: #d7dee8;
   --color-error: #b0443f;
   --color-success: #2f7a4b;
   --color-warning: #a66a14;
