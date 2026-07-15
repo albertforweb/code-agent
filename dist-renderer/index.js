@@ -38903,6 +38903,42 @@
     settingsGrid: "App_settingsGrid",
     settingsSection: "App_settingsSection",
     fieldWide: "App_fieldWide",
+    accountOverviewGrid: "App_accountOverviewGrid",
+    accountSummaryCard: "App_accountSummaryCard",
+    accountNotice: "App_accountNotice",
+    paymentSummaryList: "App_paymentSummaryList",
+    accountPackageShelf: "App_accountPackageShelf",
+    packageStoreOwnedShelf: "App_packageStoreOwnedShelf",
+    accountShelfHeader: "App_accountShelfHeader",
+    accountPackageList: "App_accountPackageList",
+    accountPackageItem: "App_accountPackageItem",
+    accountPackageBody: "App_accountPackageBody",
+    accountPackageMeta: "App_accountPackageMeta",
+    packageStoreMeta: "App_packageStoreMeta",
+    accountEmptyState: "App_accountEmptyState",
+    packageStoreHeader: "App_packageStoreHeader",
+    packageStoreSummary: "App_packageStoreSummary",
+    packageStoreOwnedList: "App_packageStoreOwnedList",
+    packageStoreOwnedItem: "App_packageStoreOwnedItem",
+    packageStoreIdentity: "App_packageStoreIdentity",
+    packageStoreGrid: "App_packageStoreGrid",
+    packageStoreCard: "App_packageStoreCard",
+    packageStoreTopline: "App_packageStoreTopline",
+    packageStoreIcon: "App_packageStoreIcon",
+    packageStoreDescription: "App_packageStoreDescription",
+    packageStoreFeatures: "App_packageStoreFeatures",
+    packageStoreFooter: "App_packageStoreFooter",
+    packageStoreAction: "App_packageStoreAction",
+    packageCatalogGrid: "App_packageCatalogGrid",
+    packageCatalogCard: "App_packageCatalogCard",
+    packageCatalogHeader: "App_packageCatalogHeader",
+    packageStateAvailable: "App_packageStateAvailable",
+    packageStateLocked: "App_packageStateLocked",
+    packageCatalogMeta: "App_packageCatalogMeta",
+    packageFeatureList: "App_packageFeatureList",
+    packageCatalogFooter: "App_packageCatalogFooter",
+    purchaseDialog: "App_purchaseDialog",
+    paymentFormGrid: "App_paymentFormGrid",
     field: "App_field",
     toggleField: "App_toggleField",
     toggleGrid: "App_toggleGrid",
@@ -39011,6 +39047,1201 @@
     onMenuOpenSettings: (callback) => getApi().onMenuOpenSettings(callback)
   };
 
+  // src/features/package-catalog/generated.ts
+  var EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS = [
+    {
+      "id": "software-developer",
+      "productSku": "codeagent.package.software-developer",
+      "displayName": "Software Developer",
+      "domain": "software-development",
+      "tier": "paid",
+      "version": "1.0.0",
+      "owner": "codeagent",
+      "description": "Coding, workspace, Project Studio, automation, tool, MCP, and developer history workflows.",
+      "pricing": {
+        "amountCents": 1900,
+        "currency": "USD",
+        "interval": "month",
+        "label": "$19/month"
+      },
+      "dependencies": [
+        "base"
+      ],
+      "minimumAppVersion": "1.0.0",
+      "supportedShells": [
+        "desktop",
+        "cli",
+        "mobile"
+      ],
+      "rolloutStatus": "active",
+      "sdk": {
+        "name": "@codeagent/feature-package-sdk",
+        "versionRange": "^0.1.0"
+      },
+      "entrypoints": {
+        "runtime": "dist/index.js"
+      },
+      "distribution": {
+        "mode": "installable",
+        "artifact": {
+          "artifactId": "codeagent.software-developer.bundle",
+          "version": "1.0.0",
+          "distributionMode": "installable",
+          "bundlePath": "codeagent-package://software-developer/1.0.0",
+          "downloadUrl": "package-store://codeagent.package.software-developer/1.0.0"
+        },
+        "installRequired": true,
+        "securityBoundary": "none-client-bundled",
+        "notes": "This package builds as a separate artifact with SDK-defined extension metadata. The remaining work is to move all desktop and CLI implementation modules behind the installed package boundary and sign the artifact."
+      },
+      "entitlement": {
+        "state": "available",
+        "reason": "Purchased package entitlement is active.",
+        "accountTiers": [
+          "paid",
+          "enterprise"
+        ],
+        "purchasedPackageIds": [
+          "software-developer"
+        ],
+        "localOverrideKeys": [
+          "featurePackages.softwareDeveloper"
+        ]
+      },
+      "features": [
+        {
+          "id": "developer-tools",
+          "capabilityIds": [
+            "tools.bridge",
+            "tools.command-runner",
+            "tools.permissions",
+            "tools.activity"
+          ],
+          "title": "Developer Tools",
+          "description": "Bridge tools, command runner, tool-router controls, permissions, and activity audit views.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "tools"
+              ],
+              "commands": [
+                "/tools",
+                "/run <tool> <json>"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "tools"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "tool-approvals"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "tool-service",
+            "filesystem",
+            "command",
+            "web",
+            "finance"
+          ],
+          "storageNamespaces": [
+            "toolPermissionPolicies",
+            "disabledLlmTools"
+          ],
+          "toolSchemas": [
+            "time.now",
+            "web.search",
+            "web.research",
+            "web.fetch",
+            "finance.quote",
+            "bash.run",
+            "fs.read",
+            "fs.write",
+            "fs.undoLastWrite",
+            "fs.list",
+            "api.chat",
+            "app.getConfig"
+          ],
+          "permissionPolicies": [
+            "bash.run",
+            "fs.write",
+            "fs.undoLastWrite"
+          ],
+          "historyEventTypes": [
+            "tool-event"
+          ]
+        },
+        {
+          "id": "mcp",
+          "capabilityIds": [
+            "mcp.registry",
+            "mcp.tools",
+            "mcp.call-tool"
+          ],
+          "title": "MCP Integration",
+          "description": "Configured MCP servers, executable tool discovery, and MCP tool execution.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "tools:mcp"
+              ],
+              "commands": [
+                "/mcp"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "mcp"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "mcp-status"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "mcp"
+          ],
+          "toolSchemas": [
+            "mcp.listServers",
+            "mcp.listTools",
+            "mcp.callTool"
+          ],
+          "permissionPolicies": [
+            "mcp.callTool"
+          ]
+        },
+        {
+          "id": "project-studio",
+          "capabilityIds": [
+            "project.crud",
+            "project.roles",
+            "project.employees",
+            "project.teams",
+            "project.chat",
+            "project.deliverables"
+          ],
+          "title": "Project Studio",
+          "description": "Software project planning, roles, employees, teams, project chats, runs, and deliverables.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "projects"
+              ],
+              "commands": [
+                "/team"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "project",
+                "projects",
+                "role",
+                "employee",
+                "team"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "project-status"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "app-state",
+            "automation",
+            "api",
+            "tool-service"
+          ],
+          "storageNamespaces": [
+            "desktopSoftwareProjects",
+            "desktopVirtualRoles",
+            "desktopVirtualEmployees",
+            "desktopProjectTeams",
+            "desktopProjectChats",
+            "desktopProjectOutputs"
+          ],
+          "automationTemplates": [
+            "software-delivery-team"
+          ],
+          "historyEventTypes": [
+            "project-event",
+            "automation-run"
+          ]
+        },
+        {
+          "id": "automation",
+          "capabilityIds": [
+            "automation.skills",
+            "automation.tasks",
+            "automation.remote-control",
+            "automation.virtual-teams",
+            "automation.export-import"
+          ],
+          "title": "Automation",
+          "description": "Local skills, scheduled tasks, remote control, approval queues, and virtual team runs.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "automation"
+              ],
+              "commands": [
+                "/automation",
+                "/skills",
+                "/tasks",
+                "/remote"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "automation",
+                "auto"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "approvals",
+                "remote-control"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "automation",
+            "api",
+            "tool-service",
+            "local-history"
+          ],
+          "storageNamespaces": [
+            ".code-agent/project.json",
+            ".code-agent/tasks",
+            ".code-agent/teams",
+            ".code-agent/local"
+          ],
+          "toolSchemas": [
+            "automation.listSkills",
+            "automation.listTasks",
+            "automation.listTaskRuns",
+            "automation.schedulerStatus",
+            "automation.remoteStatus",
+            "automation.listTeams",
+            "automation.listTeamRuns"
+          ],
+          "automationTemplates": [
+            "scheduled-task",
+            "virtual-team"
+          ],
+          "historyEventTypes": [
+            "automation-run",
+            "project-event"
+          ]
+        },
+        {
+          "id": "developer-history",
+          "capabilityIds": [
+            "history.chats",
+            "history.tools",
+            "history.automation",
+            "history.projects",
+            "history.export"
+          ],
+          "title": "Developer History",
+          "description": "Local history for chats, tool events, automation runs, project events, restores, and exports.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "history"
+              ],
+              "commands": [
+                "/history"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "history"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "activity"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "local-history"
+          ],
+          "storageNamespaces": [
+            "history"
+          ],
+          "historyEventTypes": [
+            "chat-session",
+            "tool-event",
+            "automation-run",
+            "project-event"
+          ]
+        },
+        {
+          "id": "developer-settings",
+          "capabilityIds": [
+            "settings.tools",
+            "settings.prompts",
+            "settings.sessions",
+            "settings.integrations",
+            "settings.advanced"
+          ],
+          "title": "Developer Settings",
+          "description": "Developer-focused model, tool, prompt, session, integration, and compatibility controls.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "settings:io-debug",
+                "settings:tools-permissions",
+                "settings:workspace",
+                "settings:sessions",
+                "settings:advanced"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "config",
+                "agents",
+                "plugin",
+                "plugins"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "developer-settings"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "app-state",
+            "auth",
+            "mcp"
+          ],
+          "storageNamespaces": [
+            "config",
+            "settings"
+          ]
+        }
+      ],
+      "extensions": [
+        {
+          "id": "software-developer.desktop.primary-nav.projects",
+          "point": "desktop.primary-nav",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Projects",
+          "description": "Ideas, guided builds, and autonomous teams",
+          "icon": "briefcase",
+          "route": "projects",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.primary-nav.tools",
+          "point": "desktop.primary-nav",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Tools",
+          "description": "Bridge tools, MCP, and activity",
+          "icon": "wrench",
+          "route": "tools",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.primary-nav.automation",
+          "point": "desktop.primary-nav",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Automation",
+          "description": "Skills, tasks, remote control, and permissions",
+          "icon": "bot",
+          "route": "automation",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.primary-nav.history",
+          "point": "desktop.primary-nav",
+          "shell": "desktop",
+          "featureId": "developer-history",
+          "title": "History",
+          "description": "Chats, tool activity, exports, and audit",
+          "icon": "history",
+          "route": "history",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.desktop.child-route.project-studio",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Project Studio",
+          "description": "Create software from ideas or autonomous teams",
+          "icon": "board",
+          "parentRoute": "projects",
+          "childRoute": "studio",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.project-roles",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Roles",
+          "description": "Responsibilities, goals, and tool scope",
+          "icon": "shield",
+          "parentRoute": "projects",
+          "childRoute": "roles",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.project-employees",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Employees",
+          "description": "Reusable employees, roles, models, and permission scope",
+          "icon": "users",
+          "parentRoute": "projects",
+          "childRoute": "employees",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.child-route.project-teams",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Teams",
+          "description": "Scoped missions, supervisors, and members",
+          "icon": "network",
+          "parentRoute": "projects",
+          "childRoute": "teams",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.desktop.child-route.tools-bridge",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Bridge Tools",
+          "description": "Exposure and permissions",
+          "icon": "plug",
+          "parentRoute": "tools",
+          "childRoute": "bridge",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.tools-mcp",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "mcp",
+          "title": "MCP Registry",
+          "description": "Servers and executable tools",
+          "icon": "database",
+          "parentRoute": "tools",
+          "childRoute": "mcp",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.automation-tasks",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Scheduled Tasks",
+          "description": "Recurring runs and history",
+          "icon": "calendar",
+          "parentRoute": "automation",
+          "childRoute": "tasks",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.history-overview",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-history",
+          "title": "Overview",
+          "description": "Storage and record counts",
+          "icon": "bar-chart",
+          "parentRoute": "history",
+          "childRoute": "overview",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.slash-command.tools",
+          "point": "desktop.slash-command",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "List bridge and MCP tools",
+          "command": "/tools",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.slash-command.mcp",
+          "point": "desktop.slash-command",
+          "shell": "desktop",
+          "featureId": "mcp",
+          "title": "Refresh and list MCP servers/tools",
+          "command": "/mcp",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.slash-command.automation",
+          "point": "desktop.slash-command",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Open automation",
+          "command": "/automation",
+          "commandAliases": [
+            "/skills",
+            "/tasks",
+            "/remote"
+          ],
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.slash-command.team",
+          "point": "desktop.slash-command",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Open project teams",
+          "command": "/team",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.desktop.slash-command.history",
+          "point": "desktop.slash-command",
+          "shell": "desktop",
+          "featureId": "developer-history",
+          "title": "Open local history",
+          "command": "/history",
+          "entrypoint": "dist/index.js",
+          "order": 140
+        },
+        {
+          "id": "software-developer.electron.menu.projects",
+          "point": "electron.menu",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Projects",
+          "menuPath": [
+            "Packages",
+            "Software Developer",
+            "Projects"
+          ],
+          "route": "projects",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.electron.menu.automation",
+          "point": "electron.menu",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Automation",
+          "menuPath": [
+            "Packages",
+            "Software Developer",
+            "Automation"
+          ],
+          "route": "automation",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.status.project-studio",
+          "point": "desktop.status-bar",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Project Studio",
+          "statusKind": "project-studio",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.status.automation",
+          "point": "desktop.status-bar",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Automation",
+          "statusKind": "automation",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.cli.command.project",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "project-studio",
+          "title": "Project Studio commands",
+          "command": "project",
+          "commandAliases": [
+            "projects",
+            "role",
+            "employee",
+            "team"
+          ],
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.cli.command.automation",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "automation",
+          "title": "Automation commands",
+          "command": "automation",
+          "commandAliases": [
+            "auto"
+          ],
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.cli.command.tools",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "developer-tools",
+          "title": "Developer tool commands",
+          "command": "tools",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.cli.command.history",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "developer-history",
+          "title": "Developer history commands",
+          "command": "history",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.settings.developer",
+          "point": "settings.section",
+          "shell": "desktop",
+          "featureId": "developer-settings",
+          "title": "Developer Settings",
+          "description": "Tools, prompts, sessions, integrations, and compatibility controls",
+          "route": "settings",
+          "parentRoute": "settings",
+          "entrypoint": "dist/index.js",
+          "order": 500
+        },
+        {
+          "id": "software-developer.mobile.view.project-status",
+          "point": "mobile.view",
+          "shell": "mobile",
+          "featureId": "project-studio",
+          "title": "Project Status",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.mobile.view.approvals",
+          "point": "mobile.view",
+          "shell": "mobile",
+          "featureId": "automation",
+          "title": "Approvals",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        }
+      ],
+      "migration": {
+        "schemaVersion": 1,
+        "compatibilityKey": "feature-package:software-developer:1"
+      }
+    }
+  ];
+
+  // src/features/feature-packages.ts
+  var DEFAULT_PROFILE = {
+    accountStatus: "guest",
+    accountId: "",
+    email: "",
+    displayName: "Guest",
+    accountTier: "free",
+    subscriptionStatus: "free",
+    purchasedPackageIds: [],
+    trialPackageIds: [],
+    expiredPackageIds: [],
+    disabledPackageIds: [],
+    localDeveloperOverride: false,
+    enterprisePackageIds: [],
+    installedPackageIds: [],
+    packageInstallRecords: [],
+    paymentMethods: [],
+    purchases: [],
+    updatedAt: ""
+  };
+  var BASE_FEATURE_PACKAGE_ID = "base";
+  var FEATURE_PACKAGE_MANIFESTS = [
+    {
+      id: BASE_FEATURE_PACKAGE_ID,
+      productSku: "codeagent.base.free",
+      displayName: "CodeAgent Base",
+      domain: "base",
+      tier: "free",
+      version: "1.0.0",
+      owner: "codeagent",
+      description: "General chat and the minimal account, provider, and settings flows required to use it.",
+      pricing: {
+        amountCents: 0,
+        currency: "USD",
+        interval: "one-time",
+        label: "Free"
+      },
+      dependencies: [],
+      minimumAppVersion: "1.0.0",
+      supportedShells: ["desktop", "cli", "mobile"],
+      rolloutStatus: "active",
+      distribution: {
+        mode: "bundled",
+        artifact: {
+          artifactId: "codeagent.base.bundle",
+          version: "1.0.0",
+          distributionMode: "bundled",
+          bundlePath: "app://base"
+        },
+        installRequired: false,
+        securityBoundary: "none-client-bundled",
+        notes: "The base package is part of the application shell and is always present."
+      },
+      entitlement: {
+        state: "available",
+        reason: "Included in the free base package.",
+        accountTiers: ["free", "paid", "enterprise"]
+      },
+      features: [
+        {
+          id: "chat",
+          capabilityIds: ["chat.start", "chat.stream", "chat.sessions.basic"],
+          title: "Chat",
+          description: "General assistant chat with the configured model provider.",
+          adapters: [
+            { shell: "desktop", routes: ["chat"], commands: ["/help", "/status", "/pwd", "/workspace", "/clear", "/sessions"] },
+            { shell: "cli", commands: ["<prompt>", "--print", "--resume", "--continue"] },
+            { shell: "mobile", views: ["chat"] }
+          ],
+          requiredServices: ["api", "auth", "app-state"],
+          storageNamespaces: ["desktopSessions"],
+          historyEventTypes: ["chat-session"]
+        },
+        {
+          id: "basic-settings",
+          capabilityIds: ["settings.provider", "settings.account", "settings.basic"],
+          title: "Basic Settings",
+          description: "Provider, account, model, and minimal runtime settings required by chat.",
+          adapters: [
+            { shell: "desktop", routes: ["settings:account", "settings:model", "settings:packages"], commands: ["/login", "/login local", "/account", "/settings", "/config"] },
+            { shell: "cli", commands: ["auth", "login", "logout", "config", "status"] },
+            { shell: "mobile", views: ["settings"] }
+          ],
+          requiredServices: ["auth", "app-state"],
+          storageNamespaces: ["config"]
+        }
+      ],
+      extensions: [
+        {
+          id: "base.desktop.primary-nav.chat",
+          point: "desktop.primary-nav",
+          shell: "desktop",
+          featureId: "chat",
+          title: "Chats",
+          description: "Conversation workspace",
+          icon: "chat",
+          route: "chat",
+          order: 10
+        },
+        {
+          id: "base.desktop.primary-nav.settings",
+          point: "desktop.primary-nav",
+          shell: "desktop",
+          featureId: "basic-settings",
+          title: "Settings",
+          description: "Model, account, packages, and basic runtime settings",
+          icon: "settings",
+          route: "settings",
+          order: 900
+        },
+        {
+          id: "base.desktop.status.account",
+          point: "desktop.status-bar",
+          shell: "desktop",
+          featureId: "basic-settings",
+          title: "Account",
+          statusKind: "account",
+          order: 20
+        },
+        {
+          id: "base.electron.menu.settings",
+          point: "electron.menu",
+          shell: "desktop",
+          featureId: "basic-settings",
+          title: "Settings",
+          menuPath: ["CodeAgent", "Settings"],
+          route: "settings",
+          order: 20
+        }
+      ],
+      migration: {
+        schemaVersion: 1,
+        compatibilityKey: "feature-package:base:1"
+      }
+    },
+    ...EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS
+  ];
+  function createDefaultFeatureProfile() {
+    return {
+      ...DEFAULT_PROFILE,
+      purchasedPackageIds: [...DEFAULT_PROFILE.purchasedPackageIds],
+      trialPackageIds: [...DEFAULT_PROFILE.trialPackageIds],
+      expiredPackageIds: [...DEFAULT_PROFILE.expiredPackageIds],
+      disabledPackageIds: [...DEFAULT_PROFILE.disabledPackageIds],
+      enterprisePackageIds: [...DEFAULT_PROFILE.enterprisePackageIds],
+      installedPackageIds: [...DEFAULT_PROFILE.installedPackageIds],
+      packageInstallRecords: [...DEFAULT_PROFILE.packageInstallRecords],
+      paymentMethods: [...DEFAULT_PROFILE.paymentMethods],
+      purchases: [...DEFAULT_PROFILE.purchases]
+    };
+  }
+  function normalizeFeatureProfile(profile) {
+    const fallback = createDefaultFeatureProfile();
+    if (!profile || typeof profile !== "object") {
+      return fallback;
+    }
+    return {
+      accountStatus: normalizeAccountStatus(profile.accountStatus, fallback.accountStatus),
+      accountId: normalizeString(profile.accountId, fallback.accountId),
+      email: normalizeString(profile.email, fallback.email),
+      displayName: normalizeString(profile.displayName, fallback.displayName),
+      accountTier: profile.accountTier || fallback.accountTier,
+      subscriptionStatus: normalizeSubscriptionStatus(profile.subscriptionStatus, fallback.subscriptionStatus),
+      purchasedPackageIds: normalizeStringList(profile.purchasedPackageIds, fallback.purchasedPackageIds),
+      trialPackageIds: normalizeStringList(profile.trialPackageIds, fallback.trialPackageIds),
+      expiredPackageIds: normalizeStringList(profile.expiredPackageIds, fallback.expiredPackageIds),
+      disabledPackageIds: normalizeStringList(profile.disabledPackageIds, fallback.disabledPackageIds),
+      localDeveloperOverride: typeof profile.localDeveloperOverride === "boolean" ? profile.localDeveloperOverride : fallback.localDeveloperOverride,
+      enterprisePackageIds: normalizeStringList(profile.enterprisePackageIds, fallback.enterprisePackageIds),
+      installedPackageIds: normalizeStringList(profile.installedPackageIds, fallback.installedPackageIds),
+      packageInstallRecords: normalizeInstallRecords(profile.packageInstallRecords, fallback.packageInstallRecords),
+      paymentMethods: normalizePaymentMethods(profile.paymentMethods, fallback.paymentMethods),
+      purchases: normalizePurchaseRecords(profile.purchases, fallback.purchases),
+      updatedAt: normalizeString(profile.updatedAt, fallback.updatedAt)
+    };
+  }
+  function resolveFeaturePackages(shell, profile, manifests = FEATURE_PACKAGE_MANIFESTS) {
+    const normalizedProfile = normalizeFeatureProfile(profile);
+    const packages = manifests.map((manifest) => {
+      const packageState = resolvePackageState(manifest, shell, normalizedProfile);
+      const packageInstall = resolvePackageInstallState(manifest, normalizedProfile, packageState.state);
+      return {
+        manifest,
+        ...packageState,
+        ...packageInstall
+      };
+    });
+    const packageById = new Map(packages.map((entry) => [entry.manifest.id, entry]));
+    const features = [];
+    const extensions = [];
+    for (const entry of packages) {
+      if (entry.state !== "available" && entry.state !== "trial") {
+        continue;
+      }
+      if (entry.manifest.dependencies.some((dependency) => {
+        const dependencyEntry = packageById.get(dependency);
+        return !dependencyEntry || dependencyEntry.state !== "available" && dependencyEntry.state !== "trial" || !isPackageRuntimeAvailable(dependencyEntry.installState);
+      })) {
+        continue;
+      }
+      if (!isPackageRuntimeAvailable(entry.installState)) {
+        continue;
+      }
+      for (const feature of entry.manifest.features) {
+        if (!feature.adapters.some((adapter) => adapter.shell === shell)) {
+          continue;
+        }
+        features.push({
+          packageId: entry.manifest.id,
+          featureId: feature.id,
+          state: entry.state,
+          reason: entry.reason,
+          manifest: entry.manifest,
+          feature
+        });
+      }
+      for (const extension of entry.manifest.extensions ?? []) {
+        if (extension.shell !== shell) {
+          continue;
+        }
+        if (extension.featureId && !entry.manifest.features.some((feature) => feature.id === extension.featureId && feature.adapters.some((adapter) => adapter.shell === shell))) {
+          continue;
+        }
+        extensions.push({
+          packageId: entry.manifest.id,
+          featureId: extension.featureId,
+          state: entry.state,
+          reason: entry.reason,
+          manifest: entry.manifest,
+          extension
+        });
+      }
+    }
+    return {
+      shell,
+      profile: normalizedProfile,
+      packages,
+      features,
+      extensions
+    };
+  }
+  function isFeatureAvailable(resolution, featureId) {
+    return resolution.features.some((feature) => feature.featureId === featureId);
+  }
+  function getFeaturePackageExtensions(resolution, point) {
+    return resolution.extensions.filter((entry) => !point || entry.extension.point === point).sort((left, right) => {
+      const leftOrder = left.extension.order ?? 0;
+      const rightOrder = right.extension.order ?? 0;
+      if (leftOrder !== rightOrder) {
+        return leftOrder - rightOrder;
+      }
+      return left.extension.title.localeCompare(right.extension.title);
+    });
+  }
+  function getFeaturePackageSummary(resolution) {
+    const packageLines = resolution.packages.map((entry) => `${entry.manifest.displayName}: ${entry.state}, install=${entry.installState} (${entry.reason}; ${entry.installReason})`);
+    const featureLines = resolution.features.map((entry) => `- ${entry.feature.title} [${entry.packageId}]`);
+    const extensionLines = getFeaturePackageExtensions(resolution).map((entry) => `- ${entry.extension.point}: ${entry.extension.title} [${entry.packageId}]`);
+    return [
+      `Shell: ${resolution.shell}`,
+      `Account: ${resolution.profile.accountStatus}`,
+      `Account tier: ${resolution.profile.accountTier}`,
+      "Packages:",
+      ...packageLines.map((line) => `- ${line}`),
+      "Available features:",
+      ...featureLines.length > 0 ? featureLines : ["- none"],
+      "Active extensions:",
+      ...extensionLines.length > 0 ? extensionLines : ["- none"]
+    ].join("\n");
+  }
+  function isPackageRuntimeAvailable(installState) {
+    return installState === "bundled" || installState === "installed" || installState === "update-available" || installState === "remote-service";
+  }
+  function resolvePackageState(manifest, shell, profile) {
+    if (!manifest.supportedShells.includes(shell)) {
+      return { state: "unsupported", reason: `Package does not support the ${shell} shell.` };
+    }
+    if (manifest.rolloutStatus === "hidden" || manifest.rolloutStatus === "deprecated") {
+      return { state: "disabled", reason: `Package rollout status is ${manifest.rolloutStatus}.` };
+    }
+    if (profile.disabledPackageIds.includes(manifest.id)) {
+      return { state: "disabled", reason: "Package disabled by local profile." };
+    }
+    if (profile.expiredPackageIds.includes(manifest.id)) {
+      return { state: "expired", reason: "Package entitlement has expired." };
+    }
+    if (profile.trialPackageIds.includes(manifest.id)) {
+      return { state: "trial", reason: "Package is available during trial." };
+    }
+    if (manifest.tier === "free") {
+      return { state: "available", reason: manifest.entitlement.reason };
+    }
+    if (profile.localDeveloperOverride) {
+      return { state: "available", reason: "Enabled by local developer override." };
+    }
+    if (profile.accountTier === "enterprise" && profile.enterprisePackageIds.includes(manifest.id)) {
+      return { state: "available", reason: "Included by enterprise entitlement." };
+    }
+    if (profile.purchasedPackageIds.includes(manifest.id) || manifest.entitlement.purchasedPackageIds?.some((packageId) => profile.purchasedPackageIds.includes(packageId))) {
+      return { state: "available", reason: manifest.entitlement.reason };
+    }
+    if (profile.accountStatus !== "signed-in") {
+      return { state: "locked", reason: "Sign in to purchase this package." };
+    }
+    if (manifest.entitlement.accountTiers && !manifest.entitlement.accountTiers.includes(profile.accountTier)) {
+      if (profile.accountTier === "free" && manifest.entitlement.accountTiers.includes("paid")) {
+        return { state: "locked", reason: "Purchase upgrades this account to a paid subscription." };
+      }
+      return { state: "locked", reason: "Requires an eligible subscription tier." };
+    }
+    return { state: "locked", reason: "Requires package purchase." };
+  }
+  function resolvePackageInstallState(manifest, profile, entitlementState) {
+    if (manifest.distribution.mode === "remote-service") {
+      return {
+        installState: "remote-service",
+        installReason: "Package runs through a server-enforced remote service."
+      };
+    }
+    if (!manifest.distribution.installRequired || manifest.distribution.mode === "bundled") {
+      return {
+        installState: "bundled",
+        installReason: "Package runtime is bundled with this app build."
+      };
+    }
+    if (entitlementState !== "available" && entitlementState !== "trial") {
+      return {
+        installState: "not-owned",
+        installReason: "Purchase the package before installing its runtime."
+      };
+    }
+    if (profile.localDeveloperOverride) {
+      return {
+        installState: "installed",
+        installReason: "Developer override treats the package runtime as installed for local development."
+      };
+    }
+    const latestRecord = [...profile.packageInstallRecords].reverse().find((record) => record.packageId === manifest.id);
+    if (latestRecord?.state === "installed" || latestRecord?.state === "update-available" || latestRecord?.state === "install-failed") {
+      return {
+        installState: latestRecord.state,
+        installReason: latestRecord.error || `Install registry state: ${latestRecord.state}.`
+      };
+    }
+    if (profile.installedPackageIds.includes(manifest.id)) {
+      return {
+        installState: "installed",
+        installReason: "Package runtime is registered as installed locally."
+      };
+    }
+    return {
+      installState: "owned-not-installed",
+      installReason: "Package entitlement is active. Install the runtime package to enable its features."
+    };
+  }
+  function normalizeString(value, fallback) {
+    return typeof value === "string" ? value.trim() : fallback;
+  }
+  function normalizeStringList(value, fallback) {
+    if (!Array.isArray(value)) {
+      return [...fallback];
+    }
+    const normalized = value.map((item) => typeof item === "string" ? item.trim() : "").filter(Boolean);
+    return normalized.length > 0 ? normalized : [];
+  }
+  function normalizeAccountStatus(value, fallback) {
+    return value === "signed-in" || value === "guest" ? value : fallback;
+  }
+  function normalizeSubscriptionStatus(value, fallback) {
+    return value === "free" || value === "active" || value === "trialing" || value === "past-due" || value === "canceled" || value === "enterprise" ? value : fallback;
+  }
+  function normalizePaymentMethods(value, fallback) {
+    if (!Array.isArray(value)) {
+      return [...fallback];
+    }
+    return value.flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+      const method = item;
+      if (method.type !== "card" || !method.id || !method.last4) {
+        return [];
+      }
+      return [{
+        id: String(method.id),
+        type: "card",
+        brand: method.brand ? String(method.brand) : "Card",
+        last4: String(method.last4).slice(-4),
+        expMonth: Number(method.expMonth || 0),
+        expYear: Number(method.expYear || 0),
+        createdAt: method.createdAt ? String(method.createdAt) : ""
+      }];
+    });
+  }
+  function normalizePurchaseRecords(value, fallback) {
+    if (!Array.isArray(value)) {
+      return [...fallback];
+    }
+    return value.flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+      const record = item;
+      if (!record.id || !record.packageId || !record.productSku || !record.paymentMethodId) {
+        return [];
+      }
+      return [{
+        id: String(record.id),
+        packageId: String(record.packageId),
+        productSku: String(record.productSku),
+        amountCents: Number(record.amountCents || 0),
+        currency: record.currency ? String(record.currency) : "USD",
+        paymentMethodId: String(record.paymentMethodId),
+        status: normalizePurchaseStatus(record.status),
+        purchasedAt: record.purchasedAt ? String(record.purchasedAt) : ""
+      }];
+    });
+  }
+  function normalizeInstallRecords(value, fallback) {
+    if (!Array.isArray(value)) {
+      return [...fallback];
+    }
+    return value.flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+      const record = item;
+      if (!record.packageId || !record.artifactId || !record.version) {
+        return [];
+      }
+      return [{
+        packageId: String(record.packageId),
+        artifactId: String(record.artifactId),
+        version: String(record.version),
+        state: normalizeInstallState(record.state),
+        installedPath: record.installedPath ? String(record.installedPath) : void 0,
+        installedAt: record.installedAt ? String(record.installedAt) : void 0,
+        sha256: record.sha256 ? String(record.sha256) : void 0,
+        signature: record.signature ? String(record.signature) : void 0,
+        error: record.error ? String(record.error) : void 0
+      }];
+    });
+  }
+  function normalizePurchaseStatus(value) {
+    return value === "trial" || value === "refunded" || value === "failed" ? value : "paid";
+  }
+  function normalizeInstallState(value) {
+    return value === "bundled" || value === "not-owned" || value === "owned-not-installed" || value === "installed" || value === "update-available" || value === "install-failed" || value === "remote-service" ? value : "owned-not-installed";
+  }
+
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var DEFAULT_PROVIDER = "openai-compatible";
@@ -39026,6 +40257,13 @@
   var DESKTOP_PROJECT_OUTPUTS_STATE_KEY = "desktopProjectOutputs";
   var CHAT_SESSION_HISTORY_ID_PREFIX = "chat-session-";
   var SIDEBAR_COLLAPSED_STORAGE_KEY = "codeAgentSidebarCollapsed";
+  var EMPTY_PURCHASE_DRAFT = {
+    nameOnCard: "",
+    cardNumber: "",
+    expiry: "",
+    cvc: "",
+    postalCode: ""
+  };
   var SKIN_ACCENTS = {
     blue: {
       label: "Blue",
@@ -39224,6 +40462,13 @@
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m8 9-4 3 4 3" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m16 9 4 3-4 3" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m14 5-4 14" })
+        ] });
+      case "credit-card":
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { x: "3", y: "5", width: "18", height: "14", rx: "2" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 10h18" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M7 15h4" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M15 15h2" })
         ] });
       case "database":
         return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
@@ -39486,64 +40731,67 @@
     { command: "/status", description: "Show provider, runtime, tools, and MCP status" },
     { command: "/pwd", description: "Show the current desktop workspace root" },
     { command: "/workspace", description: "Show the current desktop workspace root" },
-    { command: "/login", description: "Open Settings for provider credentials" },
+    { command: "/login", description: "Open account sign-in settings" },
     { command: "/login local", description: "Open Settings with OpenAI-compatible defaults" },
+    { command: "/account", description: "Open account and subscription settings" },
     { command: "/settings", description: "Open Settings" },
-    { command: "/tools", description: "List bridge and MCP tools" },
-    { command: "/mcp", description: "Refresh and list MCP servers/tools" },
-    { command: "/automation", description: "Open skills, scheduled tasks, remote control, and automation permissions" },
-    { command: "/skills", description: "Open local skills and automation extensions" },
-    { command: "/tasks", description: "Open scheduled automation tasks" },
-    { command: "/remote", description: "Open remote-control setup" },
-    { command: "/team", description: "Open project teams" },
-    { command: "/history", description: "Open local history and export records" },
+    { command: "/tools", description: "List bridge and MCP tools", featureId: "developer-tools" },
+    { command: "/mcp", description: "Refresh and list MCP servers/tools", featureId: "mcp" },
+    { command: "/automation", description: "Open skills, scheduled tasks, remote control, and automation permissions", featureId: "automation" },
+    { command: "/skills", description: "Open local skills and automation extensions", featureId: "automation" },
+    { command: "/tasks", description: "Open scheduled automation tasks", featureId: "automation" },
+    { command: "/remote", description: "Open remote-control setup", featureId: "automation" },
+    { command: "/team", description: "Open project teams", featureId: "project-studio" },
+    { command: "/history", description: "Open local history and export records", featureId: "developer-history" },
     { command: "/sessions", description: "List saved desktop sessions" },
     { command: "/config", description: "Show persisted desktop configuration" },
-    { command: "/run <tool> <json>", description: "Run a bridge tool manually" },
+    { command: "/run <tool> <json>", description: "Run a bridge tool manually", featureId: "developer-tools" },
     { command: "/clear", description: "Clear the visible chat" }
   ];
   var PRIMARY_NAV = [
     { id: "chat", label: "Chats", description: "Conversation workspace", icon: "chat" },
-    { id: "projects", label: "Projects", description: "Ideas, guided builds, and autonomous teams", icon: "briefcase" },
-    { id: "tools", label: "Tools", description: "Bridge tools, MCP, and activity", icon: "wrench" },
-    { id: "automation", label: "Automation", description: "Skills, tasks, remote control, and permissions", icon: "bot" },
-    { id: "history", label: "History", description: "Chats, tool activity, exports, audit", icon: "history" },
+    { id: "projects", label: "Projects", description: "Ideas, guided builds, and autonomous teams", icon: "briefcase", featureId: "project-studio" },
+    { id: "tools", label: "Tools", description: "Bridge tools, MCP, and activity", icon: "wrench", featureId: "developer-tools" },
+    { id: "automation", label: "Automation", description: "Skills, tasks, remote control, and permissions", icon: "bot", featureId: "automation" },
+    { id: "history", label: "History", description: "Chats, tool activity, exports, audit", icon: "history", featureId: "developer-history" },
     { id: "settings", label: "Settings", description: "Model, tools, workspace, sessions", icon: "settings" }
   ];
   var PROJECTS_MENU = [
-    { id: "studio", title: "Project Studio", description: "Create software from ideas or autonomous teams", icon: "board" },
-    { id: "roles", title: "Roles", description: "Responsibilities, default goals, and tool scope", icon: "shield" },
-    { id: "employees", title: "Employees", description: "Create employees, roles, models, and permission scope", icon: "users" },
-    { id: "teams", title: "Teams", description: "Scoped missions, supervisors, and members", icon: "network" }
+    { id: "studio", title: "Project Studio", description: "Create software from ideas or autonomous teams", icon: "board", featureId: "project-studio" },
+    { id: "roles", title: "Roles", description: "Responsibilities, default goals, and tool scope", icon: "shield", featureId: "project-studio" },
+    { id: "employees", title: "Employees", description: "Create employees, roles, models, and permission scope", icon: "users", featureId: "project-studio" },
+    { id: "teams", title: "Teams", description: "Scoped missions, supervisors, and members", icon: "network", featureId: "project-studio" }
   ];
   var TOOLS_MENU = [
-    { id: "bridge", title: "Bridge Tools", description: "Exposure and permissions", icon: "plug" },
-    { id: "mcp", title: "MCP Registry", description: "Servers and executable tools", icon: "database" },
-    { id: "command", title: "Command Runner", description: "Approved workspace commands", icon: "terminal" },
-    { id: "activity", title: "Activity", description: "Tool-call timeline", icon: "activity" },
-    { id: "plugins", title: "Plugins & Skills", description: "Configured extension paths", icon: "puzzle" }
+    { id: "bridge", title: "Bridge Tools", description: "Exposure and permissions", icon: "plug", featureId: "developer-tools" },
+    { id: "mcp", title: "MCP Registry", description: "Servers and executable tools", icon: "database", featureId: "mcp" },
+    { id: "command", title: "Command Runner", description: "Approved workspace commands", icon: "terminal", featureId: "developer-tools" },
+    { id: "activity", title: "Activity", description: "Tool-call timeline", icon: "activity", featureId: "developer-tools" },
+    { id: "plugins", title: "Plugins & Skills", description: "Configured extension paths", icon: "puzzle", featureId: "developer-settings" }
   ];
   var SETTINGS_MENU = [
+    { id: "account", title: "Account", description: "Login, subscription, billing", icon: "user" },
     { id: "model", title: "Model", description: "Provider, tokens, theme", icon: "sparkles" },
-    { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs", icon: "code" },
-    { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety", icon: "lock" },
-    { id: "workspace", title: "Prompts & Directories", description: "System prompts, MCP, directories", icon: "folder" },
-    { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser", icon: "rotate" },
-    { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata", icon: "sliders" }
+    { id: "packages", title: "Packages", description: "Feature packages and entitlements", icon: "puzzle" },
+    { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs", icon: "code", featureId: "developer-settings" },
+    { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety", icon: "lock", featureId: "developer-settings" },
+    { id: "workspace", title: "Prompts & Directories", description: "System prompts, MCP, directories", icon: "folder", featureId: "developer-settings" },
+    { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser", icon: "rotate", featureId: "developer-settings" },
+    { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata", icon: "sliders", featureId: "developer-settings" }
   ];
   var AUTOMATION_MENU = [
-    { id: "skills", title: "Skills", description: "Workspace extensions", icon: "sparkles" },
-    { id: "tasks", title: "Scheduled Tasks", description: "Recurring runs and history", icon: "calendar" },
-    { id: "remote", title: "Remote Control", description: "Phone pairing and approvals", icon: "phone" },
-    { id: "permissions", title: "Permissions", description: "Unattended execution policy", icon: "shield" }
+    { id: "skills", title: "Skills", description: "Workspace extensions", icon: "sparkles", featureId: "automation" },
+    { id: "tasks", title: "Scheduled Tasks", description: "Recurring runs and history", icon: "calendar", featureId: "automation" },
+    { id: "remote", title: "Remote Control", description: "Phone pairing and approvals", icon: "phone", featureId: "automation" },
+    { id: "permissions", title: "Permissions", description: "Unattended execution policy", icon: "shield", featureId: "automation" }
   ];
   var HISTORY_MENU = [
-    { id: "overview", title: "Overview", description: "Storage and record counts", icon: "bar-chart" },
-    { id: "chats", title: "Chats", description: "Saved conversations", icon: "chat" },
-    { id: "tools", title: "Tool Events", description: "Tool-call audit records", icon: "wrench" },
-    { id: "automation", title: "Automation Runs", description: "Task and team run history", icon: "bot" },
-    { id: "events", title: "Project Events", description: "Imports, exports, and audit events", icon: "activity" },
-    { id: "export", title: "Export", description: "Download or copy local history", icon: "download" }
+    { id: "overview", title: "Overview", description: "Storage and record counts", icon: "bar-chart", featureId: "developer-history" },
+    { id: "chats", title: "Chats", description: "Saved conversations", icon: "chat", featureId: "developer-history" },
+    { id: "tools", title: "Tool Events", description: "Tool-call audit records", icon: "wrench", featureId: "developer-history" },
+    { id: "automation", title: "Automation Runs", description: "Task and team run history", icon: "bot", featureId: "developer-history" },
+    { id: "events", title: "Project Events", description: "Imports, exports, and audit events", icon: "activity", featureId: "developer-history" },
+    { id: "export", title: "Export", description: "Download or copy local history", icon: "download", featureId: "developer-history" }
   ];
   var AUTOMATION_PERMISSION_TOOLS = [
     "bash.run",
@@ -39937,9 +41185,9 @@
     return {
       id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createRoleDefinitionId(title),
       title,
-      responsibilities: normalizeStringList(raw.responsibilities, ["Deliver assigned project responsibilities."]),
+      responsibilities: normalizeStringList2(raw.responsibilities, ["Deliver assigned project responsibilities."]),
       defaultGoal: typeof raw.defaultGoal === "string" && raw.defaultGoal.trim() ? raw.defaultGoal.trim() : getDefaultTeamGoal(title),
-      defaultTools: normalizeStringList(raw.defaultTools, getDefaultTeamTools(title)),
+      defaultTools: normalizeStringList2(raw.defaultTools, getDefaultTeamTools(title)),
       canSupervise: Boolean(raw.canSupervise),
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
@@ -40006,7 +41254,7 @@
       role: typeof raw.role === "string" && raw.role.trim() ? raw.role.trim() : "Contributor",
       model: typeof raw.model === "string" && raw.model.trim() ? raw.model.trim() : "OpenAI-compatible default",
       status,
-      permissions: normalizeStringList(raw.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+      permissions: normalizeStringList2(raw.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
       currentTask: typeof raw.currentTask === "string" && raw.currentTask.trim() ? raw.currentTask.trim() : "No active task",
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
@@ -40083,7 +41331,7 @@
       updatedAt: now
     };
   }
-  function normalizeStringList(values, fallback) {
+  function normalizeStringList2(values, fallback) {
     if (!Array.isArray(values)) {
       return [...fallback];
     }
@@ -40129,7 +41377,7 @@
       name,
       mission: typeof raw.mission === "string" && raw.mission.trim() ? raw.mission.trim() : "Deliver a scoped portion of the project mission.",
       supervisorEmployeeId: typeof raw.supervisorEmployeeId === "string" && raw.supervisorEmployeeId.trim() ? raw.supervisorEmployeeId.trim() : "employee-supervisor",
-      memberEmployeeIds: normalizeStringList(raw.memberEmployeeIds, []),
+      memberEmployeeIds: normalizeStringList2(raw.memberEmployeeIds, []),
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
     };
@@ -40184,18 +41432,18 @@
       status,
       idea: typeof raw.idea === "string" ? raw.idea : "",
       goals: typeof raw.goals === "string" ? raw.goals : "",
-      artifacts: normalizeStringList(raw.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+      artifacts: normalizeStringList2(raw.artifacts, DEFAULT_PROJECT_ARTIFACTS),
       workspacePath: typeof raw.workspacePath === "string" && raw.workspacePath.trim() ? raw.workspacePath : workspacePath,
       supervisorRole: typeof raw.supervisorRole === "string" && raw.supervisorRole.trim() ? raw.supervisorRole.trim() : "Supervisor",
-      teamRoles: normalizeStringList(raw.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+      teamRoles: normalizeStringList2(raw.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
       supervisorEmployeeId: typeof raw.supervisorEmployeeId === "string" && raw.supervisorEmployeeId.trim() ? raw.supervisorEmployeeId : "employee-supervisor",
-      assignedEmployeeIds: normalizeStringList(raw.assignedEmployeeIds, [
+      assignedEmployeeIds: normalizeStringList2(raw.assignedEmployeeIds, [
         "employee-product-manager",
         "employee-architect",
         "employee-developer",
         "employee-qa-reviewer"
       ]),
-      assignedTeamIds: normalizeStringList(raw.assignedTeamIds, []),
+      assignedTeamIds: normalizeStringList2(raw.assignedTeamIds, []),
       permissionMode: raw.permissionMode === "full-access" ? "full-access" : "supervised",
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
@@ -40305,8 +41553,14 @@
   function createSettingsDraft(config) {
     const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
     const providerDefault = getProviderDefault(llmProvider);
+    const featureProfile = normalizeFeatureProfile(config?.featureProfile);
     return {
       apiKey: "",
+      accountEmail: featureProfile.email,
+      accountDisplayName: featureProfile.accountStatus === "signed-in" ? featureProfile.displayName : "",
+      accountPassword: "",
+      platformBaseUrl: typeof config?.platformBaseUrl === "string" ? config.platformBaseUrl : "http://127.0.0.1:8000",
+      platformOrgId: typeof config?.platformOrgId === "string" ? config.platformOrgId : "",
       llmProvider,
       baseUrl: config?.baseUrl || providerDefault.baseUrl,
       model: config?.model || providerDefault.model,
@@ -40495,6 +41749,430 @@
     } catch {
       return String(value);
     }
+  }
+  function getFeatureProfileFromConfig(config) {
+    return normalizeFeatureProfile(config?.featureProfile);
+  }
+  function getFeatureAccountStore(config) {
+    const raw = config?.featureAccounts;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return {};
+    }
+    return Object.fromEntries(Object.entries(raw).flatMap(([key, value]) => {
+      if (!key || !value || typeof value !== "object" || Array.isArray(value)) {
+        return [];
+      }
+      return [[key, normalizeFeatureProfile(value)]];
+    }));
+  }
+  function getAccountStoreKey(email) {
+    return createLocalAccountId(email);
+  }
+  function getStoredAccountProfile(config, email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const accountStore = getFeatureAccountStore(config);
+    const accountId = getAccountStoreKey(normalizedEmail);
+    const stored = accountStore[accountId] ?? accountStore[normalizedEmail];
+    return stored ? normalizeFeatureProfile(stored) : null;
+  }
+  function writeProfileToAccountStore(config, profile) {
+    const accountStore = getFeatureAccountStore(config);
+    const normalizedProfile = normalizeFeatureProfile(profile);
+    if (normalizedProfile.accountStatus !== "signed-in" || !normalizedProfile.email) {
+      return accountStore;
+    }
+    const accountId = normalizedProfile.accountId || getAccountStoreKey(normalizedProfile.email);
+    const storedProfile = {
+      ...normalizedProfile,
+      accountId,
+      email: normalizedProfile.email.trim().toLowerCase()
+    };
+    return {
+      ...accountStore,
+      [accountId]: storedProfile,
+      [storedProfile.email]: storedProfile
+    };
+  }
+  function buildSettingsFeatureProfile(current, draft) {
+    if (current.accountStatus !== "signed-in") {
+      return current;
+    }
+    return {
+      ...current,
+      email: draft.accountEmail.trim(),
+      displayName: draft.accountDisplayName.trim() || draft.accountEmail.trim(),
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+  function normalizePlatformBaseUrl(value) {
+    return value.trim().replace(/\/+$/, "");
+  }
+  function platformOrgQuery(orgId) {
+    const trimmed = orgId.trim();
+    return trimmed ? `?org_id=${encodeURIComponent(trimmed)}` : "";
+  }
+  async function readPlatformJson(baseUrl, path, token, init = {}) {
+    const response = await fetch(`${normalizePlatformBaseUrl(baseUrl)}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...token ? { Authorization: `Bearer ${token}` } : {},
+        ...init.headers ?? {}
+      }
+    });
+    const text = await response.text();
+    const payload = text ? JSON.parse(text) : {};
+    if (!response.ok) {
+      const detail = typeof payload?.detail === "string" ? payload.detail : response.statusText;
+      throw new Error(`Platform API ${response.status}: ${detail}`);
+    }
+    return payload;
+  }
+  async function loginToPlatform(draft) {
+    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    if (!baseUrl) {
+      throw new Error("Enter the agent-platform base URL.");
+    }
+    return readPlatformJson(baseUrl, "/auth/login", void 0, {
+      method: "POST",
+      body: JSON.stringify({
+        email: draft.accountEmail.trim(),
+        password: draft.accountPassword,
+        ...draft.platformOrgId.trim() ? { org_id: draft.platformOrgId.trim(), realm: "tenant" } : {}
+      })
+    });
+  }
+  async function fetchPlatformFeatureProfile(baseUrl, token, orgId) {
+    return readPlatformJson(baseUrl, `/code-agent/profile${platformOrgQuery(orgId)}`, token);
+  }
+  async function fetchPlatformFeatureCatalog(baseUrl, token, orgId) {
+    return readPlatformJson(baseUrl, `/code-agent/catalog${platformOrgQuery(orgId)}`, token);
+  }
+  function normalizePlatformFeatureCatalog(value) {
+    if (!Array.isArray(value)) {
+      return void 0;
+    }
+    const manifests = value.flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+      const manifest = item;
+      if (typeof manifest.id !== "string" || typeof manifest.productSku !== "string" || typeof manifest.displayName !== "string" || !manifest.distribution || !Array.isArray(manifest.supportedShells) || !Array.isArray(manifest.features)) {
+        return [];
+      }
+      return [manifest];
+    });
+    return manifests.length > 0 ? manifests : void 0;
+  }
+  function getFeaturePackageCatalogFromConfig(config) {
+    if (config?.platformCatalogSource !== "platform") {
+      return void 0;
+    }
+    return normalizePlatformFeatureCatalog(config.platformFeaturePackageCatalog);
+  }
+  async function createPlatformPaymentMethod(baseUrl, token, orgId, manifest, draft) {
+    const expiry = parseCardExpiry(draft.expiry);
+    if (!expiry) {
+      throw new Error("Enter a valid future expiration date as MM/YY or MM/YYYY.");
+    }
+    const digits = draft.cardNumber.replace(/\D/g, "");
+    await readPlatformJson(baseUrl, "/billing/payment-methods", token, {
+      method: "POST",
+      body: JSON.stringify({
+        ...orgId.trim() ? { org_id: orgId.trim() } : {},
+        method_type: "card",
+        brand: getCardBrand(digits),
+        last4: digits.slice(-4),
+        holder_name: draft.nameOnCard.trim() || manifest.displayName,
+        exp_month: expiry.expMonth,
+        exp_year: expiry.expYear,
+        make_default: true
+      })
+    });
+  }
+  async function purchasePlatformPackage(baseUrl, token, orgId, packageId) {
+    return readPlatformJson(baseUrl, `/code-agent/packages/${encodeURIComponent(packageId)}/purchase`, token, {
+      method: "POST",
+      body: JSON.stringify({
+        ...orgId.trim() ? { org_id: orgId.trim() } : {}
+      })
+    });
+  }
+  async function installPlatformPackage(baseUrl, token, orgId, manifest) {
+    return readPlatformJson(baseUrl, `/code-agent/packages/${encodeURIComponent(manifest.id)}/install`, token, {
+      method: "POST",
+      body: JSON.stringify({
+        ...orgId.trim() ? { org_id: orgId.trim() } : {},
+        version: manifest.distribution.artifact.version,
+        installed_path: manifest.distribution.artifact.bundlePath,
+        sha256: manifest.distribution.artifact.sha256,
+        signature: manifest.distribution.artifact.signature
+      })
+    });
+  }
+  function createLocalAccountId(email) {
+    const normalized = email.trim().toLowerCase();
+    let hash = 0;
+    for (let index = 0; index < normalized.length; index += 1) {
+      hash = (hash << 5) - hash + normalized.charCodeAt(index) | 0;
+    }
+    return `acct_${Math.abs(hash).toString(36)}`;
+  }
+  function createLocalRecordId(prefix) {
+    return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+  }
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  }
+  function getPackagePriceLabel(manifest) {
+    return manifest.pricing.label || formatMoney(manifest.pricing.amountCents, manifest.pricing.currency, manifest.pricing.interval);
+  }
+  function getPackageDistributionLabel(manifest) {
+    switch (manifest.distribution.mode) {
+      case "bundled":
+        return "Bundled with app";
+      case "installable":
+        return manifest.distribution.installRequired ? "Install after purchase" : "Installable catalog item";
+      case "remote-service":
+        return "Remote service";
+      default:
+        return manifest.distribution.mode;
+    }
+  }
+  function getPackageSecurityLabel(manifest) {
+    switch (manifest.distribution.securityBoundary) {
+      case "none-client-bundled":
+        return "Client-side only";
+      case "signed-local-bundle":
+        return "Signed package";
+      case "server-enforced":
+        return "Server enforced";
+      default:
+        return manifest.distribution.securityBoundary;
+    }
+  }
+  function formatMoney(amountCents, currency, interval) {
+    if (amountCents <= 0) {
+      return "Free";
+    }
+    const amount = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency
+    }).format(amountCents / 100);
+    return interval && interval !== "one-time" ? `${amount}/${interval}` : amount;
+  }
+  function formatAccountTier(profile) {
+    if (profile.accountStatus !== "signed-in") {
+      return "Guest";
+    }
+    if (profile.accountTier === "enterprise") {
+      return "Enterprise";
+    }
+    return profile.accountTier === "paid" ? "Paid subscriber" : "Free account";
+  }
+  function getPackageInitials(displayName) {
+    const words = displayName.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) {
+      return "PK";
+    }
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+    return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+  }
+  function formatPackageCount(count) {
+    return `${count} package${count === 1 ? "" : "s"}`;
+  }
+  function formatPackageDate(value) {
+    if (!value) {
+      return "Not recorded";
+    }
+    const time = Date.parse(value);
+    if (!Number.isFinite(time)) {
+      return "Not recorded";
+    }
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    }).format(new Date(time));
+  }
+  function getLatestPurchaseForPackage(profile, packageId) {
+    for (let index = profile.purchases.length - 1; index >= 0; index -= 1) {
+      if (profile.purchases[index].packageId === packageId) {
+        return profile.purchases[index];
+      }
+    }
+    return void 0;
+  }
+  function getOwnedPackageEntries(resolution) {
+    const profile = resolution.profile;
+    const ownedPackageIds = /* @__PURE__ */ new Set();
+    for (const packageId of profile.purchasedPackageIds) {
+      ownedPackageIds.add(packageId);
+    }
+    for (const packageId of profile.enterprisePackageIds) {
+      ownedPackageIds.add(packageId);
+    }
+    for (const packageId of profile.trialPackageIds) {
+      ownedPackageIds.add(packageId);
+    }
+    for (const purchase of profile.purchases) {
+      if (purchase.status === "paid" || purchase.status === "trial") {
+        ownedPackageIds.add(purchase.packageId);
+      }
+    }
+    return resolution.packages.filter((entry) => entry.manifest.tier !== "free" && ownedPackageIds.has(entry.manifest.id));
+  }
+  function getPackageOwnershipLabel(profile, entry, purchase) {
+    const packageId = entry.manifest.id;
+    if (profile.disabledPackageIds.includes(packageId)) {
+      return "Disabled";
+    }
+    if (profile.expiredPackageIds.includes(packageId)) {
+      return "Expired";
+    }
+    if (purchase?.status === "refunded") {
+      return "Refunded";
+    }
+    if (purchase?.status === "failed") {
+      return "Payment failed";
+    }
+    if (profile.enterprisePackageIds.includes(packageId)) {
+      return "Enterprise entitlement";
+    }
+    if (profile.trialPackageIds.includes(packageId) || purchase?.status === "trial") {
+      return "Trial";
+    }
+    if (profile.purchasedPackageIds.includes(packageId) || purchase?.status === "paid") {
+      if (profile.subscriptionStatus === "past-due") {
+        return "Past due";
+      }
+      if (profile.subscriptionStatus === "canceled") {
+        return "Canceled";
+      }
+      return "Active subscription";
+    }
+    return getPackageStateLabel(entry.state);
+  }
+  function getPackageDisplayName(resolution, packageId, fallback) {
+    return resolution.packages.find((entry) => entry.manifest.id === packageId)?.manifest.displayName ?? fallback;
+  }
+  function getCardBrand(cardNumber) {
+    const digits = cardNumber.replace(/\D/g, "");
+    if (/^4/.test(digits)) return "Visa";
+    if (/^(5[1-5]|2[2-7])/.test(digits)) return "Mastercard";
+    if (/^3[47]/.test(digits)) return "American Express";
+    if (/^6(?:011|5)/.test(digits)) return "Discover";
+    return "Card";
+  }
+  function parseCardExpiry(expiry) {
+    const trimmed = expiry.trim();
+    const match = trimmed.match(/^(\d{1,2})\s*\/\s*(\d{2}|\d{4})$/) ?? trimmed.match(/^(\d{1,2})\s*\/\s*\d{1,2}\s*\/\s*(\d{4})$/);
+    if (!match) {
+      return null;
+    }
+    const expMonth = Number(match[1]);
+    const rawYear = Number(match[2]);
+    const expYear = rawYear < 100 ? 2e3 + rawYear : rawYear;
+    if (expMonth < 1 || expMonth > 12) {
+      return null;
+    }
+    const now = /* @__PURE__ */ new Date();
+    const expiresAt = new Date(expYear, expMonth, 1);
+    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    return expiresAt <= currentMonth ? null : { expMonth, expYear };
+  }
+  function validateCardNumber(cardNumber) {
+    const digits = cardNumber.replace(/\D/g, "");
+    if (digits.length < 12 || digits.length > 19) {
+      return false;
+    }
+    let sum = 0;
+    let shouldDouble = false;
+    for (let index = digits.length - 1; index >= 0; index -= 1) {
+      let digit = Number(digits[index]);
+      if (shouldDouble) {
+        digit *= 2;
+        if (digit > 9) digit -= 9;
+      }
+      sum += digit;
+      shouldDouble = !shouldDouble;
+    }
+    return sum % 10 === 0;
+  }
+  function validatePurchaseDraft(draft) {
+    if (!draft.nameOnCard.trim()) {
+      return "Name on card is required.";
+    }
+    if (!validateCardNumber(draft.cardNumber)) {
+      return "Enter a valid credit card number.";
+    }
+    if (!parseCardExpiry(draft.expiry)) {
+      return "Enter a valid future expiration date as MM/YY or MM/YYYY.";
+    }
+    if (!/^\d{3,4}$/.test(draft.cvc.trim())) {
+      return "Enter a valid card security code.";
+    }
+    if (!draft.postalCode.trim()) {
+      return "Billing ZIP or postal code is required.";
+    }
+    return null;
+  }
+  function createPurchasedProfile(profile, manifest, draft) {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const digits = draft.cardNumber.replace(/\D/g, "");
+    const expiry = parseCardExpiry(draft.expiry);
+    const paymentMethod = {
+      id: createLocalRecordId("pm"),
+      type: "card",
+      brand: getCardBrand(digits),
+      last4: digits.slice(-4),
+      expMonth: expiry?.expMonth ?? 0,
+      expYear: expiry?.expYear ?? 0,
+      createdAt: now
+    };
+    const purchase = {
+      id: createLocalRecordId("pur"),
+      packageId: manifest.id,
+      productSku: manifest.productSku,
+      amountCents: manifest.pricing.amountCents,
+      currency: manifest.pricing.currency,
+      paymentMethodId: paymentMethod.id,
+      status: "paid",
+      purchasedAt: now
+    };
+    const purchasedPackageIds = Array.from(/* @__PURE__ */ new Set([...profile.purchasedPackageIds, manifest.id]));
+    return {
+      ...profile,
+      accountTier: manifest.tier === "enterprise" ? "enterprise" : "paid",
+      subscriptionStatus: manifest.tier === "enterprise" ? "enterprise" : "active",
+      purchasedPackageIds,
+      localDeveloperOverride: false,
+      paymentMethods: [...profile.paymentMethods, paymentMethod],
+      purchases: [...profile.purchases, purchase],
+      updatedAt: now
+    };
+  }
+  function createInstalledProfile(profile, manifest) {
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const artifact = manifest.distribution.artifact;
+    const installRecord = {
+      packageId: manifest.id,
+      artifactId: artifact.artifactId,
+      version: artifact.version,
+      state: "installed",
+      installedAt: now,
+      ...artifact.installedPath || artifact.bundlePath ? { installedPath: artifact.installedPath || artifact.bundlePath } : {},
+      ...artifact.sha256 ? { sha256: artifact.sha256 } : {},
+      ...artifact.signature ? { signature: artifact.signature } : {}
+    };
+    return {
+      ...profile,
+      installedPackageIds: Array.from(/* @__PURE__ */ new Set([...profile.installedPackageIds, manifest.id])),
+      packageInstallRecords: [...profile.packageInstallRecords, installRecord],
+      updatedAt: now
+    };
   }
   function truncateText(value, maxLength = 220) {
     if (value.length <= maxLength) {
@@ -40728,12 +42406,50 @@
     ].join("\n").toLowerCase();
     return haystack.includes(normalizedQuery);
   }
-  function filterDesktopCommands(input) {
+  function hasShellFeature(resolution, featureId) {
+    return !featureId || isFeatureAvailable(resolution, featureId);
+  }
+  function filterNavigationItems(items, resolution) {
+    return items.filter((item) => hasShellFeature(resolution, item.featureId));
+  }
+  function getAvailableDesktopCommands(resolution) {
+    const commandsByName = /* @__PURE__ */ new Map();
+    for (const command of DESKTOP_COMMANDS.filter((item) => hasShellFeature(resolution, item.featureId))) {
+      commandsByName.set(command.command, command);
+    }
+    for (const entry of getFeaturePackageExtensions(resolution, "desktop.slash-command")) {
+      const extension = entry.extension;
+      const commandNames = [extension.command, ...extension.commandAliases ?? []].filter((command) => Boolean(command));
+      for (const command of commandNames) {
+        if (commandsByName.has(command)) {
+          continue;
+        }
+        commandsByName.set(command, {
+          command,
+          description: extension.description || extension.title,
+          featureId: extension.featureId
+        });
+      }
+    }
+    return [...commandsByName.values()];
+  }
+  function findDesktopCommandForPrompt(prompt, commands) {
+    const normalizedPrompt = prompt.trim().toLowerCase();
+    return [...commands].sort((left, right) => right.command.length - left.command.length).find((command) => {
+      const normalizedCommand = command.command.toLowerCase();
+      const commandPrefix = normalizedCommand.split(/\s+/)[0];
+      if (normalizedCommand.includes("<")) {
+        return normalizedPrompt === commandPrefix || normalizedPrompt.startsWith(`${commandPrefix} `);
+      }
+      return normalizedPrompt === normalizedCommand;
+    });
+  }
+  function filterDesktopCommands(input, availableCommands) {
     if (!input.startsWith("/")) {
       return [];
     }
     const query = input.trim().toLowerCase();
-    return DESKTOP_COMMANDS.filter((command) => {
+    return availableCommands.filter((command) => {
       if (!query || query === "/") {
         return true;
       }
@@ -40919,12 +42635,14 @@ ${nextUserMessage}`
     const [settingsMessage, setSettingsMessage] = useState("");
     const [toolRouterMessage, setToolRouterMessage] = useState("");
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [purchasePackageId, setPurchasePackageId] = useState(null);
+    const [purchaseDraft, setPurchaseDraft] = useState(() => ({ ...EMPTY_PURCHASE_DRAFT }));
     const [activeView, setActiveView] = useState("chat");
     const [activeProjectsSection, setActiveProjectsSection] = useState("studio");
     const [activeToolsSection, setActiveToolsSection] = useState("bridge");
     const [activeAutomationSection, setActiveAutomationSection] = useState("tasks");
     const [activeHistorySection, setActiveHistorySection] = useState("overview");
-    const [activeSettingsSection, setActiveSettingsSection] = useState("model");
+    const [activeSettingsSection, setActiveSettingsSection] = useState("account");
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
     const messageListRef = useRef(null);
     const inputRef = useRef(null);
@@ -40946,9 +42664,28 @@ ${nextUserMessage}`
         { inputTokens: 0, outputTokens: 0 }
       );
     }, [messages]);
+    const featureResolution = useMemo(() => {
+      return resolveFeaturePackages(
+        "desktop",
+        getFeatureProfileFromConfig(appConfig),
+        getFeaturePackageCatalogFromConfig(appConfig)
+      );
+    }, [appConfig]);
+    const availableDesktopCommands = useMemo(() => {
+      return getAvailableDesktopCommands(featureResolution);
+    }, [featureResolution]);
+    const availablePrimaryNav = useMemo(() => {
+      return PRIMARY_NAV.filter((item) => hasShellFeature(featureResolution, item.featureId));
+    }, [featureResolution]);
     useEffect(() => {
       initializeApp();
     }, []);
+    useEffect(() => {
+      const activeNavItem = PRIMARY_NAV.find((item) => item.id === activeView);
+      if (activeNavItem && !hasShellFeature(featureResolution, activeNavItem.featureId)) {
+        setActiveView("chat");
+      }
+    }, [activeView, featureResolution]);
     useEffect(() => {
       try {
         window.localStorage?.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
@@ -41417,18 +43154,18 @@ ${formatJson(data.data)}
     }
     function saveSoftwareProjectPlan(project) {
       const availableSupervisor = virtualEmployees.find((employee) => employee.id === project.supervisorEmployeeId) ?? virtualEmployees.find((employee) => isSupervisorEmployee(employee, virtualRoles)) ?? virtualEmployees[0];
-      const assignedEmployeeIds = normalizeStringList(
+      const assignedEmployeeIds = normalizeStringList2(
         project.assignedEmployeeIds,
         virtualEmployees.filter((employee) => employee.id !== availableSupervisor?.id).slice(0, 4).map((employee) => employee.id)
       ).filter((id) => id !== availableSupervisor?.id);
-      const assignedTeamIds = normalizeStringList(project.assignedTeamIds, []).filter((id) => projectTeams.some((team) => team.id === id));
+      const assignedTeamIds = normalizeStringList2(project.assignedTeamIds, []).filter((id) => projectTeams.some((team) => team.id === id));
       const sanitized = sanitizeSoftwareProjectPlan({
         ...project,
         name: project.name.trim() || "Untitled software project",
         idea: project.idea.trim(),
         goals: project.goals.trim(),
-        artifacts: normalizeStringList(project.artifacts, DEFAULT_PROJECT_ARTIFACTS),
-        teamRoles: normalizeStringList(project.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+        artifacts: normalizeStringList2(project.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+        teamRoles: normalizeStringList2(project.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
         supervisorEmployeeId: availableSupervisor?.id ?? project.supervisorEmployeeId,
         supervisorRole: availableSupervisor ? getEmployeeRoleDefinition(availableSupervisor, virtualRoles)?.title ?? availableSupervisor.role : project.supervisorRole,
         assignedEmployeeIds,
@@ -41448,8 +43185,8 @@ ${formatJson(data.data)}
       const sanitized = sanitizeVirtualRole({
         ...role,
         title: role.title.trim() || "Contributor",
-        responsibilities: normalizeStringList(role.responsibilities, ["Deliver assigned project responsibilities."]),
-        defaultTools: normalizeStringList(role.defaultTools, getDefaultTeamTools(role.title)),
+        responsibilities: normalizeStringList2(role.responsibilities, ["Deliver assigned project responsibilities."]),
+        defaultTools: normalizeStringList2(role.defaultTools, getDefaultTeamTools(role.title)),
         updatedAt: Date.now()
       });
       if (!sanitized) {
@@ -41511,7 +43248,7 @@ ${formatJson(data.data)}
         name: employee.name.trim() || "Employee",
         roleId: role?.id ?? employee.roleId,
         role: role?.title ?? (employee.role.trim() || "Contributor"),
-        permissions: normalizeStringList(employee.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+        permissions: normalizeStringList2(employee.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
         updatedAt: Date.now()
       });
       if (!sanitized) {
@@ -41544,7 +43281,7 @@ ${formatJson(data.data)}
         name: team.name.trim() || "Project team",
         mission: team.mission.trim() || "Deliver a scoped portion of the project mission.",
         supervisorEmployeeId: supervisor?.id ?? team.supervisorEmployeeId,
-        memberEmployeeIds: normalizeStringList(team.memberEmployeeIds, []).filter((id) => id !== supervisor?.id && virtualEmployees.some((employee) => employee.id === id)),
+        memberEmployeeIds: normalizeStringList2(team.memberEmployeeIds, []).filter((id) => id !== supervisor?.id && virtualEmployees.some((employee) => employee.id === id)),
         updatedAt: Date.now()
       });
       if (!sanitized) {
@@ -41710,7 +43447,7 @@ ${formatJson(data.data)}
           role: roleTitle,
           goal: employee.currentTask || role?.defaultGoal || `Contribute ${roleTitle} work for "${project.name}".`,
           model: employee.model || void 0,
-          tools: normalizeStringList(role?.defaultTools ?? employee.permissions, ["filesystem", "bash", "review"])
+          tools: normalizeStringList2(role?.defaultTools ?? employee.permissions, ["filesystem", "bash", "review"])
         };
       });
       return {
@@ -42504,6 +44241,17 @@ ${formatJson(data.data)}
       if (!prompt.startsWith("/")) {
         return false;
       }
+      const requestedCommand = findDesktopCommandForPrompt(prompt, DESKTOP_COMMANDS);
+      if (requestedCommand?.featureId && !hasShellFeature(featureResolution, requestedCommand.featureId)) {
+        appendMessage(createMessage("error", [
+          `Command ${requestedCommand.command} is not available for the current feature profile.`,
+          getFeaturePackageSummary(featureResolution)
+        ].join("\n\n"), {
+          title: "Feature package locked",
+          status: "failed"
+        }));
+        return true;
+      }
       if (prompt === "/help" || prompt === "/?") {
         appendMessage(createMessage("system", formatHelp(), { title: "Desktop commands" }));
         return true;
@@ -42518,9 +44266,9 @@ ${formatJson(data.data)}
         }));
         return true;
       }
-      if (prompt === "/login" || prompt === "/settings") {
-        setSettingsMessage(prompt === "/login" ? "Select an LLM backend and save credentials or local endpoint settings." : "");
-        setActiveSettingsSection("model");
+      if (prompt === "/login" || prompt === "/account" || prompt === "/settings") {
+        setSettingsMessage(prompt === "/settings" ? "" : "Sign in to sync subscription and feature package entitlements.");
+        setActiveSettingsSection("account");
         setActiveView("settings");
         appendMessage(createMessage("system", "Opened Settings.", { title: prompt.slice(1) }));
         return true;
@@ -42611,7 +44359,7 @@ ${formatJson(appConfig)}
       return true;
     }
     function formatHelp() {
-      return DESKTOP_COMMANDS.map((command) => `${command.command} - ${command.description}`).join("\n");
+      return availableDesktopCommands.map((command) => `${command.command} - ${command.description}`).join("\n");
     }
     function formatStatus() {
       const config = appConfig;
@@ -42630,6 +44378,7 @@ ${formatJson(appConfig)}
         `Bridge tools hidden from model: ${getDisabledModelToolSet(config).size}`,
         `MCP servers: ${mcpServers.length}`,
         `MCP tools: ${mcpTools.length}`,
+        `Feature packages: ${featureResolution.packages.map((entry) => `${entry.manifest.id}:${entry.state}`).join(", ")}`,
         `Runtime: ${appInfo ? `${appInfo.version} on ${appInfo.platform} ${appInfo.arch}` : "unknown"}`,
         `Messages: ${messages.length}`,
         `Saved sessions: ${sessions.length}`
@@ -42775,6 +44524,8 @@ ${toolText}`;
       setIsSavingSettings(true);
       setSettingsMessage("");
       try {
+        const currentFeatureProfile = getFeatureProfileFromConfig(appConfig);
+        const nextFeatureProfile = buildSettingsFeatureProfile(currentFeatureProfile, settingsDraft);
         const nextConfig = {
           llmProvider: settingsDraft.llmProvider,
           baseUrl: settingsDraft.baseUrl,
@@ -42788,7 +44539,11 @@ ${toolText}`;
           memoryEnabled: settingsDraft.memoryEnabled,
           pluginsEnabled: settingsDraft.pluginsEnabled,
           autoUpdate: settingsDraft.autoUpdate,
-          cliOptions: buildCliOptions(settingsDraft)
+          cliOptions: buildCliOptions(settingsDraft),
+          platformBaseUrl: normalizePlatformBaseUrl(settingsDraft.platformBaseUrl),
+          platformOrgId: settingsDraft.platformOrgId.trim(),
+          featureProfile: nextFeatureProfile,
+          featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile)
         };
         await ipcClient.app.setConfig(nextConfig);
         if (settingsDraft.apiKey.trim()) {
@@ -42815,6 +44570,230 @@ ${toolText}`;
       updateSettingsDraft({ apiKey: "" });
       setSettingsMessage("Authentication cleared");
     }
+    async function persistFeatureProfile(profile, message) {
+      await ipcClient.app.setConfig({
+        featureProfile: profile,
+        featureAccounts: writeProfileToAccountStore(appConfig, profile)
+      });
+      const config = await ipcClient.app.getConfig();
+      setAppConfig(config);
+      setSettingsDraft((current) => ({
+        ...createSettingsDraft(config),
+        apiKey: current.apiKey
+      }));
+      setSettingsMessage(message);
+      setStatus("Ready");
+    }
+    async function handleAccountLogin() {
+      const email = settingsDraft.accountEmail.trim();
+      if (!isValidEmail(email)) {
+        setSettingsMessage("Enter a valid email address to sign in.");
+        return;
+      }
+      if (settingsDraft.accountPassword.trim()) {
+        try {
+          const login = await loginToPlatform(settingsDraft);
+          const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+          const platformOrgId = settingsDraft.platformOrgId.trim() || login.session?.org_id || login.workspace?.organization?.org_id || "";
+          const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, login.access_token, platformOrgId);
+          const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, login.access_token, platformOrgId);
+          const profile = normalizeFeatureProfile(platformProfile.profile);
+          const nextConfig = {
+            platformBaseUrl,
+            platformAccessToken: login.access_token,
+            platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+            platformCatalogSource: "platform",
+            platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
+            platformFeaturePackageCatalog: platformCatalog.packages,
+            featureProfile: profile,
+            featureAccounts: writeProfileToAccountStore(appConfig, profile)
+          };
+          await ipcClient.app.setConfig(nextConfig);
+          const config = await ipcClient.app.getConfig();
+          setAppConfig(config);
+          setSettingsDraft((current) => ({
+            ...createSettingsDraft(config),
+            apiKey: current.apiKey,
+            accountPassword: ""
+          }));
+          setSettingsMessage(`Signed in through agent-platform as ${profile.email || email}. Catalog: ${platformCatalog.packages.length} package${platformCatalog.packages.length === 1 ? "" : "s"} from ${platformCatalog.catalog_source || "platform"}.`);
+          setStatus("Ready");
+          return;
+        } catch (error) {
+          setSettingsMessage(error instanceof Error ? error.message : String(error));
+          setStatus("Platform login error");
+          return;
+        }
+      }
+      const currentProfile = getFeatureProfileFromConfig(appConfig);
+      const storedProfile = getStoredAccountProfile(appConfig, email);
+      const displayName = settingsDraft.accountDisplayName.trim() || storedProfile?.displayName || email;
+      const restoredProfile = storedProfile ?? currentProfile;
+      const accountId = storedProfile?.accountId || getAccountStoreKey(email);
+      const nextProfile = {
+        ...restoredProfile,
+        accountStatus: "signed-in",
+        accountId,
+        email: email.toLowerCase(),
+        displayName,
+        accountTier: storedProfile?.accountTier ?? "free",
+        subscriptionStatus: storedProfile?.subscriptionStatus ?? "free",
+        localDeveloperOverride: false,
+        updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+      };
+      const packageCount = normalizeFeatureProfile(nextProfile).purchasedPackageIds.length;
+      await persistFeatureProfile(
+        nextProfile,
+        packageCount > 0 ? `Signed in as ${email}. Restored ${packageCount} purchased package${packageCount === 1 ? "" : "s"}.` : `Signed in as ${email}. Free tier is active.`
+      );
+    }
+    async function handleAccountLogout() {
+      const nextProfile = normalizeFeatureProfile(null);
+      await ipcClient.auth.logout();
+      setPurchasePackageId(null);
+      await ipcClient.app.setConfig({
+        featureProfile: nextProfile,
+        featureAccounts: getFeatureAccountStore(appConfig),
+        platformAccessToken: "",
+        platformCatalogSource: "local",
+        platformFeaturePackageCatalog: []
+      });
+      const config = await ipcClient.app.getConfig();
+      setAppConfig(config);
+      setSettingsDraft((current) => ({
+        ...createSettingsDraft(config),
+        apiKey: current.apiKey,
+        accountPassword: ""
+      }));
+      setSettingsMessage("Signed out. Guest free tier is active.");
+      setStatus("Ready");
+    }
+    async function handleFeaturePackageAction(packageId) {
+      const packageEntry = featureResolution.packages.find((entry) => entry.manifest.id === packageId);
+      if (!packageEntry) {
+        setSettingsMessage(`Unknown feature package: ${packageId}`);
+        return;
+      }
+      const isEntitled = packageEntry.state === "available" || packageEntry.state === "trial";
+      if (isEntitled && !isPackageRuntimeAvailable(packageEntry.installState)) {
+        const profile = getFeatureProfileFromConfig(appConfig);
+        const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
+        const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+        if (platformBaseUrl && platformToken) {
+          try {
+            const result = await installPlatformPackage(
+              platformBaseUrl,
+              platformToken,
+              String(appConfig?.platformOrgId || profile.accountId || ""),
+              packageEntry.manifest
+            );
+            await ipcClient.app.setConfig({
+              featureProfile: result.profile,
+              featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
+              platformOrgId: result.org_id || appConfig?.platformOrgId,
+              platformCatalogSource: "platform",
+              platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString()
+            });
+            const config = await ipcClient.app.getConfig();
+            setAppConfig(config);
+            setSettingsDraft((current) => ({
+              ...createSettingsDraft(config),
+              apiKey: current.apiKey,
+              accountPassword: ""
+            }));
+            setSettingsMessage(`${packageEntry.manifest.displayName} installed through agent-platform.`);
+            setStatus("Ready");
+            return;
+          } catch (error) {
+            setSettingsMessage(error instanceof Error ? error.message : String(error));
+            setStatus("Platform install error");
+            return;
+          }
+        }
+        const nextProfile = createInstalledProfile(profile, packageEntry.manifest);
+        await persistFeatureProfile(
+          nextProfile,
+          `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`
+        );
+        return;
+      }
+      if (isEntitled) {
+        setSettingsMessage(`${packageEntry.manifest.displayName} is ${packageEntry.state} and ${packageEntry.installState}. SKU: ${packageEntry.manifest.productSku}.`);
+        return;
+      }
+      if (featureResolution.profile.accountStatus !== "signed-in") {
+        setActiveSettingsSection("account");
+        setSettingsMessage("Sign in before purchasing feature packages.");
+        return;
+      }
+      setPurchasePackageId(packageEntry.manifest.id);
+      setPurchaseDraft({
+        ...EMPTY_PURCHASE_DRAFT,
+        nameOnCard: featureResolution.profile.displayName || ""
+      });
+      setSettingsMessage("");
+    }
+    async function completePackagePurchase(event) {
+      event.preventDefault();
+      if (!selectedPurchasePackage) {
+        setSettingsMessage("Select a package before checkout.");
+        return;
+      }
+      const error = validatePurchaseDraft(purchaseDraft);
+      if (error) {
+        setSettingsMessage(error);
+        return;
+      }
+      const profile = getFeatureProfileFromConfig(appConfig);
+      if (profile.accountStatus !== "signed-in") {
+        setSettingsMessage("Sign in before purchasing feature packages.");
+        setActiveSettingsSection("account");
+        setPurchasePackageId(null);
+        return;
+      }
+      const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
+      const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+      if (platformBaseUrl && platformToken) {
+        try {
+          const orgId = String(appConfig?.platformOrgId || profile.platform?.orgId || "");
+          await createPlatformPaymentMethod(platformBaseUrl, platformToken, orgId, selectedPurchasePackage, purchaseDraft);
+          const result = await purchasePlatformPackage(platformBaseUrl, platformToken, orgId, selectedPurchasePackage.id);
+          setPurchasePackageId(null);
+          setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+          await ipcClient.app.setConfig({
+            featureProfile: result.profile,
+            featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
+            platformOrgId: result.org_id || appConfig?.platformOrgId,
+            platformCatalogSource: "platform",
+            platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
+          const config = await ipcClient.app.getConfig();
+          setAppConfig(config);
+          setSettingsDraft((current) => ({
+            ...createSettingsDraft(config),
+            apiKey: current.apiKey,
+            accountPassword: ""
+          }));
+          setSettingsMessage(
+            selectedPurchasePackage.distribution.installRequired ? `${selectedPurchasePackage.displayName} purchased through agent-platform. Install the package to enable its features.` : `${selectedPurchasePackage.displayName} purchased through agent-platform.`
+          );
+          setStatus("Ready");
+          return;
+        } catch (error2) {
+          setSettingsMessage(error2 instanceof Error ? error2.message : String(error2));
+          setStatus("Platform purchase error");
+          return;
+        }
+      }
+      const nextProfile = createPurchasedProfile(profile, selectedPurchasePackage, purchaseDraft);
+      const last4 = purchaseDraft.cardNumber.replace(/\D/g, "").slice(-4);
+      setPurchasePackageId(null);
+      setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+      await persistFeatureProfile(
+        nextProfile,
+        selectedPurchasePackage.distribution.installRequired ? `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}. Install the package to enable its features.` : `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}.`
+      );
+    }
     function openPrimaryView(view) {
       if (view === "settings") {
         setSettingsMessage("");
@@ -42825,19 +44804,19 @@ ${toolText}`;
     }
     function getActiveChildMenu() {
       if (activeView === "projects") {
-        return PROJECTS_MENU;
+        return filterNavigationItems(PROJECTS_MENU, featureResolution);
       }
       if (activeView === "tools") {
-        return TOOLS_MENU;
+        return filterNavigationItems(TOOLS_MENU, featureResolution);
       }
       if (activeView === "automation") {
-        return AUTOMATION_MENU;
+        return filterNavigationItems(AUTOMATION_MENU, featureResolution);
       }
       if (activeView === "history") {
-        return HISTORY_MENU;
+        return filterNavigationItems(HISTORY_MENU, featureResolution);
       }
       if (activeView === "settings") {
-        return SETTINGS_MENU;
+        return filterNavigationItems(SETTINGS_MENU, featureResolution);
       }
       return [];
     }
@@ -42887,8 +44866,9 @@ ${toolText}`;
     const recentSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
     const visibleRecentSessions = recentSessions.filter((session) => matchesSessionSearch(session, sessionSearch));
     const exposedBridgeToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
-    const commandSuggestions = filterDesktopCommands(input);
+    const commandSuggestions = filterDesktopCommands(input, availableDesktopCommands);
     const showCommandPalette = activeView === "chat" && commandSuggestions.length > 0 && !isSending;
+    const selectedPurchasePackage = purchasePackageId ? featureResolution.packages.find((entry) => entry.manifest.id === purchasePackageId)?.manifest ?? null : null;
     const activeProjectsMenuItem = PROJECTS_MENU.find((item) => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
     const activeToolsMenuItem = TOOLS_MENU.find((item) => item.id === activeToolsSection) ?? TOOLS_MENU[0];
     const activeAutomationMenuItem = AUTOMATION_MENU.find((item) => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
@@ -42924,7 +44904,7 @@ ${toolText}`;
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: "New chat" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: PRIMARY_NAV.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: availablePrimaryNav.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
@@ -43223,8 +45203,12 @@ ${toolText}`;
               draft: settingsDraft,
               message: settingsMessage,
               saving: isSavingSettings,
+              featureResolution,
               onChange: updateSettingsDraft,
               onClearToken: clearToken,
+              onAccountLogin: handleAccountLogin,
+              onAccountLogout: handleAccountLogout,
+              onPackageAction: handleFeaturePackageAction,
               onSubmit: saveSettings
             }
           )
@@ -43234,7 +45218,7 @@ ${toolText}`;
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          hasShellFeature(featureResolution, "project-studio") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
               className: App_default.statusPane,
@@ -43249,7 +45233,7 @@ ${toolText}`;
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          hasShellFeature(featureResolution, "developer-tools") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
               className: App_default.statusPane,
@@ -43271,7 +45255,7 @@ ${toolText}`;
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          hasShellFeature(featureResolution, "automation") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
               className: App_default.statusPane,
@@ -43291,7 +45275,7 @@ ${toolText}`;
               ]
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          hasShellFeature(featureResolution, "developer-history") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
               className: App_default.statusPane,
@@ -43349,6 +45333,22 @@ ${toolText}`;
           queuedCount: toolPermissionReviews.length,
           onApprove: () => resolveToolPermissionReview(activeToolPermissionReview, true),
           onReject: () => resolveToolPermissionReview(activeToolPermissionReview, false)
+        }
+      ),
+      selectedPurchasePackage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        PackagePurchaseDialog,
+        {
+          manifest: selectedPurchasePackage,
+          profile: featureResolution.profile,
+          draft: purchaseDraft,
+          message: settingsMessage,
+          onChange: (update) => setPurchaseDraft((current) => ({ ...current, ...update })),
+          onSubmit: completePackagePurchase,
+          onCancel: () => {
+            setPurchasePackageId(null);
+            setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+            setSettingsMessage("");
+          }
         }
       )
     ] });
@@ -43572,13 +45572,13 @@ ${toolText}`;
         ...draft,
         name: draft.name.trim() || "Untitled software project",
         workspacePath: draft.workspacePath || appInfo?.workspacePath,
-        artifacts: normalizeStringList(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS),
+        artifacts: normalizeStringList2(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS),
         supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
         assignedTeamIds: assignedTeams.map((team) => team.id),
         teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
           ...assignedTeams.map((team) => team.name),
           ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
-        ] : normalizeStringList(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
+        ] : normalizeStringList2(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
         updatedAt: Date.now()
       };
       onSaveProject(next);
@@ -43687,9 +45687,9 @@ ${toolText}`;
       onSaveRole({
         ...roleDraft,
         title: roleDraft.title.trim() || "Contributor",
-        responsibilities: normalizeStringList(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
+        responsibilities: normalizeStringList2(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
         defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
-        defaultTools: normalizeStringList(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
+        defaultTools: normalizeStringList2(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
         updatedAt: Date.now()
       });
       setRoleDraft(createVirtualRoleDefinition("Developer"));
@@ -43711,7 +45711,7 @@ ${toolText}`;
         name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Employee",
         roleId: role?.id ?? employeeDraft.roleId,
         role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
-        permissions: normalizeStringList(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
+        permissions: normalizeStringList2(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
         updatedAt: Date.now()
       });
       setEmployeeDraft(createVirtualEmployeeProfile("Developer"));
@@ -43722,7 +45722,7 @@ ${toolText}`;
         ...teamDraft,
         name: teamDraft.name.trim() || "Project team",
         mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
-        memberEmployeeIds: normalizeStringList(teamDraft.memberEmployeeIds, []),
+        memberEmployeeIds: normalizeStringList2(teamDraft.memberEmployeeIds, []),
         updatedAt: Date.now()
       });
       setTeamDraft({
@@ -44854,7 +46854,7 @@ ${toolText}`;
             "textarea",
             {
               value: draft.artifacts.join("\n"),
-              onChange: (event) => updateDraft({ artifacts: normalizeStringList(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
+              onChange: (event) => updateDraft({ artifacts: normalizeStringList2(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
               rows: 6
             }
           )
@@ -45531,7 +47531,7 @@ ${toolText}`;
                     value: roleDraft.responsibilities.join("\n"),
                     onChange: (event) => setRoleDraft((current) => ({
                       ...current,
-                      responsibilities: normalizeStringList(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
+                      responsibilities: normalizeStringList2(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
                       updatedAt: Date.now()
                     })),
                     rows: 7
@@ -45546,7 +47546,7 @@ ${toolText}`;
                     value: roleDraft.defaultTools.join("\n"),
                     onChange: (event) => setRoleDraft((current) => ({
                       ...current,
-                      defaultTools: normalizeStringList(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
+                      defaultTools: normalizeStringList2(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
                       updatedAt: Date.now()
                     })),
                     rows: 4
@@ -45648,7 +47648,7 @@ ${toolText}`;
                     value: employeeDraft.permissions.join("\n"),
                     onChange: (event) => setEmployeeDraft((current) => ({
                       ...current,
-                      permissions: normalizeStringList(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS),
+                      permissions: normalizeStringList2(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS),
                       updatedAt: Date.now()
                     })),
                     rows: 5
@@ -45803,7 +47803,7 @@ ${toolText}`;
               "textarea",
               {
                 value: draft.artifacts.join("\n"),
-                onChange: (event) => updateDraft({ artifacts: normalizeStringList(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
+                onChange: (event) => updateDraft({ artifacts: normalizeStringList2(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
                 rows: 6
               }
             )
@@ -48023,11 +50023,12 @@ ${toolText}`;
     value,
     onChange,
     type = "text",
-    className = ""
+    className = "",
+    placeholder
   }) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${className}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type, value, onChange: (event) => onChange(event.target.value), autoComplete: "off" })
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { type, value, placeholder, onChange: (event) => onChange(event.target.value), autoComplete: "off" })
     ] });
   }
   function TextAreaSetting({
@@ -48072,13 +50073,431 @@ ${toolText}`;
     }
     return Array.from(next).join(",");
   }
+  function getPackageStateLabel(state) {
+    switch (state) {
+      case "available":
+        return "Available";
+      case "trial":
+        return "Trial";
+      case "locked":
+        return "Purchase required";
+      case "expired":
+        return "Expired";
+      case "unsupported":
+        return "Unsupported";
+      case "disabled":
+        return "Disabled";
+      default:
+        return state;
+    }
+  }
+  function getPackageInstallStateLabel(state) {
+    switch (state) {
+      case "bundled":
+        return "Bundled";
+      case "not-owned":
+        return "Not owned";
+      case "owned-not-installed":
+        return "Install required";
+      case "installed":
+        return "Installed";
+      case "update-available":
+        return "Update available";
+      case "install-failed":
+        return "Install failed";
+      case "remote-service":
+        return "Remote service";
+      default:
+        return state;
+    }
+  }
+  function AccountSettingsSection({
+    resolution,
+    draft,
+    onChange,
+    onLogin,
+    onLogout
+  }) {
+    const profile = resolution.profile;
+    const isSignedIn = profile.accountStatus === "signed-in";
+    const latestPurchase = profile.purchases[profile.purchases.length - 1];
+    const ownedPackages = getOwnedPackageEntries(resolution);
+    const ownedPackageNames = ownedPackages.map((entry) => entry.manifest.displayName).join(", ");
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Account", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountOverviewGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Current session" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: formatAccountTier(profile) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? `${profile.displayName || profile.email} is signed in.` : "You are using CodeAgent as a guest with the free base package." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Feature packages" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: ownedPackages.length > 0 ? formatPackageCount(ownedPackages.length) : "No paid packages" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? ownedPackageNames || "No purchased packages are attached to this account yet." : "Sign in to purchase paid packages." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Payment" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: profile.paymentMethods.length > 0 ? `${profile.paymentMethods.length} card${profile.paymentMethods.length === 1 ? "" : "s"}` : "No card" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: latestPurchase ? `Last purchase: ${getPackageDisplayName(resolution, latestPurchase.packageId, latestPurchase.productSku)}` : "Credit card checkout is available from package cards." })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountPackageShelf, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountShelfHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Purchased packages" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isSignedIn ? "Packages and subscriptions attached to this account." : "Sign in to view purchases for this account." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isSignedIn ? profile.subscriptionStatus : "guest" })
+        ] }),
+        ownedPackages.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountPackageList, children: ownedPackages.map((entry) => {
+          const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+          const paymentMethod = profile.paymentMethods.find((method) => method.id === purchase?.paymentMethodId);
+          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountPackageItem, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountPackageBody, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.productSku }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: entry.manifest.description })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.accountPackageMeta, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageOwnershipLabel(profile, entry, purchase) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Price" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackagePriceLabel(entry.manifest) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchased" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatPackageDate(purchase?.purchasedAt) })
+              ] }),
+              paymentMethod && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Payment" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
+                  paymentMethod.brand,
+                  " ending ",
+                  paymentMethod.last4
+                ] })
+              ] })
+            ] })
+          ] }, entry.manifest.id);
+        }) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountEmptyState, children: isSignedIn ? "No paid packages have been purchased for this account yet." : "Guest sessions include only the free base package." })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Platform URL",
+            value: draft.platformBaseUrl,
+            onChange: (value) => onChange({ platformBaseUrl: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Workspace or org ID",
+            value: draft.platformOrgId,
+            placeholder: "optional",
+            onChange: (value) => onChange({ platformOrgId: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Email",
+            type: "email",
+            value: draft.accountEmail,
+            onChange: (value) => onChange({ accountEmail: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Display name",
+            value: draft.accountDisplayName,
+            onChange: (value) => onChange({ accountDisplayName: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Platform password",
+            type: "password",
+            value: draft.accountPassword,
+            placeholder: "required for platform login",
+            onChange: (value) => onChange({ accountPassword: value }),
+            className: App_default.fieldWide
+          }
+        )
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+        isSignedIn ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onLogout, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
+          "Sign out"
+        ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onLogin, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }),
+          "Sign in"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChange({ accountEmail: "", accountDisplayName: "" }), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
+          "Clear"
+        ] })
+      ] }),
+      profile.paymentMethods.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.paymentSummaryList, children: profile.paymentMethods.map((method) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "credit-card", size: 14 }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+          method.brand,
+          " ending ",
+          method.last4
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+          method.expMonth.toString().padStart(2, "0"),
+          "/",
+          String(method.expYear).slice(-2)
+        ] })
+      ] }, method.id)) })
+    ] });
+  }
+  function FeaturePackagesSection({
+    resolution,
+    onPackageAction
+  }) {
+    const profile = resolution.profile;
+    const ownedPackages = getOwnedPackageEntries(resolution);
+    const isSignedIn = profile.accountStatus === "signed-in";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Feature Packages", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "CodeAgent Store" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Feature packages for every shell" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? `${profile.email || profile.displayName} \xB7 ${ownedPackages.length > 0 ? `${formatPackageCount(ownedPackages.length)} purchased` : "No paid packages purchased"}` : "Guest free tier. Sign in before purchasing paid feature packages." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.packageStoreSummary, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Account" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatAccountTier(profile) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Owned" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: ownedPackages.length })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Catalog" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: resolution.packages.length })
+          ] })
+        ] })
+      ] }),
+      ownedPackages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedShelf, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountShelfHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Purchased" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Available to this signed-in account after runtime installation." })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreOwnedList, children: ownedPackages.map((entry) => {
+          const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedItem, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                getPackageOwnershipLabel(profile, entry, purchase),
+                " \xB7 ",
+                getPackageInstallStateLabel(entry.installState)
+              ] })
+            ] })
+          ] }, entry.manifest.id);
+        }) })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreGrid, children: resolution.packages.map((entry) => {
+        const isEntitled = entry.state === "available" || entry.state === "trial";
+        const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
+        const actionLabel = isUsable ? "Manage" : isEntitled ? "Install" : profile.accountStatus === "signed-in" ? "Purchase" : "Sign in";
+        const statusLabel = isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state);
+        const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreCard, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTopline, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIdentity, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.domain })
+              ] })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isUsable ? App_default.packageStateAvailable : App_default.packageStateLocked, children: statusLabel })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.packageStoreDescription, children: entry.manifest.description }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreFeatures, children: entry.manifest.features.map((feature) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: feature.title }, feature.id)) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.packageStoreMeta, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Price" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackagePriceLabel(entry.manifest) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tier" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.tier })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchase" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: purchase ? formatPackageDate(purchase.purchasedAt) : "Not purchased" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Distribution" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageDistributionLabel(entry.manifest) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Protection" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageSecurityLabel(entry.manifest) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Shells" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.supportedShells.join(", ") })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreFooter, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+              entry.reason,
+              " ",
+              entry.installReason
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "button",
+              {
+                className: `${isUsable ? App_default.secondaryButton : App_default.primaryButton} ${App_default.packageStoreAction}`,
+                type: "button",
+                onClick: () => onPackageAction(entry.manifest.id),
+                children: actionLabel
+              }
+            )
+          ] })
+        ] }, entry.manifest.id);
+      }) })
+    ] });
+  }
+  function PackagePurchaseDialog({
+    manifest,
+    profile,
+    draft,
+    message,
+    onChange,
+    onSubmit,
+    onCancel
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: `${App_default.reviewDialog} ${App_default.purchaseDialog}`, role: "dialog", "aria-modal": "true", "aria-labelledby": "package-purchase-title", onSubmit, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h2", { id: "package-purchase-title", children: [
+            "Purchase ",
+            manifest.displayName
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
+            profile.email,
+            " \xB7 ",
+            getPackagePriceLabel(manifest),
+            " \xB7 ",
+            manifest.productSku
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.reviewBadge, children: "Credit card" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.reviewMeta, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Package" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: manifest.description, children: manifest.displayName })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Includes" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: manifest.features.map((feature) => feature.title).join(", "), children: manifest.features.map((feature) => feature.title).join(", ") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Total" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatMoney(manifest.pricing.amountCents, manifest.pricing.currency, manifest.pricing.interval) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Install" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageDistributionLabel(manifest) })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.paymentFormGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Name on card",
+            value: draft.nameOnCard,
+            onChange: (value) => onChange({ nameOnCard: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Card number",
+            value: draft.cardNumber,
+            onChange: (value) => onChange({ cardNumber: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Expiration",
+            value: draft.expiry,
+            placeholder: "MM/YY or MM/YYYY",
+            onChange: (value) => onChange({ expiry: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "CVC",
+            type: "password",
+            value: draft.cvc,
+            onChange: (value) => onChange({ cvc: value })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "ZIP or postal code",
+            value: draft.postalCode,
+            onChange: (value) => onChange({ postalCode: value }),
+            className: App_default.fieldWide
+          }
+        )
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Use MM/YY or MM/YYYY for expiration. Full dates such as 12/1/2028 are accepted as month/year. Card data is used only for this local checkout flow. The app stores the card brand, last four digits, expiration, and purchase receipt, not the full card number or CVC. Paid runtime packages must be installed after purchase before their features are enabled." }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: message }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onCancel, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
+            "Cancel"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "credit-card", size: 14 }),
+            "Pay ",
+            getPackagePriceLabel(manifest)
+          ] })
+        ] })
+      ] })
+    ] }) });
+  }
   function SettingsView({
     activeSection,
     draft,
     message,
     saving,
+    featureResolution,
     onChange,
     onClearToken,
+    onAccountLogin,
+    onAccountLogout,
+    onPackageAction,
     onSubmit
   }) {
     const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
@@ -48100,6 +50519,16 @@ ${toolText}`;
     }
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Settings", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, onSubmit, "aria-label": "Settings", children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
+        activeSection === "account" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          AccountSettingsSection,
+          {
+            resolution: featureResolution,
+            draft,
+            onChange,
+            onLogin: onAccountLogin,
+            onLogout: onAccountLogout
+          }
+        ),
         activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -48225,6 +50654,13 @@ ${toolText}`;
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) })
         ] }),
+        activeSection === "packages" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          FeaturePackagesSection,
+          {
+            resolution: featureResolution,
+            onPackageAction
+          }
+        ),
         activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -48509,3 +50945,4 @@ react/cjs/react-jsx-runtime.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
+//# sourceMappingURL=index.js.map

@@ -103,6 +103,9 @@ function assertPackageMetadata() {
   if (packageJson.bin?.['code-agent'] !== 'dist/entrypoints/cli.js') {
     fail('package bin must expose code-agent at dist/entrypoints/cli.js');
   }
+  if (packageJson.bin?.codeagent !== 'dist/entrypoints/cli.js') {
+    fail('package bin must expose codeagent at dist/entrypoints/cli.js');
+  }
   if (!packageJson.files?.some(entry => entry === 'dist' || entry === 'dist/' || entry === 'dist/**')) {
     fail('package.json files must include dist for the compiled CLI payload');
   }
@@ -135,6 +138,21 @@ function assertCliSmoke() {
   const result = run(process.execPath, ['dist/entrypoints/cli.js', '--version']);
   if (!result.stdout.includes(`${packageJson.version} (CodeAgent)`)) {
     fail(`unexpected CLI version output: ${result.stdout.trim()}`);
+  }
+
+  const featuresResult = run(process.execPath, ['dist/entrypoints/cli.js', 'features', 'packages']);
+  if (!featuresResult.stdout.includes('software-developer') || !featuresResult.stdout.includes('locked')) {
+    fail(`unexpected default CLI features output: ${featuresResult.stdout.trim()}`);
+  }
+
+  const developerFeaturesResult = run(process.execPath, ['dist/entrypoints/cli.js', 'features', 'list'], {
+    env: {
+      ...process.env,
+      CODEAGENT_FEATURE_LOCAL_DEV_OVERRIDE: 'true',
+    },
+  });
+  if (!developerFeaturesResult.stdout.includes('project-studio') || !developerFeaturesResult.stdout.includes('software-developer')) {
+    fail(`unexpected CLI developer features output: ${developerFeaturesResult.stdout.trim()}`);
   }
 }
 
@@ -177,6 +195,17 @@ function assertIsolatedInstall(tarballPath) {
   const firstHelpLine = helpResult.stdout.trim().split('\n')[0];
   if (!firstHelpLine?.startsWith('Usage: code-agent ')) {
     fail(`unexpected installed CLI help output: ${firstHelpLine}`);
+  }
+
+  const aliasBinPath = path.join(installPrefix, 'bin', 'codeagent');
+  const aliasVersionResult = run(aliasBinPath, ['--version'], { cwd: tempDir });
+  if (!aliasVersionResult.stdout.includes(`${packageJson.version} (CodeAgent)`)) {
+    fail(`unexpected installed CLI alias version output: ${aliasVersionResult.stdout.trim()}`);
+  }
+
+  const featuresResult = run(binPath, ['features', 'packages'], { cwd: tempDir });
+  if (!featuresResult.stdout.includes('software-developer') || !featuresResult.stdout.includes('locked')) {
+    fail(`unexpected installed CLI features output: ${featuresResult.stdout.trim()}`);
   }
 }
 

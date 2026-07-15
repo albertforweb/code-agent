@@ -50,7 +50,19 @@ try {
 }
 
 console.log('================================================');
-console.log('Step 4: Running tsc (TypeScript compiler)');
+console.log('Step 4: Generating feature package catalog');
+console.log('================================================\n');
+
+try {
+  execSync('node scripts/generate-feature-package-catalog.mjs', { cwd: __dirname, stdio: 'inherit' });
+  console.log('\n✅ Feature package catalog generated!\n');
+} catch (err) {
+  console.error('❌ Feature package catalog generation failed:', err.message);
+  process.exit(1);
+}
+
+console.log('================================================');
+console.log('Step 5: Running tsc (TypeScript compiler)');
 console.log('================================================\n');
 
 try {
@@ -63,7 +75,7 @@ try {
 }
 
 console.log('================================================');
-console.log('Step 5: Running fix-imports.js');
+console.log('Step 6: Running fix-imports.js');
 console.log('================================================\n');
 
 try {

@@ -16,6 +16,115 @@ interface AppStateStoreSchema {
   };
 }
 
+function createGuestFeatureProfile(): Record<string, any> {
+  return {
+    accountStatus: 'guest',
+    accountId: '',
+    email: '',
+    displayName: 'Guest',
+    accountTier: 'free',
+    subscriptionStatus: 'free',
+    purchasedPackageIds: [],
+    trialPackageIds: [],
+    expiredPackageIds: [],
+    disabledPackageIds: [],
+    localDeveloperOverride: false,
+    enterprisePackageIds: [],
+    installedPackageIds: [],
+    packageInstallRecords: [],
+    paymentMethods: [],
+    purchases: [],
+    updatedAt: '',
+  };
+}
+
+function normalizeFeatureAccounts(value: unknown): Record<string, any> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  return { ...(value as Record<string, any>) };
+}
+
+function createLocalAccountId(email: string): string {
+  const normalized = email.trim().toLowerCase();
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = ((hash << 5) - hash + normalized.charCodeAt(index)) | 0;
+  }
+  return `acct_${Math.abs(hash).toString(36)}`;
+}
+
+function writeFeatureAccount(accounts: Record<string, any>, profile: Record<string, any>): Record<string, any> {
+  if (profile.accountStatus !== 'signed-in' || typeof profile.email !== 'string' || !profile.email.trim()) {
+    return accounts;
+  }
+
+  const email = profile.email.trim().toLowerCase();
+  const accountId = typeof profile.accountId === 'string' && profile.accountId.trim()
+    ? profile.accountId.trim()
+    : createLocalAccountId(email);
+  const storedProfile = {
+    ...createGuestFeatureProfile(),
+    ...profile,
+    accountStatus: 'signed-in',
+    accountId,
+    email,
+    localDeveloperOverride: profile.localDeveloperOverride === true,
+  };
+
+  return {
+    ...accounts,
+    [accountId]: storedProfile,
+    [email]: storedProfile,
+  };
+}
+
+function migrateFeatureProfile(config: AppConfig): AppConfig {
+  const featureAccounts = normalizeFeatureAccounts(config.featureAccounts);
+  const profile = config.featureProfile;
+  if (!profile || typeof profile !== 'object') {
+    return {
+      ...config,
+      featureProfile: createGuestFeatureProfile(),
+      featureAccounts,
+    };
+  }
+
+  const hasSignedInAccount = profile.accountStatus === 'signed-in' || Boolean(profile.email);
+  const hasPurchaseRecords = Array.isArray(profile.purchases) && profile.purchases.length > 0;
+  const isLegacyDeveloperOverride = profile.localDeveloperOverride === true &&
+    profile.accountTier === 'paid' &&
+    Array.isArray(profile.purchasedPackageIds) &&
+    profile.purchasedPackageIds.includes('software-developer') &&
+    !hasSignedInAccount &&
+    !hasPurchaseRecords;
+
+  if (isLegacyDeveloperOverride) {
+    return {
+      ...config,
+      featureProfile: createGuestFeatureProfile(),
+      featureAccounts,
+    };
+  }
+
+  const normalizedProfile = {
+    ...createGuestFeatureProfile(),
+    ...profile,
+    localDeveloperOverride: profile.localDeveloperOverride === true,
+  };
+
+  return {
+    ...config,
+    featureProfile: normalizedProfile,
+    featureAccounts: writeFeatureAccount(featureAccounts, normalizedProfile),
+  };
+}
+
+export interface AppStateServiceBridgeOptions {
+  storeCwd?: string;
+}
+
 /**
  * App State Service Bridge - manages app config and state
  */
@@ -38,12 +147,15 @@ export class AppStateServiceBridge {
     theme: 'system',
     accentColor: 'blue',
     language: 'en',
+    featureProfile: createGuestFeatureProfile(),
+    featureAccounts: {},
   };
 
-  constructor() {
+  constructor(options: AppStateServiceBridgeOptions = {}) {
     // Initialize electron-store for persistent storage
     this.store = new Store({
       name: 'code-agent',
+      cwd: options.storeCwd,
       defaults: {
         config: this.appConfig,
         state: {},
@@ -74,6 +186,7 @@ export class AppStateServiceBridge {
         ...this.appConfig,
         ...config,
       };
+      this.appConfig = migrateFeatureProfile(this.appConfig);
       this.configVersion += 1;
 
       this.store.set('config', this.appConfig);
@@ -159,7 +272,10 @@ export class AppStateServiceBridge {
       disabledLlmTools: [],
       toolPermissionPolicies: {},
       theme: 'system',
+      accentColor: 'blue',
       language: 'en',
+      featureProfile: createGuestFeatureProfile(),
+      featureAccounts: {},
     });
   }
 
@@ -203,6 +319,8 @@ export class AppStateServiceBridge {
       if (storedConfig) {
         this.appConfig = { ...this.appConfig, ...storedConfig };
       }
+      this.appConfig = migrateFeatureProfile(this.appConfig);
+      this.store.set('config', this.appConfig);
 
       const storedState = this.store.get('state');
       if (storedState) {
@@ -236,6 +354,7 @@ export class AppStateServiceBridge {
     await this.enqueueWrite(async () => {
       if (data.config) {
         this.appConfig = { ...this.appConfig, ...data.config };
+        this.appConfig = migrateFeatureProfile(this.appConfig);
         this.configVersion += 1;
         this.store.set('config', this.appConfig);
       }

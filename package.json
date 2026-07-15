@@ -6,7 +6,8 @@
   "main": "dist/entrypoints/cli.js",
   "cli-main": "dist/entrypoints/cli.js",
   "bin": {
-    "code-agent": "dist/entrypoints/cli.js"
+    "code-agent": "dist/entrypoints/cli.js",
+    "codeagent": "dist/entrypoints/cli.js"
   },
   "files": [
     "dist",
@@ -22,7 +23,9 @@
     "codeagent": "node dist/entrypoints/cli.js",
     "clean": "del /s /q dist 2>nul || rm -rf dist",
     "build:renderer": "node build-renderer.mjs",
-    "build:electron:main": "tsc -p tsconfig.electron.json && node write-electron-package.mjs",
+    "generate:feature-package-catalog": "node scripts/generate-feature-package-catalog.mjs",
+    "build:feature-packages": "npm --prefix ../code-agent-packages run build && npm run generate:feature-package-catalog",
+    "build:electron:main": "npm run generate:feature-package-catalog && tsc -p tsconfig.electron.json && node write-electron-package.mjs",
     "build:electron": "npm run build:electron:main && tsc -p tsconfig.renderer.json --noEmit && npm run build:renderer",
     "build:electron:prod": "cross-env NODE_ENV=production npm run build:electron",
     "generate:brand-assets": "node scripts/generate-brand-assets.mjs",
@@ -30,13 +33,15 @@
     "dev:electron:debug": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_OPEN_DEVTOOLS=1 electron dist-electron",
     "dev:electron:gpu-off": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_DISABLE_GPU=1 electron dist-electron",
     "dev:electron:watch": "concurrently \"tsc -p tsconfig.electron.json -w\" \"tsc -p tsconfig.renderer.json -w\" \"wait-on dist-electron/main.js && electron dist-electron\"",
-    "dist": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder",
-    "dist:win": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --win",
-    "dist:mac": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --mac",
-    "dist:linux": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --linux",
-    "pack": "npm run generate:brand-assets && npm run build:electron:prod && electron-builder --dir --publish never",
+    "dist": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && electron-builder",
+    "dist:win": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && electron-builder --win",
+    "dist:mac": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && electron-builder --mac",
+    "dist:linux": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && electron-builder --linux",
+    "pack": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && electron-builder --dir --publish never",
+    "pack:feature-packages": "npm run build:feature-packages && npm run verify:feature-package-boundaries",
     "pack:desktop:check": "npm run pack && npm run verify:desktop-package",
     "verify:desktop-package": "node scripts/verify-desktop-package.mjs",
+    "verify:feature-package-boundaries": "node scripts/verify-feature-package-boundaries.mjs",
     "verify:desktop-release": "node scripts/verify-desktop-package.mjs --release",
     "pack:cli": "npm run build && node scripts/pack-cli.mjs",
     "pack:cli:check": "npm run build && node scripts/pack-cli.mjs && npm run verify:cli-package",
@@ -148,6 +153,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@codeagent/feature-package-sdk": "file:../code-agent-sdk",
     "@electron/notarize": "^2.3.0",
     "@types/electron": "^1.6.10",
     "concurrently": "^8.2.0",
@@ -204,8 +210,8 @@
             "x64"
           ]
         }
-    ]
-  },
+      ]
+    },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,

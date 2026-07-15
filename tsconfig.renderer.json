@@ -5,7 +5,7 @@
     "module": "ES2020",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "outDir": "./dist-renderer",
-    "rootDir": "./src/renderer",
+    "rootDir": ".",
     "moduleResolution": "node",
     "jsx": "react-jsx",
     "jsxImportSource": "react",
@@ -33,6 +33,7 @@
     "checkJs": false
   },
   "include": [
+    "src/features/**/*.ts",
     "src/renderer/**/*.ts",
     "src/renderer/**/*.tsx"
   ],

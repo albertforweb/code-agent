@@ -209,6 +209,8 @@ import { type ProcessedResume, processResumedConversation } from 'src/utils/sess
 import { parseSettingSourcesFlag } from 'src/utils/settings/constants.js';
 import { plural } from 'src/utils/stringUtils.js';
 import { type ChannelEntry, getInitialMainLoopModel, getIsNonInteractiveSession, getSdkBetas, getSessionId, getUserMsgOptIn, setAllowedChannels, setAllowedSettingSources, setChromeFlagOverride, setClientType, setCwdState, setDirectConnectServerUrl, setFlagSettingsPath, setInitialMainLoopModel, setInlinePlugins, setIsInteractive, setKairosActive, setOriginalCwd, setQuestionPreviewFormat, setSdkBetas, setSessionBypassPermissionsMode, setSessionPersistenceDisabled, setSessionSource, setUserMsgOptIn, switchSession } from './bootstrap/state.js';
+import { formatFeatureGateMessage, resolveCliFeaturePackages } from './cli/handlers/features.js';
+import { isFeatureAvailable } from './src/features/feature-packages.js';
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const autoModeStateModule = feature('TRANSCRIPT_CLASSIFIER') ? require('./utils/permissions/autoModeState.js') as typeof import('./utils/permissions/autoModeState.js') : null;
@@ -943,6 +945,18 @@ async function run(): Promise<CommanderCommand> {
     });
   }
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
+  const cliFeatureResolution = resolveCliFeaturePackages();
+  const hasCliFeature = (featureId: string) => isFeatureAvailable(cliFeatureResolution, featureId);
+  const registerLockedFeatureCommand = (name: string, aliases: string[], description: string) => {
+    const command = program.command(`${name} [args...]`).description(description).allowUnknownOption(true).allowExcessArguments(true).action(() => {
+      console.error(formatFeatureGateMessage(cliFeatureResolution, name));
+      process.exit(1);
+    });
+    for (const alias of aliases) {
+      command.alias(alias);
+    }
+    return command;
+  };
   profileCheckpoint('run_commander_initialized');
 
   // Use preAction hook to run initialization only when executing a command,
@@ -4311,6 +4325,158 @@ async function run(): Promise<CommanderCommand> {
     process.exit(0);
   });
 
+  const features = program.command('features').description('Inspect feature packages, entitlements, and shell availability');
+  features.action(async () => {
+    const { featuresSummaryHandler } = await import('./cli/handlers/features.js');
+    await featuresSummaryHandler();
+    process.exit(0);
+  });
+  features.command('list').description('List features available to the CLI shell').action(async () => {
+    const { featuresListHandler } = await import('./cli/handlers/features.js');
+    await featuresListHandler();
+    process.exit(0);
+  });
+  features.command('packages').description('List package entitlement state').action(async () => {
+    const { featuresPackagesHandler } = await import('./cli/handlers/features.js');
+    await featuresPackagesHandler();
+    process.exit(0);
+  });
+  features.command('extensions').description('List active package extension registrations').action(async () => {
+    const { featuresExtensionsHandler } = await import('./cli/handlers/features.js');
+    await featuresExtensionsHandler();
+    process.exit(0);
+  });
+  features.command('manifest').description('Print the full feature package manifest JSON').action(async () => {
+    const { featuresManifestHandler } = await import('./cli/handlers/features.js');
+    await featuresManifestHandler();
+    process.exit(0);
+  });
+
+  if (!hasCliFeature('project-studio')) {
+    registerLockedFeatureCommand('project', ['projects'], 'Manage Project Studio projects, roles, employees, teams, and deliverables');
+  } else {
+  const project = program.command('project').alias('projects').description('Manage Project Studio projects, roles, employees, teams, and deliverables');
+  project.command('list').description('List Project Studio projects').option('--mode <guided|autonomous>', 'Filter by project mode').option('--status <status>', 'Filter by project status').action(async options => {
+    const { projectListHandler } = await import('./cli/handlers/project-studio.js');
+    await projectListHandler(options);
+    process.exit(0);
+  });
+  project.command('show <id>').description('Show one Project Studio project with its prompt context').action(async (id: string) => {
+    const { projectShowHandler } = await import('./cli/handlers/project-studio.js');
+    await projectShowHandler(id);
+    process.exit(0);
+  });
+  project.command('context <id>').description('Print the project-scoped prompt context').action(async (id: string) => {
+    const { projectContextHandler } = await import('./cli/handlers/project-studio.js');
+    await projectContextHandler(id);
+    process.exit(0);
+  });
+  project.command('create').description('Create a guided or autonomous Project Studio project').requiredOption('--name <name>', 'Project name').option('--mode <guided|autonomous>', 'Project mode', 'guided').option('--idea <text>', 'Human idea or product sketch').option('--goals <text>', 'Goals, constraints, and success criteria').option('--artifacts <list>', 'Comma-separated expected artifacts').option('--workspace <dir>', 'Project workspace directory').option('--supervisor <employee-id>', 'Supervisor employee id').option('--employees <ids>', 'Comma-separated direct employee ids').option('--teams <ids>', 'Comma-separated project team ids').option('--permission-mode <supervised|full-access>', 'Autonomous project permission mode', 'supervised').action(async options => {
+    const { projectCreateHandler } = await import('./cli/handlers/project-studio.js');
+    await projectCreateHandler(options);
+    process.exit(0);
+  });
+  project.command('update <id>').description('Update a Project Studio project').option('--name <name>', 'Project name').option('--mode <guided|autonomous>', 'Project mode').option('--status <status>', 'Project status: idea, planning, active, stopped, blocked, done').option('--idea <text>', 'Human idea or product sketch').option('--goals <text>', 'Goals, constraints, and success criteria').option('--artifacts <list>', 'Comma-separated expected artifacts').option('--workspace <dir>', 'Project workspace directory').option('--supervisor <employee-id>', 'Supervisor employee id').option('--employees <ids>', 'Comma-separated direct employee ids').option('--teams <ids>', 'Comma-separated project team ids').option('--permission-mode <supervised|full-access>', 'Autonomous project permission mode').action(async (id: string, options) => {
+    const { projectUpdateHandler } = await import('./cli/handlers/project-studio.js');
+    await projectUpdateHandler(id, options);
+    process.exit(0);
+  });
+  project.command('delete <id>').alias('rm').description('Delete a Project Studio project').action(async (id: string) => {
+    const { projectDeleteHandler } = await import('./cli/handlers/project-studio.js');
+    await projectDeleteHandler(id);
+    process.exit(0);
+  });
+  project.command('start <id>').description('Start or re-run an autonomous Project Studio project').action(async (id: string) => {
+    const { projectStartHandler } = await import('./cli/handlers/project-studio.js');
+    await projectStartHandler(id);
+    process.exit(0);
+  });
+  project.command('status <id> <status>').description('Set a Project Studio project lifecycle status').action(async (id: string, status: string) => {
+    const { projectStatusHandler } = await import('./cli/handlers/project-studio.js');
+    await projectStatusHandler(id, status);
+    process.exit(0);
+  });
+  project.command('runs <id>').description('List autonomous run history for a Project Studio project').action(async (id: string) => {
+    const { projectRunsHandler } = await import('./cli/handlers/project-studio.js');
+    await projectRunsHandler(id);
+    process.exit(0);
+  });
+  project.command('deliverables <id>').alias('deliveries').description('List generated outputs and run artifacts for a Project Studio project').action(async (id: string) => {
+    const { projectDeliverablesHandler } = await import('./cli/handlers/project-studio.js');
+    await projectDeliverablesHandler(id);
+    process.exit(0);
+  });
+
+  const projectRole = project.command('role').alias('roles').description('Manage reusable Project Studio role definitions');
+  projectRole.command('list').description('List role definitions').action(async () => {
+    const { roleListHandler } = await import('./cli/handlers/project-studio.js');
+    await roleListHandler();
+    process.exit(0);
+  });
+  projectRole.command('create').description('Create a role definition').requiredOption('--title <title>', 'Role title').option('--responsibilities <list>', 'Comma-separated responsibilities').option('--goal <text>', 'Default goal').option('--tools <list>', 'Comma-separated default tools').option('--supervisor', 'Allow this role to supervise projects').action(async options => {
+    const { roleCreateHandler } = await import('./cli/handlers/project-studio.js');
+    await roleCreateHandler(options);
+    process.exit(0);
+  });
+  projectRole.command('update <id>').description('Update a role definition').option('--title <title>', 'Role title').option('--responsibilities <list>', 'Comma-separated responsibilities').option('--goal <text>', 'Default goal').option('--tools <list>', 'Comma-separated default tools').option('--supervisor', 'Allow this role to supervise projects').option('--no-supervisor', 'Remove project supervisor capability').action(async (id: string, options) => {
+    const { roleUpdateHandler } = await import('./cli/handlers/project-studio.js');
+    await roleUpdateHandler(id, { ...options, noSupervisor: options.supervisor === false });
+    process.exit(0);
+  });
+  projectRole.command('delete <id>').alias('rm').description('Delete a role definition').action(async (id: string) => {
+    const { roleDeleteHandler } = await import('./cli/handlers/project-studio.js');
+    await roleDeleteHandler(id);
+    process.exit(0);
+  });
+
+  const projectEmployee = project.command('employee').alias('employees').alias('people').description('Manage reusable Project Studio employees');
+  projectEmployee.command('list').description('List employees').action(async () => {
+    const { employeeListHandler } = await import('./cli/handlers/project-studio.js');
+    await employeeListHandler();
+    process.exit(0);
+  });
+  projectEmployee.command('create').description('Create an employee').requiredOption('--name <name>', 'Employee name').option('--role <title>', 'Role title').option('--role-id <id>', 'Role id').option('--model <model>', 'Preferred model').option('--permissions <list>', 'Comma-separated permissions').option('--task <text>', 'Current task or default assignment').action(async options => {
+    const { employeeCreateHandler } = await import('./cli/handlers/project-studio.js');
+    await employeeCreateHandler(options);
+    process.exit(0);
+  });
+  projectEmployee.command('update <id>').description('Update an employee').option('--name <name>', 'Employee name').option('--role <title>', 'Role title').option('--role-id <id>', 'Role id').option('--model <model>', 'Preferred model').option('--permissions <list>', 'Comma-separated permissions').option('--task <text>', 'Current task or default assignment').option('--status <idle|working|approval>', 'Employee status').action(async (id: string, options) => {
+    const { employeeUpdateHandler } = await import('./cli/handlers/project-studio.js');
+    await employeeUpdateHandler(id, options);
+    process.exit(0);
+  });
+  projectEmployee.command('delete <id>').alias('rm').description('Delete an employee').action(async (id: string) => {
+    const { employeeDeleteHandler } = await import('./cli/handlers/project-studio.js');
+    await employeeDeleteHandler(id);
+    process.exit(0);
+  });
+
+  const projectTeam = project.command('team').alias('teams').description('Manage reusable Project Studio teams');
+  projectTeam.command('list').description('List project teams').action(async () => {
+    const { projectTeamListHandler } = await import('./cli/handlers/project-studio.js');
+    await projectTeamListHandler();
+    process.exit(0);
+  });
+  projectTeam.command('create').description('Create a project team').requiredOption('--name <name>', 'Team name').option('--mission <text>', 'Team scoped mission').option('--supervisor <employee-id>', 'Supervisor employee id').option('--members <ids>', 'Comma-separated member employee ids').action(async options => {
+    const { projectTeamCreateHandler } = await import('./cli/handlers/project-studio.js');
+    await projectTeamCreateHandler(options);
+    process.exit(0);
+  });
+  projectTeam.command('update <id>').description('Update a project team').option('--name <name>', 'Team name').option('--mission <text>', 'Team scoped mission').option('--supervisor <employee-id>', 'Supervisor employee id').option('--members <ids>', 'Comma-separated member employee ids').action(async (id: string, options) => {
+    const { projectTeamUpdateHandler } = await import('./cli/handlers/project-studio.js');
+    await projectTeamUpdateHandler(id, options);
+    process.exit(0);
+  });
+  projectTeam.command('delete <id>').alias('rm').description('Delete a project team').action(async (id: string) => {
+    const { projectTeamDeleteHandler } = await import('./cli/handlers/project-studio.js');
+    await projectTeamDeleteHandler(id);
+    process.exit(0);
+  });
+  }
+
+  if (!hasCliFeature('automation')) {
+    registerLockedFeatureCommand('automation', ['auto'], 'Manage local skills, scheduled tasks, remote control, and virtual teams');
+  } else {
   const automation = program.command('automation').alias('auto').description('Manage local skills, scheduled tasks, remote control, and virtual teams');
   automation.command('skills').description('List workspace skills discovered from local skill directories').action(async () => {
     const {
@@ -4319,14 +4485,40 @@ async function run(): Promise<CommanderCommand> {
     await automationSkillsHandler();
     process.exit(0);
   });
-  automation.command('skill <id>').description('Enable or disable a workspace skill').option('--enable', 'Enable this skill').option('--disable', 'Disable this skill').action(async (id: string, options: {
+  automation.command('skills-refresh').description('Refresh and list workspace skills discovered from local skill directories').action(async () => {
+    const {
+      automationSkillsRefreshHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationSkillsRefreshHandler();
+    process.exit(0);
+  });
+  automation.command('skill <id>').description('Show, enable, or disable a workspace skill').option('--enable', 'Enable this skill').option('--disable', 'Disable this skill').action(async (id: string, options: {
     enable?: boolean;
     disable?: boolean;
   }) => {
     const {
-      automationSkillEnableHandler
+      automationSkillEnableHandler,
+      automationSkillGetHandler
     } = await import('./cli/handlers/automation.js');
-    await automationSkillEnableHandler(id, options.disable ? false : true);
+    if (!options.enable && !options.disable) {
+      await automationSkillGetHandler(id);
+    } else {
+      await automationSkillEnableHandler(id, options.disable ? false : true);
+    }
+    process.exit(0);
+  });
+  automation.command('export').description('Export automation skills/tasks/teams state as JSON').option('--no-include-runs', 'Exclude run history from the export').action(async options => {
+    const {
+      automationExportHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationExportHandler(options);
+    process.exit(0);
+  });
+  automation.command('import <file>').description('Import automation skills/tasks/teams state from a JSON file').action(async (file: string) => {
+    const {
+      automationImportHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationImportHandler(file);
     process.exit(0);
   });
   const automationTask = automation.command('task').alias('tasks').description('Manage scheduled automation tasks');
@@ -4349,6 +4541,13 @@ async function run(): Promise<CommanderCommand> {
       automationTaskAddHandler
     } = await import('./cli/handlers/automation.js');
     await automationTaskAddHandler(options);
+    process.exit(0);
+  });
+  automationTask.command('update <id>').description('Update a scheduled task').option('--name <name>', 'Task name').option('--prompt <prompt>', 'Prompt to run on schedule').option('--interval <minutes>', 'Interval in minutes').option('--enable', 'Enable the task').option('--disable', 'Disable the task').action(async (id: string, options) => {
+    const {
+      automationTaskUpdateHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationTaskUpdateHandler(id, options);
     process.exit(0);
   });
   automationTask.command('run <id>').description('Queue a scheduled task for execution').action(async (id: string) => {
@@ -4400,6 +4599,20 @@ async function run(): Promise<CommanderCommand> {
     } = await import('./cli/handlers/automation.js');
     await automationRemoteServeHandler();
   });
+  automationRemote.command('disable').description('Disable the local remote-control server state').action(async () => {
+    const {
+      automationRemoteDisableHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationRemoteDisableHandler();
+    process.exit(0);
+  });
+  automationRemote.command('revoke <deviceId>').description('Revoke a paired remote-control device').action(async (deviceId: string) => {
+    const {
+      automationRemoteRevokeHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationRemoteRevokeHandler(deviceId);
+    process.exit(0);
+  });
   const automationRemoteRelay = automationRemote.command('relay').description('Manage managed-relay enrollment metadata');
   automationRemoteRelay.command('status').description('Show managed-relay enrollment metadata').action(async () => {
     const {
@@ -4441,6 +4654,13 @@ async function run(): Promise<CommanderCommand> {
     await automationTeamCreateDefaultHandler(options);
     process.exit(0);
   });
+  automationTeam.command('save').description('Create or update a virtual team blueprint').option('--id <id>', 'Existing team id to update').option('--name <name>', 'Team name').option('--objective <text>', 'Team objective').option('--workspace <dir>', 'Team workspace directory').option('--permission-mode <supervised|full-access>', 'Permission mode').option('--max-iterations <number>', 'Maximum run iterations').option('--require-qa-signoff', 'Require QA signoff before success').action(async options => {
+    const {
+      automationTeamSaveHandler
+    } = await import('./cli/handlers/automation.js');
+    await automationTeamSaveHandler(options);
+    process.exit(0);
+  });
   automationTeam.command('run <id>').description('Run one virtual team iteration').action(async (id: string) => {
     const {
       automationTeamRunHandler
@@ -4455,6 +4675,7 @@ async function run(): Promise<CommanderCommand> {
     await automationTeamDeleteHandler(id);
     process.exit(0);
   });
+  }
 
   if (feature('TRANSCRIPT_CLASSIFIER')) {
     // Skip when tengu_auto_mode_config.enabled === 'disabled' (circuit breaker).

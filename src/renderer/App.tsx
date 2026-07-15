@@ -39,6 +39,22 @@ import {
   type VirtualTeamPermissionMode,
   type VirtualTeamRunRecord,
 } from './ipc-client';
+import {
+  SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID,
+  getFeaturePackageExtensions,
+  getFeaturePackageSummary,
+  isFeatureAvailable,
+  isPackageRuntimeAvailable,
+  normalizeFeatureProfile,
+  resolveFeaturePackages,
+  type AccountPaymentMethod,
+  type AccountPurchaseRecord,
+  type FeatureEntitlementProfile,
+  type FeaturePackageInstallRecord,
+  type FeaturePackageInstallState,
+  type FeaturePackageManifest,
+  type FeaturePackageResolution,
+} from '../features/feature-packages';
 
 type MessageRole = 'assistant' | 'user' | 'system' | 'tool' | 'error';
 type MessageStatus = 'sent' | 'sending' | 'failed';
@@ -93,7 +109,9 @@ type ToolsSectionId = 'bridge' | 'mcp' | 'command' | 'activity' | 'plugins';
 type AutomationSectionId = 'skills' | 'tasks' | 'remote' | 'team' | 'permissions';
 type HistorySectionId = 'overview' | 'chats' | 'tools' | 'automation' | 'events' | 'export';
 type SettingsSectionId =
+  | 'account'
   | 'model'
+  | 'packages'
   | 'io-debug'
   | 'tools-permissions'
   | 'workspace'
@@ -115,6 +133,7 @@ type IconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'code'
+  | 'credit-card'
   | 'database'
   | 'download'
   | 'edit'
@@ -156,6 +175,7 @@ type NavigationChildItem<T extends string> = {
   title: string;
   description: string;
   icon: IconName;
+  featureId?: string;
 };
 
 interface UiMessage {
@@ -253,6 +273,7 @@ interface ProjectTeamDefinition {
 interface DesktopCommand {
   command: string;
   description: string;
+  featureId?: string;
 }
 
 interface ToolActivity {
@@ -292,6 +313,11 @@ interface AnsiSegment {
 
 interface SettingsDraft {
   apiKey: string;
+  accountEmail: string;
+  accountDisplayName: string;
+  accountPassword: string;
+  platformBaseUrl: string;
+  platformOrgId: string;
   llmProvider: LlmProviderType;
   baseUrl: string;
   model: string;
@@ -388,6 +414,14 @@ interface SettingsDraft {
   hardFail: boolean;
 }
 
+interface PurchaseDraft {
+  nameOnCard: string;
+  cardNumber: string;
+  expiry: string;
+  cvc: string;
+  postalCode: string;
+}
+
 const DEFAULT_PROVIDER: LlmProviderType = 'openai-compatible';
 const MAX_TOOL_ACTIVITIES = 20;
 const MAX_PERSISTED_MESSAGES = 80;
@@ -401,6 +435,13 @@ const DESKTOP_PROJECT_CHATS_STATE_KEY = 'desktopProjectChats';
 const DESKTOP_PROJECT_OUTPUTS_STATE_KEY = 'desktopProjectOutputs';
 const CHAT_SESSION_HISTORY_ID_PREFIX = 'chat-session-';
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codeAgentSidebarCollapsed';
+const EMPTY_PURCHASE_DRAFT: PurchaseDraft = {
+  nameOnCard: '',
+  cardNumber: '',
+  expiry: '',
+  cvc: '',
+  postalCode: '',
+};
 const SKIN_ACCENTS: Record<AppSkinAccent, {
   label: string;
   primary: string;
@@ -580,6 +621,8 @@ function Icon({
       return <svg {...common}><path d="m9 18 6-6-6-6" /></svg>;
     case 'code':
       return <svg {...common}><path d="m8 9-4 3 4 3" /><path d="m16 9 4 3-4 3" /><path d="m14 5-4 14" /></svg>;
+    case 'credit-card':
+      return <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18" /><path d="M7 15h4" /><path d="M15 15h2" /></svg>;
     case 'database':
       return <svg {...common}><ellipse cx="12" cy="5" rx="7" ry="3" /><path d="M5 5v14c0 1.7 3.1 3 7 3s7-1.3 7-3V5" /><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3" /></svg>;
     case 'download':
@@ -729,20 +772,21 @@ const DESKTOP_COMMANDS: DesktopCommand[] = [
   { command: '/status', description: 'Show provider, runtime, tools, and MCP status' },
   { command: '/pwd', description: 'Show the current desktop workspace root' },
   { command: '/workspace', description: 'Show the current desktop workspace root' },
-  { command: '/login', description: 'Open Settings for provider credentials' },
+  { command: '/login', description: 'Open account sign-in settings' },
   { command: '/login local', description: 'Open Settings with OpenAI-compatible defaults' },
+  { command: '/account', description: 'Open account and subscription settings' },
   { command: '/settings', description: 'Open Settings' },
-  { command: '/tools', description: 'List bridge and MCP tools' },
-  { command: '/mcp', description: 'Refresh and list MCP servers/tools' },
-  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and automation permissions' },
-  { command: '/skills', description: 'Open local skills and automation extensions' },
-  { command: '/tasks', description: 'Open scheduled automation tasks' },
-  { command: '/remote', description: 'Open remote-control setup' },
-  { command: '/team', description: 'Open project teams' },
-  { command: '/history', description: 'Open local history and export records' },
+  { command: '/tools', description: 'List bridge and MCP tools', featureId: 'developer-tools' },
+  { command: '/mcp', description: 'Refresh and list MCP servers/tools', featureId: 'mcp' },
+  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and automation permissions', featureId: 'automation' },
+  { command: '/skills', description: 'Open local skills and automation extensions', featureId: 'automation' },
+  { command: '/tasks', description: 'Open scheduled automation tasks', featureId: 'automation' },
+  { command: '/remote', description: 'Open remote-control setup', featureId: 'automation' },
+  { command: '/team', description: 'Open project teams', featureId: 'project-studio' },
+  { command: '/history', description: 'Open local history and export records', featureId: 'developer-history' },
   { command: '/sessions', description: 'List saved desktop sessions' },
   { command: '/config', description: 'Show persisted desktop configuration' },
-  { command: '/run <tool> <json>', description: 'Run a bridge tool manually' },
+  { command: '/run <tool> <json>', description: 'Run a bridge tool manually', featureId: 'developer-tools' },
   { command: '/clear', description: 'Clear the visible chat' },
 ];
 const PRIMARY_NAV: Array<{
@@ -750,48 +794,51 @@ const PRIMARY_NAV: Array<{
   label: string;
   description: string;
   icon: IconName;
+  featureId?: string;
 }> = [
   { id: 'chat', label: 'Chats', description: 'Conversation workspace', icon: 'chat' },
-  { id: 'projects', label: 'Projects', description: 'Ideas, guided builds, and autonomous teams', icon: 'briefcase' },
-  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', icon: 'wrench' },
-  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, and permissions', icon: 'bot' },
-  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', icon: 'history' },
+  { id: 'projects', label: 'Projects', description: 'Ideas, guided builds, and autonomous teams', icon: 'briefcase', featureId: 'project-studio' },
+  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', icon: 'wrench', featureId: 'developer-tools' },
+  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, and permissions', icon: 'bot', featureId: 'automation' },
+  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', icon: 'history', featureId: 'developer-history' },
   { id: 'settings', label: 'Settings', description: 'Model, tools, workspace, sessions', icon: 'settings' },
 ];
 const PROJECTS_MENU: Array<NavigationChildItem<ProjectsSectionId>> = [
-  { id: 'studio', title: 'Project Studio', description: 'Create software from ideas or autonomous teams', icon: 'board' },
-  { id: 'roles', title: 'Roles', description: 'Responsibilities, default goals, and tool scope', icon: 'shield' },
-  { id: 'employees', title: 'Employees', description: 'Create employees, roles, models, and permission scope', icon: 'users' },
-  { id: 'teams', title: 'Teams', description: 'Scoped missions, supervisors, and members', icon: 'network' },
+  { id: 'studio', title: 'Project Studio', description: 'Create software from ideas or autonomous teams', icon: 'board', featureId: 'project-studio' },
+  { id: 'roles', title: 'Roles', description: 'Responsibilities, default goals, and tool scope', icon: 'shield', featureId: 'project-studio' },
+  { id: 'employees', title: 'Employees', description: 'Create employees, roles, models, and permission scope', icon: 'users', featureId: 'project-studio' },
+  { id: 'teams', title: 'Teams', description: 'Scoped missions, supervisors, and members', icon: 'network', featureId: 'project-studio' },
 ];
 const TOOLS_MENU: Array<NavigationChildItem<ToolsSectionId>> = [
-  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions', icon: 'plug' },
-  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools', icon: 'database' },
-  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands', icon: 'terminal' },
-  { id: 'activity', title: 'Activity', description: 'Tool-call timeline', icon: 'activity' },
-  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths', icon: 'puzzle' },
+  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions', icon: 'plug', featureId: 'developer-tools' },
+  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools', icon: 'database', featureId: 'mcp' },
+  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands', icon: 'terminal', featureId: 'developer-tools' },
+  { id: 'activity', title: 'Activity', description: 'Tool-call timeline', icon: 'activity', featureId: 'developer-tools' },
+  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths', icon: 'puzzle', featureId: 'developer-settings' },
 ];
 const SETTINGS_MENU: Array<NavigationChildItem<SettingsSectionId>> = [
+  { id: 'account', title: 'Account', description: 'Login, subscription, billing', icon: 'user' },
   { id: 'model', title: 'Model', description: 'Provider, tokens, theme', icon: 'sparkles' },
-  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs', icon: 'code' },
-  { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety', icon: 'lock' },
-  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, directories', icon: 'folder' },
-  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser', icon: 'rotate' },
-  { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata', icon: 'sliders' },
+  { id: 'packages', title: 'Packages', description: 'Feature packages and entitlements', icon: 'puzzle' },
+  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs', icon: 'code', featureId: 'developer-settings' },
+  { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety', icon: 'lock', featureId: 'developer-settings' },
+  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, directories', icon: 'folder', featureId: 'developer-settings' },
+  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser', icon: 'rotate', featureId: 'developer-settings' },
+  { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata', icon: 'sliders', featureId: 'developer-settings' },
 ];
 const AUTOMATION_MENU: Array<NavigationChildItem<AutomationSectionId>> = [
-  { id: 'skills', title: 'Skills', description: 'Workspace extensions', icon: 'sparkles' },
-  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history', icon: 'calendar' },
-  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals', icon: 'phone' },
-  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy', icon: 'shield' },
+  { id: 'skills', title: 'Skills', description: 'Workspace extensions', icon: 'sparkles', featureId: 'automation' },
+  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history', icon: 'calendar', featureId: 'automation' },
+  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals', icon: 'phone', featureId: 'automation' },
+  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy', icon: 'shield', featureId: 'automation' },
 ];
 const HISTORY_MENU: Array<NavigationChildItem<HistorySectionId>> = [
-  { id: 'overview', title: 'Overview', description: 'Storage and record counts', icon: 'bar-chart' },
-  { id: 'chats', title: 'Chats', description: 'Saved conversations', icon: 'chat' },
-  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records', icon: 'wrench' },
-  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history', icon: 'bot' },
-  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events', icon: 'activity' },
-  { id: 'export', title: 'Export', description: 'Download or copy local history', icon: 'download' },
+  { id: 'overview', title: 'Overview', description: 'Storage and record counts', icon: 'bar-chart', featureId: 'developer-history' },
+  { id: 'chats', title: 'Chats', description: 'Saved conversations', icon: 'chat', featureId: 'developer-history' },
+  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records', icon: 'wrench', featureId: 'developer-history' },
+  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history', icon: 'bot', featureId: 'developer-history' },
+  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events', icon: 'activity', featureId: 'developer-history' },
+  { id: 'export', title: 'Export', description: 'Download or copy local history', icon: 'download', featureId: 'developer-history' },
 ];
 const AUTOMATION_PERMISSION_TOOLS = [
   'bash.run',
@@ -1837,9 +1884,15 @@ function formatProjectStatus(status: SoftwareProjectStatus): string {
 function createSettingsDraft(config: AppConfig | null): SettingsDraft {
   const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
   const providerDefault = getProviderDefault(llmProvider);
+  const featureProfile = normalizeFeatureProfile(config?.featureProfile as FeatureEntitlementProfile | undefined);
 
   return {
     apiKey: '',
+    accountEmail: featureProfile.email,
+    accountDisplayName: featureProfile.accountStatus === 'signed-in' ? featureProfile.displayName : '',
+    accountPassword: '',
+    platformBaseUrl: typeof config?.platformBaseUrl === 'string' ? config.platformBaseUrl : 'http://127.0.0.1:8000',
+    platformOrgId: typeof config?.platformOrgId === 'string' ? config.platformOrgId : '',
     llmProvider,
     baseUrl: config?.baseUrl || providerDefault.baseUrl,
     model: config?.model || providerDefault.model,
@@ -2030,6 +2083,572 @@ function formatJson(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+function getFeatureProfileFromConfig(config: AppConfig | null): Required<FeatureEntitlementProfile> {
+  return normalizeFeatureProfile(config?.featureProfile as FeatureEntitlementProfile | undefined);
+}
+
+function getFeatureAccountStore(config: AppConfig | null): Record<string, FeatureEntitlementProfile> {
+  const raw = config?.featureAccounts;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {};
+  }
+
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).flatMap(([key, value]) => {
+    if (!key || !value || typeof value !== 'object' || Array.isArray(value)) {
+      return [];
+    }
+    return [[key, normalizeFeatureProfile(value as FeatureEntitlementProfile)]];
+  }));
+}
+
+function getAccountStoreKey(email: string): string {
+  return createLocalAccountId(email);
+}
+
+function getStoredAccountProfile(config: AppConfig | null, email: string): Required<FeatureEntitlementProfile> | null {
+  const normalizedEmail = email.trim().toLowerCase();
+  const accountStore = getFeatureAccountStore(config);
+  const accountId = getAccountStoreKey(normalizedEmail);
+  const stored = accountStore[accountId] ?? accountStore[normalizedEmail];
+  return stored ? normalizeFeatureProfile(stored) : null;
+}
+
+function writeProfileToAccountStore(
+  config: AppConfig | null,
+  profile: FeatureEntitlementProfile,
+): Record<string, FeatureEntitlementProfile> {
+  const accountStore = getFeatureAccountStore(config);
+  const normalizedProfile = normalizeFeatureProfile(profile);
+  if (normalizedProfile.accountStatus !== 'signed-in' || !normalizedProfile.email) {
+    return accountStore;
+  }
+
+  const accountId = normalizedProfile.accountId || getAccountStoreKey(normalizedProfile.email);
+  const storedProfile = {
+    ...normalizedProfile,
+    accountId,
+    email: normalizedProfile.email.trim().toLowerCase(),
+  };
+  return {
+    ...accountStore,
+    [accountId]: storedProfile,
+    [storedProfile.email]: storedProfile,
+  };
+}
+
+function buildSettingsFeatureProfile(
+  current: Required<FeatureEntitlementProfile>,
+  draft: SettingsDraft,
+): FeatureEntitlementProfile {
+  if (current.accountStatus !== 'signed-in') {
+    return current;
+  }
+
+  return {
+    ...current,
+    email: draft.accountEmail.trim(),
+    displayName: draft.accountDisplayName.trim() || draft.accountEmail.trim(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function normalizePlatformBaseUrl(value: string): string {
+  return value.trim().replace(/\/+$/, '');
+}
+
+function platformOrgQuery(orgId: string): string {
+  const trimmed = orgId.trim();
+  return trimmed ? `?org_id=${encodeURIComponent(trimmed)}` : '';
+}
+
+async function readPlatformJson<T>(
+  baseUrl: string,
+  path: string,
+  token?: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const response = await fetch(`${normalizePlatformBaseUrl(baseUrl)}${path}`, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(init.headers ?? {}),
+    },
+  });
+  const text = await response.text();
+  const payload = text ? JSON.parse(text) as any : {};
+  if (!response.ok) {
+    const detail = typeof payload?.detail === 'string' ? payload.detail : response.statusText;
+    throw new Error(`Platform API ${response.status}: ${detail}`);
+  }
+  return payload as T;
+}
+
+interface PlatformLoginResponse {
+  access_token: string;
+  session?: {
+    org_id?: string;
+    email?: string;
+    name?: string;
+  };
+  workspace?: {
+    organization?: {
+      org_id?: string;
+    };
+  };
+}
+
+interface PlatformProfileResponse {
+  org_id?: string;
+  profile: FeatureEntitlementProfile;
+}
+
+interface PlatformCatalogResponse {
+  org_id?: string;
+  catalog_source?: string;
+  packages: FeaturePackageManifest[];
+}
+
+interface PlatformPackageActionResponse {
+  org_id?: string;
+  profile: FeatureEntitlementProfile;
+  order?: Record<string, unknown>;
+  install?: Record<string, unknown>;
+}
+
+async function loginToPlatform(draft: SettingsDraft): Promise<PlatformLoginResponse> {
+  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  if (!baseUrl) {
+    throw new Error('Enter the agent-platform base URL.');
+  }
+  return readPlatformJson<PlatformLoginResponse>(baseUrl, '/auth/login', undefined, {
+    method: 'POST',
+    body: JSON.stringify({
+      email: draft.accountEmail.trim(),
+      password: draft.accountPassword,
+      ...(draft.platformOrgId.trim() ? { org_id: draft.platformOrgId.trim(), realm: 'tenant' } : {}),
+    }),
+  });
+}
+
+async function fetchPlatformFeatureProfile(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+): Promise<PlatformProfileResponse> {
+  return readPlatformJson<PlatformProfileResponse>(baseUrl, `/code-agent/profile${platformOrgQuery(orgId)}`, token);
+}
+
+async function fetchPlatformFeatureCatalog(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+): Promise<PlatformCatalogResponse> {
+  return readPlatformJson<PlatformCatalogResponse>(baseUrl, `/code-agent/catalog${platformOrgQuery(orgId)}`, token);
+}
+
+function normalizePlatformFeatureCatalog(value: unknown): FeaturePackageManifest[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const manifests = value.flatMap(item => {
+    if (!item || typeof item !== 'object') {
+      return [];
+    }
+    const manifest = item as Partial<FeaturePackageManifest>;
+    if (
+      typeof manifest.id !== 'string' ||
+      typeof manifest.productSku !== 'string' ||
+      typeof manifest.displayName !== 'string' ||
+      !manifest.distribution ||
+      !Array.isArray(manifest.supportedShells) ||
+      !Array.isArray(manifest.features)
+    ) {
+      return [];
+    }
+    return [manifest as FeaturePackageManifest];
+  });
+  return manifests.length > 0 ? manifests : undefined;
+}
+
+function getFeaturePackageCatalogFromConfig(config: AppConfig | null): FeaturePackageManifest[] | undefined {
+  if (config?.platformCatalogSource !== 'platform') {
+    return undefined;
+  }
+  return normalizePlatformFeatureCatalog(config.platformFeaturePackageCatalog);
+}
+
+async function createPlatformPaymentMethod(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+  manifest: FeaturePackageManifest,
+  draft: PurchaseDraft,
+): Promise<void> {
+  const expiry = parseCardExpiry(draft.expiry);
+  if (!expiry) {
+    throw new Error('Enter a valid future expiration date as MM/YY or MM/YYYY.');
+  }
+  const digits = draft.cardNumber.replace(/\D/g, '');
+  await readPlatformJson(baseUrl, '/billing/payment-methods', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
+      method_type: 'card',
+      brand: getCardBrand(digits),
+      last4: digits.slice(-4),
+      holder_name: draft.nameOnCard.trim() || manifest.displayName,
+      exp_month: expiry.expMonth,
+      exp_year: expiry.expYear,
+      make_default: true,
+    }),
+  });
+}
+
+async function purchasePlatformPackage(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+  packageId: string,
+): Promise<PlatformPackageActionResponse> {
+  return readPlatformJson<PlatformPackageActionResponse>(baseUrl, `/code-agent/packages/${encodeURIComponent(packageId)}/purchase`, token, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
+    }),
+  });
+}
+
+async function installPlatformPackage(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+  manifest: FeaturePackageManifest,
+): Promise<PlatformPackageActionResponse> {
+  return readPlatformJson<PlatformPackageActionResponse>(baseUrl, `/code-agent/packages/${encodeURIComponent(manifest.id)}/install`, token, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
+      version: manifest.distribution.artifact.version,
+      installed_path: manifest.distribution.artifact.bundlePath,
+      sha256: manifest.distribution.artifact.sha256,
+      signature: manifest.distribution.artifact.signature,
+    }),
+  });
+}
+
+function createLocalAccountId(email: string): string {
+  const normalized = email.trim().toLowerCase();
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = ((hash << 5) - hash + normalized.charCodeAt(index)) | 0;
+  }
+  return `acct_${Math.abs(hash).toString(36)}`;
+}
+
+function createLocalRecordId(prefix: string): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function getPackagePriceLabel(manifest: FeaturePackageManifest): string {
+  return manifest.pricing.label || formatMoney(manifest.pricing.amountCents, manifest.pricing.currency, manifest.pricing.interval);
+}
+
+function getPackageDistributionLabel(manifest: FeaturePackageManifest): string {
+  switch (manifest.distribution.mode) {
+    case 'bundled':
+      return 'Bundled with app';
+    case 'installable':
+      return manifest.distribution.installRequired ? 'Install after purchase' : 'Installable catalog item';
+    case 'remote-service':
+      return 'Remote service';
+    default:
+      return manifest.distribution.mode;
+  }
+}
+
+function getPackageSecurityLabel(manifest: FeaturePackageManifest): string {
+  switch (manifest.distribution.securityBoundary) {
+    case 'none-client-bundled':
+      return 'Client-side only';
+    case 'signed-local-bundle':
+      return 'Signed package';
+    case 'server-enforced':
+      return 'Server enforced';
+    default:
+      return manifest.distribution.securityBoundary;
+  }
+}
+
+function formatMoney(amountCents: number, currency: string, interval?: string): string {
+  if (amountCents <= 0) {
+    return 'Free';
+  }
+  const amount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(amountCents / 100);
+  return interval && interval !== 'one-time' ? `${amount}/${interval}` : amount;
+}
+
+function formatAccountTier(profile: Required<FeatureEntitlementProfile>): string {
+  if (profile.accountStatus !== 'signed-in') {
+    return 'Guest';
+  }
+  if (profile.accountTier === 'enterprise') {
+    return 'Enterprise';
+  }
+  return profile.accountTier === 'paid' ? 'Paid subscriber' : 'Free account';
+}
+
+type FeaturePackageCatalogEntry = FeaturePackageResolution['packages'][number];
+
+function getPackageInitials(displayName: string): string {
+  const words = displayName.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return 'PK';
+  }
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return words.slice(0, 2).map(word => word[0]).join('').toUpperCase();
+}
+
+function formatPackageCount(count: number): string {
+  return `${count} package${count === 1 ? '' : 's'}`;
+}
+
+function formatPackageDate(value?: string): string {
+  if (!value) {
+    return 'Not recorded';
+  }
+  const time = Date.parse(value);
+  if (!Number.isFinite(time)) {
+    return 'Not recorded';
+  }
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(time));
+}
+
+function getLatestPurchaseForPackage(
+  profile: Required<FeatureEntitlementProfile>,
+  packageId: string,
+): AccountPurchaseRecord | undefined {
+  for (let index = profile.purchases.length - 1; index >= 0; index -= 1) {
+    if (profile.purchases[index].packageId === packageId) {
+      return profile.purchases[index];
+    }
+  }
+  return undefined;
+}
+
+function getOwnedPackageEntries(resolution: FeaturePackageResolution): FeaturePackageCatalogEntry[] {
+  const profile = resolution.profile;
+  const ownedPackageIds = new Set<string>();
+  for (const packageId of profile.purchasedPackageIds) {
+    ownedPackageIds.add(packageId);
+  }
+  for (const packageId of profile.enterprisePackageIds) {
+    ownedPackageIds.add(packageId);
+  }
+  for (const packageId of profile.trialPackageIds) {
+    ownedPackageIds.add(packageId);
+  }
+  for (const purchase of profile.purchases) {
+    if (purchase.status === 'paid' || purchase.status === 'trial') {
+      ownedPackageIds.add(purchase.packageId);
+    }
+  }
+
+  return resolution.packages.filter(entry => (
+    entry.manifest.tier !== 'free' &&
+    ownedPackageIds.has(entry.manifest.id)
+  ));
+}
+
+function getPackageOwnershipLabel(
+  profile: Required<FeatureEntitlementProfile>,
+  entry: FeaturePackageCatalogEntry,
+  purchase?: AccountPurchaseRecord,
+): string {
+  const packageId = entry.manifest.id;
+  if (profile.disabledPackageIds.includes(packageId)) {
+    return 'Disabled';
+  }
+  if (profile.expiredPackageIds.includes(packageId)) {
+    return 'Expired';
+  }
+  if (purchase?.status === 'refunded') {
+    return 'Refunded';
+  }
+  if (purchase?.status === 'failed') {
+    return 'Payment failed';
+  }
+  if (profile.enterprisePackageIds.includes(packageId)) {
+    return 'Enterprise entitlement';
+  }
+  if (profile.trialPackageIds.includes(packageId) || purchase?.status === 'trial') {
+    return 'Trial';
+  }
+  if (profile.purchasedPackageIds.includes(packageId) || purchase?.status === 'paid') {
+    if (profile.subscriptionStatus === 'past-due') {
+      return 'Past due';
+    }
+    if (profile.subscriptionStatus === 'canceled') {
+      return 'Canceled';
+    }
+    return 'Active subscription';
+  }
+  return getPackageStateLabel(entry.state);
+}
+
+function getPackageDisplayName(
+  resolution: FeaturePackageResolution,
+  packageId: string,
+  fallback: string,
+): string {
+  return resolution.packages.find(entry => entry.manifest.id === packageId)?.manifest.displayName ?? fallback;
+}
+
+function getCardBrand(cardNumber: string): string {
+  const digits = cardNumber.replace(/\D/g, '');
+  if (/^4/.test(digits)) return 'Visa';
+  if (/^(5[1-5]|2[2-7])/.test(digits)) return 'Mastercard';
+  if (/^3[47]/.test(digits)) return 'American Express';
+  if (/^6(?:011|5)/.test(digits)) return 'Discover';
+  return 'Card';
+}
+
+function parseCardExpiry(expiry: string): { expMonth: number; expYear: number } | null {
+  const trimmed = expiry.trim();
+  const match = trimmed.match(/^(\d{1,2})\s*\/\s*(\d{2}|\d{4})$/)
+    ?? trimmed.match(/^(\d{1,2})\s*\/\s*\d{1,2}\s*\/\s*(\d{4})$/);
+  if (!match) {
+    return null;
+  }
+  const expMonth = Number(match[1]);
+  const rawYear = Number(match[2]);
+  const expYear = rawYear < 100 ? 2000 + rawYear : rawYear;
+  if (expMonth < 1 || expMonth > 12) {
+    return null;
+  }
+  const now = new Date();
+  const expiresAt = new Date(expYear, expMonth, 1);
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  return expiresAt <= currentMonth ? null : { expMonth, expYear };
+}
+
+function validateCardNumber(cardNumber: string): boolean {
+  const digits = cardNumber.replace(/\D/g, '');
+  if (digits.length < 12 || digits.length > 19) {
+    return false;
+  }
+  let sum = 0;
+  let shouldDouble = false;
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(digits[index]);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return sum % 10 === 0;
+}
+
+function validatePurchaseDraft(draft: PurchaseDraft): string | null {
+  if (!draft.nameOnCard.trim()) {
+    return 'Name on card is required.';
+  }
+  if (!validateCardNumber(draft.cardNumber)) {
+    return 'Enter a valid credit card number.';
+  }
+  if (!parseCardExpiry(draft.expiry)) {
+    return 'Enter a valid future expiration date as MM/YY or MM/YYYY.';
+  }
+  if (!/^\d{3,4}$/.test(draft.cvc.trim())) {
+    return 'Enter a valid card security code.';
+  }
+  if (!draft.postalCode.trim()) {
+    return 'Billing ZIP or postal code is required.';
+  }
+  return null;
+}
+
+function createPurchasedProfile(
+  profile: Required<FeatureEntitlementProfile>,
+  manifest: FeaturePackageManifest,
+  draft: PurchaseDraft,
+): FeatureEntitlementProfile {
+  const now = new Date().toISOString();
+  const digits = draft.cardNumber.replace(/\D/g, '');
+  const expiry = parseCardExpiry(draft.expiry);
+  const paymentMethod: AccountPaymentMethod = {
+    id: createLocalRecordId('pm'),
+    type: 'card',
+    brand: getCardBrand(digits),
+    last4: digits.slice(-4),
+    expMonth: expiry?.expMonth ?? 0,
+    expYear: expiry?.expYear ?? 0,
+    createdAt: now,
+  };
+  const purchase: AccountPurchaseRecord = {
+    id: createLocalRecordId('pur'),
+    packageId: manifest.id,
+    productSku: manifest.productSku,
+    amountCents: manifest.pricing.amountCents,
+    currency: manifest.pricing.currency,
+    paymentMethodId: paymentMethod.id,
+    status: 'paid',
+    purchasedAt: now,
+  };
+  const purchasedPackageIds = Array.from(new Set([...profile.purchasedPackageIds, manifest.id]));
+
+  return {
+    ...profile,
+    accountTier: manifest.tier === 'enterprise' ? 'enterprise' : 'paid',
+    subscriptionStatus: manifest.tier === 'enterprise' ? 'enterprise' : 'active',
+    purchasedPackageIds,
+    localDeveloperOverride: false,
+    paymentMethods: [...profile.paymentMethods, paymentMethod],
+    purchases: [...profile.purchases, purchase],
+    updatedAt: now,
+  };
+}
+
+function createInstalledProfile(
+  profile: Required<FeatureEntitlementProfile>,
+  manifest: FeaturePackageManifest,
+): FeatureEntitlementProfile {
+  const now = new Date().toISOString();
+  const artifact = manifest.distribution.artifact;
+  const installRecord: FeaturePackageInstallRecord = {
+    packageId: manifest.id,
+    artifactId: artifact.artifactId,
+    version: artifact.version,
+    state: 'installed',
+    installedAt: now,
+    ...(artifact.installedPath || artifact.bundlePath ? { installedPath: artifact.installedPath || artifact.bundlePath } : {}),
+    ...(artifact.sha256 ? { sha256: artifact.sha256 } : {}),
+    ...(artifact.signature ? { signature: artifact.signature } : {}),
+  };
+
+  return {
+    ...profile,
+    installedPackageIds: Array.from(new Set([...profile.installedPackageIds, manifest.id])),
+    packageInstallRecords: [...profile.packageInstallRecords, installRecord],
+    updatedAt: now,
+  };
 }
 
 function truncateText(value: string, maxLength = 220): string {
@@ -2351,13 +2970,62 @@ function matchesSessionSearch(session: PersistedChatSession, query: string): boo
   return haystack.includes(normalizedQuery);
 }
 
-function filterDesktopCommands(input: string): DesktopCommand[] {
+function hasShellFeature(resolution: FeaturePackageResolution, featureId?: string): boolean {
+  return !featureId || isFeatureAvailable(resolution, featureId);
+}
+
+function filterNavigationItems<T extends string>(
+  items: Array<NavigationChildItem<T>>,
+  resolution: FeaturePackageResolution,
+): Array<NavigationChildItem<T>> {
+  return items.filter(item => hasShellFeature(resolution, item.featureId));
+}
+
+function getAvailableDesktopCommands(resolution: FeaturePackageResolution): DesktopCommand[] {
+  const commandsByName = new Map<string, DesktopCommand>();
+  for (const command of DESKTOP_COMMANDS.filter(item => hasShellFeature(resolution, item.featureId))) {
+    commandsByName.set(command.command, command);
+  }
+
+  for (const entry of getFeaturePackageExtensions(resolution, 'desktop.slash-command')) {
+    const extension = entry.extension;
+    const commandNames = [extension.command, ...(extension.commandAliases ?? [])].filter((command): command is string => Boolean(command));
+    for (const command of commandNames) {
+      if (commandsByName.has(command)) {
+        continue;
+      }
+      commandsByName.set(command, {
+        command,
+        description: extension.description || extension.title,
+        featureId: extension.featureId,
+      });
+    }
+  }
+
+  return [...commandsByName.values()];
+}
+
+function findDesktopCommandForPrompt(prompt: string, commands: DesktopCommand[]): DesktopCommand | undefined {
+  const normalizedPrompt = prompt.trim().toLowerCase();
+  return [...commands]
+    .sort((left, right) => right.command.length - left.command.length)
+    .find(command => {
+      const normalizedCommand = command.command.toLowerCase();
+      const commandPrefix = normalizedCommand.split(/\s+/)[0];
+      if (normalizedCommand.includes('<')) {
+        return normalizedPrompt === commandPrefix || normalizedPrompt.startsWith(`${commandPrefix} `);
+      }
+      return normalizedPrompt === normalizedCommand;
+    });
+}
+
+function filterDesktopCommands(input: string, availableCommands: DesktopCommand[]): DesktopCommand[] {
   if (!input.startsWith('/')) {
     return [];
   }
 
   const query = input.trim().toLowerCase();
-  return DESKTOP_COMMANDS
+  return availableCommands
     .filter(command => {
       if (!query || query === '/') {
         return true;
@@ -2619,12 +3287,14 @@ export function App() {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [toolRouterMessage, setToolRouterMessage] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [purchasePackageId, setPurchasePackageId] = useState<string | null>(null);
+  const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(() => ({ ...EMPTY_PURCHASE_DRAFT }));
   const [activeView, setActiveView] = useState<AppView>('chat');
   const [activeProjectsSection, setActiveProjectsSection] = useState<ProjectsSectionId>('studio');
   const [activeToolsSection, setActiveToolsSection] = useState<ToolsSectionId>('bridge');
   const [activeAutomationSection, setActiveAutomationSection] = useState<AutomationSectionId>('tasks');
   const [activeHistorySection, setActiveHistorySection] = useState<HistorySectionId>('overview');
-  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('model');
+  const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('account');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -2648,10 +3318,30 @@ export function App() {
       { inputTokens: 0, outputTokens: 0 },
     );
   }, [messages]);
+  const featureResolution = useMemo(() => {
+    return resolveFeaturePackages(
+      'desktop',
+      getFeatureProfileFromConfig(appConfig),
+      getFeaturePackageCatalogFromConfig(appConfig),
+    );
+  }, [appConfig]);
+  const availableDesktopCommands = useMemo(() => {
+    return getAvailableDesktopCommands(featureResolution);
+  }, [featureResolution]);
+  const availablePrimaryNav = useMemo(() => {
+    return PRIMARY_NAV.filter(item => hasShellFeature(featureResolution, item.featureId));
+  }, [featureResolution]);
 
   useEffect(() => {
     initializeApp();
   }, []);
+
+  useEffect(() => {
+    const activeNavItem = PRIMARY_NAV.find(item => item.id === activeView);
+    if (activeNavItem && !hasShellFeature(featureResolution, activeNavItem.featureId)) {
+      setActiveView('chat');
+    }
+  }, [activeView, featureResolution]);
 
   useEffect(() => {
     try {
@@ -4484,6 +5174,18 @@ export function App() {
       return false;
     }
 
+    const requestedCommand = findDesktopCommandForPrompt(prompt, DESKTOP_COMMANDS);
+    if (requestedCommand?.featureId && !hasShellFeature(featureResolution, requestedCommand.featureId)) {
+      appendMessage(createMessage('error', [
+        `Command ${requestedCommand.command} is not available for the current feature profile.`,
+        getFeaturePackageSummary(featureResolution),
+      ].join('\n\n'), {
+        title: 'Feature package locked',
+        status: 'failed',
+      }));
+      return true;
+    }
+
     if (prompt === '/help' || prompt === '/?') {
       appendMessage(createMessage('system', formatHelp(), { title: 'Desktop commands' }));
       return true;
@@ -4501,11 +5203,11 @@ export function App() {
       return true;
     }
 
-    if (prompt === '/login' || prompt === '/settings') {
-      setSettingsMessage(prompt === '/login'
-        ? 'Select an LLM backend and save credentials or local endpoint settings.'
-        : '');
-      setActiveSettingsSection('model');
+    if (prompt === '/login' || prompt === '/account' || prompt === '/settings') {
+      setSettingsMessage(prompt === '/settings'
+        ? ''
+        : 'Sign in to sync subscription and feature package entitlements.');
+      setActiveSettingsSection('account');
       setActiveView('settings');
       appendMessage(createMessage('system', 'Opened Settings.', { title: prompt.slice(1) }));
       return true;
@@ -4606,7 +5308,7 @@ export function App() {
   }
 
   function formatHelp(): string {
-    return DESKTOP_COMMANDS
+    return availableDesktopCommands
       .map(command => `${command.command} - ${command.description}`)
       .join('\n');
   }
@@ -4628,6 +5330,7 @@ export function App() {
       `Bridge tools hidden from model: ${getDisabledModelToolSet(config).size}`,
       `MCP servers: ${mcpServers.length}`,
       `MCP tools: ${mcpTools.length}`,
+      `Feature packages: ${featureResolution.packages.map(entry => `${entry.manifest.id}:${entry.state}`).join(', ')}`,
       `Runtime: ${appInfo ? `${appInfo.version} on ${appInfo.platform} ${appInfo.arch}` : 'unknown'}`,
       `Messages: ${messages.length}`,
       `Saved sessions: ${sessions.length}`,
@@ -4800,6 +5503,8 @@ export function App() {
     setSettingsMessage('');
 
     try {
+      const currentFeatureProfile = getFeatureProfileFromConfig(appConfig);
+      const nextFeatureProfile = buildSettingsFeatureProfile(currentFeatureProfile, settingsDraft);
       const nextConfig: Partial<AppConfig> = {
         llmProvider: settingsDraft.llmProvider,
         baseUrl: settingsDraft.baseUrl,
@@ -4814,6 +5519,10 @@ export function App() {
         pluginsEnabled: settingsDraft.pluginsEnabled,
         autoUpdate: settingsDraft.autoUpdate,
         cliOptions: buildCliOptions(settingsDraft),
+        platformBaseUrl: normalizePlatformBaseUrl(settingsDraft.platformBaseUrl),
+        platformOrgId: settingsDraft.platformOrgId.trim(),
+        featureProfile: nextFeatureProfile,
+        featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile),
       };
 
       await ipcClient.app.setConfig(nextConfig);
@@ -4845,6 +5554,255 @@ export function App() {
     setSettingsMessage('Authentication cleared');
   }
 
+  async function persistFeatureProfile(profile: FeatureEntitlementProfile, message: string) {
+    await ipcClient.app.setConfig({
+      featureProfile: profile,
+      featureAccounts: writeProfileToAccountStore(appConfig, profile),
+    });
+    const config = await ipcClient.app.getConfig();
+    setAppConfig(config);
+    setSettingsDraft(current => ({
+      ...createSettingsDraft(config),
+      apiKey: current.apiKey,
+    }));
+    setSettingsMessage(message);
+    setStatus('Ready');
+  }
+
+  async function handleAccountLogin() {
+    const email = settingsDraft.accountEmail.trim();
+    if (!isValidEmail(email)) {
+      setSettingsMessage('Enter a valid email address to sign in.');
+      return;
+    }
+
+    if (settingsDraft.accountPassword.trim()) {
+      try {
+        const login = await loginToPlatform(settingsDraft);
+        const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+        const platformOrgId = settingsDraft.platformOrgId.trim() ||
+          login.session?.org_id ||
+          login.workspace?.organization?.org_id ||
+          '';
+        const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, login.access_token, platformOrgId);
+        const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, login.access_token, platformOrgId);
+        const profile = normalizeFeatureProfile(platformProfile.profile);
+        const nextConfig: Partial<AppConfig> = {
+          platformBaseUrl,
+          platformAccessToken: login.access_token,
+          platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+          platformCatalogSource: 'platform',
+          platformCatalogLastSyncedAt: new Date().toISOString(),
+          platformFeaturePackageCatalog: platformCatalog.packages,
+          featureProfile: profile,
+          featureAccounts: writeProfileToAccountStore(appConfig, profile),
+        };
+        await ipcClient.app.setConfig(nextConfig);
+        const config = await ipcClient.app.getConfig();
+        setAppConfig(config);
+        setSettingsDraft(current => ({
+          ...createSettingsDraft(config),
+          apiKey: current.apiKey,
+          accountPassword: '',
+        }));
+        setSettingsMessage(`Signed in through agent-platform as ${profile.email || email}. Catalog: ${platformCatalog.packages.length} package${platformCatalog.packages.length === 1 ? '' : 's'} from ${platformCatalog.catalog_source || 'platform'}.`);
+        setStatus('Ready');
+        return;
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus('Platform login error');
+        return;
+      }
+    }
+
+    const currentProfile = getFeatureProfileFromConfig(appConfig);
+    const storedProfile = getStoredAccountProfile(appConfig, email);
+    const displayName = settingsDraft.accountDisplayName.trim() || storedProfile?.displayName || email;
+    const restoredProfile = storedProfile ?? currentProfile;
+    const accountId = storedProfile?.accountId || getAccountStoreKey(email);
+    const nextProfile: FeatureEntitlementProfile = {
+      ...restoredProfile,
+      accountStatus: 'signed-in',
+      accountId,
+      email: email.toLowerCase(),
+      displayName,
+      accountTier: storedProfile?.accountTier ?? 'free',
+      subscriptionStatus: storedProfile?.subscriptionStatus ?? 'free',
+      localDeveloperOverride: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const packageCount = normalizeFeatureProfile(nextProfile).purchasedPackageIds.length;
+    await persistFeatureProfile(
+      nextProfile,
+      packageCount > 0
+        ? `Signed in as ${email}. Restored ${packageCount} purchased package${packageCount === 1 ? '' : 's'}.`
+        : `Signed in as ${email}. Free tier is active.`,
+    );
+  }
+
+  async function handleAccountLogout() {
+    const nextProfile = normalizeFeatureProfile(null);
+    await ipcClient.auth.logout();
+    setPurchasePackageId(null);
+    await ipcClient.app.setConfig({
+      featureProfile: nextProfile,
+      featureAccounts: getFeatureAccountStore(appConfig),
+      platformAccessToken: '',
+      platformCatalogSource: 'local',
+      platformFeaturePackageCatalog: [],
+    });
+    const config = await ipcClient.app.getConfig();
+    setAppConfig(config);
+    setSettingsDraft(current => ({
+      ...createSettingsDraft(config),
+      apiKey: current.apiKey,
+      accountPassword: '',
+    }));
+    setSettingsMessage('Signed out. Guest free tier is active.');
+    setStatus('Ready');
+  }
+
+  async function handleFeaturePackageAction(packageId: string) {
+    const packageEntry = featureResolution.packages.find(entry => entry.manifest.id === packageId);
+    if (!packageEntry) {
+      setSettingsMessage(`Unknown feature package: ${packageId}`);
+      return;
+    }
+
+    const isEntitled = packageEntry.state === 'available' || packageEntry.state === 'trial';
+    if (isEntitled && !isPackageRuntimeAvailable(packageEntry.installState)) {
+      const profile = getFeatureProfileFromConfig(appConfig);
+      const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+      const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
+      if (platformBaseUrl && platformToken) {
+        try {
+          const result = await installPlatformPackage(
+            platformBaseUrl,
+            platformToken,
+            String(appConfig?.platformOrgId || profile.accountId || ''),
+            packageEntry.manifest,
+          );
+          await ipcClient.app.setConfig({
+            featureProfile: result.profile,
+            featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
+            platformOrgId: result.org_id || appConfig?.platformOrgId,
+            platformCatalogSource: 'platform',
+            platformCatalogLastSyncedAt: new Date().toISOString(),
+          });
+          const config = await ipcClient.app.getConfig();
+          setAppConfig(config);
+          setSettingsDraft(current => ({
+            ...createSettingsDraft(config),
+            apiKey: current.apiKey,
+            accountPassword: '',
+          }));
+          setSettingsMessage(`${packageEntry.manifest.displayName} installed through agent-platform.`);
+          setStatus('Ready');
+          return;
+        } catch (error) {
+          setSettingsMessage(error instanceof Error ? error.message : String(error));
+          setStatus('Platform install error');
+          return;
+        }
+      }
+      const nextProfile = createInstalledProfile(profile, packageEntry.manifest);
+      await persistFeatureProfile(
+        nextProfile,
+        `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`,
+      );
+      return;
+    }
+
+    if (isEntitled) {
+      setSettingsMessage(`${packageEntry.manifest.displayName} is ${packageEntry.state} and ${packageEntry.installState}. SKU: ${packageEntry.manifest.productSku}.`);
+      return;
+    }
+
+    if (featureResolution.profile.accountStatus !== 'signed-in') {
+      setActiveSettingsSection('account');
+      setSettingsMessage('Sign in before purchasing feature packages.');
+      return;
+    }
+
+    setPurchasePackageId(packageEntry.manifest.id);
+    setPurchaseDraft({
+      ...EMPTY_PURCHASE_DRAFT,
+      nameOnCard: featureResolution.profile.displayName || '',
+    });
+    setSettingsMessage('');
+  }
+
+  async function completePackagePurchase(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedPurchasePackage) {
+      setSettingsMessage('Select a package before checkout.');
+      return;
+    }
+
+    const error = validatePurchaseDraft(purchaseDraft);
+    if (error) {
+      setSettingsMessage(error);
+      return;
+    }
+
+    const profile = getFeatureProfileFromConfig(appConfig);
+    if (profile.accountStatus !== 'signed-in') {
+      setSettingsMessage('Sign in before purchasing feature packages.');
+      setActiveSettingsSection('account');
+      setPurchasePackageId(null);
+      return;
+    }
+
+    const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+    const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
+    if (platformBaseUrl && platformToken) {
+      try {
+        const orgId = String(appConfig?.platformOrgId || (profile as any).platform?.orgId || '');
+        await createPlatformPaymentMethod(platformBaseUrl, platformToken, orgId, selectedPurchasePackage, purchaseDraft);
+        const result = await purchasePlatformPackage(platformBaseUrl, platformToken, orgId, selectedPurchasePackage.id);
+        setPurchasePackageId(null);
+        setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+        await ipcClient.app.setConfig({
+          featureProfile: result.profile,
+          featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
+          platformOrgId: result.org_id || appConfig?.platformOrgId,
+          platformCatalogSource: 'platform',
+          platformCatalogLastSyncedAt: new Date().toISOString(),
+        });
+        const config = await ipcClient.app.getConfig();
+        setAppConfig(config);
+        setSettingsDraft(current => ({
+          ...createSettingsDraft(config),
+          apiKey: current.apiKey,
+          accountPassword: '',
+        }));
+        setSettingsMessage(
+          selectedPurchasePackage.distribution.installRequired
+            ? `${selectedPurchasePackage.displayName} purchased through agent-platform. Install the package to enable its features.`
+            : `${selectedPurchasePackage.displayName} purchased through agent-platform.`,
+        );
+        setStatus('Ready');
+        return;
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus('Platform purchase error');
+        return;
+      }
+    }
+
+    const nextProfile = createPurchasedProfile(profile, selectedPurchasePackage, purchaseDraft);
+    const last4 = purchaseDraft.cardNumber.replace(/\D/g, '').slice(-4);
+    setPurchasePackageId(null);
+    setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+    await persistFeatureProfile(
+      nextProfile,
+      selectedPurchasePackage.distribution.installRequired
+        ? `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}. Install the package to enable its features.`
+        : `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}.`,
+    );
+  }
+
   function openPrimaryView(view: AppView) {
     if (view === 'settings') {
       setSettingsMessage('');
@@ -4856,19 +5814,19 @@ export function App() {
 
   function getActiveChildMenu(): Array<NavigationChildItem<string>> {
     if (activeView === 'projects') {
-      return PROJECTS_MENU;
+      return filterNavigationItems(PROJECTS_MENU, featureResolution);
     }
     if (activeView === 'tools') {
-      return TOOLS_MENU;
+      return filterNavigationItems(TOOLS_MENU, featureResolution);
     }
     if (activeView === 'automation') {
-      return AUTOMATION_MENU;
+      return filterNavigationItems(AUTOMATION_MENU, featureResolution);
     }
     if (activeView === 'history') {
-      return HISTORY_MENU;
+      return filterNavigationItems(HISTORY_MENU, featureResolution);
     }
     if (activeView === 'settings') {
-      return SETTINGS_MENU;
+      return filterNavigationItems(SETTINGS_MENU, featureResolution);
     }
     return [];
   }
@@ -4921,8 +5879,11 @@ export function App() {
   const recentSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
   const visibleRecentSessions = recentSessions.filter(session => matchesSessionSearch(session, sessionSearch));
   const exposedBridgeToolCount = tools.filter(tool => isToolExposedToModel(tool, appConfig)).length;
-  const commandSuggestions = filterDesktopCommands(input);
+  const commandSuggestions = filterDesktopCommands(input, availableDesktopCommands);
   const showCommandPalette = activeView === 'chat' && commandSuggestions.length > 0 && !isSending;
+  const selectedPurchasePackage = purchasePackageId
+    ? featureResolution.packages.find(entry => entry.manifest.id === purchasePackageId)?.manifest ?? null
+    : null;
   const activeProjectsMenuItem = PROJECTS_MENU.find(item => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
   const activeToolsMenuItem = TOOLS_MENU.find(item => item.id === activeToolsSection) ?? TOOLS_MENU[0];
   const activeAutomationMenuItem = AUTOMATION_MENU.find(item => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
@@ -4981,7 +5942,7 @@ export function App() {
         </button>
 
         <nav className={styles.navList} aria-label="Primary">
-          {PRIMARY_NAV.map(item => (
+          {availablePrimaryNav.map(item => (
             <div className={styles.navGroup} key={item.id}>
               <button
                 className={activeView === item.id ? styles.navItemActive : styles.navItem}
@@ -5296,8 +6257,12 @@ export function App() {
               draft={settingsDraft}
               message={settingsMessage}
               saving={isSavingSettings}
+              featureResolution={featureResolution}
               onChange={updateSettingsDraft}
               onClearToken={clearToken}
+              onAccountLogin={handleAccountLogin}
+              onAccountLogout={handleAccountLogout}
+              onPackageAction={handleFeaturePackageAction}
               onSubmit={saveSettings}
             />
           )}
@@ -5308,50 +6273,58 @@ export function App() {
             <span>Status</span>
             <strong>{statusLabel}</strong>
           </button>
-          <button
-            className={styles.statusPane}
-            type="button"
-            onClick={() => {
-              setActiveProjectsSection('studio');
-              setActiveView('projects');
-            }}
-          >
-            <span>Workspace</span>
-            <strong title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : 'Unknown'}</strong>
-          </button>
-          <button
-            className={styles.statusPane}
-            type="button"
-            onClick={() => {
-              setActiveToolsSection('bridge');
-              setActiveView('tools');
-            }}
-          >
-            <span>Tools</span>
-            <strong>{exposedBridgeToolCount}/{tools.length} bridge / {mcpTools.length} MCP</strong>
-          </button>
-          <button
-            className={styles.statusPane}
-            type="button"
-            onClick={() => {
-              setActiveAutomationSection('tasks');
-              setActiveView('automation');
-            }}
-          >
-            <span>Automation</span>
-            <strong>{scheduledTasks.length} tasks / {virtualTeams.length} teams</strong>
-          </button>
-          <button
-            className={styles.statusPane}
-            type="button"
-            onClick={() => {
-              setActiveHistorySection('overview');
-              setActiveView('history');
-            }}
-          >
-            <span>History</span>
-            <strong>{historyStorageInfo.recordCount} records</strong>
-          </button>
+          {hasShellFeature(featureResolution, 'project-studio') && (
+            <button
+              className={styles.statusPane}
+              type="button"
+              onClick={() => {
+                setActiveProjectsSection('studio');
+                setActiveView('projects');
+              }}
+            >
+              <span>Workspace</span>
+              <strong title={appInfo?.workspacePath || undefined}>{appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : 'Unknown'}</strong>
+            </button>
+          )}
+          {hasShellFeature(featureResolution, 'developer-tools') && (
+            <button
+              className={styles.statusPane}
+              type="button"
+              onClick={() => {
+                setActiveToolsSection('bridge');
+                setActiveView('tools');
+              }}
+            >
+              <span>Tools</span>
+              <strong>{exposedBridgeToolCount}/{tools.length} bridge / {mcpTools.length} MCP</strong>
+            </button>
+          )}
+          {hasShellFeature(featureResolution, 'automation') && (
+            <button
+              className={styles.statusPane}
+              type="button"
+              onClick={() => {
+                setActiveAutomationSection('tasks');
+                setActiveView('automation');
+              }}
+            >
+              <span>Automation</span>
+              <strong>{scheduledTasks.length} tasks / {virtualTeams.length} teams</strong>
+            </button>
+          )}
+          {hasShellFeature(featureResolution, 'developer-history') && (
+            <button
+              className={styles.statusPane}
+              type="button"
+              onClick={() => {
+                setActiveHistorySection('overview');
+                setActiveView('history');
+              }}
+            >
+              <span>History</span>
+              <strong>{historyStorageInfo.recordCount} records</strong>
+            </button>
+          )}
           <span className={styles.statusPaneStatic}>
             <span>Tokens</span>
             <strong>{tokenUsage.inputTokens} in / {tokenUsage.outputTokens} out</strong>
@@ -5387,6 +6360,22 @@ export function App() {
           queuedCount={toolPermissionReviews.length}
           onApprove={() => resolveToolPermissionReview(activeToolPermissionReview, true)}
           onReject={() => resolveToolPermissionReview(activeToolPermissionReview, false)}
+        />
+      )}
+
+      {selectedPurchasePackage && (
+        <PackagePurchaseDialog
+          manifest={selectedPurchasePackage}
+          profile={featureResolution.profile}
+          draft={purchaseDraft}
+          message={settingsMessage}
+          onChange={update => setPurchaseDraft(current => ({ ...current, ...update }))}
+          onSubmit={completePackagePurchase}
+          onCancel={() => {
+            setPurchasePackageId(null);
+            setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+            setSettingsMessage('');
+          }}
         />
       )}
     </div>
@@ -10955,17 +11944,19 @@ function TextSetting({
   onChange,
   type = 'text',
   className = '',
+  placeholder,
 }: {
   label: string;
   value: string | number;
   onChange: (value: string) => void;
   type?: string;
   className?: string;
+  placeholder?: string;
 }) {
   return (
     <label className={`${styles.field} ${className}`}>
       <span>{label}</span>
-      <input type={type} value={value} onChange={event => onChange(event.target.value)} autoComplete="off" />
+      <input type={type} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} autoComplete="off" />
     </label>
   );
 }
@@ -11042,21 +12033,501 @@ function updateCsvValue(value: string, entry: string, enabled: boolean): string 
   return Array.from(next).join(',');
 }
 
+function getPackageStateLabel(state: string): string {
+  switch (state) {
+    case 'available':
+      return 'Available';
+    case 'trial':
+      return 'Trial';
+    case 'locked':
+      return 'Purchase required';
+    case 'expired':
+      return 'Expired';
+    case 'unsupported':
+      return 'Unsupported';
+    case 'disabled':
+      return 'Disabled';
+    default:
+      return state;
+  }
+}
+
+function getPackageInstallStateLabel(state: FeaturePackageInstallState): string {
+  switch (state) {
+    case 'bundled':
+      return 'Bundled';
+    case 'not-owned':
+      return 'Not owned';
+    case 'owned-not-installed':
+      return 'Install required';
+    case 'installed':
+      return 'Installed';
+    case 'update-available':
+      return 'Update available';
+    case 'install-failed':
+      return 'Install failed';
+    case 'remote-service':
+      return 'Remote service';
+    default:
+      return state;
+  }
+}
+
+function AccountSettingsSection({
+  resolution,
+  draft,
+  onChange,
+  onLogin,
+  onLogout,
+}: {
+  resolution: FeaturePackageResolution;
+  draft: SettingsDraft;
+  onChange: (update: Partial<SettingsDraft>) => void;
+  onLogin: () => void;
+  onLogout: () => void;
+}) {
+  const profile = resolution.profile;
+  const isSignedIn = profile.accountStatus === 'signed-in';
+  const latestPurchase = profile.purchases[profile.purchases.length - 1];
+  const ownedPackages = getOwnedPackageEntries(resolution);
+  const ownedPackageNames = ownedPackages.map(entry => entry.manifest.displayName).join(', ');
+  return (
+    <SettingsSection title="Account">
+      <div className={styles.accountOverviewGrid}>
+        <article className={styles.accountSummaryCard}>
+          <span>Current session</span>
+          <strong>{formatAccountTier(profile)}</strong>
+          <p>
+            {isSignedIn
+              ? `${profile.displayName || profile.email} is signed in.`
+              : 'You are using CodeAgent as a guest with the free base package.'}
+          </p>
+        </article>
+        <article className={styles.accountSummaryCard}>
+          <span>Feature packages</span>
+          <strong>{ownedPackages.length > 0 ? formatPackageCount(ownedPackages.length) : 'No paid packages'}</strong>
+          <p>
+            {isSignedIn
+              ? ownedPackageNames || 'No purchased packages are attached to this account yet.'
+              : 'Sign in to purchase paid packages.'}
+          </p>
+        </article>
+        <article className={styles.accountSummaryCard}>
+          <span>Payment</span>
+          <strong>{profile.paymentMethods.length > 0 ? `${profile.paymentMethods.length} card${profile.paymentMethods.length === 1 ? '' : 's'}` : 'No card'}</strong>
+          <p>
+            {latestPurchase
+              ? `Last purchase: ${getPackageDisplayName(resolution, latestPurchase.packageId, latestPurchase.productSku)}`
+              : 'Credit card checkout is available from package cards.'}
+          </p>
+        </article>
+      </div>
+
+      <div className={styles.accountPackageShelf}>
+        <div className={styles.accountShelfHeader}>
+          <div>
+            <strong>Purchased packages</strong>
+            <span>{isSignedIn ? 'Packages and subscriptions attached to this account.' : 'Sign in to view purchases for this account.'}</span>
+          </div>
+          <span>{isSignedIn ? profile.subscriptionStatus : 'guest'}</span>
+        </div>
+        {ownedPackages.length > 0 ? (
+          <div className={styles.accountPackageList}>
+            {ownedPackages.map(entry => {
+              const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+              const paymentMethod = profile.paymentMethods.find(method => method.id === purchase?.paymentMethodId);
+              return (
+                <article className={styles.accountPackageItem} key={entry.manifest.id}>
+                  <div className={styles.packageStoreIcon} aria-hidden="true">
+                    {getPackageInitials(entry.manifest.displayName)}
+                  </div>
+                  <div className={styles.accountPackageBody}>
+                    <strong>{entry.manifest.displayName}</strong>
+                    <span>{entry.manifest.productSku}</span>
+                    <p>{entry.manifest.description}</p>
+                  </div>
+                  <dl className={styles.accountPackageMeta}>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>{getPackageOwnershipLabel(profile, entry, purchase)}</dd>
+                    </div>
+                    <div>
+                      <dt>Price</dt>
+                      <dd>{getPackagePriceLabel(entry.manifest)}</dd>
+                    </div>
+                    <div>
+                      <dt>Runtime</dt>
+                      <dd>{getPackageInstallStateLabel(entry.installState)}</dd>
+                    </div>
+                    <div>
+                      <dt>Purchased</dt>
+                      <dd>{formatPackageDate(purchase?.purchasedAt)}</dd>
+                    </div>
+                    {paymentMethod && (
+                      <div>
+                        <dt>Payment</dt>
+                        <dd>{paymentMethod.brand} ending {paymentMethod.last4}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={styles.accountEmptyState}>
+            {isSignedIn
+              ? 'No paid packages have been purchased for this account yet.'
+              : 'Guest sessions include only the free base package.'}
+          </div>
+        )}
+      </div>
+
+      <div className={styles.settingsGrid}>
+        <TextSetting
+          label="Platform URL"
+          value={draft.platformBaseUrl}
+          onChange={value => onChange({ platformBaseUrl: value })}
+        />
+        <TextSetting
+          label="Workspace or org ID"
+          value={draft.platformOrgId}
+          placeholder="optional"
+          onChange={value => onChange({ platformOrgId: value })}
+        />
+        <TextSetting
+          label="Email"
+          type="email"
+          value={draft.accountEmail}
+          onChange={value => onChange({ accountEmail: value })}
+        />
+        <TextSetting
+          label="Display name"
+          value={draft.accountDisplayName}
+          onChange={value => onChange({ accountDisplayName: value })}
+        />
+        <TextSetting
+          label="Platform password"
+          type="password"
+          value={draft.accountPassword}
+          placeholder="required for platform login"
+          onChange={value => onChange({ accountPassword: value })}
+          className={styles.fieldWide}
+        />
+      </div>
+
+      <div className={styles.dialogActions}>
+        {isSignedIn ? (
+          <button className={styles.dangerButton} type="button" onClick={onLogout}>
+            <Icon name="key" size={14} />
+            Sign out
+          </button>
+        ) : (
+          <button className={styles.primaryButton} type="button" onClick={onLogin}>
+            <Icon name="user" size={14} />
+            Sign in
+          </button>
+        )}
+        <button className={styles.secondaryButton} type="button" onClick={() => onChange({ accountEmail: '', accountDisplayName: '' })}>
+          <Icon name="x" size={14} />
+          Clear
+        </button>
+      </div>
+
+      {profile.paymentMethods.length > 0 && (
+        <div className={styles.paymentSummaryList}>
+          {profile.paymentMethods.map(method => (
+            <div key={method.id}>
+              <Icon name="credit-card" size={14} />
+              <span>{method.brand} ending {method.last4}</span>
+              <strong>{method.expMonth.toString().padStart(2, '0')}/{String(method.expYear).slice(-2)}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </SettingsSection>
+  );
+}
+
+function FeaturePackagesSection({
+  resolution,
+  onPackageAction,
+}: {
+  resolution: FeaturePackageResolution;
+  onPackageAction: (packageId: string) => void;
+}) {
+  const profile = resolution.profile;
+  const ownedPackages = getOwnedPackageEntries(resolution);
+  const isSignedIn = profile.accountStatus === 'signed-in';
+  return (
+    <SettingsSection title="Feature Packages">
+      <div className={styles.packageStoreHeader}>
+        <div>
+          <span>CodeAgent Store</span>
+          <strong>Feature packages for every shell</strong>
+          <p>
+            {isSignedIn
+              ? `${profile.email || profile.displayName} · ${ownedPackages.length > 0 ? `${formatPackageCount(ownedPackages.length)} purchased` : 'No paid packages purchased'}`
+              : 'Guest free tier. Sign in before purchasing paid feature packages.'}
+          </p>
+        </div>
+        <dl className={styles.packageStoreSummary}>
+          <div>
+            <dt>Account</dt>
+            <dd>{formatAccountTier(profile)}</dd>
+          </div>
+          <div>
+            <dt>Owned</dt>
+            <dd>{ownedPackages.length}</dd>
+          </div>
+          <div>
+            <dt>Catalog</dt>
+            <dd>{resolution.packages.length}</dd>
+          </div>
+        </dl>
+      </div>
+
+      {ownedPackages.length > 0 && (
+        <div className={styles.packageStoreOwnedShelf}>
+          <div className={styles.accountShelfHeader}>
+            <div>
+              <strong>Purchased</strong>
+              <span>Available to this signed-in account after runtime installation.</span>
+            </div>
+          </div>
+          <div className={styles.packageStoreOwnedList}>
+            {ownedPackages.map(entry => {
+              const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+              return (
+                <div className={styles.packageStoreOwnedItem} key={entry.manifest.id}>
+                  <div className={styles.packageStoreIcon} aria-hidden="true">
+                    {getPackageInitials(entry.manifest.displayName)}
+                  </div>
+                  <div>
+                    <strong>{entry.manifest.displayName}</strong>
+                    <span>{getPackageOwnershipLabel(profile, entry, purchase)} · {getPackageInstallStateLabel(entry.installState)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className={styles.packageStoreGrid}>
+        {resolution.packages.map(entry => {
+          const isEntitled = entry.state === 'available' || entry.state === 'trial';
+          const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
+          const actionLabel = isUsable
+            ? 'Manage'
+            : isEntitled
+              ? 'Install'
+            : profile.accountStatus === 'signed-in'
+              ? 'Purchase'
+              : 'Sign in';
+          const statusLabel = isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state);
+          const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+          return (
+            <article className={styles.packageStoreCard} key={entry.manifest.id}>
+              <div className={styles.packageStoreTopline}>
+                <div className={styles.packageStoreIdentity}>
+                  <div className={styles.packageStoreIcon} aria-hidden="true">
+                    {getPackageInitials(entry.manifest.displayName)}
+                  </div>
+                  <div>
+                    <strong>{entry.manifest.displayName}</strong>
+                    <span>{entry.manifest.domain}</span>
+                  </div>
+                </div>
+                <span className={isUsable ? styles.packageStateAvailable : styles.packageStateLocked}>
+                  {statusLabel}
+                </span>
+              </div>
+
+              <p className={styles.packageStoreDescription}>{entry.manifest.description}</p>
+
+              <div className={styles.packageStoreFeatures}>
+                {entry.manifest.features.map(feature => (
+                  <span key={feature.id}>{feature.title}</span>
+                ))}
+              </div>
+
+              <dl className={styles.packageStoreMeta}>
+                <div>
+                  <dt>Price</dt>
+                  <dd>{getPackagePriceLabel(entry.manifest)}</dd>
+                </div>
+                <div>
+                  <dt>Tier</dt>
+                  <dd>{entry.manifest.tier}</dd>
+                </div>
+                <div>
+                  <dt>Runtime</dt>
+                  <dd>{getPackageInstallStateLabel(entry.installState)}</dd>
+                </div>
+                <div>
+                  <dt>Purchase</dt>
+                  <dd>{purchase ? formatPackageDate(purchase.purchasedAt) : 'Not purchased'}</dd>
+                </div>
+                <div>
+                  <dt>Distribution</dt>
+                  <dd>{getPackageDistributionLabel(entry.manifest)}</dd>
+                </div>
+                <div>
+                  <dt>Protection</dt>
+                  <dd>{getPackageSecurityLabel(entry.manifest)}</dd>
+                </div>
+                <div>
+                  <dt>Shells</dt>
+                  <dd>{entry.manifest.supportedShells.join(', ')}</dd>
+                </div>
+              </dl>
+
+              <div className={styles.packageStoreFooter}>
+                <span>{entry.reason} {entry.installReason}</span>
+                <button
+                  className={`${isUsable ? styles.secondaryButton : styles.primaryButton} ${styles.packageStoreAction}`}
+                  type="button"
+                  onClick={() => onPackageAction(entry.manifest.id)}
+                >
+                  {actionLabel}
+                </button>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </SettingsSection>
+  );
+}
+
+function PackagePurchaseDialog({
+  manifest,
+  profile,
+  draft,
+  message,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  manifest: FeaturePackageManifest;
+  profile: Required<FeatureEntitlementProfile>;
+  draft: PurchaseDraft;
+  message: string;
+  onChange: (update: Partial<PurchaseDraft>) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <form className={`${styles.reviewDialog} ${styles.purchaseDialog}`} role="dialog" aria-modal="true" aria-labelledby="package-purchase-title" onSubmit={onSubmit}>
+        <div className={styles.dialogHeader}>
+          <div>
+            <h2 id="package-purchase-title">Purchase {manifest.displayName}</h2>
+            <p className={styles.reviewSubtitle}>
+              {profile.email} · {getPackagePriceLabel(manifest)} · {manifest.productSku}
+            </p>
+          </div>
+          <span className={styles.reviewBadge}>Credit card</span>
+        </div>
+
+        <dl className={styles.reviewMeta}>
+          <div>
+            <dt>Package</dt>
+            <dd title={manifest.description}>{manifest.displayName}</dd>
+          </div>
+          <div>
+            <dt>Includes</dt>
+            <dd title={manifest.features.map(feature => feature.title).join(', ')}>
+              {manifest.features.map(feature => feature.title).join(', ')}
+            </dd>
+          </div>
+          <div>
+            <dt>Total</dt>
+            <dd>{formatMoney(manifest.pricing.amountCents, manifest.pricing.currency, manifest.pricing.interval)}</dd>
+          </div>
+          <div>
+            <dt>Install</dt>
+            <dd>{getPackageDistributionLabel(manifest)}</dd>
+          </div>
+        </dl>
+
+        <div className={styles.paymentFormGrid}>
+          <TextSetting
+            label="Name on card"
+            value={draft.nameOnCard}
+            onChange={value => onChange({ nameOnCard: value })}
+          />
+          <TextSetting
+            label="Card number"
+            value={draft.cardNumber}
+            onChange={value => onChange({ cardNumber: value })}
+          />
+          <TextSetting
+            label="Expiration"
+            value={draft.expiry}
+            placeholder="MM/YY or MM/YYYY"
+            onChange={value => onChange({ expiry: value })}
+          />
+          <TextSetting
+            label="CVC"
+            type="password"
+            value={draft.cvc}
+            onChange={value => onChange({ cvc: value })}
+          />
+          <TextSetting
+            label="ZIP or postal code"
+            value={draft.postalCode}
+            onChange={value => onChange({ postalCode: value })}
+            className={styles.fieldWide}
+          />
+        </div>
+
+        <p className={styles.mutedText}>
+          Use MM/YY or MM/YYYY for expiration. Full dates such as 12/1/2028 are accepted as month/year. Card data is used only for this local checkout flow. The app stores the card brand, last four digits, expiration, and purchase receipt, not the full card number or CVC. Paid runtime packages must be installed after purchase before their features are enabled.
+        </p>
+
+        <div className={styles.dialogFooter}>
+          <span className={styles.settingsMessage}>{message}</span>
+          <div className={styles.dialogActions}>
+            <button className={styles.secondaryButton} type="button" onClick={onCancel}>
+              <Icon name="x" size={14} />
+              Cancel
+            </button>
+            <button className={styles.primaryButton} type="submit">
+              <Icon name="credit-card" size={14} />
+              Pay {getPackagePriceLabel(manifest)}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function SettingsView({
   activeSection,
   draft,
   message,
   saving,
+  featureResolution,
   onChange,
   onClearToken,
+  onAccountLogin,
+  onAccountLogout,
+  onPackageAction,
   onSubmit,
 }: {
   activeSection: SettingsSectionId;
   draft: SettingsDraft;
   message: string;
   saving: boolean;
+  featureResolution: FeaturePackageResolution;
   onChange: (update: Partial<SettingsDraft>) => void;
   onClearToken: () => void;
+  onAccountLogin: () => void;
+  onAccountLogout: () => void;
+  onPackageAction: (packageId: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const selectedSources = new Set(draft.settingSources.split(',').map(source => source.trim()).filter(Boolean));
@@ -11081,6 +12552,16 @@ function SettingsView({
     <section className={styles.settingsView} aria-label="Settings">
       <form className={`${styles.settingsDialog} ${styles.settingsPageForm}`} onSubmit={onSubmit} aria-label="Settings">
         <div className={styles.settingsContent}>
+        {activeSection === 'account' && (
+          <AccountSettingsSection
+            resolution={featureResolution}
+            draft={draft}
+            onChange={onChange}
+            onLogin={onAccountLogin}
+            onLogout={onAccountLogout}
+          />
+        )}
+
         {activeSection === 'model' && (
         <SettingsSection title="Model">
           <div className={styles.settingsGrid}>
@@ -11176,6 +12657,13 @@ function SettingsView({
             <ToggleSetting label="Model tool calls" checked={draft.enableLlmTools} onChange={checked => onChange({ enableLlmTools: checked })} />
           </div>
         </SettingsSection>
+        )}
+
+        {activeSection === 'packages' && (
+          <FeaturePackagesSection
+            resolution={featureResolution}
+            onPackageAction={onPackageAction}
+          />
         )}
 
         {activeSection === 'io-debug' && (

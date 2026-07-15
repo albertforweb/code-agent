@@ -22,6 +22,50 @@
 
 ---
 
+## Platform Integration Program
+
+**Architecture decision**: CodeAgent is a client of the broader agent platform, not a standalone local-only product. Desktop, CLI, mobile, and web shells should present the same feature/package model while `agent-platform` owns identity, catalog, billing, entitlements, package publishing, package installs, hosted LLM access, and activity synchronization.
+
+**Program status**: In progress. The extensibility/package boundary, platform API contract, local Docker platform stack, desktop platform login, desktop platform catalog consumption, and platform-backed purchase/install scaffold are complete. Production-grade app-store distribution, signed package artifacts, CLI platform sync, hosted LLM routing, vendor publishing, and server-enforced paid feature execution remain open.
+
+**Source of truth**:
+- `agent-platform`: account/login, customer/org context, billing, package/software catalog, purchase records, entitlement projection, install registry, hosted OpenAI-compatible APIs.
+- `code-agent`: local shell framework, local/offline cache, package runtime host, desktop/CLI/mobile presentation, local provider support.
+- `code-agent-sdk`: TypeScript SDK contracts for CodeAgent feature packages.
+- `code-agent-packages`: package source/artifact repos for local development and publish input.
+- `agent-frontend`: web client that should consume the same platform account/catalog/LLM services.
+- `agent-website`: business portal and public product/package entry point.
+
+**Completed**:
+- [x] `agent-platform` exposes a CodeAgent client API contract:
+  - `GET /code-agent/catalog`
+  - `GET /code-agent/profile`
+  - `POST /code-agent/packages/{package_id}/purchase`
+  - `POST /code-agent/packages/{package_id}/install`
+- [x] Platform catalog can be seeded into durable state for local Docker testing with `docker-compose.code-agent.yml` and `scripts/seed_code_agent_local.py`.
+- [x] Platform test covers register/login, published catalog, profile, platform payment method, package purchase, package install, and entitlement profile sync.
+- [x] Desktop Account settings support platform URL, workspace/org id, `/auth/login`, access token/session storage, and platform profile sync.
+- [x] Desktop fetches `/code-agent/catalog` on platform login and resolves Settings -> Packages from the returned platform manifests, with generated local catalog fallback.
+- [x] Desktop platform purchase and install hooks call agent-platform when a platform session exists.
+- [x] `code-agent` still uses the generated local catalog and local profile store as fallback/scaffolding.
+
+**In progress / scaffolded**:
+- [~] Desktop purchase uses platform APIs but still accepts raw local card fields before sending only a card summary to the mock platform billing flow; hosted payment-method setup/tokenization is still required.
+- [~] Desktop package install records platform install state but does not yet download and verify signed package artifacts.
+- [~] The software-developer package is modeled as an installable paid package and has a separate package repo/artifact build, but paid implementation modules still exist in the base CodeAgent codebase until the strict extraction step is finished.
+- [~] Desktop can use the platform catalog after login, but app-start sync and explicit refresh controls are still pending.
+
+**Remaining gaps**:
+- [ ] Add hosted LLM provider mode and model routing through `agent-platform`.
+- [ ] Add desktop `/auth/register` account creation UX.
+- [ ] Replace CLI env-only feature profile with platform login/profile sync.
+- [ ] Fetch `/code-agent/profile` and `/code-agent/catalog` on app start and on explicit sync.
+- [ ] Install paid packages from platform-signed artifacts, not from locally bundled code.
+- [ ] Add vendor publishing workflow that validates package manifests, signatures, pricing, support/legal metadata, and artifact compatibility before catalog listing.
+- [ ] Sync CodeAgent activity, purchases, receipts, and package install state back to platform while preserving offline local cache behavior.
+
+---
+
 ## Phase 1: Electron Foundation (Days 1-3) ✅ COMPLETE
 
 ### 1.1 Add Dependencies ✅ COMPLETE
@@ -1076,6 +1120,86 @@ window.api = {
 
 ---
 
+### 5E Desktop-to-CLI Feature Parity Gap Tracker 🚧 ACTIVE
+**Objective**: Make the packaged CLI support the same product capabilities as the desktop app wherever a terminal UX makes sense, while moving those capabilities into shared feature modules that can also be presented by the desktop and mobile shells.
+
+**Architecture Direction (July 14, 2026)**:
+- [x] Treat desktop, CLI, and mobile as presentation shells over common feature modules. Shells may render features differently, but feature definitions, service access, permissions, storage, and entitlement checks should live in shared modules.
+- [x] Define a package extension framework where each feature package is a purchasable product that can register capabilities with every supported shell.
+- [x] Keep the base/free package limited to general chat plus the basic account, provider, and settings flows required to use chat. This records "chart feature" as "chat feature" unless the product intent changes to chart/visualization.
+- [x] Define a paid `software-developer` package for the current desktop coding/project feature set, including coding tools, workspace tooling, Project Studio, automation/virtual teams, software-project history, bridge tools, MCP integration, and developer-focused settings.
+- [x] Allow future paid domain packages to register their own domain-specific commands, views, tools, automation templates, settings, storage, and mobile affordances without forking the base app shell.
+- [x] Resolve available features from the user's account profile, subscription tier, purchased package entitlements, local install state, and package dependencies before rendering shell UI or accepting CLI commands.
+- [x] Add visible desktop Settings -> Account and Settings -> Packages flows showing guest/signed-in state, subscription tier, package state, product SKU, pricing, shell support, features, and purchase/management actions.
+- [x] Add a local credit-card checkout path that validates card details, stores only card summaries/receipts, and grants package entitlement in the local account profile.
+- [x] Split package entitlement from runtime installation state so paid packages can require purchase first and install second before shell adapters become active.
+- [x] Mark the current paid package distribution boundary honestly: the software-developer package now has installable-package metadata, but this build still bundles the implementation code and remains client-side enforcement only.
+- [x] Add the first separate paid package source/artifact boundary under `../code-agent-packages/software-developer` and build it into `../code-agent-packages/dist-feature-packages/codeagent.package.software-developer-1.0.0.tgz`.
+- [x] Extract feature package SDK contracts into the sibling `../code-agent-sdk` git repo so core and package code share a stable development contract instead of importing manifest types from the core resolver.
+- [x] Generate the core package catalog from `../code-agent-packages/<package-id>/manifest.json` rather than maintaining a package-specific TypeScript catalog file in core.
+- [x] Split the local source tree into three git repos: `code-agent` for the core shell/framework, `code-agent-sdk` for package developer SDK contracts, and `code-agent-packages` for paid package source/artifact builds.
+- [x] Add SDK-defined extension point metadata for primary nav, child routes, slash commands, Electron menus, CLI commands, mobile views, settings sections, and status bar contributions.
+- [x] Add a feature-package boundary verifier that passes for artifact creation and warns about paid implementation modules still bundled in core; strict mode is the extraction gate.
+- [ ] Connect package purchase actions to a real account/billing backend, payment-provider tokenization/charge flow, entitlement sync, and receipt/subscription validation.
+- [ ] Extract paid package implementation code out of the base desktop/CLI bundle so unpaid users do not receive the software-developer runtime by default.
+- [ ] Move Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings from `src/renderer/App.tsx`, `main.tsx`, `commands.ts`, `commands/project`, `commands/role`, `commands/employee`, `commands/team`, `cli/handlers/project-studio.ts`, and `cli/handlers/automation.ts` into `../code-agent-packages/software-developer` package entrypoints.
+- [ ] Add a signed package catalog with artifact version, compatibility, hash, signature, signing key id, and download metadata.
+- [ ] Add a package installer/verifier that downloads entitled artifacts, verifies hash/signature, writes the local install registry, and supports update/uninstall/retry states.
+- [ ] Add backend license, receipt, refund, cancellation, past-due, and revocation sync so purchase state belongs to the user account rather than local app config.
+- [ ] Enforce paid remote services server-side; never rely on client package state for hosted capabilities.
+- [ ] Implement parity gaps in common feature modules first, then expose them through desktop routes, CLI commands, and mobile screens as shell adapters.
+
+**Feature Package Manifest Requirements**:
+- [x] Define manifest fields for package id, product SKU, display name, domain, tier, version, owner, description, dependencies, minimum app version, supported shells, and rollout status.
+- [x] Define feature entries with stable feature ids, capability ids, route/menu/command registrations, settings panels, required services, storage namespaces, tool schemas, automation templates, permission policies, and audit/history event types.
+- [x] Define entitlement rules for free, trial, paid subscription, purchased package, enterprise override, local developer override, and expired/locked states.
+- [x] Define shell adapters so desktop, CLI, and mobile can present the same feature through different UI components, command trees, or compact mobile workflows.
+- [x] Define explicit extension point registrations so packages can contribute shell UI and command surfaces through the SDK contract.
+- [x] Define migration and compatibility metadata so packages can safely add, remove, or rename features without corrupting existing app state.
+- [x] Define distribution metadata for bundled, installable, and remote-service packages, including artifact identity, install requirement, and security boundary.
+- [x] Define local install records for package id, artifact id, version, install state, installed path, installed time, hash, signature, and error state.
+- [x] Split the software-developer package manifest body out of the core resolver and into the external package repo/catalog source boundary.
+- [x] Replace the hand-written software-developer core catalog projection with generated catalog metadata sourced from the package manifest.
+
+**Current CLI Coverage (July 14, 2026)**:
+- [x] Project Studio state commands are registered for project list/show/context/create/update/delete/start/status/runs/deliverables plus role, employee, and team CRUD.
+- [x] Project Studio CLI handlers read and write the desktop app state store so desktop and CLI operate on the same project, role, employee, team, chat, and output data.
+- [x] Automation CLI commands cover skills, tasks, remote control, relay metadata, teams, project export/import, and one-shot task/team runs over the shared automation service.
+- [x] The package exposes both `code-agent` and `codeagent` command aliases and has an isolated install smoke for the packaged CLI.
+- [x] `code-agent features` exposes package, feature, extension, and manifest inspection for the CLI shell.
+- [ ] Add a clean parity regression suite and clean typecheck gate for the newly added CLI surfaces.
+
+**Open Parity Gaps**:
+- [x] Shared feature registry and entitlement resolver: create the common package/feature manifest runtime that desktop, CLI, and mobile use before adding more shell-specific parity.
+- [ ] Headless desktop runtime: let the CLI bootstrap the same service stack as Electron (`ApiServiceBridge`, `ToolServiceBridge`, filesystem, command, MCP, web, finance, automation, app state, auth, and local history) without depending on renderer IPC.
+- [ ] Desktop-backed chat and project chat: add CLI commands for saved desktop chat sessions, project-chat streaming with project `toolScope`, restore/delete/export, generated-output capture, and project action recovery.
+- [ ] Bridge tools CLI: expose `tools list`/`tools run` style commands for the same desktop bridge tools (`time.now`, `web.*`, `finance.quote`, `bash.run`, `fs.*`, `api.chat`, `app.getConfig`, `automation.*`, and `mcp.*`) with the same schemas, policy checks, and output formatting.
+- [ ] Approval and permission workflow: add terminal commands to list, approve, and reject pending file-write reviews, command reviews, and tool-permission reviews; keep policy editing consistent with desktop and remote approval state.
+- [ ] Local history CLI: add list/filter/get/delete/export/storage-info/restore commands for `LocalHistoryServiceBridge`, and record CLI tool, automation, and project events into the same history store.
+- [ ] Automation parity hardening: close gaps in scheduler lifecycle behavior, full scheduled-task policy fields, run history/audit/notification parity, remote pending-approval details, and desktop-equivalent team-run tool policy.
+- [ ] Project Studio parity hardening: add project/team chat commands, richer status/artifact/timeline/governance output, stop/cancel semantics for active project runs, generated-output capture from tool results, and desktop-equivalent cascade behavior for role/employee/team deletion.
+- [ ] Settings and app-state parity: add desktop-store-aware config/state get/set/import/export commands for model, tool-router, permission, prompt, session, integration, and compatibility settings where they apply to CLI.
+- [ ] Workspace and OS action parity: add workspace list/open/reveal commands with the same filesystem service policy semantics used by the desktop Projects file browser.
+- [ ] Desktop-only feature disposition: mark window controls, DevTools, menus, theme/layout local UI state, updater UI, and other renderer-only behavior as unsupported, no-op, or mapped to a terminal equivalent.
+- [ ] Parity verification: add a contract check that compares the desktop IPC/nav command inventory against CLI command coverage, plus temp desktop-store tests for history, automation, scheduler, remote control, and Project Studio flows.
+
+**Implementation Order**:
+- [x] Define the shared feature package manifest schema, package registry, and entitlement resolver.
+- [x] Refactor current desktop coding/project capabilities into the initial `software-developer` package manifest while leaving the current UI behavior intact.
+- [x] Add first desktop and CLI shell adapters for package visibility, entitlement filtering, and package inspection.
+- [x] Add the first purchase -> install -> enable flow for package-gated desktop features.
+- [x] Add `build:feature-packages`, `pack:feature-packages`, and `verify:feature-package-boundaries` package scripts.
+- [x] Add `generate:feature-package-catalog` and package runtime stub compilation so packages can project SDK-defined extension metadata into the core app.
+- [ ] Replace the local install stub with signed artifact download and verification.
+- [ ] Make `verify-feature-package-boundaries --strict` pass by removing paid implementation markers from core source and core distribution artifacts.
+- [ ] Extract a reusable headless desktop-service bootstrap that feature modules can call from CLI commands and tests.
+- [ ] Add bridge-tool, approval, and local-history shell adapters on top of the shared runtime.
+- [ ] Add desktop-backed chat and project-chat adapters, including generated-output capture.
+- [ ] Close Project Studio and automation parity hardening gaps through shared modules, then expose them through CLI commands.
+- [ ] Add package/feature parity inventory tests and promote them into the package verification path.
+
+---
+
 ## Phase 6: Testing & Polish (Days 19-21)
 
 ### 6.1 Cross-Platform Testing ✅ PENDING
@@ -1240,16 +1364,17 @@ window.api = {
 - **Phase 4.6** (Extensibility, Automation, Remote Control, Virtual Teams): 99% 🚧 HARDENED LOCAL MVP - shared automation store, skill discovery/toggles, scheduled-task execution/history/retry/missed-run policies, desktop notification delivery, local mobile remote control, shared approval queue, device revocation/audit, remote endpoint rate limits, virtual-team runs/artifacts/transcripts, editable team blueprints, seeded/scoped team workspaces, full-access/supervised team permissions, bounded iterations, QA/reviewer sign-off gates, structured run milestones, duplicate-run guards, Automation permission controls, CLI automation commands, and read-only model visibility are in place; relay mode, remote push notifications, relay-grade token hardening, and richer project completion policy remain
 - **Phase 4.7** (Shareable Storage and Sync Foundation): 85% 🚧 LOCAL MVP COMPLETE - automation state is split into project-shareable `.code-agent` files plus ignored local remote-control state, legacy automation storage migrates forward, local history IPC/service APIs are in place, desktop chats/tool/automation events mirror into local history, History UI supports browse/export/delete/chat restore, project-shareable automation bundles can be exported/imported, and storage ownership boundaries are documented; SQLite/cloud backend, conflict handling, and encryption/sync security remain
 - **Phase 5** (Packaging): 100% ✅ LOCAL SCOPE COMPLETE - CLI tarball, macOS desktop app packaging, iOS simulator companion, release notes/checklist artifacts, release workflow wiring, desktop package verification, Phase 5 package-set verification, remote-control smoke verification, and relay-scope documentation are complete for local distribution readiness. Public npm publication, Developer ID signing/notarization, signed-release updater validation, TestFlight/App Store distribution, and off-network relay are deferred until the required external accounts, credentials, and relay security implementation exist.
+- **Phase 5E** (Desktop-to-CLI Feature Parity): 52% 🚧 MULTI-REPO PACKAGE BOUNDARY STARTED - Project Studio state commands, shared automation commands, packaged CLI aliases, feature package manifests, entitlement resolver, package install-state model, sibling SDK repo, sibling feature package repo, generated package catalog, separate software-developer package artifact build, package runtime stub, extension inspection, desktop account/package catalog, guest/free gating, local card checkout, and purchase-then-install UI are in place; paid implementation extraction from core, signed package downloads, real checkout/billing, headless desktop runtime reuse, desktop-backed chat/project chat, bridge tools, approvals, local history, settings/app-state, workspace OS actions, and parity verification remain tracked work
 - **Phase 6** (Testing): 0% - Not Started
 - **Phase 7** (Documentation): 0% - Not Started
 
 ### Timeline
 - **Target Completion**: 3-4 weeks from start
-- **Current Date**: July 1, 2026
+- **Current Date**: July 14, 2026
 - **Target Launch**: ~July 21, 2026 for packaged desktop baseline; automation/team features may extend beyond the initial package if not complete
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
-- **Latest Update**: July 2, 2026 - closed Phase 5 for the current local packaging scope: CLI, desktop, iOS simulator companion, release notes/checklist artifacts, local remote-control verification, and relay-scope packaging are in place. Public npm publication, Developer ID signing/notarization, TestFlight/App Store distribution, signed-release updater validation, and off-network relay are deferred until the required external accounts, credentials, and relay security work are available.
-- **Next Focus**: start Phase 6 local testing and polish while continuing non-blocking compatibility cleanup behind CodeAgent-owned aliases.
+- **Latest Update**: July 14, 2026 - split the SDK/package boundary into sibling git repos: `code-agent-sdk` owns feature package contracts, `code-agent-packages` owns `software-developer` package source and artifact builds, and `code-agent` now keeps only the core shell/framework plus generated local catalog projection. The verifier now fails if package source directories return to core and still warns until paid implementation modules are extracted from core. The app-store-grade backend receipt, signed catalog, verifier, real installer, and server-side enforcement work remain open.
+- **Next Focus**: move Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings out of the core renderer/CLI modules into the `software-developer` package, then make `verify-feature-package-boundaries --strict` pass.
 
 ---
 
@@ -1272,7 +1397,7 @@ window.api = {
 ## Success Criteria (Overall)
 
 - ✅ Standalone desktop app shell (no terminal required for core UI)
-- 🚧 CLI feature parity: local provider setup, chat, status/help commands, settings, bridge tools, local permission workflow, and MCP stdio execution are in place; full CLI resume/fork semantics and terminal-only registry parity remain follow-up work
+- 🚧 CLI feature parity: Project Studio state commands, shared automation commands, packaged CLI aliases, local provider setup, status/help/config basics, MCP command support, and feature package inspection are in place; future parity must continue through shared feature modules and package entitlements before shell adapters add desktop-runtime-backed chat/project chat, bridge tools, approvals, local history, settings/app-state, workspace browser/open/reveal, and parity tests
 - ✅ Local-first desktop agent UX: LM Studio chat, bridge tool calls, safe file write review, guarded Bash, web/finance/time tools, stdio MCP execution, session persistence, workspace browser, command runner, and applied-change review are in place
 - 🚧 Automation foundation: shared skill/task/remote/team store, scheduler runtime, retry/missed-run policy state, desktop notifications, local mobile remote control, rate limits, device revocation/audit, sectioned desktop Automation workbench, unattended permission controls, CLI automation commands, virtual-team run artifacts/transcripts/milestones, scoped team workspaces, bounded team iterations, QA/reviewer gates, and read-only automation tools are in place; relay, remote push notifications, packaging, and advanced project-completion governance remain follow-up work
 - 🚧 Shareable storage foundation: project-shareable `.code-agent` files, local-only remote-control state, local history records, History UI, automation import/export, and storage ownership docs are in place; SQLite/cloud sync, encryption, and conflict resolution remain follow-up work

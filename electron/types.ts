@@ -288,6 +288,14 @@ export interface AppConfig {
   theme?: 'light' | 'dark' | 'system';
   accentColor?: 'blue' | 'teal' | 'violet' | 'graphite' | 'ember';
   language?: string;
+  featureProfile?: Record<string, any>;
+  featureAccounts?: Record<string, any>;
+  platformBaseUrl?: string;
+  platformAccessToken?: string;
+  platformOrgId?: string;
+  platformCatalogSource?: 'local' | 'platform';
+  platformCatalogLastSyncedAt?: string;
+  platformFeaturePackageCatalog?: Record<string, any>[];
   [key: string]: any;
 }
 

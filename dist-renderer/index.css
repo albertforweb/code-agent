@@ -3797,6 +3797,596 @@ body.App_dark .App_settingsSection h3 {
 .App_fieldWide {
   grid-column: 1 / -1;
 }
+.App_accountOverviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+.App_accountSummaryCard,
+.App_accountNotice {
+  display: grid;
+  gap: 6px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+.App_accountSummaryCard span,
+.App_accountNotice span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.App_accountSummaryCard strong,
+.App_accountNotice strong {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+.App_accountSummaryCard p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+body.App_dark .App_accountSummaryCard,
+body.App_dark .App_accountNotice {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+body.App_dark .App_accountSummaryCard strong,
+body.App_dark .App_accountNotice strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_accountSummaryCard span,
+body.App_dark .App_accountSummaryCard p,
+body.App_dark .App_accountNotice span {
+  color: var(--color-text-dark-secondary);
+}
+.App_paymentSummaryList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_paymentSummaryList div {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: var(--spacing-sm);
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+.App_paymentSummaryList span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_paymentSummaryList strong {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_paymentSummaryList div {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+}
+body.App_dark .App_paymentSummaryList span {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_paymentSummaryList strong {
+  color: var(--color-text-dark-secondary);
+}
+.App_accountPackageShelf,
+.App_packageStoreOwnedShelf {
+  display: grid;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+body.App_dark .App_accountPackageShelf,
+body.App_dark .App_packageStoreOwnedShelf {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+}
+.App_accountShelfHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.App_accountShelfHeader > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_accountShelfHeader strong {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+.App_accountShelfHeader span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.App_accountShelfHeader > span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+body.App_dark .App_accountShelfHeader strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_accountShelfHeader span {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_accountShelfHeader > span {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+.App_accountPackageList {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+.App_accountPackageItem {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) minmax(260px, 0.85fr);
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+body.App_dark .App_accountPackageItem {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+.App_accountPackageBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_accountPackageBody strong {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+.App_accountPackageBody span,
+.App_accountPackageBody p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_accountPackageBody strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_accountPackageBody span,
+body.App_dark .App_accountPackageBody p {
+  color: var(--color-text-dark-secondary);
+}
+.App_accountPackageMeta,
+.App_packageStoreMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px var(--spacing-md);
+  margin: 0;
+}
+.App_accountPackageMeta div,
+.App_packageStoreMeta div {
+  min-width: 0;
+}
+.App_accountPackageMeta dt,
+.App_packageStoreMeta dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 760;
+}
+.App_accountPackageMeta dd,
+.App_packageStoreMeta dd {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_accountPackageMeta dt,
+body.App_dark .App_packageStoreMeta dt {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_accountPackageMeta dd,
+body.App_dark .App_packageStoreMeta dd {
+  color: var(--color-text-dark);
+}
+.App_accountEmptyState {
+  padding: var(--spacing-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_accountEmptyState {
+  border-color: var(--color-border-dark);
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStoreHeader {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--spacing-md);
+  align-items: center;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+body.App_dark .App_packageStoreHeader {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+}
+.App_packageStoreHeader > div:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.App_packageStoreHeader > div:first-child > span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+.App_packageStoreHeader strong {
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+}
+.App_packageStoreHeader p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+body.App_dark .App_packageStoreHeader > div:first-child > span,
+body.App_dark .App_packageStoreHeader p {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_packageStoreHeader strong {
+  color: var(--color-text-dark);
+}
+.App_packageStoreSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(74px, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+.App_packageStoreSummary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+}
+.App_packageStoreSummary dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 760;
+}
+.App_packageStoreSummary dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_packageStoreSummary div {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+body.App_dark .App_packageStoreSummary dt {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_packageStoreSummary dd {
+  color: var(--color-text-dark);
+}
+.App_packageStoreOwnedList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-sm);
+}
+.App_packageStoreOwnedItem {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  align-items: center;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+.App_packageStoreOwnedItem > div:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.App_packageStoreOwnedItem strong,
+.App_packageStoreIdentity strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_packageStoreOwnedItem span,
+.App_packageStoreIdentity span {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_packageStoreOwnedItem {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+body.App_dark .App_packageStoreOwnedItem strong,
+body.App_dark .App_packageStoreIdentity strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_packageStoreOwnedItem span,
+body.App_dark .App_packageStoreIdentity span {
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStoreGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--spacing-md);
+}
+.App_packageStoreCard {
+  display: grid;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+}
+body.App_dark .App_packageStoreCard {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+}
+.App_packageStoreTopline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.App_packageStoreIdentity {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: var(--spacing-sm);
+  min-width: 0;
+  align-items: center;
+}
+.App_packageStoreIdentity > div:last-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_packageStoreIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  font-size: var(--font-size-md);
+  font-weight: 800;
+}
+body.App_dark .App_packageStoreIcon {
+  border-color: rgba(var(--color-primary-rgb), 0.34);
+  background: rgba(var(--color-primary-rgb), 0.16);
+  color: #c7d2fe;
+}
+.App_packageStoreDescription {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+body.App_dark .App_packageStoreDescription {
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStoreFeatures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.App_packageStoreFeatures span {
+  padding: 4px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+body.App_dark .App_packageStoreFeatures span {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStoreFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-top: auto;
+}
+.App_packageStoreFooter > span {
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+body.App_dark .App_packageStoreFooter > span {
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStoreAction {
+  flex: 0 0 auto;
+  min-width: 96px;
+}
+.App_packageCatalogGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-md);
+}
+.App_packageCatalogCard {
+  display: grid;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+body.App_dark .App_packageCatalogCard {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+}
+.App_packageCatalogHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.App_packageCatalogHeader div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.App_packageCatalogHeader strong {
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+}
+.App_packageCatalogHeader span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+body.App_dark .App_packageCatalogHeader strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_packageCatalogHeader span {
+  color: var(--color-text-dark-secondary);
+}
+.App_packageStateAvailable,
+.App_packageStateLocked {
+  flex: 0 0 auto;
+  max-width: 140px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 760;
+  text-align: center;
+}
+.App_packageStateAvailable {
+  border: 1px solid rgba(63, 122, 85, 0.24);
+  background: rgba(63, 122, 85, 0.1);
+  color: #2f6c45;
+}
+.App_packageStateLocked {
+  border: 1px solid rgba(180, 76, 66, 0.24);
+  background: rgba(180, 76, 66, 0.09);
+  color: #9b3f37;
+}
+body.App_dark .App_packageStateAvailable {
+  border-color: rgba(134, 239, 172, 0.24);
+  background: rgba(134, 239, 172, 0.1);
+  color: #86efac;
+}
+body.App_dark .App_packageStateLocked {
+  border-color: rgba(252, 165, 165, 0.24);
+  background: rgba(252, 165, 165, 0.1);
+  color: #fca5a5;
+}
+.App_packageCatalogMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+}
+.App_packageCatalogMeta div {
+  min-width: 0;
+}
+.App_packageCatalogMeta dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 760;
+}
+.App_packageCatalogMeta dd {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_packageCatalogMeta dt {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_packageCatalogMeta dd {
+  color: var(--color-text-dark);
+}
+.App_packageFeatureList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.App_packageFeatureList span {
+  padding: 4px 7px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+body.App_dark .App_packageFeatureList span {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+  color: var(--color-text-dark-secondary);
+}
+.App_packageCatalogFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.App_packageCatalogFooter span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+body.App_dark .App_packageCatalogFooter span {
+  color: var(--color-text-dark-secondary);
+}
+.App_purchaseDialog {
+  width: min(760px, 100%);
+}
+.App_paymentFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
 .App_field,
 .App_toggleField {
   display: flex;
@@ -4008,9 +4598,31 @@ body.App_dark .App_settingsMessage {
   }
   .App_settingsGrid,
   .App_settingsSummary,
+  .App_accountOverviewGrid,
+  .App_accountPackageItem,
+  .App_packageStoreHeader,
+  .App_paymentFormGrid,
   .App_toggleGrid,
   .App_checkboxGroup {
     grid-template-columns: 1fr;
+  }
+  .App_accountShelfHeader,
+  .App_packageStoreFooter,
+  .App_packageStoreTopline {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .App_accountShelfHeader > span,
+  .App_packageStoreAction {
+    width: 100%;
+  }
+  .App_accountPackageMeta,
+  .App_packageStoreMeta,
+  .App_packageStoreSummary {
+    grid-template-columns: 1fr;
+  }
+  .App_packageStoreGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
   .App_detailView {
     width: calc(100% - 16px);
@@ -4205,3 +4817,4 @@ body.dark ::-webkit-scrollbar-thumb {
 body.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-dark-secondary);
 }
+/*# sourceMappingURL=index.css.map */

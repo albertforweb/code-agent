@@ -5,7 +5,7 @@ Phase 5A packages the terminal `code-agent` command separately from the Electron
 ## Package Shape
 
 - Package name: `code-agent`
-- Binary: `code-agent` -> `dist/entrypoints/cli.js`
+- Binaries: `code-agent` and `codeagent` -> `dist/entrypoints/cli.js`
 - Build payload: compiled `dist/**` output only, plus README and this distribution note
 - Runtime shims: CodeAgent-owned files under `dist/runtime/**`
 - Excluded from the npm CLI package: Electron renderer assets, desktop build output, generated installers, local state, and `node_modules`
@@ -30,6 +30,7 @@ To create a local tarball for manual install:
 npm run pack:cli
 npm install -g ./dist-build/cli/code-agent-1.0.0.tgz
 code-agent --version
+codeagent --version
 code-agent --help
 ```
 
@@ -52,6 +53,7 @@ For a project-local install instead of a global install:
 ```bash
 npm install ./dist-build/cli/code-agent-1.0.0.tgz
 npm exec code-agent -- --version
+npm exec codeagent -- --version
 npm exec code-agent -- --help
 ```
 

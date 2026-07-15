@@ -15,6 +15,7 @@ The project is no longer a provider-branded SDK wrapper. Model calls go through 
 - Maintains local session history, project context, settings, and resumable work
 - Supports skills, hooks, scheduled tasks, background work, remote control, and team-style workflows
 - Stores project-shareable automation state under `.code-agent`
+- Resolves shell features through shared feature-package manifests so desktop, CLI, and mobile can present the same purchased capabilities differently
 
 ## Model Provider Setup
 
@@ -97,8 +98,25 @@ The desktop app is a local workbench for:
 - Session history
 - Settings and model configuration
 - MCP server management
+- Account, subscription, package catalog, local credit-card package checkout, and package install state
 
-Local history, credentials, and pairing state stay on the machine unless a feature explicitly sends data to a configured service.
+The desktop app starts in guest/free mode. Settings -> Account handles local sign-in/sign-out state, and Settings -> Packages shows entitlement state, runtime install state, distribution mode, package availability, and purchase/install actions. Local history, credentials, card summaries, purchase receipts, install records, and pairing state stay on the machine unless a feature explicitly sends data to a configured service.
+
+Paid feature packages live outside this core repo and are projected into the app catalog from package-owned manifests:
+
+```bash
+npm run build:feature-packages
+npm run generate:feature-package-catalog
+npm run verify:feature-package-boundaries
+```
+
+The default local repo layout is:
+
+- `../code-agent-sdk`
+- `../code-agent-packages`
+- `../code-agent`
+
+The current software-developer package artifact is written to `../code-agent-packages/dist-feature-packages/codeagent.package.software-developer-1.0.0.tgz` and contains the package manifest plus SDK runtime stub. The strict package-boundary verifier is still expected to fail until Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings are extracted from the core renderer and CLI implementation.
 
 ## CLI
 
@@ -111,6 +129,30 @@ code-agent --bare -p "inspect the changed files"
 ```
 
 `--bare` is the minimal execution mode. It skips hooks, LSP, plugin sync, background prefetches, automatic memory discovery, and keychain reads. Use it for controlled automation where all context is passed explicitly.
+
+Project Studio records are also available from the CLI and use the same local desktop state store:
+
+```bash
+code-agent project list
+code-agent project create --name "New app" --mode guided --idea "..."
+code-agent project start <project-id>
+code-agent project deliverables <project-id>
+code-agent project role list
+code-agent project employee list
+code-agent project team list
+```
+
+Automation and remote-control management are available under `code-agent automation`, including scheduled tasks, skill policies, remote pairing state, relay metadata, virtual teams, and automation import/export.
+
+Feature package availability can be inspected from the CLI:
+
+```bash
+code-agent features
+code-agent features list
+code-agent features packages
+```
+
+By default the CLI also resolves as guest/free. Paid package commands require entitlement plus runtime availability, such as `CODEAGENT_FEATURE_PACKAGES=software-developer` and `CODEAGENT_INSTALLED_FEATURE_PACKAGES=software-developer`, a full `CODEAGENT_FEATURE_PROFILE_JSON`, an enterprise package override, a trial package, or the explicit local developer override environment variable.
 
 ## Workspace State
 
@@ -132,9 +174,12 @@ The runtime is split into these main layers:
 - `tools/` - file, shell, web, MCP, task, and workflow tools
 - `components/` - Ink CLI UI and React desktop UI pieces
 - `electron/` - desktop shell, bridges, and app packaging support
+- `src/features/` - generated feature-package catalog metadata, extension resolution, and entitlement resolution
 - `utils/` - workspace context, permissions, settings, memory files, telemetry, and model utilities
 
 Provider-specific behavior is isolated behind adapters and configuration. The model API path does not require provider-specific SDK packages.
+
+See `docs/feature-packages.md` for the shell-independent feature package model and the sibling SDK/package repos.
 
 ## Development Commands
 
