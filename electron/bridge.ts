@@ -21,6 +21,8 @@ import type {
   FilePathActionResult,
   AppConfig,
   AppInfo,
+  FeaturePackageInstallRequest,
+  FeaturePackageInstallResult,
   AuthToken,
   Tool,
   McpServerInfo,
@@ -131,6 +133,7 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['app:setConfig'], this.handleSetConfig.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:getState'], this.handleGetState.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:setState'], this.handleSetState.bind(this));
+    ipcMain.handle(IPC_CHANNELS['app:installFeaturePackage'], this.handleInstallFeaturePackage.bind(this));
 
     // Window channels
     ipcMain.handle(IPC_CHANNELS['window:minimize'], this.handleWindowMinimize.bind(this));
@@ -544,6 +547,17 @@ export class IpcBridge {
       throw new Error('App handler not configured');
     }
     return handler(state);
+  }
+
+  private async handleInstallFeaturePackage(
+    event: any,
+    request: FeaturePackageInstallRequest,
+  ): Promise<FeaturePackageInstallResult> {
+    const handler = this.appHandlers.get('installFeaturePackage');
+    if (!handler) {
+      throw new Error('Feature package installer handler not configured');
+    }
+    return handler(request);
   }
 
   // ============================================================================

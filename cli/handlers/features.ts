@@ -7,6 +7,28 @@ import {
   type FeatureEntitlementProfile,
   type FeaturePackageResolution,
 } from '../../src/features/feature-packages.js';
+import {
+  readCliPlatformFeatureCatalog,
+  readCliPlatformFeatureProfile,
+} from './platform.js';
+
+const CLI_FEATURE_ENV_KEYS = [
+  'CODEAGENT_FEATURE_PROFILE_JSON',
+  'CODEAGENT_ACCOUNT_STATUS',
+  'CODEAGENT_ACCOUNT_TIER',
+  'CODEAGENT_SUBSCRIPTION_STATUS',
+  'CODEAGENT_FEATURE_PACKAGES',
+  'CODEAGENT_TRIAL_FEATURE_PACKAGES',
+  'CODEAGENT_EXPIRED_FEATURE_PACKAGES',
+  'CODEAGENT_DISABLED_FEATURE_PACKAGES',
+  'CODEAGENT_ENTERPRISE_FEATURE_PACKAGES',
+  'CODEAGENT_INSTALLED_FEATURE_PACKAGES',
+  'CODEAGENT_FEATURE_LOCAL_DEV_OVERRIDE',
+];
+
+function hasCliFeatureProfileEnvOverride(): boolean {
+  return CLI_FEATURE_ENV_KEYS.some(key => Boolean(process.env[key]?.trim()));
+}
 
 export function readCliFeatureProfileFromEnv(): FeatureEntitlementProfile {
   const jsonProfile = process.env.CODEAGENT_FEATURE_PROFILE_JSON?.trim();
@@ -33,6 +55,16 @@ export function readCliFeatureProfileFromEnv(): FeatureEntitlementProfile {
 }
 
 export function resolveCliFeaturePackages(): FeaturePackageResolution {
+  if (hasCliFeatureProfileEnvOverride()) {
+    return resolveFeaturePackages('cli', readCliFeatureProfileFromEnv());
+  }
+
+  const platformProfile = readCliPlatformFeatureProfile();
+  const platformCatalog = readCliPlatformFeatureCatalog();
+  if (platformProfile) {
+    return resolveFeaturePackages('cli', platformProfile, platformCatalog ?? FEATURE_PACKAGE_MANIFESTS);
+  }
+
   return resolveFeaturePackages('cli', readCliFeatureProfileFromEnv());
 }
 

@@ -30,6 +30,8 @@ import type {
   AuthToken,
   AppConfig,
   AppInfo,
+  FeaturePackageInstallRequest,
+  FeaturePackageInstallResult,
   AppConfigChangedMessage,
   AppStateChangedMessage,
   BootstrapData,
@@ -122,6 +124,7 @@ const IPC_CHANNELS = {
   'app:setConfig': 'app:setConfig',
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
+  'app:installFeaturePackage': 'app:installFeaturePackage',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
   'window:minimize': 'window:minimize',
@@ -393,6 +396,10 @@ const api = {
 
     setState: (state: any): Promise<void> => {
       return ipcRenderer.invoke(IPC_CHANNELS['app:setState'], state);
+    },
+
+    installFeaturePackage: (request: FeaturePackageInstallRequest): Promise<FeaturePackageInstallResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['app:installFeaturePackage'], request);
     },
   },
 

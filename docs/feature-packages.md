@@ -68,7 +68,9 @@ Desktop stores the active profile as `featureProfile` in app config and saved lo
 
 Logging out switches the active profile back to guest/free but does not delete saved account entitlements. Re-login with the same account restores locally purchased packages unless the package is later marked expired, refunded, canceled, or disabled.
 
-Desktop package purchase currently supports a local credit-card checkout flow. The renderer validates card number, expiration, CVC, and billing postal code, then stores only a card summary, purchase receipt, and package entitlement. It does not store full card numbers or CVC values. Paid packages with `installRequired` must then be installed before their shell adapters become active. A production purchase flow still needs a real account service, payment processor tokenization/charge endpoint, entitlement sync, receipt/subscription validation, and signed artifact download.
+Desktop package purchase currently supports a local credit-card checkout flow. The renderer validates card number, expiration, CVC, and billing postal code, then stores only a card summary, purchase receipt, and package entitlement. It does not store full card numbers or CVC values. Paid packages with `installRequired` must then be installed before their shell adapters become active. The platform-backed development flow now owns account, order, entitlement, profile, artifact download, and install records; production still needs payment processor tokenization/charge handling and receipt/subscription validation.
+
+When a platform session is configured, desktop and CLI purchase/install actions use `agent-platform` as the account and entitlement authority. The local card fields are still a mock/local checkout input for development, but the resulting payment-method summary, order, profile, and install records are stored by the platform and re-synced to the client.
 
 ## Package Artifacts
 
@@ -108,6 +110,16 @@ The build writes:
 
 `npm run generate:feature-package-catalog` regenerates `src/features/package-catalog/generated.ts` from the external package repo. Core code should not add a package-specific TypeScript catalog file for paid packages. The default sibling repo locations can be overridden with `CODEAGENT_FEATURE_SDK_ROOT`, `CODEAGENT_FEATURE_PACKAGES_ROOT`, and `CODEAGENT_FEATURE_PACKAGE_DIST_ROOT`.
 
+The package build signs the artifact descriptor with an Ed25519 development key and records:
+
+- archive SHA-256
+- signing key id
+- signed payload SHA-256
+- artifact descriptor signature
+- per-file SHA-256 hashes
+
+For local development, `agent-platform` publishes the same signed metadata in the Software Developer package catalog entry and serves the signed tarball from `/code-agent/packages/{package_id}/artifact` after entitlement validation. Production still needs managed signing keys, key rotation, revocation, and durable vendor/package artifact storage.
+
 Verify it with:
 
 ```sh
@@ -122,9 +134,28 @@ node scripts/verify-feature-package-boundaries.mjs --strict
 
 Strict mode fails while Project Studio, Automation, developer history, and other paid implementation modules still live in core source or core bundles.
 
+## CLI Platform Flow
+
+The CLI now has a platform command group:
+
+```sh
+code-agent platform register --base-url http://127.0.0.1:18080 --email user@example.com --password changeme123
+code-agent platform login --base-url http://127.0.0.1:18080 --email user@example.com --password changeme123
+code-agent platform sync
+code-agent platform catalog
+code-agent platform profile
+code-agent platform purchase software-developer --card-last4 4444 --card-brand Mastercard --exp-month 12 --exp-year 2030
+code-agent platform install software-developer
+code-agent features packages
+```
+
+After sync, CLI feature resolution uses the platform profile/catalog cache before the generated local fallback. `code-agent platform install` downloads the signed artifact from `agent-platform` when the catalog provides an artifact URL. `--archive-path` and `CODEAGENT_FEATURE_PACKAGE_DIST_ROOT` still take precedence for explicit debug and test scenarios.
+
+For packages marked `signed-local-bundle`, desktop and CLI install download or resolve the archive, verify its SHA-256 against the platform catalog, extract it to a temporary directory, verify the signed `artifact.json` descriptor against a trusted Ed25519 key, verify every file hash, install the package under the CodeAgent config home, persist the verified archive under `feature-package-archives`, and record the install with `agent-platform` when a platform session is active.
+
 ## Distribution And Security Model
 
-The current implementation now models app-store-style package states and builds `software-developer` as a separate package artifact, but it is not yet a production security boundary. `software-developer` is marked as an installable paid package, and the desktop app has a purchase -> install -> enable flow. However, the current desktop and CLI builds still contain software developer implementation modules, so a determined local user could modify client state or code to bypass the local gate.
+The current implementation now models app-store-style package states and builds `software-developer` as a separate signed package artifact, but it is not yet a production security boundary. `software-developer` is marked as an installable paid package. Desktop and CLI both have platform purchase -> entitlement-gated artifact download -> signed artifact verify -> install -> enable flows. However, the current desktop and CLI builds still contain software developer implementation modules, so a determined local user could modify client state or code to bypass the local gate.
 
 ## Platform Integration Direction
 
@@ -138,12 +169,15 @@ The local generated package catalog is now only a development fallback. The prod
 - LLM provider settings should support both local OpenAI-compatible providers such as LM Studio and platform-hosted OpenAI-compatible APIs, with the user choosing the active provider.
 - Any paid or online service must be enforced server-side by `agent-platform` or a vendor-hosted service, not by local UI state.
 
-Current status: the extensibility model, separate SDK/package repos, platform catalog/profile/purchase/install API contract, local Docker platform seed, desktop platform login, desktop platform catalog resolution, and desktop platform-backed purchase/install scaffold are implemented. This is not yet a production app-store security boundary because paid implementation code is still present in the base app and package artifacts are not yet downloaded, hashed, signature-verified, or loaded from an installed package directory.
+Platform web clients and CodeAgent local clients should be aligned at the feature level. The platform Marketplace page, CodeAgent desktop Packages page, CLI package commands, and future mobile package screens can have different layouts, but they should all reflect the same catalog item, entitlement status, install state, billing state, package manifest, and package management actions. Likewise, project workflows, chat/history, provider selection, account/profile, and package settings should be backed by the same platform service contracts and package extension metadata instead of shell-specific feature definitions.
+
+Current status: the extensibility model, separate SDK/package repos, platform catalog/profile/purchase/install API contract, local Docker platform seed, desktop platform login/register/startup sync, desktop platform catalog resolution, CLI platform sync, desktop platform-backed purchase/install scaffold, shared desktop/CLI signed artifact verification, and entitlement-gated platform artifact download are implemented. This is not yet a production app-store security boundary because paid implementation code is still present in the base app and production signing-key rotation, revocation, update/uninstall lifecycle, and durable vendor artifact storage are still pending.
 
 The first platform-side contract now exists in `agent-platform`:
 
 - `GET /code-agent/catalog`: platform-owned package manifests.
 - `GET /code-agent/profile`: CodeAgent-compatible entitlement profile derived from platform account, billing, orders, and installs.
+- `GET /code-agent/packages/{package_id}/artifact`: entitlement-gated signed package artifact download.
 - `POST /code-agent/packages/{package_id}/purchase`: package purchase through platform billing/checkout.
 - `POST /code-agent/packages/{package_id}/install`: platform install registry for entitled packages.
 
@@ -151,17 +185,27 @@ Initial CodeAgent client integration now includes:
 
 - Platform connection settings: platform base URL, workspace/org id, access token/session state, catalog source, and platform password field.
 - Desktop sign-in calls `/auth/login` when a platform password is supplied.
+- Desktop account creation calls `/auth/register`, stores the returned platform session, and immediately syncs package catalog/profile state.
 - Desktop sign-in fetches `/code-agent/catalog`, stores the returned platform manifests as `platformFeaturePackageCatalog`, and resolves Settings -> Packages from that catalog while falling back to the generated local catalog when the platform catalog is absent.
 - Desktop sign-in stores the returned `/code-agent/profile`.
+- Desktop app startup refreshes `/code-agent/profile` and `/code-agent/catalog` when a platform session is already stored, and Account/Packages expose an explicit Sync action.
 - Desktop purchase creates a platform card summary and calls `/code-agent/packages/{package_id}/purchase` when a platform session exists.
-- Desktop install records installation through `/code-agent/packages/{package_id}/install`.
+- Desktop install downloads entitled signed artifacts through main-process IPC, verifies them locally, then records installation through `/code-agent/packages/{package_id}/install`.
+- CLI register/login calls `/auth/register` and `/auth/login`, then syncs `/code-agent/catalog` and `/code-agent/profile` into CLI config.
+- CLI purchase creates a platform card summary when needed and calls `/code-agent/packages/{package_id}/purchase`.
+- CLI install downloads entitled signed artifacts, verifies them locally, and calls `/code-agent/packages/{package_id}/install` with the installed path, artifact SHA-256, and signature.
+
+Catalog unification status:
+
+- The platform Marketplace projection and `/code-agent/catalog` now share CodeAgent package data, so the Software Developer package appears in both places and purchase/install writes the same records.
+- `/catalog/items` now exposes a unified platform catalog item with both `marketplace_listing` and `runtime_manifest` projections.
+- `/marketplace/apps` and `/code-agent/catalog` remain separate API projections because Marketplace listings need product metadata, reviews, pricing, and tenant install state, while CodeAgent runtime needs package manifests, feature ids, extension points, artifact compatibility, and install requirements.
+- The intended endpoint model is one platform catalog domain with typed projections, not manually maintained duplicate catalogs. The current `PlatformCatalogService` is the first implementation slice; durable repository-backed publishing for all package/software types remains open.
 
 The next CodeAgent client changes are:
 
-- Fetch `/code-agent/profile` on app start and on explicit sync; current desktop hooks sync after login, purchase, and install.
-- Add `/auth/register` and account creation UX instead of requiring pre-created platform accounts.
-- Switch package install to platform entitlement check plus signed artifact download and verification. Signed artifact download and verification remain open.
-- Add CLI equivalents for login, sync, catalog, purchase, install, and profile inspection.
+- Add update, uninstall, retry, revoked-signature, and key-rotation states on top of the platform artifact download flow.
+- Add cross-client parity tests that compare the platform Marketplace/catalog projection, CodeAgent desktop package view, and CLI package commands against the same catalog/profile fixtures.
 
 The production app-store model requires these remaining changes:
 

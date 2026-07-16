@@ -50,7 +50,7 @@ import { isAgentSwarmsEnabled } from './utils/agentSwarmsEnabled.js';
 import { count, uniq } from './utils/array.js';
 import { installAsciicastRecorder } from './utils/asciicast.js';
 import { getSubscriptionType, isSubscriptionAuthSubscriber, prefetchAwsCredentialsAndBedRockInfoIfSafe, prefetchGcpCredentialsIfSafe, validateForceLoginOrg } from './utils/auth.js';
-import { checkHasTrustDialogAccepted, getGlobalConfig, getRemoteControlAtStartup, isAutoUpdaterDisabled, saveGlobalConfig } from './utils/config.js';
+import { checkHasTrustDialogAccepted, enableConfigs, getGlobalConfig, getRemoteControlAtStartup, isAutoUpdaterDisabled, saveGlobalConfig } from './utils/config.js';
 import { seedEarlyInput, stopCapturingEarlyInput } from './utils/earlyInput.js';
 import { getInitialEffortSetting, parseEffortValue } from './utils/effort.js';
 import { getInitialFastModeSetting, isFastModeEnabled, prefetchFastModeStatus, resolveFastModeStatusFromCache } from './utils/fastMode.js';
@@ -945,6 +945,7 @@ async function run(): Promise<CommanderCommand> {
     });
   }
   const program = new CommanderCommand().configureHelp(createSortedHelpConfig()).enablePositionalOptions();
+  enableConfigs();
   const cliFeatureResolution = resolveCliFeaturePackages();
   const hasCliFeature = (featureId: string) => isFeatureAvailable(cliFeatureResolution, featureId);
   const registerLockedFeatureCommand = (name: string, aliases: string[], description: string) => {
@@ -4349,6 +4350,85 @@ async function run(): Promise<CommanderCommand> {
   features.command('manifest').description('Print the full feature package manifest JSON').action(async () => {
     const { featuresManifestHandler } = await import('./cli/handlers/features.js');
     await featuresManifestHandler();
+    process.exit(0);
+  });
+
+  const platform = program.command('platform').description('Manage agent-platform account, catalog, purchase, and package install state');
+  platform.command('login').description('Sign in to agent-platform and sync CodeAgent entitlements').option('--base-url <url>', 'agent-platform base URL').option('--email <email>', 'Account email; can also use CODEAGENT_PLATFORM_EMAIL').option('--password <password>', 'Account password; can also use CODEAGENT_PLATFORM_PASSWORD').option('--org-id <id>', 'Tenant or organization id').action(async (options: {
+    baseUrl?: string;
+    email?: string;
+    password?: string;
+    orgId?: string;
+  }) => {
+    const { platformLoginHandler } = await import('./cli/handlers/platform.js');
+    await platformLoginHandler(options);
+    process.exit(0);
+  });
+  platform.command('register').description('Create an agent-platform account and sync CodeAgent entitlements').option('--base-url <url>', 'agent-platform base URL').option('--email <email>', 'Account email; can also use CODEAGENT_PLATFORM_EMAIL').option('--password <password>', 'Account password; can also use CODEAGENT_PLATFORM_PASSWORD').option('--name <name>', 'Display name').option('--workspace <name>', 'Workspace name').action(async (options: {
+    baseUrl?: string;
+    email?: string;
+    password?: string;
+    name?: string;
+    workspace?: string;
+  }) => {
+    const { platformRegisterHandler } = await import('./cli/handlers/platform.js');
+    await platformRegisterHandler(options);
+    process.exit(0);
+  });
+  platform.command('sync').description('Refresh cached platform catalog and feature profile').option('--base-url <url>', 'agent-platform base URL override').option('--org-id <id>', 'Tenant or organization id override').action(async (options: {
+    baseUrl?: string;
+    orgId?: string;
+  }) => {
+    const { platformSyncHandler } = await import('./cli/handlers/platform.js');
+    await platformSyncHandler(options);
+    process.exit(0);
+  });
+  platform.command('status').description('Show cached platform account and entitlement state').action(async () => {
+    const { platformStatusHandler } = await import('./cli/handlers/platform.js');
+    await platformStatusHandler();
+    process.exit(0);
+  });
+  platform.command('profile').description('Show the platform CodeAgent profile').option('--no-sync', 'Use cached profile without refreshing from platform').action(async (options: {
+    sync?: boolean;
+  }) => {
+    const { platformProfileHandler } = await import('./cli/handlers/platform.js');
+    await platformProfileHandler(options);
+    process.exit(0);
+  });
+  platform.command('catalog').description('Show the platform CodeAgent package catalog').option('--no-sync', 'Use cached catalog without refreshing from platform').action(async (options: {
+    sync?: boolean;
+  }) => {
+    const { platformCatalogHandler } = await import('./cli/handlers/platform.js');
+    await platformCatalogHandler(options);
+    process.exit(0);
+  });
+  platform.command('purchase <packageId>').description('Purchase a CodeAgent feature package through agent-platform').option('--payment-method-id <id>', 'Existing platform payment method id').option('--card-number <digits>', 'Test card number; only last four digits are sent to the local platform').option('--card-last4 <digits>', 'Test card last four digits').option('--card-brand <brand>', 'Card brand label').option('--exp-month <month>', 'Card expiration month').option('--exp-year <year>', 'Card expiration year').option('--holder-name <name>', 'Card holder name').action(async (packageId: string, options: {
+    paymentMethodId?: string;
+    cardNumber?: string;
+    cardLast4?: string;
+    cardBrand?: string;
+    expMonth?: string;
+    expYear?: string;
+    holderName?: string;
+  }) => {
+    const { platformPurchaseHandler } = await import('./cli/handlers/platform.js');
+    await platformPurchaseHandler(packageId, options);
+    process.exit(0);
+  });
+  platform.command('install <packageId>').description('Install a purchased CodeAgent feature package').option('--archive-path <path>', 'Signed package archive path').option('--installed-path <path>', 'Installed package path or package URI override').option('--version <version>', 'Installed package version override').option('--sha256 <hex>', 'Artifact SHA-256 digest').option('--signature <signature>', 'Artifact signature').action(async (packageId: string, options: {
+    archivePath?: string;
+    installedPath?: string;
+    version?: string;
+    sha256?: string;
+    signature?: string;
+  }) => {
+    const { platformInstallHandler } = await import('./cli/handlers/platform.js');
+    await platformInstallHandler(packageId, options);
+    process.exit(0);
+  });
+  platform.command('logout').description('Clear cached agent-platform session and entitlement state').action(async () => {
+    const { platformLogoutHandler } = await import('./cli/handlers/platform.js');
+    await platformLogoutHandler();
     process.exit(0);
   });
 

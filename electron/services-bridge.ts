@@ -11,6 +11,7 @@ import {
   IPC_CHANNELS,
   type ChatStreamRequest,
   type CommandReviewResponse,
+  type FeaturePackageInstallRequest,
   type FileWritePreview,
   type FileWriteReviewResponse,
   type ToolEventScope,
@@ -19,6 +20,8 @@ import {
   type ToolExecuteMessage,
   type ToolApprovalResolvedMessage,
 } from './types';
+import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
+import { installSignedPackageArtifact } from './feature-package-installer';
 import {
   ToolServiceBridge,
   type BridgeToolDefinition,
@@ -1079,6 +1082,17 @@ export function registerServiceBridges(
     const update = await appStateService.setState(state);
     sendToRenderer(options.getMainWindow, IPC_CHANNELS['app:stateChanged'], update);
     return update;
+  });
+
+  ipcBridge.registerAppHandler('installFeaturePackage', async (request: FeaturePackageInstallRequest) => {
+    if (!request?.manifest || typeof request.manifest !== 'object') {
+      throw new Error('Feature package install requires a manifest.');
+    }
+    const manifest = request.manifest as FeaturePackageManifest;
+    if (manifest.distribution?.securityBoundary !== 'signed-local-bundle') {
+      throw new Error(`Unsupported feature package security boundary: ${String(manifest.distribution?.securityBoundary || 'missing')}`);
+    }
+    return installSignedPackageArtifact(manifest, request.archivePath, { download: request.download });
   });
 
   return {

@@ -73,6 +73,7 @@ const IPC_CHANNELS = {
     'app:setConfig': 'app:setConfig',
     'app:getState': 'app:getState',
     'app:setState': 'app:setState',
+    'app:installFeaturePackage': 'app:installFeaturePackage',
     'app:configChanged': 'app:configChanged',
     'app:stateChanged': 'app:stateChanged',
     'window:minimize': 'window:minimize',
@@ -289,6 +290,9 @@ const api = {
         },
         setState: (state) => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['app:setState'], state);
+        },
+        installFeaturePackage: (request) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['app:installFeaturePackage'], request);
         },
     },
     // ============================================================================

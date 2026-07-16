@@ -14,6 +14,8 @@ import {
   type CommandReviewRequest,
   type FileEntry,
   type FileWriteReviewRequest,
+  type FeaturePackageInstallRequest,
+  type FeaturePackageInstallResult,
   type ToolCompleteMessage,
   type ToolErrorMessage,
   type ToolResultMessage,
@@ -2200,6 +2202,8 @@ interface PlatformLoginResponse {
   };
 }
 
+interface PlatformRegisterResponse extends PlatformLoginResponse {}
+
 interface PlatformProfileResponse {
   org_id?: string;
   profile: FeatureEntitlementProfile;
@@ -2229,6 +2233,37 @@ async function loginToPlatform(draft: SettingsDraft): Promise<PlatformLoginRespo
       email: draft.accountEmail.trim(),
       password: draft.accountPassword,
       ...(draft.platformOrgId.trim() ? { org_id: draft.platformOrgId.trim(), realm: 'tenant' } : {}),
+    }),
+  });
+}
+
+function getPlatformWorkspaceName(draft: SettingsDraft): string {
+  const explicitWorkspace = draft.platformOrgId.trim();
+  if (explicitWorkspace) {
+    return explicitWorkspace;
+  }
+  const displayName = draft.accountDisplayName.trim();
+  if (displayName) {
+    return `${displayName} Workspace`;
+  }
+  const emailPrefix = draft.accountEmail.trim().split('@')[0]?.replace(/[._-]+/g, ' ').trim();
+  return emailPrefix ? `${emailPrefix} Workspace` : 'CodeAgent Workspace';
+}
+
+async function registerWithPlatform(draft: SettingsDraft): Promise<PlatformRegisterResponse> {
+  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  if (!baseUrl) {
+    throw new Error('Enter the agent-platform base URL.');
+  }
+  const email = draft.accountEmail.trim();
+  const displayName = draft.accountDisplayName.trim() || email;
+  return readPlatformJson<PlatformRegisterResponse>(baseUrl, '/auth/register', undefined, {
+    method: 'POST',
+    body: JSON.stringify({
+      workspace_name: getPlatformWorkspaceName(draft),
+      name: displayName,
+      email,
+      password: draft.accountPassword,
     }),
   });
 }
@@ -2326,17 +2361,47 @@ async function installPlatformPackage(
   token: string,
   orgId: string,
   manifest: FeaturePackageManifest,
+  localInstall?: FeaturePackageInstallResult,
 ): Promise<PlatformPackageActionResponse> {
   return readPlatformJson<PlatformPackageActionResponse>(baseUrl, `/code-agent/packages/${encodeURIComponent(manifest.id)}/install`, token, {
     method: 'POST',
     body: JSON.stringify({
       ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
-      version: manifest.distribution.artifact.version,
-      installed_path: manifest.distribution.artifact.bundlePath,
-      sha256: manifest.distribution.artifact.sha256,
-      signature: manifest.distribution.artifact.signature,
+      version: localInstall?.version ?? manifest.distribution.artifact.version,
+      installed_path: localInstall?.installedPath ?? manifest.distribution.artifact.bundlePath,
+      sha256: localInstall?.sha256 ?? manifest.distribution.artifact.sha256,
+      signature: localInstall?.signature ?? manifest.distribution.artifact.signature,
     }),
   });
+}
+
+function createPlatformPackageDownloadRequest(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+  manifest: FeaturePackageManifest,
+): FeaturePackageInstallRequest['download'] {
+  const artifact = manifest.distribution.artifact as FeaturePackageManifest['distribution']['artifact'] & {
+    downloadUrl?: string;
+  };
+  const normalizedBaseUrl = normalizePlatformBaseUrl(baseUrl);
+  const rawUrl = typeof artifact.downloadUrl === 'string' ? artifact.downloadUrl.trim() : '';
+  const url = /^https?:\/\//i.test(rawUrl)
+    ? rawUrl
+    : rawUrl.startsWith('/')
+      ? `${normalizedBaseUrl}${rawUrl}`
+      : `${normalizedBaseUrl}/code-agent/packages/${encodeURIComponent(manifest.id)}/artifact`;
+  const parsed = new URL(url);
+  const normalizedOrgId = orgId.trim();
+  if (normalizedOrgId && !parsed.searchParams.has('org_id')) {
+    parsed.searchParams.set('org_id', normalizedOrgId);
+  }
+  return {
+    url: parsed.toString(),
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
 }
 
 function createLocalAccountId(email: string): string {
@@ -2629,18 +2694,19 @@ function createPurchasedProfile(
 function createInstalledProfile(
   profile: Required<FeatureEntitlementProfile>,
   manifest: FeaturePackageManifest,
+  localInstall?: FeaturePackageInstallResult,
 ): FeatureEntitlementProfile {
   const now = new Date().toISOString();
   const artifact = manifest.distribution.artifact;
   const installRecord: FeaturePackageInstallRecord = {
     packageId: manifest.id,
     artifactId: artifact.artifactId,
-    version: artifact.version,
+    version: localInstall?.version ?? artifact.version,
     state: 'installed',
     installedAt: now,
-    ...(artifact.installedPath || artifact.bundlePath ? { installedPath: artifact.installedPath || artifact.bundlePath } : {}),
-    ...(artifact.sha256 ? { sha256: artifact.sha256 } : {}),
-    ...(artifact.signature ? { signature: artifact.signature } : {}),
+    ...(localInstall?.installedPath || artifact.installedPath || artifact.bundlePath ? { installedPath: localInstall?.installedPath || artifact.installedPath || artifact.bundlePath } : {}),
+    ...(localInstall?.sha256 || artifact.sha256 ? { sha256: localInstall?.sha256 || artifact.sha256 } : {}),
+    ...(localInstall?.signature || artifact.signature ? { signature: localInstall?.signature || artifact.signature } : {}),
   };
 
   return {
@@ -3287,6 +3353,7 @@ export function App() {
   const [settingsMessage, setSettingsMessage] = useState('');
   const [toolRouterMessage, setToolRouterMessage] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSyncingPlatform, setIsSyncingPlatform] = useState(false);
   const [purchasePackageId, setPurchasePackageId] = useState<string | null>(null);
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(() => ({ ...EMPTY_PURCHASE_DRAFT }));
   const [activeView, setActiveView] = useState<AppView>('chat');
@@ -3324,6 +3391,11 @@ export function App() {
       getFeatureProfileFromConfig(appConfig),
       getFeaturePackageCatalogFromConfig(appConfig),
     );
+  }, [appConfig]);
+  const canSyncPlatform = useMemo(() => {
+    const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+    const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken.trim() : '';
+    return Boolean(platformBaseUrl && platformToken);
   }, [appConfig]);
   const availableDesktopCommands = useMemo(() => {
     return getAvailableDesktopCommands(featureResolution);
@@ -3835,6 +3907,7 @@ export function App() {
       hasHydratedProjectChatsRef.current = true;
       hasHydratedProjectOutputsRef.current = true;
       setStatus('Ready');
+      void syncPlatformStateFromConfig(config, { reason: 'startup', silent: true });
     } catch (error) {
       console.error('Failed to initialize app:', error);
       hasHydratedSessionsRef.current = true;
@@ -5569,6 +5642,80 @@ export function App() {
     setStatus('Ready');
   }
 
+  async function syncPlatformStateFromConfig(
+    configSnapshot: AppConfig | null,
+    options: { reason: 'startup' | 'manual'; silent?: boolean },
+  ): Promise<boolean> {
+    const platformBaseUrl = normalizePlatformBaseUrl(String(configSnapshot?.platformBaseUrl || ''));
+    const platformToken = typeof configSnapshot?.platformAccessToken === 'string'
+      ? configSnapshot.platformAccessToken.trim()
+      : '';
+    const currentProfile = getFeatureProfileFromConfig(configSnapshot);
+    const profilePlatform = (currentProfile as FeatureEntitlementProfile & { platform?: { orgId?: string } }).platform;
+    const platformOrgId = String(configSnapshot?.platformOrgId || profilePlatform?.orgId || '').trim();
+
+    if (!platformBaseUrl || !platformToken) {
+      if (!options.silent) {
+        setSettingsMessage('Sign in through agent-platform before syncing.');
+      }
+      return false;
+    }
+
+    if (!options.silent) {
+      setSettingsMessage('Syncing account and packages from agent-platform...');
+    }
+    setIsSyncingPlatform(true);
+    setStatus('Syncing platform');
+
+    try {
+      const [platformCatalog, platformProfile] = await Promise.all([
+        fetchPlatformFeatureCatalog(platformBaseUrl, platformToken, platformOrgId),
+        fetchPlatformFeatureProfile(platformBaseUrl, platformToken, platformOrgId),
+      ]);
+      const profile = normalizeFeatureProfile(platformProfile.profile);
+      const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
+      const syncedAt = new Date().toISOString();
+      await ipcClient.app.setConfig({
+        platformBaseUrl,
+        platformAccessToken: platformToken,
+        platformOrgId: syncedOrgId,
+        platformCatalogSource: 'platform',
+        platformCatalogLastSyncedAt: syncedAt,
+        platformFeaturePackageCatalog: platformCatalog.packages,
+        featureProfile: profile,
+        featureAccounts: writeProfileToAccountStore(configSnapshot, profile),
+      });
+      const config = await ipcClient.app.getConfig();
+      setAppConfig(config);
+      setSettingsDraft(current => ({
+        ...createSettingsDraft(config),
+        apiKey: current.apiKey,
+        accountPassword: current.accountPassword,
+      }));
+      if (!options.silent) {
+        setSettingsMessage(`Synced ${platformCatalog.packages.length} package${platformCatalog.packages.length === 1 ? '' : 's'} from agent-platform.`);
+      }
+      setStatus('Ready');
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (options.silent) {
+        console.warn('Platform startup sync failed:', error);
+        setStatus('Ready');
+      } else {
+        setSettingsMessage(message);
+        setStatus('Platform sync error');
+      }
+      return false;
+    } finally {
+      setIsSyncingPlatform(false);
+    }
+  }
+
+  async function handlePlatformSync() {
+    await syncPlatformStateFromConfig(appConfig, { reason: 'manual' });
+  }
+
   async function handleAccountLogin() {
     const email = settingsDraft.accountEmail.trim();
     if (!isValidEmail(email)) {
@@ -5641,6 +5788,54 @@ export function App() {
     );
   }
 
+  async function handleAccountRegister() {
+    const email = settingsDraft.accountEmail.trim();
+    if (!isValidEmail(email)) {
+      setSettingsMessage('Enter a valid email address before creating an account.');
+      return;
+    }
+    if (settingsDraft.accountPassword.length < 8) {
+      setSettingsMessage('Enter a platform password with at least 8 characters.');
+      return;
+    }
+
+    try {
+      setSettingsMessage('Creating account in agent-platform...');
+      setStatus('Creating account');
+      const registration = await registerWithPlatform(settingsDraft);
+      const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+      const platformOrgId = registration.session?.org_id ||
+        registration.workspace?.organization?.org_id ||
+        settingsDraft.platformOrgId.trim() ||
+        '';
+      const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, registration.access_token, platformOrgId);
+      const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, registration.access_token, platformOrgId);
+      const profile = normalizeFeatureProfile(platformProfile.profile);
+      await ipcClient.app.setConfig({
+        platformBaseUrl,
+        platformAccessToken: registration.access_token,
+        platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+        platformCatalogSource: 'platform',
+        platformCatalogLastSyncedAt: new Date().toISOString(),
+        platformFeaturePackageCatalog: platformCatalog.packages,
+        featureProfile: profile,
+        featureAccounts: writeProfileToAccountStore(appConfig, profile),
+      });
+      const config = await ipcClient.app.getConfig();
+      setAppConfig(config);
+      setSettingsDraft(current => ({
+        ...createSettingsDraft(config),
+        apiKey: current.apiKey,
+        accountPassword: '',
+      }));
+      setSettingsMessage(`Created agent-platform account for ${profile.email || email}. Catalog: ${platformCatalog.packages.length} package${platformCatalog.packages.length === 1 ? '' : 's'}.`);
+      setStatus('Ready');
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+      setStatus('Platform registration error');
+    }
+  }
+
   async function handleAccountLogout() {
     const nextProfile = normalizeFeatureProfile(null);
     await ipcClient.auth.logout();
@@ -5677,11 +5872,21 @@ export function App() {
       const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
       if (platformBaseUrl && platformToken) {
         try {
+          setSettingsMessage(`Installing and verifying ${packageEntry.manifest.displayName}...`);
+          setStatus('Installing package');
+          const platformOrgId = String(appConfig?.platformOrgId || profile.accountId || '');
+          const localInstall = packageEntry.manifest.distribution.securityBoundary === 'signed-local-bundle'
+            ? await ipcClient.app.installFeaturePackage({
+                manifest: packageEntry.manifest as unknown as Record<string, any>,
+                download: createPlatformPackageDownloadRequest(platformBaseUrl, platformToken, platformOrgId, packageEntry.manifest),
+              })
+            : undefined;
           const result = await installPlatformPackage(
             platformBaseUrl,
             platformToken,
-            String(appConfig?.platformOrgId || profile.accountId || ''),
+            platformOrgId,
             packageEntry.manifest,
+            localInstall,
           );
           await ipcClient.app.setConfig({
             featureProfile: result.profile,
@@ -5697,7 +5902,11 @@ export function App() {
             apiKey: current.apiKey,
             accountPassword: '',
           }));
-          setSettingsMessage(`${packageEntry.manifest.displayName} installed through agent-platform.`);
+          setSettingsMessage(
+            localInstall
+              ? `${packageEntry.manifest.displayName} verified and installed through agent-platform.`
+              : `${packageEntry.manifest.displayName} installed through agent-platform.`,
+          );
           setStatus('Ready');
           return;
         } catch (error) {
@@ -5706,11 +5915,23 @@ export function App() {
           return;
         }
       }
-      const nextProfile = createInstalledProfile(profile, packageEntry.manifest);
-      await persistFeatureProfile(
-        nextProfile,
-        `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`,
-      );
+      try {
+        setSettingsMessage(`Installing and verifying ${packageEntry.manifest.displayName}...`);
+        setStatus('Installing package');
+        const localInstall = packageEntry.manifest.distribution.securityBoundary === 'signed-local-bundle'
+          ? await ipcClient.app.installFeaturePackage({ manifest: packageEntry.manifest as unknown as Record<string, any> })
+          : undefined;
+        const nextProfile = createInstalledProfile(profile, packageEntry.manifest, localInstall);
+        await persistFeatureProfile(
+          nextProfile,
+          localInstall
+            ? `${packageEntry.manifest.displayName} verified and installed locally. ${packageEntry.manifest.distribution.notes}`
+            : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`,
+        );
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus('Package install error');
+      }
       return;
     }
 
@@ -6261,7 +6482,11 @@ export function App() {
               onChange={updateSettingsDraft}
               onClearToken={clearToken}
               onAccountLogin={handleAccountLogin}
+              onAccountRegister={handleAccountRegister}
               onAccountLogout={handleAccountLogout}
+              onPlatformSync={handlePlatformSync}
+              canSyncPlatform={canSyncPlatform}
+              platformSyncing={isSyncingPlatform}
               onPackageAction={handleFeaturePackageAction}
               onSubmit={saveSettings}
             />
@@ -12078,13 +12303,21 @@ function AccountSettingsSection({
   draft,
   onChange,
   onLogin,
+  onRegister,
   onLogout,
+  onSync,
+  canSync,
+  syncing,
 }: {
   resolution: FeaturePackageResolution;
   draft: SettingsDraft;
   onChange: (update: Partial<SettingsDraft>) => void;
   onLogin: () => void;
+  onRegister: () => void;
   onLogout: () => void;
+  onSync: () => void;
+  canSync: boolean;
+  syncing: boolean;
 }) {
   const profile = resolution.profile;
   const isSignedIn = profile.accountStatus === 'signed-in';
@@ -12223,9 +12456,21 @@ function AccountSettingsSection({
             Sign out
           </button>
         ) : (
-          <button className={styles.primaryButton} type="button" onClick={onLogin}>
-            <Icon name="user" size={14} />
-            Sign in
+          <>
+            <button className={styles.primaryButton} type="button" onClick={onLogin}>
+              <Icon name="user" size={14} />
+              Sign in
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={onRegister}>
+              <Icon name="plus" size={14} />
+              Create account
+            </button>
+          </>
+        )}
+        {isSignedIn && (
+          <button className={styles.secondaryButton} type="button" onClick={onSync} disabled={!canSync || syncing}>
+            <Icon name="refresh" size={14} />
+            {syncing ? 'Syncing' : 'Sync'}
           </button>
         )}
         <button className={styles.secondaryButton} type="button" onClick={() => onChange({ accountEmail: '', accountDisplayName: '' })}>
@@ -12252,9 +12497,15 @@ function AccountSettingsSection({
 function FeaturePackagesSection({
   resolution,
   onPackageAction,
+  onSync,
+  canSync,
+  syncing,
 }: {
   resolution: FeaturePackageResolution;
   onPackageAction: (packageId: string) => void;
+  onSync: () => void;
+  canSync: boolean;
+  syncing: boolean;
 }) {
   const profile = resolution.profile;
   const ownedPackages = getOwnedPackageEntries(resolution);
@@ -12285,6 +12536,12 @@ function FeaturePackagesSection({
             <dd>{resolution.packages.length}</dd>
           </div>
         </dl>
+        {isSignedIn && (
+          <button className={styles.secondaryButton} type="button" onClick={onSync} disabled={!canSync || syncing}>
+            <Icon name="refresh" size={14} />
+            {syncing ? 'Syncing' : 'Sync'}
+          </button>
+        )}
       </div>
 
       {ownedPackages.length > 0 && (
@@ -12514,7 +12771,11 @@ function SettingsView({
   onChange,
   onClearToken,
   onAccountLogin,
+  onAccountRegister,
   onAccountLogout,
+  onPlatformSync,
+  canSyncPlatform,
+  platformSyncing,
   onPackageAction,
   onSubmit,
 }: {
@@ -12526,7 +12787,11 @@ function SettingsView({
   onChange: (update: Partial<SettingsDraft>) => void;
   onClearToken: () => void;
   onAccountLogin: () => void;
+  onAccountRegister: () => void;
   onAccountLogout: () => void;
+  onPlatformSync: () => void;
+  canSyncPlatform: boolean;
+  platformSyncing: boolean;
   onPackageAction: (packageId: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
@@ -12558,7 +12823,11 @@ function SettingsView({
             draft={draft}
             onChange={onChange}
             onLogin={onAccountLogin}
+            onRegister={onAccountRegister}
             onLogout={onAccountLogout}
+            onSync={onPlatformSync}
+            canSync={canSyncPlatform}
+            syncing={platformSyncing}
           />
         )}
 
@@ -12663,6 +12932,9 @@ function SettingsView({
           <FeaturePackagesSection
             resolution={featureResolution}
             onPackageAction={onPackageAction}
+            onSync={onPlatformSync}
+            canSync={canSyncPlatform}
+            syncing={platformSyncing}
           />
         )}
 

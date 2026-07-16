@@ -42,11 +42,11 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "version": "1.0.0",
         "distributionMode": "installable",
         "bundlePath": "codeagent-package://software-developer/1.0.0",
-        "downloadUrl": "package-store://codeagent.package.software-developer/1.0.0"
+        "downloadUrl": "/code-agent/packages/software-developer/artifact"
       },
       "installRequired": true,
-      "securityBoundary": "none-client-bundled",
-      "notes": "This package builds as a separate artifact with SDK-defined extension metadata. The remaining work is to move all desktop and CLI implementation modules behind the installed package boundary and sign the artifact."
+      "securityBoundary": "signed-local-bundle",
+      "notes": "This package builds as a separate signed artifact with SDK-defined extension metadata. The remaining work is to move all desktop and CLI implementation modules behind the installed package boundary."
     },
     "entitlement": {
       "state": "available",

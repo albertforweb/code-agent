@@ -42,6 +42,7 @@ const electron_1 = require("electron");
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const types_1 = require("./types");
+const feature_package_installer_1 = require("./feature-package-installer");
 const services_1 = require("./services");
 function createToolId() {
     return `tool-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -876,6 +877,16 @@ function registerServiceBridges(ipcBridge, options) {
         const update = await appStateService.setState(state);
         sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['app:stateChanged'], update);
         return update;
+    });
+    ipcBridge.registerAppHandler('installFeaturePackage', async (request) => {
+        if (!request?.manifest || typeof request.manifest !== 'object') {
+            throw new Error('Feature package install requires a manifest.');
+        }
+        const manifest = request.manifest;
+        if (manifest.distribution?.securityBoundary !== 'signed-local-bundle') {
+            throw new Error(`Unsupported feature package security boundary: ${String(manifest.distribution?.securityBoundary || 'missing')}`);
+        }
+        return (0, feature_package_installer_1.installSignedPackageArtifact)(manifest, request.archivePath, { download: request.download });
     });
     return {
         toolService,

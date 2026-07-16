@@ -232,6 +232,24 @@ export interface AppInfo {
   workspacePath: string;
 }
 
+export interface FeaturePackageInstallRequest {
+  manifest: Record<string, any>;
+  archivePath?: string;
+  download?: {
+    url: string;
+    headers?: Record<string, string>;
+  };
+}
+
+export interface FeaturePackageInstallResult {
+  installedPath: string;
+  archivePath: string;
+  sha256: string;
+  signature: string;
+  signingKeyId: string;
+  version: string;
+}
+
 export interface AppConfigChangedMessage {
   config: AppConfig;
   version: number;
@@ -642,6 +660,7 @@ export interface ElectronRendererApi {
     setConfig(config: Partial<AppConfig>): Promise<void>;
     getState(): Promise<any>;
     setState(state: any): Promise<void>;
+    installFeaturePackage(request: FeaturePackageInstallRequest): Promise<FeaturePackageInstallResult>;
   };
   window: {
     minimize(): Promise<void>;
@@ -750,6 +769,7 @@ export const ipcClient: ElectronRendererApi = {
     setConfig: config => getApi().app.setConfig(config),
     getState: () => getApi().app.getState(),
     setState: state => getApi().app.setState(state),
+    installFeaturePackage: request => getApi().app.installFeaturePackage(request),
   },
   window: {
     minimize: () => getApi().window.minimize(),

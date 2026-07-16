@@ -227,6 +227,20 @@ export type GlobalConfig = {
   hasSeenUltraplanTerms?: boolean // internal-only: whether the one-time CCR terms notice has been shown in the ultraplan launch dialog
   hasResetAutoModeOptInForDefaultOffer?: boolean // internal-only: one-shot migration guard, re-prompts churned auto-mode users
   oauthAccount?: AccountInfo
+  // CodeAgent platform session/cache used by the CLI shell. Desktop keeps its
+  // own Electron store copy; this lets non-interactive CLI feature gates read
+  // the same cloud-backed account, catalog, purchase, and install state.
+  codeAgentPlatform?: {
+    baseUrl?: string
+    accessToken?: string
+    orgId?: string
+    email?: string
+    displayName?: string
+    catalogSource?: 'platform'
+    featureProfile?: Record<string, unknown>
+    featurePackageCatalog?: Record<string, unknown>[]
+    lastSyncedAt?: string
+  }
   iterm2KeyBindingInstalled?: boolean // Legacy - keeping for backward compatibility
   editorMode?: EditorMode
   bypassPermissionsModeAccepted?: boolean

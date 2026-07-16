@@ -307,6 +307,24 @@ export interface AppInfo {
   workspacePath: string;
 }
 
+export interface FeaturePackageInstallRequest {
+  manifest: Record<string, any>;
+  archivePath?: string;
+  download?: {
+    url: string;
+    headers?: Record<string, string>;
+  };
+}
+
+export interface FeaturePackageInstallResult {
+  installedPath: string;
+  archivePath: string;
+  sha256: string;
+  signature: string;
+  signingKeyId: string;
+  version: string;
+}
+
 export interface AppConfigChangedMessage {
   config: AppConfig;
   version: number;
@@ -699,6 +717,7 @@ export const IPC_CHANNELS = {
   'app:setConfig': 'app:setConfig',
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
+  'app:installFeaturePackage': 'app:installFeaturePackage',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
 
