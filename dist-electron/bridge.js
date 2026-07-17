@@ -76,6 +76,9 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:list'], this.handleFileList.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:open'], this.handleFileOpen.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:reveal'], this.handleFileReveal.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:selectFolder'], this.handleFileSelectFolder.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:selectPaths'], this.handleFileSelectPaths.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['fs:readContext'], this.handleFileReadContext.bind(this));
         // Auth channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:getToken'], this.handleGetToken.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:logout'], this.handleLogout.bind(this));
@@ -193,6 +196,33 @@ class IpcBridge {
         const handler = this.fsHandlers.get('reveal');
         if (!handler) {
             throw new Error('File reveal handler not configured');
+        }
+        return handler(request);
+    }
+    async handleFileSelectFolder(event, request) {
+        const handler = this.fsHandlers.get('selectFolder');
+        if (!handler) {
+            throw new Error('Folder picker handler not configured');
+        }
+        return handler({
+            ...request,
+            window: electron_1.BrowserWindow.fromWebContents(event.sender),
+        });
+    }
+    async handleFileSelectPaths(event, request) {
+        const handler = this.fsHandlers.get('selectPaths');
+        if (!handler) {
+            throw new Error('Context picker handler not configured');
+        }
+        return handler({
+            ...request,
+            window: electron_1.BrowserWindow.fromWebContents(event.sender),
+        });
+    }
+    async handleFileReadContext(_event, request) {
+        const handler = this.fsHandlers.get('readContext');
+        if (!handler) {
+            throw new Error('Context reader handler not configured');
         }
         return handler(request);
     }

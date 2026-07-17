@@ -124,9 +124,24 @@ export interface ToolApprovalResolvedMessage {
   scope?: ToolEventScope;
 }
 
+export type ChatMessageContentPart =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image_url';
+      image_url: {
+        url: string;
+        detail?: 'auto' | 'low' | 'high';
+      };
+    };
+
+export type ChatMessageContent = string | ChatMessageContentPart[];
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: ChatMessageContent;
 }
 
 export type LlmProviderType = 'openai' | 'openai-compatible';
@@ -190,6 +205,45 @@ export interface FilePathActionResult {
   ok: true;
   path: string;
   absolutePath: string;
+}
+
+export interface FolderSelectionResult {
+  canceled: boolean;
+  path?: string;
+}
+
+export interface SelectedContextPath {
+  path: string;
+  type: 'file' | 'directory';
+  name: string;
+  size?: number;
+  modified?: number;
+}
+
+export interface FileSelectionResult {
+  canceled: boolean;
+  paths?: SelectedContextPath[];
+}
+
+export interface FileContextReadRequest {
+  paths: string[];
+  maxFiles?: number;
+  maxBytes?: number;
+  maxFileBytes?: number;
+}
+
+export interface FileContextReadItem extends SelectedContextPath {
+  sourcePath?: string;
+  content?: string;
+  truncated?: boolean;
+  error?: string;
+}
+
+export interface FileContextReadResult {
+  items: FileContextReadItem[];
+  totalBytes: number;
+  omittedCount: number;
+  truncated: boolean;
 }
 
 export interface AuthToken {
@@ -648,6 +702,9 @@ export interface ElectronRendererApi {
     list(path: string): Promise<FileEntry[]>;
     open(path: string): Promise<FilePathActionResult>;
     reveal(path: string): Promise<FilePathActionResult>;
+    selectFolder(defaultPath?: string): Promise<FolderSelectionResult>;
+    selectPaths(defaultPath?: string): Promise<FileSelectionResult>;
+    readContext(request: FileContextReadRequest): Promise<FileContextReadResult>;
   };
   auth: {
     getToken(): Promise<AuthToken | null>;
@@ -757,6 +814,9 @@ export const ipcClient: ElectronRendererApi = {
     list: path => getApi().fs.list(path),
     open: path => getApi().fs.open(path),
     reveal: path => getApi().fs.reveal(path),
+    selectFolder: defaultPath => getApi().fs.selectFolder(defaultPath),
+    selectPaths: defaultPath => getApi().fs.selectPaths(defaultPath),
+    readContext: request => getApi().fs.readContext(request),
   },
   auth: {
     getToken: () => getApi().auth.getToken(),

@@ -25,7 +25,13 @@ import type {
   FileWriteRequest,
   FileListRequest,
   FilePathRequest,
+  FileSelectFolderRequest,
+  FileSelectPathsRequest,
+  FileContextReadRequest,
   FilePathActionResult,
+  FolderSelectionResult,
+  FileSelectionResult,
+  FileContextReadResult,
   FileEntry,
   AuthToken,
   AppConfig,
@@ -116,6 +122,9 @@ const IPC_CHANNELS = {
   'fs:list': 'fs:list',
   'fs:open': 'fs:open',
   'fs:reveal': 'fs:reveal',
+  'fs:selectFolder': 'fs:selectFolder',
+  'fs:selectPaths': 'fs:selectPaths',
+  'fs:readContext': 'fs:readContext',
   'auth:getToken': 'auth:getToken',
   'auth:logout': 'auth:logout',
   'auth:setToken': 'auth:setToken',
@@ -354,6 +363,18 @@ const api = {
 
     reveal: (path: string): Promise<FilePathActionResult> => {
       return ipcRenderer.invoke(IPC_CHANNELS['fs:reveal'], { path } as FilePathRequest);
+    },
+
+    selectFolder: (defaultPath?: string): Promise<FolderSelectionResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:selectFolder'], { defaultPath } as FileSelectFolderRequest);
+    },
+
+    selectPaths: (defaultPath?: string): Promise<FileSelectionResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:selectPaths'], { defaultPath } as FileSelectPathsRequest);
+    },
+
+    readContext: (request: FileContextReadRequest): Promise<FileContextReadResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['fs:readContext'], request);
     },
   },
 

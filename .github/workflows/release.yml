@@ -5,92 +5,290 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag. Defaults to v<package.json version> when run manually.'
+        required: false
+        type: string
+      draft:
+        description: 'Create the GitHub release as a draft when run manually.'
+        required: false
+        default: true
+        type: boolean
+      prerelease:
+        description: 'Mark the GitHub release as a prerelease.'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
 jobs:
-  cli-package:
+  cli:
     name: Build CLI package
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout code-agent
         uses: actions/checkout@v4
         with:
+          path: code-agent
           fetch-depth: 0
+
+      - name: Checkout feature package SDK
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-sdk
+          path: code-agent-sdk
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
+
+      - name: Checkout feature packages
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-packages
+          path: code-agent-packages
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: |
+            code-agent/package-lock.json
+            code-agent-packages/package-lock.json
 
-      - name: Install dependencies
+      - name: Install feature package dependencies
+        working-directory: code-agent-packages
+        run: npm ci
+
+      - name: Build feature packages
+        working-directory: code-agent-packages
+        run: npm run build
+
+      - name: Install CodeAgent dependencies
+        working-directory: code-agent
         run: npm ci
 
       - name: Build and verify CLI package
+        working-directory: code-agent
         run: npm run pack:cli:check
 
       - name: Generate release notes
+        working-directory: code-agent
         run: npm run release:notes
 
-      - name: Upload CLI package and release notes artifacts
+      - name: Upload CLI and release notes
         uses: actions/upload-artifact@v4
         with:
           name: code-agent-cli
+          if-no-files-found: error
           path: |
-            dist-build/cli/*.tgz
-            dist-build/release-notes/*.md
+            code-agent/dist-build/cli/*.tgz
+            code-agent/dist-build/release-notes/*.md
 
-  release:
-    name: Build ${{ matrix.platform }}
+  desktop:
+    name: Build desktop package (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macOS
+          - platform: macos
             os: macos-latest
-            target: --mac
-          - platform: Windows
+            electron_target: --mac
+            artifact_name: code-agent-desktop-macos
+          - platform: windows
             os: windows-latest
-            target: --win
-          - platform: Linux
-            os: ubuntu-latest
-            target: --linux
+            electron_target: --win
+            artifact_name: code-agent-desktop-windows
 
     steps:
-      - name: Checkout
+      - name: Checkout code-agent
         uses: actions/checkout@v4
         with:
+          path: code-agent
           fetch-depth: 0
+
+      - name: Checkout feature package SDK
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-sdk
+          path: code-agent-sdk
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
+
+      - name: Checkout feature packages
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-packages
+          path: code-agent-packages
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
+          cache-dependency-path: |
+            code-agent/package-lock.json
+            code-agent-packages/package-lock.json
 
-      - name: Install dependencies
+      - name: Install feature package dependencies
+        working-directory: code-agent-packages
+        run: npm ci
+
+      - name: Build feature packages
+        working-directory: code-agent-packages
+        run: npm run build
+
+      - name: Install CodeAgent dependencies
+        working-directory: code-agent
         run: npm ci
 
       - name: Generate brand assets
+        working-directory: code-agent
         run: npm run generate:brand-assets
 
       - name: Build desktop assets
+        working-directory: code-agent
         run: npm run build:electron:prod
 
-      - name: Package and publish
-        run: npx electron-builder ${{ matrix.target }} --publish always
+      - name: Package desktop app
+        working-directory: code-agent
+        shell: bash
+        run: npx electron-builder ${{ matrix.electron_target }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ matrix.platform == 'windows' && secrets.WIN_CSC_LINK || (matrix.platform == 'macos' && secrets.CSC_LINK || '') }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'windows' && secrets.WIN_CSC_KEY_PASSWORD || (matrix.platform == 'macos' && secrets.CSC_KEY_PASSWORD || '') }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ matrix.platform == 'Windows' && secrets.WIN_CSC_LINK || secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || secrets.CSC_KEY_PASSWORD }}
 
-      - name: Verify macOS release package
-        if: matrix.platform == 'macOS'
-        run: npm run verify:desktop-release
+      - name: Verify macOS package
+        if: matrix.platform == 'macos'
+        working-directory: code-agent
+        shell: bash
+        run: |
+          if [[ -n "${CSC_LINK:-}" && -n "${APPLE_ID:-}" && -n "${APPLE_APP_SPECIFIC_PASSWORD:-}" && -n "${APPLE_TEAM_ID:-}" ]]; then
+            npm run verify:desktop-release
+          else
+            npm run verify:desktop-package -- --skip-codesign
+          fi
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          if-no-files-found: error
+          path: |
+            code-agent/dist-build/*.blockmap
+            code-agent/dist-build/*.dmg
+            code-agent/dist-build/*.exe
+            code-agent/dist-build/*.msi
+            code-agent/dist-build/*.zip
+            code-agent/dist-build/*.yml
+            code-agent/dist-build/*.yaml
+
+  github-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - cli
+      - desktop
+
+    steps:
+      - name: Checkout code-agent
+        uses: actions/checkout@v4
+        with:
+          path: code-agent
+          fetch-depth: 0
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Resolve release metadata
+        id: release
+        working-directory: code-agent
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.tag }}" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="v$(node -p "require('./package.json').version")"
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            draft="false"
+            prerelease="${{ contains(github.ref_name, '-') }}"
+          else
+            draft="${{ inputs.draft }}"
+            prerelease="${{ inputs.prerelease }}"
+          fi
+
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "draft=${draft}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          (
+            cd release-artifacts
+            find . -type f ! -name 'SHA256SUMS.txt' -print0 \
+              | sort -z \
+              | xargs -0 shasum -a 256
+          ) > release-artifacts/SHA256SUMS.txt
+
+      - name: Publish or update release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_DRAFT: ${{ steps.release.outputs.draft }}
+          RELEASE_PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        shell: bash
+        run: |
+          mapfile -d '' files < <(find release-artifacts -type f -print0 | sort -z)
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            echo "No release artifacts found." >&2
+            exit 1
+          fi
+
+          notes_file="$(find release-artifacts -type f -path '*/release-notes/*.md' -print | sort | head -n 1)"
+          create_args=(--target "${GITHUB_SHA}" --title "CodeAgent ${RELEASE_TAG}")
+          if [[ -n "${notes_file}" ]]; then
+            create_args+=(--notes-file "${notes_file}")
+          else
+            create_args+=(--generate-notes)
+          fi
+          if [[ "${RELEASE_DRAFT}" == "true" ]]; then
+            create_args+=(--draft)
+          fi
+          if [[ "${RELEASE_PRERELEASE}" == "true" ]]; then
+            create_args+=(--prerelease)
+          fi
+
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            gh release upload "${RELEASE_TAG}" "${files[@]}" --clobber
+          else
+            gh release create "${RELEASE_TAG}" "${files[@]}" "${create_args[@]}"
+          fi

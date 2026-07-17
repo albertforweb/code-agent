@@ -1445,6 +1445,57 @@ body.dark .messageContent {
   color: var(--color-text-dark);
 }
 
+.messageImageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.messageImageItem {
+  display: grid;
+  gap: 5px;
+  max-width: 220px;
+  margin: 0;
+}
+
+.messageImageItem img,
+.messageImagePlaceholder {
+  width: 180px;
+  height: 120px;
+  border: 1px solid #ded7cb;
+  border-radius: var(--radius-md);
+  background: #f8f6f1;
+  object-fit: cover;
+}
+
+.messageImagePlaceholder {
+  display: grid;
+  place-items: center;
+  color: #81786b;
+}
+
+.messageImageItem figcaption {
+  max-width: 180px;
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body.dark .messageImageItem img,
+body.dark .messageImagePlaceholder {
+  border-color: #454036;
+  background: #27231f;
+}
+
+body.dark .messageImageItem figcaption,
+body.dark .messageImagePlaceholder {
+  color: var(--color-text-dark-secondary);
+}
+
 .toolTrace {
   display: grid;
   gap: 6px;
@@ -1581,6 +1632,193 @@ body.dark .commandPaletteItem span {
 .composerActions {
   align-items: flex-end;
   padding-left: 4px;
+}
+
+.composerContextPanel {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 2px 2px;
+}
+
+.composerContextBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.composerContextStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #766f64;
+  font-size: var(--font-size-sm);
+}
+
+.composerContextStatus span,
+.composerContextStatus strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composerContextStatus strong {
+  max-width: min(62vw, 720px);
+  color: #3d3830;
+  font-weight: 600;
+}
+
+.composerContextActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.composerAttachmentList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.composerAttachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(360px, 100%);
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid #d8e0ea;
+  border-radius: var(--radius-sm);
+  background: #f8fbff;
+  color: #373d45;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.composerAttachmentChip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composerAttachmentChip em {
+  flex: 0 0 auto;
+  color: #7b8591;
+  font-style: normal;
+}
+
+.composerAttachmentChip:hover {
+  border-color: #b8c7d8;
+  background: #eef6ff;
+}
+
+.composerAttachmentChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.composerImageList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.composerImageChip {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 140px) auto 16px;
+  align-items: center;
+  gap: 7px;
+  max-width: min(360px, 100%);
+  min-height: 56px;
+  padding: 4px 7px 4px 4px;
+  border: 1px solid #d8e0ea;
+  border-radius: var(--radius-sm);
+  background: #f8fbff;
+  color: #373d45;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.composerImageChip img {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.composerImageChip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composerImageChip em {
+  color: #7b8591;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.composerImageChip:hover {
+  border-color: #b8c7d8;
+  background: #eef6ff;
+}
+
+.composerImageChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+body.dark .composerContextStatus {
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .composerContextStatus strong {
+  color: var(--color-text-dark);
+}
+
+body.dark .composerAttachmentChip {
+  border-color: #3b4654;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark);
+}
+
+body.dark .composerAttachmentChip em {
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .composerAttachmentChip:hover {
+  border-color: #526174;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body.dark .composerImageChip {
+  border-color: #3b4654;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark);
+}
+
+body.dark .composerImageChip em {
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .composerImageChip:hover {
+  border-color: #526174;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .primaryButton,

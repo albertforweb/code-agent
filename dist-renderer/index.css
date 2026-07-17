@@ -1230,6 +1230,50 @@ body.App_dark .App_message_error {
 body.App_dark .App_messageContent {
   color: var(--color-text-dark);
 }
+.App_messageImageGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.App_messageImageItem {
+  display: grid;
+  gap: 5px;
+  max-width: 220px;
+  margin: 0;
+}
+.App_messageImageItem img,
+.App_messageImagePlaceholder {
+  width: 180px;
+  height: 120px;
+  border: 1px solid #ded7cb;
+  border-radius: var(--radius-md);
+  background: #f8f6f1;
+  object-fit: cover;
+}
+.App_messageImagePlaceholder {
+  display: grid;
+  place-items: center;
+  color: #81786b;
+}
+.App_messageImageItem figcaption {
+  max-width: 180px;
+  overflow: hidden;
+  color: #81786b;
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.App_dark .App_messageImageItem img,
+body.App_dark .App_messageImagePlaceholder {
+  border-color: #454036;
+  background: #27231f;
+}
+body.App_dark .App_messageImageItem figcaption,
+body.App_dark .App_messageImagePlaceholder {
+  color: var(--color-text-dark-secondary);
+}
 .App_toolTrace {
   display: grid;
   gap: 6px;
@@ -1345,6 +1389,166 @@ body.App_dark .App_commandPaletteItem span {
 .App_composerActions {
   align-items: flex-end;
   padding-left: 4px;
+}
+.App_composerContextPanel {
+  display: flex;
+  grid-column: 1 / -1;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 2px 2px;
+}
+.App_composerContextBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.App_composerContextStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #766f64;
+  font-size: var(--font-size-sm);
+}
+.App_composerContextStatus span,
+.App_composerContextStatus strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_composerContextStatus strong {
+  max-width: min(62vw, 720px);
+  color: #3d3830;
+  font-weight: 600;
+}
+.App_composerContextActions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+.App_composerAttachmentList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.App_composerAttachmentChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: min(360px, 100%);
+  min-height: 28px;
+  padding: 4px 7px;
+  border: 1px solid #d8e0ea;
+  border-radius: var(--radius-sm);
+  background: #f8fbff;
+  color: #373d45;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.App_composerAttachmentChip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_composerAttachmentChip em {
+  flex: 0 0 auto;
+  color: #7b8591;
+  font-style: normal;
+}
+.App_composerAttachmentChip:hover {
+  border-color: #b8c7d8;
+  background: #eef6ff;
+}
+.App_composerAttachmentChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+.App_composerImageList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.App_composerImageChip {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 140px) auto 16px;
+  align-items: center;
+  gap: 7px;
+  max-width: min(360px, 100%);
+  min-height: 56px;
+  padding: 4px 7px 4px 4px;
+  border: 1px solid #d8e0ea;
+  border-radius: var(--radius-sm);
+  background: #f8fbff;
+  color: #373d45;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+.App_composerImageChip img {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.App_composerImageChip span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_composerImageChip em {
+  color: #7b8591;
+  font-style: normal;
+  white-space: nowrap;
+}
+.App_composerImageChip:hover {
+  border-color: #b8c7d8;
+  background: #eef6ff;
+}
+.App_composerImageChip:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+body.App_dark .App_composerContextStatus {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_composerContextStatus strong {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_composerAttachmentChip {
+  border-color: #3b4654;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_composerAttachmentChip em {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_composerAttachmentChip:hover {
+  border-color: #526174;
+  background: rgba(255, 255, 255, 0.08);
+}
+body.App_dark .App_composerImageChip {
+  border-color: #3b4654;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_composerImageChip em {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_composerImageChip:hover {
+  border-color: #526174;
+  background: rgba(255, 255, 255, 0.08);
 }
 .App_primaryButton,
 .App_secondaryButton,

@@ -2,7 +2,7 @@
 
 CodeAgent uses `electron-builder` for local packaging and GitHub Releases for update metadata.
 
-Current release scope: local packaging and CI artifact preparation are supported. Public npm publication, Developer ID signing/notarization, TestFlight/App Store distribution, and signed-release updater validation are deferred until the required external publishing accounts and credentials are available.
+Current release scope: local packaging and GitHub Release publication are supported for the CLI npm tarball plus macOS and Windows desktop installers. Public npm registry publication, TestFlight/App Store distribution, and signed-release updater validation are deferred until the required external publishing accounts and credentials are available.
 
 ## Local Commands
 
@@ -52,14 +52,23 @@ The iOS simulator app requires an installed iOS Simulator runtime in Xcode. The 
 2. Run `npm run release:notes` and review the generated checklist.
 3. Commit and tag the release, for example `v1.0.1`.
 4. Push the tag to GitHub.
-5. The release workflow builds macOS, Windows, and Linux artifacts.
-6. The release workflow builds and verifies the npm CLI tarball, generates release notes, and uploads both as workflow artifacts. Publishing to npm remains a manual release step until registry ownership is finalized.
-7. The macOS release job verifies the packaged app before the workflow is considered successful.
-8. `electron-updater` reads GitHub release metadata from `albertforweb/code-agent`.
+5. The release workflow checks out `code-agent`, `code-agent-sdk`, and `code-agent-packages` as sibling repositories, matching the local development layout.
+6. The release workflow builds macOS and Windows desktop artifacts with `electron-builder --publish never`, then uploads those artifacts to a final release-publishing job.
+7. The release workflow builds and verifies the CLI npm tarball, generates release notes, and attaches both to the GitHub Release. Publishing the CLI tarball to npm remains a manual release step until registry ownership is finalized.
+8. The final release job creates or updates the GitHub Release, uploads all desktop and CLI artifacts, and adds `SHA256SUMS.txt`.
+9. `electron-updater` reads GitHub release metadata from `albertforweb/code-agent`.
+
+Manual workflow runs default to a draft release named `v<package.json version>` unless a `tag` input is provided. Tag pushes such as `v1.0.1` create a non-draft release for that tag.
 
 ## Required Secrets
 
 Publishing uses the repository `GITHUB_TOKEN` by default.
+
+If `code-agent-sdk` or `code-agent-packages` are private repositories that the default `GITHUB_TOKEN` cannot read, create a repository secret named:
+
+- `CODEAGENT_RELEASE_TOKEN`
+
+The token must have read access to the sibling SDK/package repositories.
 
 macOS notarization and signing need these secrets before public distribution:
 

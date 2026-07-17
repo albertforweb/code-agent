@@ -162,9 +162,24 @@ export interface McpToolInfo extends Tool {
 // API CHANNELS
 // ============================================================================
 
+export type ChatMessageContentPart =
+  | {
+      type: 'text';
+      text: string;
+    }
+  | {
+      type: 'image_url';
+      image_url: {
+        url: string;
+        detail?: 'auto' | 'low' | 'high';
+      };
+    };
+
+export type ChatMessageContent = string | ChatMessageContentPart[];
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: ChatMessageContent;
 }
 
 export type LlmProviderType = 'openai' | 'openai-compatible';
@@ -246,10 +261,57 @@ export interface FilePathRequest {
   path: string;
 }
 
+export interface FileSelectFolderRequest {
+  defaultPath?: string;
+}
+
+export interface FileSelectPathsRequest {
+  defaultPath?: string;
+}
+
 export interface FilePathActionResult {
   ok: true;
   path: string;
   absolutePath: string;
+}
+
+export interface FolderSelectionResult {
+  canceled: boolean;
+  path?: string;
+}
+
+export interface SelectedContextPath {
+  path: string;
+  type: 'file' | 'directory';
+  name: string;
+  size?: number;
+  modified?: number;
+}
+
+export interface FileSelectionResult {
+  canceled: boolean;
+  paths?: SelectedContextPath[];
+}
+
+export interface FileContextReadRequest {
+  paths: string[];
+  maxFiles?: number;
+  maxBytes?: number;
+  maxFileBytes?: number;
+}
+
+export interface FileContextReadItem extends SelectedContextPath {
+  sourcePath?: string;
+  content?: string;
+  truncated?: boolean;
+  error?: string;
+}
+
+export interface FileContextReadResult {
+  items: FileContextReadItem[];
+  totalBytes: number;
+  omittedCount: number;
+  truncated: boolean;
 }
 
 export interface FileEntry {
@@ -705,6 +767,9 @@ export const IPC_CHANNELS = {
   'fs:list': 'fs:list',
   'fs:open': 'fs:open',
   'fs:reveal': 'fs:reveal',
+  'fs:selectFolder': 'fs:selectFolder',
+  'fs:selectPaths': 'fs:selectPaths',
+  'fs:readContext': 'fs:readContext',
 
   // Auth channels
   'auth:getToken': 'auth:getToken',

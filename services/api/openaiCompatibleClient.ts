@@ -174,7 +174,7 @@ function buildChatCompletionPayload(
   const tools = sendTools ? toOpenAITools(params.tools) : []
   if (!sendTools && Array.isArray(params.tools) && params.tools.length > 0) {
     logForDebugging(
-      `[OpenAI-compatible] tool schemas omitted for local context budget (${params.tools.length} available)`,
+      `[OpenAI-compatible] tool schemas omitted because tool mode is disabled (${params.tools.length} available)`,
     )
   }
 

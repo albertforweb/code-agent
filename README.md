@@ -41,9 +41,13 @@ Useful optional controls:
 ```bash
 export CODE_AGENT_CONTEXT_TOKENS=8192
 export CODE_AGENT_MAX_OUTPUT_TOKENS=2048
-export CODE_AGENT_ENABLE_TOOLS=1
-export CODE_AGENT_DISABLE_TOOLS=1
+export CODE_AGENT_DISABLE_TOOLS=1 # opt out of CLI tool schemas for chat-only local models
 ```
+
+CLI tool calls are enabled by default for OpenAI and OpenAI-compatible providers.
+Set `CODE_AGENT_DISABLE_TOOLS=1` when using a small local model that should run
+in chat-only mode. For a one-off CLI run, use `--tools "" -- "your prompt"` to
+start without built-in tools.
 
 You can also pass provider settings at runtime:
 

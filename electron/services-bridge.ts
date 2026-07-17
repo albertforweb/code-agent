@@ -3,7 +3,8 @@
  */
 
 import { AsyncLocalStorage } from 'async_hooks';
-import { app, BrowserWindow, Notification, shell } from 'electron';
+import { app, BrowserWindow, dialog, Notification, shell, type OpenDialogOptions } from 'electron';
+import type { Dirent } from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { IpcBridge } from './bridge';
@@ -19,6 +20,9 @@ import {
   type ToolPermissionReviewResponse,
   type ToolExecuteMessage,
   type ToolApprovalResolvedMessage,
+  type SelectedContextPath,
+  type FileContextReadItem,
+  type FileContextReadResult,
 } from './types';
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
 import { installSignedPackageArtifact } from './feature-package-installer';
@@ -62,6 +66,241 @@ export interface RegisteredServiceBridges {
   mcpService: McpServiceBridge;
   automationService: AutomationServiceBridge;
   historyService: LocalHistoryServiceBridge;
+}
+
+const DEFAULT_CONTEXT_MAX_FILES = 16;
+const DEFAULT_CONTEXT_MAX_BYTES = 120_000;
+const DEFAULT_CONTEXT_MAX_FILE_BYTES = 24_000;
+const CONTEXT_MAX_DIRECTORY_DEPTH = 4;
+const CONTEXT_IGNORED_DIRECTORY_NAMES = new Set([
+  '.git',
+  '.hg',
+  '.svn',
+  '.next',
+  '.turbo',
+  '.venv',
+  'venv',
+  '__pycache__',
+  'node_modules',
+  'dist',
+  'dist-build',
+  'build',
+  'coverage',
+  'target',
+  '.idea',
+  '.vscode',
+]);
+const CONTEXT_TEXT_EXTENSIONS = new Set([
+  '',
+  '.c',
+  '.cc',
+  '.cpp',
+  '.cs',
+  '.css',
+  '.csv',
+  '.go',
+  '.graphql',
+  '.h',
+  '.hpp',
+  '.html',
+  '.java',
+  '.js',
+  '.jsx',
+  '.json',
+  '.kt',
+  '.less',
+  '.log',
+  '.md',
+  '.mdx',
+  '.mjs',
+  '.py',
+  '.rb',
+  '.rs',
+  '.scss',
+  '.sh',
+  '.sql',
+  '.svelte',
+  '.swift',
+  '.toml',
+  '.ts',
+  '.tsx',
+  '.txt',
+  '.vue',
+  '.xml',
+  '.yaml',
+  '.yml',
+]);
+
+function clampPositiveInteger(value: unknown, fallback: number, maximum: number): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return Math.min(Math.floor(parsed), maximum);
+}
+
+function resolveDialogDefaultPath(workspacePath: string, defaultPath?: string): string {
+  if (typeof defaultPath === 'string' && defaultPath.trim()) {
+    return path.isAbsolute(defaultPath)
+      ? defaultPath
+      : path.resolve(workspacePath, defaultPath);
+  }
+  return workspacePath;
+}
+
+async function describeSelectedContextPath(filePath: string): Promise<SelectedContextPath> {
+  const absolutePath = path.resolve(filePath);
+  const stats = await fs.stat(absolutePath);
+  return {
+    path: absolutePath,
+    type: stats.isDirectory() ? 'directory' : 'file',
+    name: path.basename(absolutePath) || absolutePath,
+    size: stats.size,
+    modified: stats.mtime.getTime(),
+  };
+}
+
+function shouldSkipContextDirectory(directoryName: string): boolean {
+  return CONTEXT_IGNORED_DIRECTORY_NAMES.has(directoryName) || directoryName.endsWith('.app');
+}
+
+function isLikelyTextFilePath(filePath: string): boolean {
+  return CONTEXT_TEXT_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+}
+
+async function collectContextFiles(
+  rootPath: string,
+  remainingSlots: () => number,
+  depth = 0,
+): Promise<{ files: string[]; omittedCount: number }> {
+  if (remainingSlots() <= 0) {
+    return { files: [], omittedCount: 1 };
+  }
+  if (depth > CONTEXT_MAX_DIRECTORY_DEPTH) {
+    return { files: [], omittedCount: 1 };
+  }
+
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(rootPath, { withFileTypes: true });
+  } catch {
+    return { files: [], omittedCount: 1 };
+  }
+
+  const sortedEntries = entries.sort((left, right) => {
+    if (left.isDirectory() !== right.isDirectory()) {
+      return left.isDirectory() ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+
+  const files: string[] = [];
+  let omittedCount = 0;
+  for (const entry of sortedEntries) {
+    if (remainingSlots() - files.length <= 0) {
+      omittedCount += 1;
+      continue;
+    }
+    if (entry.name.startsWith('.') && !['.env', '.gitignore'].includes(entry.name)) {
+      omittedCount += 1;
+      continue;
+    }
+
+    const childPath = path.join(rootPath, entry.name);
+    if (entry.isDirectory()) {
+      if (shouldSkipContextDirectory(entry.name)) {
+        omittedCount += 1;
+        continue;
+      }
+      const nested = await collectContextFiles(childPath, () => remainingSlots() - files.length, depth + 1);
+      files.push(...nested.files);
+      omittedCount += nested.omittedCount;
+      continue;
+    }
+
+    if (!entry.isFile() || !isLikelyTextFilePath(childPath)) {
+      omittedCount += 1;
+      continue;
+    }
+
+    files.push(childPath);
+  }
+
+  return { files, omittedCount };
+}
+
+async function readContextFile(
+  filePath: string,
+  sourcePath: string,
+  remainingBytes: number,
+  maxFileBytes: number,
+): Promise<{ item: FileContextReadItem; bytes: number }> {
+  const metadata = await describeSelectedContextPath(filePath);
+  if (metadata.type !== 'file') {
+    return {
+      item: {
+        ...metadata,
+        sourcePath,
+        error: 'Skipped because this path is not a file.',
+      },
+      bytes: 0,
+    };
+  }
+
+  if (!isLikelyTextFilePath(filePath)) {
+    return {
+      item: {
+        ...metadata,
+        sourcePath,
+        error: 'Skipped because the file extension is not treated as text context.',
+      },
+      bytes: 0,
+    };
+  }
+
+  const bytesToRead = Math.min(metadata.size ?? 0, remainingBytes, maxFileBytes);
+  if (bytesToRead <= 0) {
+    return {
+      item: {
+        ...metadata,
+        sourcePath,
+        truncated: true,
+        error: 'Skipped because the attachment context byte limit was reached.',
+      },
+      bytes: 0,
+    };
+  }
+
+  const handle = await fs.open(filePath, 'r');
+  try {
+    const buffer = Buffer.alloc(bytesToRead);
+    const { bytesRead } = await handle.read(buffer, 0, bytesToRead, 0);
+    const data = buffer.subarray(0, bytesRead);
+    if (data.includes(0)) {
+      return {
+        item: {
+          ...metadata,
+          sourcePath,
+          error: 'Skipped because the file appears to be binary.',
+        },
+        bytes: 0,
+      };
+    }
+
+    const content = data.toString('utf8');
+    const contentBytes = Buffer.byteLength(content, 'utf8');
+    return {
+      item: {
+        ...metadata,
+        sourcePath,
+        content,
+        truncated: Boolean(metadata.size && metadata.size > bytesRead),
+      },
+      bytes: contentBytes,
+    };
+  } finally {
+    await handle.close();
+  }
 }
 
 function createToolId(): string {
@@ -851,6 +1090,123 @@ export function registerServiceBridges(
       path: request.path,
       absolutePath,
     };
+  });
+
+  ipcBridge.registerFsHandler('selectFolder', async request => {
+    const defaultPath = resolveDialogDefaultPath(workspacePath, request.defaultPath);
+    const parentWindow = request.window || options.getMainWindow();
+    const dialogOptions: OpenDialogOptions = {
+      title: 'Choose chat workspace folder',
+      defaultPath,
+      properties: ['openDirectory', 'createDirectory'],
+    };
+    const result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    return {
+      canceled: false,
+      path: path.resolve(result.filePaths[0]),
+    };
+  });
+
+  ipcBridge.registerFsHandler('selectPaths', async request => {
+    const defaultPath = resolveDialogDefaultPath(workspacePath, request.defaultPath);
+    const parentWindow = request.window || options.getMainWindow();
+    const dialogOptions: OpenDialogOptions = {
+      title: 'Add files or folders as chat context',
+      defaultPath,
+      properties: ['openFile', 'openDirectory', 'multiSelections'],
+    };
+    const result = parentWindow
+      ? await dialog.showOpenDialog(parentWindow, dialogOptions)
+      : await dialog.showOpenDialog(dialogOptions);
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    const selectedPaths = await Promise.all(
+      result.filePaths.map(async filePath => describeSelectedContextPath(filePath)),
+    );
+
+    return {
+      canceled: false,
+      paths: selectedPaths,
+    };
+  });
+
+  ipcBridge.registerFsHandler('readContext', async request => {
+    const requestedPaths = Array.isArray(request.paths) ? request.paths : [];
+    const maxFiles = clampPositiveInteger(request.maxFiles, DEFAULT_CONTEXT_MAX_FILES, 64);
+    const maxBytes = clampPositiveInteger(request.maxBytes, DEFAULT_CONTEXT_MAX_BYTES, 1_000_000);
+    const maxFileBytes = clampPositiveInteger(request.maxFileBytes, DEFAULT_CONTEXT_MAX_FILE_BYTES, 200_000);
+    const items: FileContextReadItem[] = [];
+    let totalBytes = 0;
+    let omittedCount = 0;
+
+    for (const requestedPath of requestedPaths) {
+      if (typeof requestedPath !== 'string' || !requestedPath.trim()) {
+        omittedCount += 1;
+        continue;
+      }
+      if (items.filter(item => item.type === 'file').length >= maxFiles || totalBytes >= maxBytes) {
+        omittedCount += 1;
+        continue;
+      }
+
+      try {
+        const metadata = await describeSelectedContextPath(requestedPath);
+        if (metadata.type === 'directory') {
+          items.push(metadata);
+          const collected = await collectContextFiles(metadata.path, () => maxFiles - items.filter(item => item.type === 'file').length);
+          omittedCount += collected.omittedCount;
+          for (const filePath of collected.files) {
+            if (items.filter(item => item.type === 'file').length >= maxFiles || totalBytes >= maxBytes) {
+              omittedCount += 1;
+              continue;
+            }
+            const { item, bytes } = await readContextFile(
+              filePath,
+              metadata.path,
+              maxBytes - totalBytes,
+              maxFileBytes,
+            );
+            items.push(item);
+            totalBytes += bytes;
+          }
+          continue;
+        }
+
+        const { item, bytes } = await readContextFile(
+          metadata.path,
+          metadata.path,
+          maxBytes - totalBytes,
+          maxFileBytes,
+        );
+        items.push(item);
+        totalBytes += bytes;
+      } catch (error) {
+        items.push({
+          path: path.resolve(requestedPath),
+          name: path.basename(requestedPath) || requestedPath,
+          type: 'file',
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    const result: FileContextReadResult = {
+      items,
+      totalBytes,
+      omittedCount,
+      truncated: omittedCount > 0 || totalBytes >= maxBytes,
+    };
+    return result;
   });
 
   ipcBridge.registerMcpHandler('listServers', async () => {

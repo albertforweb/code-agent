@@ -11,11 +11,15 @@ import {
   type AppConfig,
   type AppInfo,
   type ChatMessage,
+  type ChatMessageContentPart,
   type CommandReviewRequest,
+  type FileContextReadItem,
+  type FileContextReadResult,
   type FileEntry,
   type FileWriteReviewRequest,
   type FeaturePackageInstallRequest,
   type FeaturePackageInstallResult,
+  type SelectedContextPath,
   type ToolCompleteMessage,
   type ToolErrorMessage,
   type ToolResultMessage,
@@ -191,6 +195,29 @@ interface UiMessage {
     inputTokens: number;
     outputTokens: number;
   };
+  imageAttachments?: UiImageAttachment[];
+}
+
+interface ChatContextAttachment {
+  path: string;
+  type: 'file' | 'directory';
+  name: string;
+  size?: number;
+  modified?: number;
+}
+
+interface UiImageAttachment {
+  id: string;
+  name: string;
+  mediaType: string;
+  size: number;
+  width?: number;
+  height?: number;
+  dataUrl?: string;
+}
+
+interface ChatImageAttachment extends UiImageAttachment {
+  dataUrl: string;
 }
 
 type ChatStreamTarget =
@@ -203,6 +230,8 @@ interface PersistedChatSession {
   createdAt: number;
   updatedAt: number;
   workspacePath?: string;
+  toolWorkspacePath?: string;
+  contextAttachments?: ChatContextAttachment[];
   messages: UiMessage[];
 }
 
@@ -318,6 +347,7 @@ interface SettingsDraft {
   accountEmail: string;
   accountDisplayName: string;
   accountPassword: string;
+  accountResetToken: string;
   platformBaseUrl: string;
   platformOrgId: string;
   llmProvider: LlmProviderType;
@@ -428,6 +458,13 @@ const DEFAULT_PROVIDER: LlmProviderType = 'openai-compatible';
 const MAX_TOOL_ACTIVITIES = 20;
 const MAX_PERSISTED_MESSAGES = 80;
 const MAX_RECENT_SESSIONS = 12;
+const CHAT_CONTEXT_MAX_FILES = 16;
+const CHAT_CONTEXT_MAX_BYTES = 120_000;
+const CHAT_CONTEXT_MAX_FILE_BYTES = 24_000;
+const CHAT_IMAGE_MAX_COUNT = 4;
+const CHAT_IMAGE_MAX_EDGE = 1536;
+const CHAT_IMAGE_MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+const CHAT_IMAGE_JPEG_QUALITY = 0.86;
 const DESKTOP_SESSIONS_STATE_KEY = 'desktopSessions';
 const DESKTOP_PROJECTS_STATE_KEY = 'desktopSoftwareProjects';
 const DESKTOP_ROLES_STATE_KEY = 'desktopVirtualRoles';
@@ -906,7 +943,47 @@ function createSessionId(): string {
 
 function getSessionTitle(messages: UiMessage[]): string {
   const firstUserMessage = messages.find(message => message.role === 'user' && message.content.trim());
-  return firstUserMessage ? formatSidebarLabel(firstUserMessage.content, 56) : 'New chat';
+  if (firstUserMessage) {
+    return formatSidebarLabel(firstUserMessage.content, 56);
+  }
+  const firstImageMessage = messages.find(message => message.role === 'user' && (message.imageAttachments?.length ?? 0) > 0);
+  return firstImageMessage ? 'Image chat' : 'New chat';
+}
+
+function sanitizeImageAttachments(value: unknown, includeDataUrl = false): UiImageAttachment[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map(item => {
+      if (!item || typeof item !== 'object') {
+        return null;
+      }
+
+      const raw = item as Partial<UiImageAttachment>;
+      const mediaType = typeof raw.mediaType === 'string' && raw.mediaType.startsWith('image/')
+        ? raw.mediaType
+        : 'image/png';
+      const attachment: UiImageAttachment = {
+        id: typeof raw.id === 'string' && raw.id.trim()
+          ? raw.id.trim()
+          : `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Pasted image',
+        mediaType,
+        size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : 0,
+        width: Number.isFinite(Number(raw.width)) ? Number(raw.width) : undefined,
+        height: Number.isFinite(Number(raw.height)) ? Number(raw.height) : undefined,
+      };
+
+      if (includeDataUrl && typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:image/')) {
+        attachment.dataUrl = raw.dataUrl;
+      }
+
+      return attachment;
+    })
+    .filter((item): item is UiImageAttachment => Boolean(item))
+    .slice(0, CHAT_IMAGE_MAX_COUNT);
 }
 
 function sanitizeMessage(value: unknown): UiMessage | null {
@@ -935,6 +1012,7 @@ function sanitizeMessage(value: unknown): UiMessage | null {
         outputTokens: Number((message.usage as UiMessage['usage'])?.outputTokens ?? 0),
       }
       : undefined,
+    imageAttachments: sanitizeImageAttachments(message.imageAttachments),
   };
 }
 
@@ -952,19 +1030,121 @@ function sanitizeMessages(messages: unknown): UiMessage[] {
   return normalized.length > 0 ? normalized : createReadyMessages();
 }
 
+function normalizeContextAttachment(value: unknown): ChatContextAttachment | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const raw = value as Partial<ChatContextAttachment>;
+  const pathValue = typeof raw.path === 'string' && raw.path.trim() ? raw.path.trim() : '';
+  if (!pathValue) {
+    return null;
+  }
+
+  const type = raw.type === 'directory' ? 'directory' : 'file';
+  return {
+    path: pathValue,
+    type,
+    name: typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : getPathBasename(pathValue),
+    size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : undefined,
+    modified: Number.isFinite(Number(raw.modified)) ? Number(raw.modified) : undefined,
+  };
+}
+
+function sanitizeContextAttachments(value: unknown): ChatContextAttachment[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const attachments: ChatContextAttachment[] = [];
+  for (const attachment of value) {
+    const normalized = normalizeContextAttachment(attachment);
+    if (!normalized) {
+      continue;
+    }
+    const key = normalized.path.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    attachments.push(normalized);
+  }
+
+  return attachments.slice(0, 24);
+}
+
+function mergeContextAttachments(
+  current: ChatContextAttachment[],
+  selected: SelectedContextPath[],
+): ChatContextAttachment[] {
+  return sanitizeContextAttachments([...current, ...selected]);
+}
+
+function formatContextItemHeader(item: FileContextReadItem): string {
+  const details = [
+    item.sourcePath && item.sourcePath !== item.path ? `from ${item.sourcePath}` : '',
+    item.truncated ? 'truncated' : '',
+    item.error ? `error: ${item.error}` : '',
+  ].filter(Boolean);
+  return details.length > 0 ? `${item.path} (${details.join(', ')})` : item.path;
+}
+
+function formatAttachedContext(result: FileContextReadResult): string {
+  const sections = result.items.map(item => {
+    if (item.type === 'directory' && !item.content && !item.error) {
+      return `Directory attachment: ${item.path}`;
+    }
+
+    const header = formatContextItemHeader(item);
+    if (item.error && !item.content) {
+      return `File attachment: ${header}`;
+    }
+
+    return [
+      `File attachment: ${header}`,
+      '```',
+      item.content ?? '',
+      '```',
+    ].join('\n');
+  });
+
+  if (result.omittedCount > 0) {
+    sections.push(`Attachment reader omitted ${result.omittedCount} file(s) or folder entries because of limits, unsupported file types, or unreadable paths.`);
+  }
+
+  if (sections.length === 0) {
+    return '';
+  }
+
+  return [
+    'Attached read-only chat context:',
+    'Use this context to answer the human message. Do not modify these paths unless the human explicitly asks for changes.',
+    ...sections,
+  ].join('\n\n');
+}
+
 function createSessionSnapshot(
   id: string,
   messages: UiMessage[],
   workspacePath?: string,
   previous?: PersistedChatSession,
+  toolWorkspacePath?: string | null,
+  contextAttachments: ChatContextAttachment[] = [],
 ): PersistedChatSession {
   const sanitizedMessages = sanitizeMessages(messages);
+  const normalizedToolWorkspacePath = typeof toolWorkspacePath === 'string' && toolWorkspacePath.trim()
+    ? toolWorkspacePath.trim()
+    : undefined;
+  const normalizedContextAttachments = sanitizeContextAttachments(contextAttachments);
   return {
     id,
     title: getSessionTitle(sanitizedMessages),
     createdAt: previous?.createdAt ?? sanitizedMessages[0]?.createdAt ?? Date.now(),
     updatedAt: Date.now(),
     workspacePath,
+    toolWorkspacePath: normalizedToolWorkspacePath,
+    contextAttachments: normalizedContextAttachments.length > 0 ? normalizedContextAttachments : undefined,
     messages: sanitizedMessages,
   };
 }
@@ -1031,6 +1211,10 @@ function sanitizeSession(value: unknown, workspacePath?: string): PersistedChatS
     createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : messages[0]?.createdAt ?? Date.now(),
     updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : Date.now(),
     workspacePath: typeof raw.workspacePath === 'string' ? raw.workspacePath : workspacePath,
+    toolWorkspacePath: typeof raw.toolWorkspacePath === 'string' && raw.toolWorkspacePath.trim()
+      ? raw.toolWorkspacePath.trim()
+      : undefined,
+    contextAttachments: sanitizeContextAttachments(raw.contextAttachments),
     messages,
   };
 }
@@ -1893,6 +2077,7 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
     accountEmail: featureProfile.email,
     accountDisplayName: featureProfile.accountStatus === 'signed-in' ? featureProfile.displayName : '',
     accountPassword: '',
+    accountResetToken: '',
     platformBaseUrl: typeof config?.platformBaseUrl === 'string' ? config.platformBaseUrl : 'http://127.0.0.1:8000',
     platformOrgId: typeof config?.platformOrgId === 'string' ? config.platformOrgId : '',
     llmProvider,
@@ -2204,6 +2389,19 @@ interface PlatformLoginResponse {
 
 interface PlatformRegisterResponse extends PlatformLoginResponse {}
 
+interface PlatformForgotPasswordResponse {
+  accepted: boolean;
+  message?: string;
+  reset_token?: string;
+  expires_at?: string;
+}
+
+interface PlatformResetPasswordResponse {
+  reset: boolean;
+  email?: string;
+  org_id?: string;
+}
+
 interface PlatformProfileResponse {
   org_id?: string;
   profile: FeatureEntitlementProfile;
@@ -2263,6 +2461,34 @@ async function registerWithPlatform(draft: SettingsDraft): Promise<PlatformRegis
       workspace_name: getPlatformWorkspaceName(draft),
       name: displayName,
       email,
+      password: draft.accountPassword,
+    }),
+  });
+}
+
+async function requestPlatformPasswordReset(draft: SettingsDraft): Promise<PlatformForgotPasswordResponse> {
+  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  if (!baseUrl) {
+    throw new Error('Enter the agent-platform base URL.');
+  }
+  return readPlatformJson<PlatformForgotPasswordResponse>(baseUrl, '/auth/forgot-password', undefined, {
+    method: 'POST',
+    body: JSON.stringify({
+      email: draft.accountEmail.trim(),
+      ...(draft.platformOrgId.trim() ? { org_id: draft.platformOrgId.trim() } : {}),
+    }),
+  });
+}
+
+async function resetPlatformPassword(draft: SettingsDraft): Promise<PlatformResetPasswordResponse> {
+  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  if (!baseUrl) {
+    throw new Error('Enter the agent-platform base URL.');
+  }
+  return readPlatformJson<PlatformResetPasswordResponse>(baseUrl, '/auth/reset-password', undefined, {
+    method: 'POST',
+    body: JSON.stringify({
+      token: draft.accountResetToken.trim(),
       password: draft.accountPassword,
     }),
   });
@@ -2898,6 +3124,12 @@ function getWorkspaceParentPath(value: string): string {
   return parts.length > 0 ? parts.join('/') : '.';
 }
 
+function getPathBasename(value: string): string {
+  const normalized = normalizeWorkspacePath(value);
+  const parts = normalized.split('/').filter(Boolean);
+  return parts[parts.length - 1] || normalized;
+}
+
 function sortFileEntries(entries: FileEntry[]): FileEntry[] {
   return [...entries].sort((left, right) => {
     if (left.type !== right.type) {
@@ -2922,6 +3154,122 @@ function formatFileSize(size?: number): string {
   }
 
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getDataUrlByteSize(dataUrl: string): number {
+  const base64 = dataUrl.split(',')[1] ?? '';
+  return Math.ceil(base64.length * 0.75);
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read pasted image'));
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      result ? resolve(result) : reject(new Error('Pasted image did not produce a data URL'));
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Pasted image could not be decoded'));
+    image.src = dataUrl;
+  });
+}
+
+function getResizedImageDimensions(width: number, height: number): { width: number; height: number } {
+  const maxEdge = Math.max(width, height);
+  if (!maxEdge || maxEdge <= CHAT_IMAGE_MAX_EDGE) {
+    return { width, height };
+  }
+
+  const scale = CHAT_IMAGE_MAX_EDGE / maxEdge;
+  return {
+    width: Math.max(1, Math.round(width * scale)),
+    height: Math.max(1, Math.round(height * scale)),
+  };
+}
+
+async function createChatImageAttachment(file: File): Promise<ChatImageAttachment> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error(`${file.name || 'Pasted file'} is not an image.`);
+  }
+  if (file.size > CHAT_IMAGE_MAX_SOURCE_BYTES) {
+    throw new Error(`${file.name || 'Pasted image'} is larger than ${formatFileSize(CHAT_IMAGE_MAX_SOURCE_BYTES)}.`);
+  }
+
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImageElement(originalDataUrl);
+  const dimensions = getResizedImageDimensions(image.naturalWidth || image.width, image.naturalHeight || image.height);
+  const shouldResize = dimensions.width !== (image.naturalWidth || image.width)
+    || dimensions.height !== (image.naturalHeight || image.height)
+    || getDataUrlByteSize(originalDataUrl) > 1_500_000;
+
+  let dataUrl = originalDataUrl;
+  let mediaType = file.type || 'image/png';
+  if (shouldResize) {
+    const canvas = document.createElement('canvas');
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Could not prepare pasted image for upload.');
+    }
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, dimensions.width, dimensions.height);
+    context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+    dataUrl = canvas.toDataURL('image/jpeg', CHAT_IMAGE_JPEG_QUALITY);
+    mediaType = 'image/jpeg';
+  }
+
+  return {
+    id: `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name: file.name || `Pasted image ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    mediaType,
+    size: getDataUrlByteSize(dataUrl),
+    width: dimensions.width,
+    height: dimensions.height,
+    dataUrl,
+  };
+}
+
+function formatImageAttachmentSummary(images: UiImageAttachment[]): string {
+  if (images.length === 0) {
+    return '';
+  }
+
+  return images
+    .map(image => {
+      const dimensions = image.width && image.height ? `${image.width}x${image.height}` : '';
+      const size = formatFileSize(image.size);
+      return [image.name, dimensions, size].filter(Boolean).join(' · ');
+    })
+    .join(', ');
+}
+
+function buildMultimodalChatContent(prompt: string, images: ChatImageAttachment[]): string | ChatMessageContentPart[] {
+  if (images.length === 0) {
+    return prompt;
+  }
+
+  return [
+    {
+      type: 'text' as const,
+      text: prompt,
+    },
+    ...images.map(image => ({
+      type: 'image_url' as const,
+      image_url: {
+        url: image.dataUrl,
+        detail: 'auto' as const,
+      },
+    })),
+  ];
 }
 
 function normalizeToolNameList(value: unknown): string[] {
@@ -3030,7 +3378,7 @@ function matchesSessionSearch(session: PersistedChatSession, query: string): boo
   const haystack = [
     session.title,
     session.workspacePath ?? '',
-    ...session.messages.map(message => `${message.title ?? ''} ${message.content}`),
+    ...session.messages.map(message => `${message.title ?? ''} ${message.content} ${(message.imageAttachments ?? []).map(image => image.name).join(' ')}`),
   ].join('\n').toLowerCase();
 
   return haystack.includes(normalizedQuery);
@@ -3181,7 +3529,7 @@ function parseToolCommand(input: string): { toolName: string; args: Record<strin
   return { toolName, args: parsed as Record<string, any> };
 }
 
-function getChatMessages(messages: UiMessage[], nextUserMessage: string): ChatMessage[] {
+function getChatMessages(messages: UiMessage[], nextUserMessage: string | ChatMessageContentPart[]): ChatMessage[] {
   const history = messages
     .filter(message => message.role === 'user' || message.role === 'assistant')
     .map(message => ({
@@ -3346,6 +3694,9 @@ export function App() {
   const [projectActionMessage, setProjectActionMessage] = useState('');
   const [messages, setMessages] = useState<UiMessage[]>(() => createReadyMessages());
   const [input, setInput] = useState('');
+  const [chatToolWorkspacePath, setChatToolWorkspacePath] = useState('');
+  const [chatContextAttachments, setChatContextAttachments] = useState<ChatContextAttachment[]>([]);
+  const [chatImageAttachments, setChatImageAttachments] = useState<ChatImageAttachment[]>([]);
   const [sessionSearch, setSessionSearch] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -3728,10 +4079,17 @@ export function App() {
       const previous = current.find(session => session.id === currentSessionId);
       return upsertSession(
         current,
-        createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous),
+        createSessionSnapshot(
+          currentSessionId,
+          messages,
+          appInfo?.workspacePath,
+          previous,
+          chatToolWorkspacePath || null,
+          chatContextAttachments,
+        ),
       );
     });
-  }, [messages, currentSessionId, appInfo?.workspacePath]);
+  }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments]);
 
   useEffect(() => {
     if (!hasHydratedSessionsRef.current || sessions.length === 0 || !currentSessionId) {
@@ -3753,7 +4111,7 @@ export function App() {
         ipcClient.history.saveRecord({
           id: `${CHAT_SESSION_HISTORY_ID_PREFIX}${activeSession.id}`,
           type: 'chat-session',
-          workspacePath: activeSession.workspacePath ?? appInfo?.workspacePath,
+          workspacePath: activeSession.toolWorkspacePath ?? activeSession.workspacePath ?? appInfo?.workspacePath,
           title: activeSession.title,
           data: {
             currentSessionId,
@@ -3899,6 +4257,8 @@ export function App() {
       setSessions(restoredSessions.sessions);
       setCurrentSessionId(restoredSessions.currentSessionId);
       setMessages(activeSession?.messages ?? createReadyMessages());
+      setChatToolWorkspacePath(activeSession?.toolWorkspacePath ?? '');
+      setChatContextAttachments(activeSession?.contextAttachments ?? []);
       hasHydratedSessionsRef.current = true;
       hasHydratedProjectsRef.current = true;
       hasHydratedRolesRef.current = true;
@@ -3934,12 +4294,25 @@ export function App() {
     setSessions(current => {
       const previous = current.find(session => session.id === currentSessionId);
       const withCurrent = currentSessionId
-        ? upsertSession(current, createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous))
+        ? upsertSession(
+          current,
+          createSessionSnapshot(
+            currentSessionId,
+            messages,
+            appInfo?.workspacePath,
+            previous,
+            chatToolWorkspacePath || null,
+            chatContextAttachments,
+          ),
+        )
         : current;
       return upsertSession(withCurrent, nextSession);
     });
     setCurrentSessionId(nextSession.id);
     setMessages(nextSession.messages);
+    setChatToolWorkspacePath(nextSession.toolWorkspacePath ?? '');
+    setChatContextAttachments(nextSession.contextAttachments ?? []);
+    setChatImageAttachments([]);
     setInput('');
     setStatus('Ready');
     setActiveView('chat');
@@ -3954,6 +4327,9 @@ export function App() {
 
     setCurrentSessionId(session.id);
     setMessages(sanitizeMessages(session.messages));
+    setChatToolWorkspacePath(session.toolWorkspacePath ?? '');
+    setChatContextAttachments(session.contextAttachments ?? []);
+    setChatImageAttachments([]);
     setInput('');
     setStatus('Ready');
     setActiveView('chat');
@@ -4711,6 +5087,9 @@ export function App() {
     if (shouldSwitchActiveSession && nextActiveSession) {
       setCurrentSessionId(nextActiveSession.id);
       setMessages(nextActiveSession.messages);
+      setChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? '');
+      setChatContextAttachments(nextActiveSession.contextAttachments ?? []);
+      setChatImageAttachments([]);
       setInput('');
       setStatus('Ready');
     }
@@ -4729,6 +5108,9 @@ export function App() {
     setSessions(current => upsertSession(current, session));
     setCurrentSessionId(session.id);
     setMessages(session.messages);
+    setChatToolWorkspacePath(session.toolWorkspacePath ?? '');
+    setChatContextAttachments(session.contextAttachments ?? []);
+    setChatImageAttachments([]);
     setActiveView('chat');
     setHistoryMessage(`Restored chat "${session.title}".`);
   }
@@ -4968,6 +5350,137 @@ export function App() {
     }
   }
 
+  async function chooseChatToolWorkspaceFolder() {
+    try {
+      const result = await ipcClient.fs.selectFolder(chatToolWorkspacePath || appInfo?.workspacePath || undefined);
+      if (result.canceled || !result.path) {
+        return;
+      }
+
+      setChatToolWorkspacePath(normalizeWorkspacePath(result.path));
+      setStatus('Guided project folder set');
+      inputRef.current?.focus();
+    } catch (error) {
+      appendMessage(createMessage('error', formatDesktopError(error), {
+        title: 'Folder selection failed',
+        status: 'failed',
+      }));
+      setStatus('Error');
+    }
+  }
+
+  function clearChatToolWorkspaceFolder() {
+    setChatToolWorkspacePath('');
+    setStatus('Chat only');
+    inputRef.current?.focus();
+  }
+
+  async function chooseChatContextAttachments() {
+    try {
+      const result = await ipcClient.fs.selectPaths(chatToolWorkspacePath || appInfo?.workspacePath || undefined);
+      if (result.canceled || !result.paths || result.paths.length === 0) {
+        return;
+      }
+
+      setChatContextAttachments(current => mergeContextAttachments(current, result.paths ?? []));
+      setStatus(`Added ${result.paths.length} context item${result.paths.length === 1 ? '' : 's'}`);
+      inputRef.current?.focus();
+    } catch (error) {
+      appendMessage(createMessage('error', formatDesktopError(error), {
+        title: 'Context selection failed',
+        status: 'failed',
+      }));
+      setStatus('Error');
+    }
+  }
+
+  function removeChatContextAttachment(attachmentPath: string) {
+    setChatContextAttachments(current => current.filter(attachment => attachment.path !== attachmentPath));
+    setStatus('Context removed');
+    inputRef.current?.focus();
+  }
+
+  function clearChatContextAttachments() {
+    setChatContextAttachments([]);
+    setStatus('Context cleared');
+    inputRef.current?.focus();
+  }
+
+  async function buildAttachedContextPrompt(): Promise<string> {
+    if (chatContextAttachments.length === 0) {
+      return '';
+    }
+
+    const result = await ipcClient.fs.readContext({
+      paths: chatContextAttachments.map(attachment => attachment.path),
+      maxFiles: CHAT_CONTEXT_MAX_FILES,
+      maxBytes: CHAT_CONTEXT_MAX_BYTES,
+      maxFileBytes: CHAT_CONTEXT_MAX_FILE_BYTES,
+    });
+
+    return formatAttachedContext(result);
+  }
+
+  async function addChatImages(files: File[]) {
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    const availableSlots = CHAT_IMAGE_MAX_COUNT - chatImageAttachments.length;
+    if (availableSlots <= 0) {
+      setStatus(`Image limit reached (${CHAT_IMAGE_MAX_COUNT})`);
+      return;
+    }
+
+    try {
+      const nextImages = await Promise.all(imageFiles.slice(0, availableSlots).map(file => createChatImageAttachment(file)));
+      setChatImageAttachments(current => [...current, ...nextImages].slice(0, CHAT_IMAGE_MAX_COUNT));
+      const skipped = imageFiles.length - nextImages.length;
+      setStatus(skipped > 0
+        ? `Added ${nextImages.length} image(s), skipped ${skipped} over the limit`
+        : `Added ${nextImages.length} image${nextImages.length === 1 ? '' : 's'}`);
+      inputRef.current?.focus();
+    } catch (error) {
+      appendMessage(createMessage('error', formatDesktopError(error), {
+        title: 'Image paste failed',
+        status: 'failed',
+      }));
+      setStatus('Error');
+    }
+  }
+
+  function handleComposerPaste(event: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(event.clipboardData.files)
+      .filter(file => file.type.startsWith('image/'));
+    const itemFiles = Array.from(event.clipboardData.items)
+      .filter(item => item.kind === 'file' && item.type.startsWith('image/'))
+      .map(item => item.getAsFile())
+      .filter((file): file is File => Boolean(file));
+    const imageFiles = [...files, ...itemFiles].filter((file, index, all) => (
+      all.findIndex(candidate => candidate.name === file.name && candidate.size === file.size && candidate.type === file.type) === index
+    ));
+
+    if (imageFiles.length === 0) {
+      return;
+    }
+
+    event.preventDefault();
+    void addChatImages(imageFiles);
+  }
+
+  function removeChatImageAttachment(imageId: string) {
+    setChatImageAttachments(current => current.filter(image => image.id !== imageId));
+    setStatus('Image removed');
+    inputRef.current?.focus();
+  }
+
+  function clearChatImageAttachments() {
+    setChatImageAttachments([]);
+    setStatus('Images cleared');
+    inputRef.current?.focus();
+  }
+
   async function updateDisabledModelTools(nextDisabledTools: string[], message: string) {
     const disabledLlmTools = normalizeToolNameList(nextDisabledTools);
     setAppConfig(current => ({
@@ -5096,24 +5609,34 @@ export function App() {
 
   async function submitPrompt() {
     const prompt = input.trim();
-    if (!prompt || isSending) {
+    const imagesForRequest = [...chatImageAttachments];
+    if ((!prompt && imagesForRequest.length === 0) || isSending) {
       return;
     }
 
+    const displayPrompt = prompt || `Please analyze the attached image${imagesForRequest.length === 1 ? '' : 's'}.`;
     setInput('');
+    setChatImageAttachments([]);
     setIsSending(true);
 
-    const userMessage = createMessage('user', prompt);
+    const userMessage = createMessage('user', displayPrompt, {
+      imageAttachments: imagesForRequest,
+    });
     setMessages(current => [...current, userMessage]);
     let pendingStreamRequestId: string | null = null;
 
     try {
-      if (await handleCommand(prompt)) {
+      if (imagesForRequest.length === 0 && await handleCommand(prompt)) {
         setStatus('Ready');
         return;
       }
 
       setStatus('Streaming');
+      const attachedContextPrompt = await buildAttachedContextPrompt();
+      const requestPrompt = attachedContextPrompt
+        ? `${attachedContextPrompt}\n\nHuman message:\n${displayPrompt}`
+        : displayPrompt;
+      const requestContent = buildMultimodalChatContent(requestPrompt, imagesForRequest);
       const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       pendingStreamRequestId = requestId;
       const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
@@ -5125,16 +5648,29 @@ export function App() {
 
       streamMessageIds.current.set(requestId, { scope: 'main', messageId: assistantMessage.id });
       appendMessage(assistantMessage);
+      const scopedWorkspacePath = chatToolWorkspacePath.trim();
+      const chatToolScope: ToolEventScope | undefined = scopedWorkspacePath
+        ? {
+          source: 'project-chat',
+          workspacePath: scopedWorkspacePath,
+          projectId: `ad-hoc-${currentSessionId}`,
+          projectName: getPathBasename(scopedWorkspacePath),
+          projectChatKey: `main:${currentSessionId}`,
+          channel: 'guided',
+        }
+        : undefined;
 
       await ipcClient.api.chatStream({
         requestId,
-        messages: getChatMessages(messages, prompt),
+        messages: getChatMessages(messages, requestContent),
         provider: activeProvider,
         baseUrl: appConfig?.baseUrl || activeProviderDefault.baseUrl,
         model: appConfig?.model || activeProviderDefault.model,
         maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault.maxTokens),
         contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault.contextTokens),
-        enableTools: Boolean(appConfig?.enableLlmTools ?? activeProviderDefault.enableLlmTools),
+        enableTools: Boolean(chatToolScope),
+        maxToolRounds: chatToolScope ? 12 : 0,
+        toolScope: chatToolScope,
         temperature: Number(appConfig?.temperature ?? 0.7),
       });
     } catch (error) {
@@ -5270,7 +5806,10 @@ export function App() {
     }
 
     if (prompt === '/pwd' || prompt === '/workspace') {
-      appendMessage(createMessage('system', appInfo?.workspacePath || 'Workspace path is unavailable.', {
+      appendMessage(createMessage('system', [
+        `Chat working folder: ${chatToolWorkspacePath || 'not set (chat-only)'}`,
+        `App workspace: ${appInfo?.workspacePath || 'unavailable'}`,
+      ].join('\n'), {
         title: 'Workspace',
       }));
       return true;
@@ -5397,6 +5936,9 @@ export function App() {
       `Max tokens: ${config?.maxTokens ?? providerDefault.maxTokens}`,
       `Context tokens: ${config?.contextTokens ?? providerDefault.contextTokens}`,
       `Model tool calls: ${config?.enableLlmTools ? 'enabled' : 'disabled'}`,
+      `Chat working folder: ${chatToolWorkspacePath || 'not set (chat-only)'}`,
+      `Attached context: ${chatContextAttachments.length}`,
+      `Pending pasted images: ${chatImageAttachments.length}`,
       `Workspace: ${appInfo?.workspacePath || 'unknown'}`,
       `Bridge tools: ${tools.length}`,
       `Bridge tools exposed to model: ${tools.filter(tool => isToolExposedToModel(tool, config)).length}`,
@@ -5470,7 +6012,9 @@ export function App() {
     return sortSessions(availableSessions)
       .map(session => {
         const marker = session.id === activeSessionId ? '*' : '-';
-        return `${marker} ${session.title} (${session.messages.length} messages, updated ${formatRelativeTime(session.updatedAt)})`;
+        const folder = session.toolWorkspacePath ? `, folder ${session.toolWorkspacePath}` : '';
+        const attachments = session.contextAttachments?.length ? `, ${session.contextAttachments.length} context item(s)` : '';
+        return `${marker} ${session.title} (${session.messages.length} messages${folder}${attachments}, updated ${formatRelativeTime(session.updatedAt)})`;
       })
       .join('\n');
   }
@@ -5484,7 +6028,8 @@ export function App() {
 
   async function copyMessage(message: UiMessage) {
     try {
-      await navigator.clipboard.writeText(message.content);
+      const imageSummary = formatImageAttachmentSummary(message.imageAttachments ?? []);
+      await navigator.clipboard.writeText(imageSummary ? `${message.content}\n\nAttached images: ${imageSummary}` : message.content);
       setCopiedMessageId(message.id);
       window.setTimeout(() => setCopiedMessageId(null), 1500);
     } catch (error) {
@@ -5497,6 +6042,7 @@ export function App() {
 
   function clearChat() {
     setMessages(createReadyMessages());
+    setChatImageAttachments([]);
     setStatus('Ready');
     inputRef.current?.focus();
   }
@@ -5833,6 +6379,61 @@ export function App() {
     } catch (error) {
       setSettingsMessage(error instanceof Error ? error.message : String(error));
       setStatus('Platform registration error');
+    }
+  }
+
+  async function handleAccountForgotPassword() {
+    const email = settingsDraft.accountEmail.trim();
+    if (!isValidEmail(email)) {
+      setSettingsMessage('Enter the email address for your platform account.');
+      return;
+    }
+
+    try {
+      setSettingsMessage('Requesting password reset from agent-platform...');
+      setStatus('Requesting password reset');
+      const reset = await requestPlatformPasswordReset(settingsDraft);
+      if (reset.reset_token) {
+        setSettingsDraft(current => ({
+          ...current,
+          accountResetToken: reset.reset_token || '',
+        }));
+        setSettingsMessage(`Reset token issued for local development. It expires at ${reset.expires_at || 'the platform configured expiry'}. Enter a new password and choose Reset password.`);
+      } else {
+        setSettingsMessage(reset.message || 'If the account exists, a reset link has been issued.');
+      }
+      setStatus('Ready');
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+      setStatus('Password reset request error');
+    }
+  }
+
+  async function handleAccountResetPassword() {
+    if (!settingsDraft.accountResetToken.trim()) {
+      setSettingsMessage('Enter the reset token from the platform recovery email or development response.');
+      return;
+    }
+    if (settingsDraft.accountPassword.length < 8) {
+      setSettingsMessage('Enter a new platform password with at least 8 characters.');
+      return;
+    }
+
+    try {
+      setSettingsMessage('Resetting platform password...');
+      setStatus('Resetting password');
+      const reset = await resetPlatformPassword(settingsDraft);
+      setSettingsDraft(current => ({
+        ...current,
+        accountEmail: reset.email || current.accountEmail,
+        accountPassword: '',
+        accountResetToken: '',
+      }));
+      setSettingsMessage('Password reset. Sign in with the new password.');
+      setStatus('Ready');
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+      setStatus('Password reset error');
     }
   }
 
@@ -6312,12 +6913,112 @@ export function App() {
                     ))}
                   </div>
                 )}
+                <div className={styles.composerContextPanel}>
+                  <div className={styles.composerContextBar}>
+                    <div className={styles.composerContextStatus} title={chatToolWorkspacePath || 'No folder selected'}>
+                      <Icon name={chatToolWorkspacePath ? 'folder-open' : 'message'} size={14} />
+                      <span>{chatToolWorkspacePath ? 'Guided project folder' : 'Chat only'}</span>
+                      <strong>{chatToolWorkspacePath ? chatToolWorkspacePath : 'No local folder selected'}</strong>
+                    </div>
+                    <div className={styles.composerContextActions}>
+                      <button
+                        className={styles.textButton}
+                        type="button"
+                        onClick={chooseChatContextAttachments}
+                        disabled={isSending}
+                        title="Add files or folders as read-only chat context"
+                      >
+                        <Icon name="plus" size={13} />
+                        Add context
+                      </button>
+                      {chatToolWorkspacePath && (
+                        <button
+                          className={styles.textButton}
+                          type="button"
+                          onClick={clearChatToolWorkspaceFolder}
+                          disabled={isSending}
+                          title="Return this chat to chat-only mode"
+                        >
+                          <Icon name="x" size={13} />
+                          Clear folder
+                        </button>
+                      )}
+                      <button
+                        className={styles.textButton}
+                        type="button"
+                        onClick={chooseChatToolWorkspaceFolder}
+                        disabled={isSending}
+                        title={chatToolWorkspacePath ? 'Change working folder' : 'Choose a working folder'}
+                      >
+                        <Icon name="folder-open" size={13} />
+                        {chatToolWorkspacePath ? 'Change folder' : 'Set folder'}
+                      </button>
+                    </div>
+                  </div>
+                  {chatContextAttachments.length > 0 && (
+                    <div className={styles.composerAttachmentList} aria-label="Attached chat context">
+                      {chatContextAttachments.map(attachment => (
+                        <button
+                          key={attachment.path}
+                          className={styles.composerAttachmentChip}
+                          type="button"
+                          onClick={() => removeChatContextAttachment(attachment.path)}
+                          disabled={isSending}
+                          title={`Remove ${attachment.path}`}
+                        >
+                          <Icon name={attachment.type === 'directory' ? 'folder' : 'file'} size={13} />
+                          <span>{attachment.name}</span>
+                          <em>{attachment.type === 'directory' ? 'Folder' : formatFileSize(attachment.size)}</em>
+                          <Icon name="x" size={12} />
+                        </button>
+                      ))}
+                      <button
+                        className={styles.textButton}
+                        type="button"
+                        onClick={clearChatContextAttachments}
+                        disabled={isSending}
+                        title="Remove all attached context"
+                      >
+                        Clear context
+                      </button>
+                    </div>
+                  )}
+                  {chatImageAttachments.length > 0 && (
+                    <div className={styles.composerImageList} aria-label="Pasted images">
+                      {chatImageAttachments.map(image => (
+                        <button
+                          key={image.id}
+                          className={styles.composerImageChip}
+                          type="button"
+                          onClick={() => removeChatImageAttachment(image.id)}
+                          disabled={isSending}
+                          title={`Remove ${image.name}`}
+                        >
+                          <img src={image.dataUrl} alt="" />
+                          <span>{image.name}</span>
+                          <em>{[image.width && image.height ? `${image.width}x${image.height}` : '', formatFileSize(image.size)].filter(Boolean).join(' · ')}</em>
+                          <Icon name="x" size={12} />
+                        </button>
+                      ))}
+                      <button
+                        className={styles.textButton}
+                        type="button"
+                        onClick={clearChatImageAttachments}
+                        disabled={isSending}
+                        title="Remove all pasted images"
+                      >
+                        Clear images
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={event => setInput(event.target.value)}
                   onKeyDown={handleInputKeyDown}
-                  placeholder="Reply to CodeAgent..."
+                  onPaste={handleComposerPaste}
+                  placeholder="Reply to CodeAgent or paste an image..."
                   rows={1}
                   disabled={isSending}
                   aria-label="Message"
@@ -6327,7 +7028,7 @@ export function App() {
                     <Icon name="x" size={14} />
                     Clear
                   </button>
-                  <button className={styles.primaryButton} type="submit" disabled={isSending || !input.trim()} title="Send message">
+                  <button className={styles.primaryButton} type="submit" disabled={isSending || (!input.trim() && chatImageAttachments.length === 0)} title="Send message">
                     <Icon name="send" size={14} />
                     Send
                   </button>
@@ -6483,6 +7184,8 @@ export function App() {
               onClearToken={clearToken}
               onAccountLogin={handleAccountLogin}
               onAccountRegister={handleAccountRegister}
+              onAccountForgotPassword={handleAccountForgotPassword}
+              onAccountResetPassword={handleAccountResetPassword}
               onAccountLogout={handleAccountLogout}
               onPlatformSync={handlePlatformSync}
               canSyncPlatform={canSyncPlatform}
@@ -7928,7 +8631,8 @@ function ProjectsView({
 
   async function copyProjectMessage(message: UiMessage) {
     try {
-      await navigator.clipboard.writeText(message.content);
+      const imageSummary = formatImageAttachmentSummary(message.imageAttachments ?? []);
+      await navigator.clipboard.writeText(imageSummary ? `${message.content}\n\nAttached images: ${imageSummary}` : message.content);
       setCopiedProjectMessageId(message.id);
       window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
     } catch {
@@ -12072,6 +12776,7 @@ function MessageItem({
       </div>
       <div className={styles.messageContent}>
         {message.role === 'tool' ? renderToolMessageContent(message) : renderMessageContent(message.content)}
+        {(message.imageAttachments?.length ?? 0) > 0 && renderMessageImages(message.imageAttachments ?? [])}
       </div>
       {message.usage && (
         <div className={styles.messageMeta}>
@@ -12079,6 +12784,25 @@ function MessageItem({
         </div>
       )}
     </article>
+  );
+}
+
+function renderMessageImages(images: UiImageAttachment[]): React.ReactNode {
+  return (
+    <div className={styles.messageImageGrid}>
+      {images.map(image => (
+        <figure className={styles.messageImageItem} key={image.id}>
+          {image.dataUrl ? (
+            <img src={image.dataUrl} alt={image.name} />
+          ) : (
+            <div className={styles.messageImagePlaceholder}>
+              <Icon name="file" size={18} />
+            </div>
+          )}
+          <figcaption>{[image.name, image.width && image.height ? `${image.width}x${image.height}` : '', formatFileSize(image.size)].filter(Boolean).join(' · ')}</figcaption>
+        </figure>
+      ))}
+    </div>
   );
 }
 
@@ -12304,6 +13028,8 @@ function AccountSettingsSection({
   onChange,
   onLogin,
   onRegister,
+  onForgotPassword,
+  onResetPassword,
   onLogout,
   onSync,
   canSync,
@@ -12314,6 +13040,8 @@ function AccountSettingsSection({
   onChange: (update: Partial<SettingsDraft>) => void;
   onLogin: () => void;
   onRegister: () => void;
+  onForgotPassword: () => void;
+  onResetPassword: () => void;
   onLogout: () => void;
   onSync: () => void;
   canSync: boolean;
@@ -12443,10 +13171,19 @@ function AccountSettingsSection({
           label="Platform password"
           type="password"
           value={draft.accountPassword}
-          placeholder="required for platform login"
+          placeholder="required for platform login or reset"
           onChange={value => onChange({ accountPassword: value })}
           className={styles.fieldWide}
         />
+        {!isSignedIn && (
+          <TextSetting
+            label="Reset token"
+            value={draft.accountResetToken}
+            placeholder="from reset email"
+            onChange={value => onChange({ accountResetToken: value })}
+            className={styles.fieldWide}
+          />
+        )}
       </div>
 
       <div className={styles.dialogActions}>
@@ -12464,6 +13201,14 @@ function AccountSettingsSection({
             <button className={styles.secondaryButton} type="button" onClick={onRegister}>
               <Icon name="plus" size={14} />
               Create account
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={onForgotPassword}>
+              <Icon name="key" size={14} />
+              Send reset
+            </button>
+            <button className={styles.secondaryButton} type="button" onClick={onResetPassword}>
+              <Icon name="refresh" size={14} />
+              Reset password
             </button>
           </>
         )}
@@ -12772,6 +13517,8 @@ function SettingsView({
   onClearToken,
   onAccountLogin,
   onAccountRegister,
+  onAccountForgotPassword,
+  onAccountResetPassword,
   onAccountLogout,
   onPlatformSync,
   canSyncPlatform,
@@ -12788,6 +13535,8 @@ function SettingsView({
   onClearToken: () => void;
   onAccountLogin: () => void;
   onAccountRegister: () => void;
+  onAccountForgotPassword: () => void;
+  onAccountResetPassword: () => void;
   onAccountLogout: () => void;
   onPlatformSync: () => void;
   canSyncPlatform: boolean;
@@ -12824,6 +13573,8 @@ function SettingsView({
             onChange={onChange}
             onLogin={onAccountLogin}
             onRegister={onAccountRegister}
+            onForgotPassword={onAccountForgotPassword}
+            onResetPassword={onAccountResetPassword}
             onLogout={onAccountLogout}
             onSync={onPlatformSync}
             canSync={canSyncPlatform}

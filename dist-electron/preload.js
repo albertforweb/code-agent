@@ -65,6 +65,9 @@ const IPC_CHANNELS = {
     'fs:list': 'fs:list',
     'fs:open': 'fs:open',
     'fs:reveal': 'fs:reveal',
+    'fs:selectFolder': 'fs:selectFolder',
+    'fs:selectPaths': 'fs:selectPaths',
+    'fs:readContext': 'fs:readContext',
     'auth:getToken': 'auth:getToken',
     'auth:logout': 'auth:logout',
     'auth:setToken': 'auth:setToken',
@@ -256,6 +259,15 @@ const api = {
         },
         reveal: (path) => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:reveal'], { path });
+        },
+        selectFolder: (defaultPath) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:selectFolder'], { defaultPath });
+        },
+        selectPaths: (defaultPath) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:selectPaths'], { defaultPath });
+        },
+        readContext: (request) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['fs:readContext'], request);
         },
     },
     // ============================================================================

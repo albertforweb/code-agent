@@ -7,6 +7,8 @@ import type {
   AppConfig,
   AuthToken,
   BootstrapData,
+  ChatMessageContent,
+  ChatMessageContentPart,
   ChatRequest,
   ChatResponse,
   LlmProviderType,
@@ -60,7 +62,7 @@ interface OpenAiToolSet {
 
 interface OpenAiChatMessage {
   role: string;
-  content?: string | null;
+  content?: ChatMessageContent | null;
   tool_call_id?: string;
   tool_calls?: OpenAiToolCall[];
 }
@@ -706,7 +708,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     const activeWorkspacePath = request.toolScope?.workspacePath || this.workspacePath;
     const recentMessages = messages
       .slice(-8)
-      .map(message => `${message.role.toUpperCase()}:\n${message.content ?? ''}`)
+      .map(message => `${message.role.toUpperCase()}:\n${this.chatContentToText(message.content)}`)
       .join('\n\n')
       .slice(-MAX_ACTION_RECOVERY_PROMPT_CHARS);
     const plannerMessages: OpenAiChatMessage[] = [
@@ -1050,9 +1052,82 @@ Always be helpful, thorough, and provide clear explanations.`;
       { role: 'system', content: this.buildSystemPrompt(request) },
       ...request.messages.map(message => ({
         role: message.role,
-        content: message.content,
+        content: this.normalizeChatMessageContent(message.content),
       })),
     ];
+  }
+
+  private normalizeChatMessageContent(content: ChatMessageContent): ChatMessageContent {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (!Array.isArray(content)) {
+      return String(content ?? '');
+    }
+
+    const parts = content
+      .map(part => this.normalizeChatContentPart(part))
+      .filter((part): part is ChatMessageContentPart => Boolean(part));
+
+    return parts.length > 0 ? parts : '';
+  }
+
+  private normalizeChatContentPart(part: unknown): ChatMessageContentPart | null {
+    if (!part || typeof part !== 'object') {
+      return null;
+    }
+
+    const raw = part as Partial<ChatMessageContentPart>;
+    if (raw.type === 'text') {
+      const text = typeof raw.text === 'string' ? raw.text : '';
+      return text ? { type: 'text', text } : null;
+    }
+
+    if (raw.type === 'image_url') {
+      const imageUrl = (raw as { image_url?: { url?: unknown; detail?: unknown } }).image_url;
+      const url = typeof imageUrl?.url === 'string' ? imageUrl.url : '';
+      if (!url) {
+        return null;
+      }
+      const detail = imageUrl?.detail === 'low' || imageUrl?.detail === 'high' || imageUrl?.detail === 'auto'
+        ? imageUrl.detail
+        : 'auto';
+      return {
+        type: 'image_url',
+        image_url: {
+          url,
+          detail,
+        },
+      };
+    }
+
+    return null;
+  }
+
+  private chatContentToText(content: ChatMessageContent | null | undefined): string {
+    if (!content) {
+      return '';
+    }
+    if (typeof content === 'string') {
+      return content;
+    }
+    if (!Array.isArray(content)) {
+      return String(content);
+    }
+
+    return content
+      .map(part => {
+        if (part.type === 'text') {
+          return part.text;
+        }
+        if (part.type === 'image_url') {
+          return '[attached image]';
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n\n');
   }
 
   private getOpenAiHeaders(config: LlmRuntimeConfig): Record<string, string> {

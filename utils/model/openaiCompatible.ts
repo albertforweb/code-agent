@@ -108,7 +108,7 @@ export function shouldSendOpenAICompatibleTools(): boolean {
   )
   if (explicit !== undefined) return isEnvTruthy(explicit)
 
-  return getOpenAICompatibleProviderKind() === 'openai'
+  return true
 }
 
 function firstDefined(...values: Array<string | undefined>): string | undefined {

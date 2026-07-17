@@ -18,7 +18,13 @@ import type {
   FileWriteRequest,
   FileListRequest,
   FilePathRequest,
+  FileSelectFolderRequest,
+  FileSelectPathsRequest,
+  FileContextReadRequest,
   FilePathActionResult,
+  FolderSelectionResult,
+  FileSelectionResult,
+  FileContextReadResult,
   AppConfig,
   AppInfo,
   FeaturePackageInstallRequest,
@@ -121,6 +127,9 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['fs:list'], this.handleFileList.bind(this));
     ipcMain.handle(IPC_CHANNELS['fs:open'], this.handleFileOpen.bind(this));
     ipcMain.handle(IPC_CHANNELS['fs:reveal'], this.handleFileReveal.bind(this));
+    ipcMain.handle(IPC_CHANNELS['fs:selectFolder'], this.handleFileSelectFolder.bind(this));
+    ipcMain.handle(IPC_CHANNELS['fs:selectPaths'], this.handleFileSelectPaths.bind(this));
+    ipcMain.handle(IPC_CHANNELS['fs:readContext'], this.handleFileReadContext.bind(this));
 
     // Auth channels
     ipcMain.handle(IPC_CHANNELS['auth:getToken'], this.handleGetToken.bind(this));
@@ -271,6 +280,39 @@ export class IpcBridge {
     if (!handler) {
       throw new Error('File reveal handler not configured');
     }
+    return handler(request);
+  }
+
+  private async handleFileSelectFolder(event: any, request: FileSelectFolderRequest): Promise<FolderSelectionResult> {
+    const handler = this.fsHandlers.get('selectFolder');
+    if (!handler) {
+      throw new Error('Folder picker handler not configured');
+    }
+
+    return handler({
+      ...request,
+      window: BrowserWindow.fromWebContents(event.sender),
+    });
+  }
+
+  private async handleFileSelectPaths(event: any, request: FileSelectPathsRequest): Promise<FileSelectionResult> {
+    const handler = this.fsHandlers.get('selectPaths');
+    if (!handler) {
+      throw new Error('Context picker handler not configured');
+    }
+
+    return handler({
+      ...request,
+      window: BrowserWindow.fromWebContents(event.sender),
+    });
+  }
+
+  private async handleFileReadContext(_event: any, request: FileContextReadRequest): Promise<FileContextReadResult> {
+    const handler = this.fsHandlers.get('readContext');
+    if (!handler) {
+      throw new Error('Context reader handler not configured');
+    }
+
     return handler(request);
   }
 

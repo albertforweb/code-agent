@@ -38710,11 +38710,22 @@
     sidebarSettingsButtonActive: "App_sidebarSettingsButtonActive",
     appShell: "App_appShell",
     headerTitle: "App_headerTitle",
+    messageImageGrid: "App_messageImageGrid",
+    messageImageItem: "App_messageImageItem",
+    messageImagePlaceholder: "App_messageImagePlaceholder",
     toolTrace: "App_toolTrace",
     toolTraceSummary: "App_toolTraceSummary",
     toolTraceDetails: "App_toolTraceDetails",
     commandPalette: "App_commandPalette",
     commandPaletteItem: "App_commandPaletteItem",
+    composerContextPanel: "App_composerContextPanel",
+    composerContextBar: "App_composerContextBar",
+    composerContextStatus: "App_composerContextStatus",
+    composerContextActions: "App_composerContextActions",
+    composerAttachmentList: "App_composerAttachmentList",
+    composerAttachmentChip: "App_composerAttachmentChip",
+    composerImageList: "App_composerImageList",
+    composerImageChip: "App_composerImageChip",
     statusPane: "App_statusPane",
     statusPaneStatic: "App_statusPaneStatic",
     workspaceDetail: "App_workspaceDetail",
@@ -39011,7 +39022,10 @@
       write: (path, content, encoding) => getApi().fs.write(path, content, encoding),
       list: (path) => getApi().fs.list(path),
       open: (path) => getApi().fs.open(path),
-      reveal: (path) => getApi().fs.reveal(path)
+      reveal: (path) => getApi().fs.reveal(path),
+      selectFolder: (defaultPath) => getApi().fs.selectFolder(defaultPath),
+      selectPaths: (defaultPath) => getApi().fs.selectPaths(defaultPath),
+      readContext: (request) => getApi().fs.readContext(request)
     },
     auth: {
       getToken: () => getApi().auth.getToken(),
@@ -40249,6 +40263,13 @@
   var MAX_TOOL_ACTIVITIES = 20;
   var MAX_PERSISTED_MESSAGES = 80;
   var MAX_RECENT_SESSIONS = 12;
+  var CHAT_CONTEXT_MAX_FILES = 16;
+  var CHAT_CONTEXT_MAX_BYTES = 12e4;
+  var CHAT_CONTEXT_MAX_FILE_BYTES = 24e3;
+  var CHAT_IMAGE_MAX_COUNT = 4;
+  var CHAT_IMAGE_MAX_EDGE = 1536;
+  var CHAT_IMAGE_MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+  var CHAT_IMAGE_JPEG_QUALITY = 0.86;
   var DESKTOP_SESSIONS_STATE_KEY = "desktopSessions";
   var DESKTOP_PROJECTS_STATE_KEY = "desktopSoftwareProjects";
   var DESKTOP_ROLES_STATE_KEY = "desktopVirtualRoles";
@@ -40847,7 +40868,35 @@
   }
   function getSessionTitle(messages) {
     const firstUserMessage = messages.find((message) => message.role === "user" && message.content.trim());
-    return firstUserMessage ? formatSidebarLabel(firstUserMessage.content, 56) : "New chat";
+    if (firstUserMessage) {
+      return formatSidebarLabel(firstUserMessage.content, 56);
+    }
+    const firstImageMessage = messages.find((message) => message.role === "user" && (message.imageAttachments?.length ?? 0) > 0);
+    return firstImageMessage ? "Image chat" : "New chat";
+  }
+  function sanitizeImageAttachments(value, includeDataUrl = false) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+      const raw = item;
+      const mediaType = typeof raw.mediaType === "string" && raw.mediaType.startsWith("image/") ? raw.mediaType : "image/png";
+      const attachment = {
+        id: typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Pasted image",
+        mediaType,
+        size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : 0,
+        width: Number.isFinite(Number(raw.width)) ? Number(raw.width) : void 0,
+        height: Number.isFinite(Number(raw.height)) ? Number(raw.height) : void 0
+      };
+      if (includeDataUrl && typeof raw.dataUrl === "string" && raw.dataUrl.startsWith("data:image/")) {
+        attachment.dataUrl = raw.dataUrl;
+      }
+      return attachment;
+    }).filter((item) => Boolean(item)).slice(0, CHAT_IMAGE_MAX_COUNT);
   }
   function sanitizeMessage(value) {
     if (!value || typeof value !== "object") {
@@ -40868,7 +40917,8 @@
       usage: message.usage && typeof message.usage === "object" ? {
         inputTokens: Number(message.usage?.inputTokens ?? 0),
         outputTokens: Number(message.usage?.outputTokens ?? 0)
-      } : void 0
+      } : void 0,
+      imageAttachments: sanitizeImageAttachments(message.imageAttachments)
     };
   }
   function sanitizeMessages(messages) {
@@ -40878,14 +40928,95 @@
     const normalized = messages.map(sanitizeMessage).filter((message) => Boolean(message)).slice(-MAX_PERSISTED_MESSAGES).map((message) => message.status === "sending" ? { ...message, status: "sent" } : message);
     return normalized.length > 0 ? normalized : createReadyMessages();
   }
-  function createSessionSnapshot(id, messages, workspacePath, previous) {
+  function normalizeContextAttachment(value) {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+    const raw = value;
+    const pathValue = typeof raw.path === "string" && raw.path.trim() ? raw.path.trim() : "";
+    if (!pathValue) {
+      return null;
+    }
+    const type = raw.type === "directory" ? "directory" : "file";
+    return {
+      path: pathValue,
+      type,
+      name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : getPathBasename(pathValue),
+      size: Number.isFinite(Number(raw.size)) ? Number(raw.size) : void 0,
+      modified: Number.isFinite(Number(raw.modified)) ? Number(raw.modified) : void 0
+    };
+  }
+  function sanitizeContextAttachments(value) {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    const seen = /* @__PURE__ */ new Set();
+    const attachments = [];
+    for (const attachment of value) {
+      const normalized = normalizeContextAttachment(attachment);
+      if (!normalized) {
+        continue;
+      }
+      const key = normalized.path.toLowerCase();
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      attachments.push(normalized);
+    }
+    return attachments.slice(0, 24);
+  }
+  function mergeContextAttachments(current, selected) {
+    return sanitizeContextAttachments([...current, ...selected]);
+  }
+  function formatContextItemHeader(item) {
+    const details = [
+      item.sourcePath && item.sourcePath !== item.path ? `from ${item.sourcePath}` : "",
+      item.truncated ? "truncated" : "",
+      item.error ? `error: ${item.error}` : ""
+    ].filter(Boolean);
+    return details.length > 0 ? `${item.path} (${details.join(", ")})` : item.path;
+  }
+  function formatAttachedContext(result) {
+    const sections = result.items.map((item) => {
+      if (item.type === "directory" && !item.content && !item.error) {
+        return `Directory attachment: ${item.path}`;
+      }
+      const header = formatContextItemHeader(item);
+      if (item.error && !item.content) {
+        return `File attachment: ${header}`;
+      }
+      return [
+        `File attachment: ${header}`,
+        "```",
+        item.content ?? "",
+        "```"
+      ].join("\n");
+    });
+    if (result.omittedCount > 0) {
+      sections.push(`Attachment reader omitted ${result.omittedCount} file(s) or folder entries because of limits, unsupported file types, or unreadable paths.`);
+    }
+    if (sections.length === 0) {
+      return "";
+    }
+    return [
+      "Attached read-only chat context:",
+      "Use this context to answer the human message. Do not modify these paths unless the human explicitly asks for changes.",
+      ...sections
+    ].join("\n\n");
+  }
+  function createSessionSnapshot(id, messages, workspacePath, previous, toolWorkspacePath, contextAttachments = []) {
     const sanitizedMessages = sanitizeMessages(messages);
+    const normalizedToolWorkspacePath = typeof toolWorkspacePath === "string" && toolWorkspacePath.trim() ? toolWorkspacePath.trim() : void 0;
+    const normalizedContextAttachments = sanitizeContextAttachments(contextAttachments);
     return {
       id,
       title: getSessionTitle(sanitizedMessages),
       createdAt: previous?.createdAt ?? sanitizedMessages[0]?.createdAt ?? Date.now(),
       updatedAt: Date.now(),
       workspacePath,
+      toolWorkspacePath: normalizedToolWorkspacePath,
+      contextAttachments: normalizedContextAttachments.length > 0 ? normalizedContextAttachments : void 0,
       messages: sanitizedMessages
     };
   }
@@ -40935,6 +41066,8 @@
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : messages[0]?.createdAt ?? Date.now(),
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : Date.now(),
       workspacePath: typeof raw.workspacePath === "string" ? raw.workspacePath : workspacePath,
+      toolWorkspacePath: typeof raw.toolWorkspacePath === "string" && raw.toolWorkspacePath.trim() ? raw.toolWorkspacePath.trim() : void 0,
+      contextAttachments: sanitizeContextAttachments(raw.contextAttachments),
       messages
     };
   }
@@ -41560,6 +41693,7 @@
       accountEmail: featureProfile.email,
       accountDisplayName: featureProfile.accountStatus === "signed-in" ? featureProfile.displayName : "",
       accountPassword: "",
+      accountResetToken: "",
       platformBaseUrl: typeof config?.platformBaseUrl === "string" ? config.platformBaseUrl : "http://127.0.0.1:8000",
       platformOrgId: typeof config?.platformOrgId === "string" ? config.platformOrgId : "",
       llmProvider,
@@ -41868,6 +42002,32 @@
         workspace_name: getPlatformWorkspaceName(draft),
         name: displayName,
         email,
+        password: draft.accountPassword
+      })
+    });
+  }
+  async function requestPlatformPasswordReset(draft) {
+    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    if (!baseUrl) {
+      throw new Error("Enter the agent-platform base URL.");
+    }
+    return readPlatformJson(baseUrl, "/auth/forgot-password", void 0, {
+      method: "POST",
+      body: JSON.stringify({
+        email: draft.accountEmail.trim(),
+        ...draft.platformOrgId.trim() ? { org_id: draft.platformOrgId.trim() } : {}
+      })
+    });
+  }
+  async function resetPlatformPassword(draft) {
+    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    if (!baseUrl) {
+      throw new Error("Enter the agent-platform base URL.");
+    }
+    return readPlatformJson(baseUrl, "/auth/reset-password", void 0, {
+      method: "POST",
+      body: JSON.stringify({
+        token: draft.accountResetToken.trim(),
         password: draft.accountPassword
       })
     });
@@ -42352,6 +42512,11 @@
     parts.pop();
     return parts.length > 0 ? parts.join("/") : ".";
   }
+  function getPathBasename(value) {
+    const normalized = normalizeWorkspacePath(value);
+    const parts = normalized.split("/").filter(Boolean);
+    return parts[parts.length - 1] || normalized;
+  }
   function sortFileEntries(entries) {
     return [...entries].sort((left, right) => {
       if (left.type !== right.type) {
@@ -42371,6 +42536,105 @@
       return `${(size / 1024).toFixed(1)} KB`;
     }
     return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  function getDataUrlByteSize(dataUrl) {
+    const base64 = dataUrl.split(",")[1] ?? "";
+    return Math.ceil(base64.length * 0.75);
+  }
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error ?? new Error("Failed to read pasted image"));
+      reader.onload = () => {
+        const result = typeof reader.result === "string" ? reader.result : "";
+        result ? resolve(result) : reject(new Error("Pasted image did not produce a data URL"));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  function loadImageElement(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Pasted image could not be decoded"));
+      image.src = dataUrl;
+    });
+  }
+  function getResizedImageDimensions(width, height) {
+    const maxEdge = Math.max(width, height);
+    if (!maxEdge || maxEdge <= CHAT_IMAGE_MAX_EDGE) {
+      return { width, height };
+    }
+    const scale = CHAT_IMAGE_MAX_EDGE / maxEdge;
+    return {
+      width: Math.max(1, Math.round(width * scale)),
+      height: Math.max(1, Math.round(height * scale))
+    };
+  }
+  async function createChatImageAttachment(file) {
+    if (!file.type.startsWith("image/")) {
+      throw new Error(`${file.name || "Pasted file"} is not an image.`);
+    }
+    if (file.size > CHAT_IMAGE_MAX_SOURCE_BYTES) {
+      throw new Error(`${file.name || "Pasted image"} is larger than ${formatFileSize(CHAT_IMAGE_MAX_SOURCE_BYTES)}.`);
+    }
+    const originalDataUrl = await readFileAsDataUrl(file);
+    const image = await loadImageElement(originalDataUrl);
+    const dimensions = getResizedImageDimensions(image.naturalWidth || image.width, image.naturalHeight || image.height);
+    const shouldResize = dimensions.width !== (image.naturalWidth || image.width) || dimensions.height !== (image.naturalHeight || image.height) || getDataUrlByteSize(originalDataUrl) > 15e5;
+    let dataUrl = originalDataUrl;
+    let mediaType = file.type || "image/png";
+    if (shouldResize) {
+      const canvas = document.createElement("canvas");
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        throw new Error("Could not prepare pasted image for upload.");
+      }
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, dimensions.width, dimensions.height);
+      context.drawImage(image, 0, 0, dimensions.width, dimensions.height);
+      dataUrl = canvas.toDataURL("image/jpeg", CHAT_IMAGE_JPEG_QUALITY);
+      mediaType = "image/jpeg";
+    }
+    return {
+      id: `image-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name || `Pasted image ${(/* @__PURE__ */ new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`,
+      mediaType,
+      size: getDataUrlByteSize(dataUrl),
+      width: dimensions.width,
+      height: dimensions.height,
+      dataUrl
+    };
+  }
+  function formatImageAttachmentSummary(images) {
+    if (images.length === 0) {
+      return "";
+    }
+    return images.map((image) => {
+      const dimensions = image.width && image.height ? `${image.width}x${image.height}` : "";
+      const size = formatFileSize(image.size);
+      return [image.name, dimensions, size].filter(Boolean).join(" \xB7 ");
+    }).join(", ");
+  }
+  function buildMultimodalChatContent(prompt, images) {
+    if (images.length === 0) {
+      return prompt;
+    }
+    return [
+      {
+        type: "text",
+        text: prompt
+      },
+      ...images.map((image) => ({
+        type: "image_url",
+        image_url: {
+          url: image.dataUrl,
+          detail: "auto"
+        }
+      }))
+    ];
   }
   function normalizeToolNameList(value) {
     const rawValues = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
@@ -42449,7 +42713,7 @@
     const haystack = [
       session.title,
       session.workspacePath ?? "",
-      ...session.messages.map((message) => `${message.title ?? ""} ${message.content}`)
+      ...session.messages.map((message) => `${message.title ?? ""} ${message.content} ${(message.imageAttachments ?? []).map((image) => image.name).join(" ")}`)
     ].join("\n").toLowerCase();
     return haystack.includes(normalizedQuery);
   }
@@ -42675,6 +42939,9 @@ ${nextUserMessage}`
     const [projectActionMessage, setProjectActionMessage] = useState("");
     const [messages, setMessages] = useState(() => createReadyMessages());
     const [input, setInput] = useState("");
+    const [chatToolWorkspacePath, setChatToolWorkspacePath] = useState("");
+    const [chatContextAttachments, setChatContextAttachments] = useState([]);
+    const [chatImageAttachments, setChatImageAttachments] = useState([]);
     const [sessionSearch, setSessionSearch] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [copiedMessageId, setCopiedMessageId] = useState(null);
@@ -42998,10 +43265,17 @@ ${formatJson(data.data)}
         const previous = current.find((session) => session.id === currentSessionId);
         return upsertSession(
           current,
-          createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous)
+          createSessionSnapshot(
+            currentSessionId,
+            messages,
+            appInfo?.workspacePath,
+            previous,
+            chatToolWorkspacePath || null,
+            chatContextAttachments
+          )
         );
       });
-    }, [messages, currentSessionId, appInfo?.workspacePath]);
+    }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments]);
     useEffect(() => {
       if (!hasHydratedSessionsRef.current || sessions.length === 0 || !currentSessionId) {
         return;
@@ -43020,7 +43294,7 @@ ${formatJson(data.data)}
           ipcClient.history.saveRecord({
             id: `${CHAT_SESSION_HISTORY_ID_PREFIX}${activeSession2.id}`,
             type: "chat-session",
-            workspacePath: activeSession2.workspacePath ?? appInfo?.workspacePath,
+            workspacePath: activeSession2.toolWorkspacePath ?? activeSession2.workspacePath ?? appInfo?.workspacePath,
             title: activeSession2.title,
             data: {
               currentSessionId,
@@ -43152,6 +43426,8 @@ ${formatJson(data.data)}
         setSessions(restoredSessions.sessions);
         setCurrentSessionId(restoredSessions.currentSessionId);
         setMessages(activeSession2?.messages ?? createReadyMessages());
+        setChatToolWorkspacePath(activeSession2?.toolWorkspacePath ?? "");
+        setChatContextAttachments(activeSession2?.contextAttachments ?? []);
         hasHydratedSessionsRef.current = true;
         hasHydratedProjectsRef.current = true;
         hasHydratedRolesRef.current = true;
@@ -43184,11 +43460,24 @@ ${formatJson(data.data)}
       const nextSession = createEmptySession(appInfo?.workspacePath);
       setSessions((current) => {
         const previous = current.find((session) => session.id === currentSessionId);
-        const withCurrent = currentSessionId ? upsertSession(current, createSessionSnapshot(currentSessionId, messages, appInfo?.workspacePath, previous)) : current;
+        const withCurrent = currentSessionId ? upsertSession(
+          current,
+          createSessionSnapshot(
+            currentSessionId,
+            messages,
+            appInfo?.workspacePath,
+            previous,
+            chatToolWorkspacePath || null,
+            chatContextAttachments
+          )
+        ) : current;
         return upsertSession(withCurrent, nextSession);
       });
       setCurrentSessionId(nextSession.id);
       setMessages(nextSession.messages);
+      setChatToolWorkspacePath(nextSession.toolWorkspacePath ?? "");
+      setChatContextAttachments(nextSession.contextAttachments ?? []);
+      setChatImageAttachments([]);
       setInput("");
       setStatus("Ready");
       setActiveView("chat");
@@ -43201,6 +43490,9 @@ ${formatJson(data.data)}
       }
       setCurrentSessionId(session.id);
       setMessages(sanitizeMessages(session.messages));
+      setChatToolWorkspacePath(session.toolWorkspacePath ?? "");
+      setChatContextAttachments(session.contextAttachments ?? []);
+      setChatImageAttachments([]);
       setInput("");
       setStatus("Ready");
       setActiveView("chat");
@@ -43824,6 +44116,9 @@ ${formatJson(data.data)}
       if (shouldSwitchActiveSession && nextActiveSession) {
         setCurrentSessionId(nextActiveSession.id);
         setMessages(nextActiveSession.messages);
+        setChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? "");
+        setChatContextAttachments(nextActiveSession.contextAttachments ?? []);
+        setChatImageAttachments([]);
         setInput("");
         setStatus("Ready");
       }
@@ -43839,6 +44134,9 @@ ${formatJson(data.data)}
       setSessions((current) => upsertSession(current, session));
       setCurrentSessionId(session.id);
       setMessages(session.messages);
+      setChatToolWorkspacePath(session.toolWorkspacePath ?? "");
+      setChatContextAttachments(session.contextAttachments ?? []);
+      setChatImageAttachments([]);
       setActiveView("chat");
       setHistoryMessage(`Restored chat "${session.title}".`);
     }
@@ -44052,6 +44350,111 @@ ${formatJson(data.data)}
         setWorkspaceBrowserError(error instanceof Error ? error.message : String(error));
       }
     }
+    async function chooseChatToolWorkspaceFolder() {
+      try {
+        const result = await ipcClient.fs.selectFolder(chatToolWorkspacePath || appInfo?.workspacePath || void 0);
+        if (result.canceled || !result.path) {
+          return;
+        }
+        setChatToolWorkspacePath(normalizeWorkspacePath(result.path));
+        setStatus("Guided project folder set");
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", formatDesktopError(error), {
+          title: "Folder selection failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
+    }
+    function clearChatToolWorkspaceFolder() {
+      setChatToolWorkspacePath("");
+      setStatus("Chat only");
+      inputRef.current?.focus();
+    }
+    async function chooseChatContextAttachments() {
+      try {
+        const result = await ipcClient.fs.selectPaths(chatToolWorkspacePath || appInfo?.workspacePath || void 0);
+        if (result.canceled || !result.paths || result.paths.length === 0) {
+          return;
+        }
+        setChatContextAttachments((current) => mergeContextAttachments(current, result.paths ?? []));
+        setStatus(`Added ${result.paths.length} context item${result.paths.length === 1 ? "" : "s"}`);
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", formatDesktopError(error), {
+          title: "Context selection failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
+    }
+    function removeChatContextAttachment(attachmentPath) {
+      setChatContextAttachments((current) => current.filter((attachment) => attachment.path !== attachmentPath));
+      setStatus("Context removed");
+      inputRef.current?.focus();
+    }
+    function clearChatContextAttachments() {
+      setChatContextAttachments([]);
+      setStatus("Context cleared");
+      inputRef.current?.focus();
+    }
+    async function buildAttachedContextPrompt() {
+      if (chatContextAttachments.length === 0) {
+        return "";
+      }
+      const result = await ipcClient.fs.readContext({
+        paths: chatContextAttachments.map((attachment) => attachment.path),
+        maxFiles: CHAT_CONTEXT_MAX_FILES,
+        maxBytes: CHAT_CONTEXT_MAX_BYTES,
+        maxFileBytes: CHAT_CONTEXT_MAX_FILE_BYTES
+      });
+      return formatAttachedContext(result);
+    }
+    async function addChatImages(files) {
+      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+      if (imageFiles.length === 0) {
+        return;
+      }
+      const availableSlots = CHAT_IMAGE_MAX_COUNT - chatImageAttachments.length;
+      if (availableSlots <= 0) {
+        setStatus(`Image limit reached (${CHAT_IMAGE_MAX_COUNT})`);
+        return;
+      }
+      try {
+        const nextImages = await Promise.all(imageFiles.slice(0, availableSlots).map((file) => createChatImageAttachment(file)));
+        setChatImageAttachments((current) => [...current, ...nextImages].slice(0, CHAT_IMAGE_MAX_COUNT));
+        const skipped = imageFiles.length - nextImages.length;
+        setStatus(skipped > 0 ? `Added ${nextImages.length} image(s), skipped ${skipped} over the limit` : `Added ${nextImages.length} image${nextImages.length === 1 ? "" : "s"}`);
+        inputRef.current?.focus();
+      } catch (error) {
+        appendMessage(createMessage("error", formatDesktopError(error), {
+          title: "Image paste failed",
+          status: "failed"
+        }));
+        setStatus("Error");
+      }
+    }
+    function handleComposerPaste(event) {
+      const files = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith("image/"));
+      const itemFiles = Array.from(event.clipboardData.items).filter((item) => item.kind === "file" && item.type.startsWith("image/")).map((item) => item.getAsFile()).filter((file) => Boolean(file));
+      const imageFiles = [...files, ...itemFiles].filter((file, index, all) => all.findIndex((candidate) => candidate.name === file.name && candidate.size === file.size && candidate.type === file.type) === index);
+      if (imageFiles.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      void addChatImages(imageFiles);
+    }
+    function removeChatImageAttachment(imageId) {
+      setChatImageAttachments((current) => current.filter((image) => image.id !== imageId));
+      setStatus("Image removed");
+      inputRef.current?.focus();
+    }
+    function clearChatImageAttachments() {
+      setChatImageAttachments([]);
+      setStatus("Images cleared");
+      inputRef.current?.focus();
+    }
     async function updateDisabledModelTools(nextDisabledTools, message) {
       const disabledLlmTools = normalizeToolNameList(nextDisabledTools);
       setAppConfig((current) => ({
@@ -44157,20 +44560,31 @@ ${formatJson(data.data)}
     }
     async function submitPrompt() {
       const prompt = input.trim();
-      if (!prompt || isSending) {
+      const imagesForRequest = [...chatImageAttachments];
+      if (!prompt && imagesForRequest.length === 0 || isSending) {
         return;
       }
+      const displayPrompt = prompt || `Please analyze the attached image${imagesForRequest.length === 1 ? "" : "s"}.`;
       setInput("");
+      setChatImageAttachments([]);
       setIsSending(true);
-      const userMessage = createMessage("user", prompt);
+      const userMessage = createMessage("user", displayPrompt, {
+        imageAttachments: imagesForRequest
+      });
       setMessages((current) => [...current, userMessage]);
       let pendingStreamRequestId = null;
       try {
-        if (await handleCommand(prompt)) {
+        if (imagesForRequest.length === 0 && await handleCommand(prompt)) {
           setStatus("Ready");
           return;
         }
         setStatus("Streaming");
+        const attachedContextPrompt = await buildAttachedContextPrompt();
+        const requestPrompt = attachedContextPrompt ? `${attachedContextPrompt}
+
+Human message:
+${displayPrompt}` : displayPrompt;
+        const requestContent = buildMultimodalChatContent(requestPrompt, imagesForRequest);
         const requestId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         pendingStreamRequestId = requestId;
         const activeProvider2 = appConfig?.llmProvider || DEFAULT_PROVIDER;
@@ -44181,15 +44595,26 @@ ${formatJson(data.data)}
         });
         streamMessageIds.current.set(requestId, { scope: "main", messageId: assistantMessage.id });
         appendMessage(assistantMessage);
+        const scopedWorkspacePath = chatToolWorkspacePath.trim();
+        const chatToolScope = scopedWorkspacePath ? {
+          source: "project-chat",
+          workspacePath: scopedWorkspacePath,
+          projectId: `ad-hoc-${currentSessionId}`,
+          projectName: getPathBasename(scopedWorkspacePath),
+          projectChatKey: `main:${currentSessionId}`,
+          channel: "guided"
+        } : void 0;
         await ipcClient.api.chatStream({
           requestId,
-          messages: getChatMessages(messages, prompt),
+          messages: getChatMessages(messages, requestContent),
           provider: activeProvider2,
           baseUrl: appConfig?.baseUrl || activeProviderDefault2.baseUrl,
           model: appConfig?.model || activeProviderDefault2.model,
           maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault2.maxTokens),
           contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault2.contextTokens),
-          enableTools: Boolean(appConfig?.enableLlmTools ?? activeProviderDefault2.enableLlmTools),
+          enableTools: Boolean(chatToolScope),
+          maxToolRounds: chatToolScope ? 12 : 0,
+          toolScope: chatToolScope,
           temperature: Number(appConfig?.temperature ?? 0.7)
         });
       } catch (error) {
@@ -44315,7 +44740,10 @@ ${formatJson(data.data)}
         return true;
       }
       if (prompt === "/pwd" || prompt === "/workspace") {
-        appendMessage(createMessage("system", appInfo?.workspacePath || "Workspace path is unavailable.", {
+        appendMessage(createMessage("system", [
+          `Chat working folder: ${chatToolWorkspacePath || "not set (chat-only)"}`,
+          `App workspace: ${appInfo?.workspacePath || "unavailable"}`
+        ].join("\n"), {
           title: "Workspace"
         }));
         return true;
@@ -44426,6 +44854,9 @@ ${formatJson(appConfig)}
         `Max tokens: ${config?.maxTokens ?? providerDefault.maxTokens}`,
         `Context tokens: ${config?.contextTokens ?? providerDefault.contextTokens}`,
         `Model tool calls: ${config?.enableLlmTools ? "enabled" : "disabled"}`,
+        `Chat working folder: ${chatToolWorkspacePath || "not set (chat-only)"}`,
+        `Attached context: ${chatContextAttachments.length}`,
+        `Pending pasted images: ${chatImageAttachments.length}`,
         `Workspace: ${appInfo?.workspacePath || "unknown"}`,
         `Bridge tools: ${tools.length}`,
         `Bridge tools exposed to model: ${tools.filter((tool) => isToolExposedToModel(tool, config)).length}`,
@@ -44484,7 +44915,9 @@ ${toolText}`;
       }
       return sortSessions(availableSessions).map((session) => {
         const marker = session.id === activeSessionId ? "*" : "-";
-        return `${marker} ${session.title} (${session.messages.length} messages, updated ${formatRelativeTime(session.updatedAt)})`;
+        const folder = session.toolWorkspacePath ? `, folder ${session.toolWorkspacePath}` : "";
+        const attachments = session.contextAttachments?.length ? `, ${session.contextAttachments.length} context item(s)` : "";
+        return `${marker} ${session.title} (${session.messages.length} messages${folder}${attachments}, updated ${formatRelativeTime(session.updatedAt)})`;
       }).join("\n");
     }
     function handleInputKeyDown(event) {
@@ -44495,7 +44928,10 @@ ${toolText}`;
     }
     async function copyMessage(message) {
       try {
-        await navigator.clipboard.writeText(message.content);
+        const imageSummary = formatImageAttachmentSummary(message.imageAttachments ?? []);
+        await navigator.clipboard.writeText(imageSummary ? `${message.content}
+
+Attached images: ${imageSummary}` : message.content);
         setCopiedMessageId(message.id);
         window.setTimeout(() => setCopiedMessageId(null), 1500);
       } catch (error) {
@@ -44507,6 +44943,7 @@ ${toolText}`;
     }
     function clearChat() {
       setMessages(createReadyMessages());
+      setChatImageAttachments([]);
       setStatus("Ready");
       inputRef.current?.focus();
     }
@@ -44806,6 +45243,57 @@ ${toolText}`;
       } catch (error) {
         setSettingsMessage(error instanceof Error ? error.message : String(error));
         setStatus("Platform registration error");
+      }
+    }
+    async function handleAccountForgotPassword() {
+      const email = settingsDraft.accountEmail.trim();
+      if (!isValidEmail(email)) {
+        setSettingsMessage("Enter the email address for your platform account.");
+        return;
+      }
+      try {
+        setSettingsMessage("Requesting password reset from agent-platform...");
+        setStatus("Requesting password reset");
+        const reset = await requestPlatformPasswordReset(settingsDraft);
+        if (reset.reset_token) {
+          setSettingsDraft((current) => ({
+            ...current,
+            accountResetToken: reset.reset_token || ""
+          }));
+          setSettingsMessage(`Reset token issued for local development. It expires at ${reset.expires_at || "the platform configured expiry"}. Enter a new password and choose Reset password.`);
+        } else {
+          setSettingsMessage(reset.message || "If the account exists, a reset link has been issued.");
+        }
+        setStatus("Ready");
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Password reset request error");
+      }
+    }
+    async function handleAccountResetPassword() {
+      if (!settingsDraft.accountResetToken.trim()) {
+        setSettingsMessage("Enter the reset token from the platform recovery email or development response.");
+        return;
+      }
+      if (settingsDraft.accountPassword.length < 8) {
+        setSettingsMessage("Enter a new platform password with at least 8 characters.");
+        return;
+      }
+      try {
+        setSettingsMessage("Resetting platform password...");
+        setStatus("Resetting password");
+        const reset = await resetPlatformPassword(settingsDraft);
+        setSettingsDraft((current) => ({
+          ...current,
+          accountEmail: reset.email || current.accountEmail,
+          accountPassword: "",
+          accountResetToken: ""
+        }));
+        setSettingsMessage("Password reset. Sign in with the new password.");
+        setStatus("Ready");
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Password reset error");
       }
     }
     async function handleAccountLogout() {
@@ -45218,6 +45706,119 @@ ${toolText}`;
                 },
                 command.command
               )) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextPanel, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextBar, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextStatus, title: chatToolWorkspacePath || "No folder selected", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: chatToolWorkspacePath ? "folder-open" : "message", size: 14 }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: chatToolWorkspacePath ? "Guided project folder" : "Chat only" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: chatToolWorkspacePath ? chatToolWorkspacePath : "No local folder selected" })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextActions, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.textButton,
+                        type: "button",
+                        onClick: chooseChatContextAttachments,
+                        disabled: isSending,
+                        title: "Add files or folders as read-only chat context",
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 13 }),
+                          "Add context"
+                        ]
+                      }
+                    ),
+                    chatToolWorkspacePath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.textButton,
+                        type: "button",
+                        onClick: clearChatToolWorkspaceFolder,
+                        disabled: isSending,
+                        title: "Return this chat to chat-only mode",
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 13 }),
+                          "Clear folder"
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.textButton,
+                        type: "button",
+                        onClick: chooseChatToolWorkspaceFolder,
+                        disabled: isSending,
+                        title: chatToolWorkspacePath ? "Change working folder" : "Choose a working folder",
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                          chatToolWorkspacePath ? "Change folder" : "Set folder"
+                        ]
+                      }
+                    )
+                  ] })
+                ] }),
+                chatContextAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerAttachmentList, "aria-label": "Attached chat context", children: [
+                  chatContextAttachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      className: App_default.composerAttachmentChip,
+                      type: "button",
+                      onClick: () => removeChatContextAttachment(attachment.path),
+                      disabled: isSending,
+                      title: `Remove ${attachment.path}`,
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: attachment.type === "directory" ? "folder" : "file", size: 13 }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: attachment.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: attachment.type === "directory" ? "Folder" : formatFileSize(attachment.size) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                      ]
+                    },
+                    attachment.path
+                  )),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "button",
+                    {
+                      className: App_default.textButton,
+                      type: "button",
+                      onClick: clearChatContextAttachments,
+                      disabled: isSending,
+                      title: "Remove all attached context",
+                      children: "Clear context"
+                    }
+                  )
+                ] }),
+                chatImageAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerImageList, "aria-label": "Pasted images", children: [
+                  chatImageAttachments.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      className: App_default.composerImageChip,
+                      type: "button",
+                      onClick: () => removeChatImageAttachment(image.id),
+                      disabled: isSending,
+                      title: `Remove ${image.name}`,
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: "" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: image.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: [image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                      ]
+                    },
+                    image.id
+                  )),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "button",
+                    {
+                      className: App_default.textButton,
+                      type: "button",
+                      onClick: clearChatImageAttachments,
+                      disabled: isSending,
+                      title: "Remove all pasted images",
+                      children: "Clear images"
+                    }
+                  )
+                ] })
+              ] }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "textarea",
                 {
@@ -45225,7 +45826,8 @@ ${toolText}`;
                   value: input,
                   onChange: (event) => setInput(event.target.value),
                   onKeyDown: handleInputKeyDown,
-                  placeholder: "Reply to CodeAgent...",
+                  onPaste: handleComposerPaste,
+                  placeholder: "Reply to CodeAgent or paste an image...",
                   rows: 1,
                   disabled: isSending,
                   "aria-label": "Message"
@@ -45236,7 +45838,7 @@ ${toolText}`;
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
                   "Clear"
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim(), title: "Send message", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim() && chatImageAttachments.length === 0, title: "Send message", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
                   "Send"
                 ] })
@@ -45387,6 +45989,8 @@ ${toolText}`;
               onClearToken: clearToken,
               onAccountLogin: handleAccountLogin,
               onAccountRegister: handleAccountRegister,
+              onAccountForgotPassword: handleAccountForgotPassword,
+              onAccountResetPassword: handleAccountResetPassword,
               onAccountLogout: handleAccountLogout,
               onPlatformSync: handlePlatformSync,
               canSyncPlatform,
@@ -46609,7 +47213,10 @@ ${toolText}`;
     }
     async function copyProjectMessage(message) {
       try {
-        await navigator.clipboard.writeText(message.content);
+        const imageSummary = formatImageAttachmentSummary(message.imageAttachments ?? []);
+        await navigator.clipboard.writeText(imageSummary ? `${message.content}
+
+Attached images: ${imageSummary}` : message.content);
         setCopiedProjectMessageId(message.id);
         window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
       } catch {
@@ -50138,7 +50745,10 @@ ${toolText}`;
           copied ? "Copied" : "Copy"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.messageContent, children: message.role === "tool" ? renderToolMessageContent(message) : renderMessageContent(message.content) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageContent, children: [
+        message.role === "tool" ? renderToolMessageContent(message) : renderMessageContent(message.content),
+        (message.imageAttachments?.length ?? 0) > 0 && renderMessageImages(message.imageAttachments ?? [])
+      ] }),
       message.usage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageMeta, children: [
         message.usage.inputTokens,
         " input tokens / ",
@@ -50146,6 +50756,12 @@ ${toolText}`;
         " output tokens"
       ] })
     ] });
+  }
+  function renderMessageImages(images) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.messageImageGrid, children: images.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("figure", { className: App_default.messageImageItem, children: [
+      image.dataUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: image.name }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.messageImagePlaceholder, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "file", size: 18 }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("figcaption", { children: [image.name, image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") })
+    ] }, image.id)) });
   }
   function renderToolMessageContent(message) {
     const trimmed = message.content.trim();
@@ -50300,6 +50916,8 @@ ${toolText}`;
     onChange,
     onLogin,
     onRegister,
+    onForgotPassword,
+    onResetPassword,
     onLogout,
     onSync,
     canSync,
@@ -50416,8 +51034,18 @@ ${toolText}`;
             label: "Platform password",
             type: "password",
             value: draft.accountPassword,
-            placeholder: "required for platform login",
+            placeholder: "required for platform login or reset",
             onChange: (value) => onChange({ accountPassword: value }),
+            className: App_default.fieldWide
+          }
+        ),
+        !isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          TextSetting,
+          {
+            label: "Reset token",
+            value: draft.accountResetToken,
+            placeholder: "from reset email",
+            onChange: (value) => onChange({ accountResetToken: value }),
             className: App_default.fieldWide
           }
         )
@@ -50434,6 +51062,14 @@ ${toolText}`;
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRegister, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
             "Create account"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onForgotPassword, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
+            "Send reset"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onResetPassword, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
+            "Reset password"
           ] })
         ] }),
         isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onSync, disabled: !canSync || syncing, children: [
@@ -50701,6 +51337,8 @@ ${toolText}`;
     onClearToken,
     onAccountLogin,
     onAccountRegister,
+    onAccountForgotPassword,
+    onAccountResetPassword,
     onAccountLogout,
     onPlatformSync,
     canSyncPlatform,
@@ -50735,6 +51373,8 @@ ${toolText}`;
             onChange,
             onLogin: onAccountLogin,
             onRegister: onAccountRegister,
+            onForgotPassword: onAccountForgotPassword,
+            onResetPassword: onAccountResetPassword,
             onLogout: onAccountLogout,
             onSync: onPlatformSync,
             canSync: canSyncPlatform,

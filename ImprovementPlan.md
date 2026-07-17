@@ -64,6 +64,7 @@
 - [~] The software-developer package is modeled as a signed installable paid package and has a separate package repo/artifact build, but paid implementation modules still exist in the base CodeAgent codebase until the strict extraction step is finished.
 - [~] Desktop and CLI package installers verify signed artifacts downloaded from the platform, but production still needs durable vendor artifact storage, update/uninstall state, revocation, and signing-key rotation.
 - [~] Desktop can use the platform catalog after login and app-start/manual sync, but offline cache conflict handling and expired-token UX still need hardening.
+- [~] CodeAgent desktop exposes platform account creation, but the platform customer portal still needs self-service signup, forgot-password, and reset-password screens for individual customers.
 - [~] Platform Marketplace and `/code-agent/catalog` are now separate endpoint projections backed by a shared platform catalog service. The first slice covers CodeAgent packages; the durable catalog repository and vendor publishing flow still need to become the source of truth for all package/software product types.
 - [~] Web, desktop, and CLI now agree on package entitlement/install state through platform profile/catalog sync, but the broader product workflows are not yet parity-tested across `agent-platform`, `agent-frontend`, CodeAgent desktop, CLI, and future mobile shells.
 
@@ -71,8 +72,9 @@
 - [ ] Promote the platform catalog service into a durable source of truth for app/software/package listings, package runtime manifests, pricing, artifact metadata, reviews, publishing state, and install compatibility; keep separate endpoints only as projections for specific clients.
 - [ ] Add a cross-client parity matrix covering `agent-platform` web, `agent-frontend`, CodeAgent desktop, CodeAgent CLI, and mobile so every feature has an owner service, package id, entitlement rule, shell presentation, and test status.
 - [ ] Bring platform web UX and CodeAgent desktop UX into feature parity for account/profile, Marketplace/catalog, package purchase/install/manage, billing, project workflows, activity/history, provider selection, and package settings.
+- [ ] Add individual-customer account self-service across `agent-platform` customer portal and CodeAgent desktop: create account, forgot password, reset password, expired-token recovery, and clear separation from enterprise admin-provisioned onboarding.
 - [ ] Add hosted LLM provider mode and model routing through `agent-platform`.
-- [ ] Download paid package artifacts from platform/vendor package-store URLs instead of requiring a local artifact path or debug artifact directory.
+- [x] Download paid package artifacts from `agent-platform` instead of requiring a local artifact path or debug artifact directory.
 - [ ] Add vendor publishing workflow that validates package manifests, signatures, pricing, support/legal metadata, and artifact compatibility before catalog listing.
 - [ ] Sync CodeAgent activity, purchases, receipts, and package install state back to platform while preserving offline local cache behavior.
 
@@ -1392,7 +1394,7 @@ window.api = {
 - **Target Launch**: ~July 21, 2026 for packaged desktop baseline; automation/team features may extend beyond the initial package if not complete
 - **Phase 1 Completed**: June 23, 2026 (Day 1) ✅
 - **Latest Update**: July 15, 2026 - added desktop platform app-start/manual sync, desktop platform registration, CLI platform account/catalog/profile/purchase/install commands, platform-backed CLI feature resolution, signed `software-developer` package artifact metadata, deterministic package artifacts, shared desktop/CLI signed artifact verification, and entitlement-gated artifact download from local `agent-platform` before install records are written. The verifier still warns until paid implementation modules are extracted from core.
-- **Next Focus**: move Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings out of the core renderer/CLI modules into the `software-developer` package so `verify-feature-package-boundaries --strict` can pass, then add package update/uninstall/revocation/key-rotation states.
+- **Next Focus**: add individual-customer signup and password recovery across the platform customer portal and CodeAgent desktop, then move Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings out of the core renderer/CLI modules into the `software-developer` package so `verify-feature-package-boundaries --strict` can pass.
 
 ---
 
