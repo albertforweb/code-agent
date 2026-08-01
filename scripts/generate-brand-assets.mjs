@@ -66,35 +66,39 @@ const icoImages = await Promise.all(icoSizes.map(async size => ({
 })));
 await writeFile(path.join(resourcesDir, 'icon.ico'), createIco(icoImages));
 
-await rm(iconsetDir, { recursive: true, force: true });
-await mkdir(iconsetDir, { recursive: true });
-const iconsetSizes = [
-  ['icon_16x16.png', 16],
-  ['icon_16x16@2x.png', 32],
-  ['icon_32x32.png', 32],
-  ['icon_32x32@2x.png', 64],
-  ['icon_128x128.png', 128],
-  ['icon_128x128@2x.png', 256],
-  ['icon_256x256.png', 256],
-  ['icon_256x256@2x.png', 512],
-  ['icon_512x512.png', 512],
-  ['icon_512x512@2x.png', 1024],
-];
-
-for (const [filename, size] of iconsetSizes) {
-  await renderPng(size, path.join(iconsetDir, filename));
-}
-
-try {
-  await execFileAsync('iconutil', [
-    '-c',
-    'icns',
-    iconsetDir,
-    '-o',
-    path.join(resourcesDir, 'icon.icns'),
-  ]);
-} finally {
+// iconutil is only supplied by macOS. Windows and Linux need icon.png/icon.ico
+// but can keep the checked-in macOS icon untouched for cross-platform builds.
+if (process.platform === 'darwin') {
   await rm(iconsetDir, { recursive: true, force: true });
+  await mkdir(iconsetDir, { recursive: true });
+  const iconsetSizes = [
+    ['icon_16x16.png', 16],
+    ['icon_16x16@2x.png', 32],
+    ['icon_32x32.png', 32],
+    ['icon_32x32@2x.png', 64],
+    ['icon_128x128.png', 128],
+    ['icon_128x128@2x.png', 256],
+    ['icon_256x256.png', 256],
+    ['icon_256x256@2x.png', 512],
+    ['icon_512x512.png', 512],
+    ['icon_512x512@2x.png', 1024],
+  ];
+
+  for (const [filename, size] of iconsetSizes) {
+    await renderPng(size, path.join(iconsetDir, filename));
+  }
+
+  try {
+    await execFileAsync('iconutil', [
+      '-c',
+      'icns',
+      iconsetDir,
+      '-o',
+      path.join(resourcesDir, 'icon.icns'),
+    ]);
+  } finally {
+    await rm(iconsetDir, { recursive: true, force: true });
+  }
 }
 
 console.log('Generated CodeAgent brand assets in electron/resources');
