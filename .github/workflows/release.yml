@@ -29,7 +29,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: '20'
+  # Electron 43 and its build tooling require Node.js 22.12 or newer.
+  NODE_VERSION: '22'
 
 jobs:
   cli:
