@@ -132,6 +132,7 @@ export function isLlmProviderAuthEnabled(): boolean {
   // Check if API key is from an external source (not managed by /login)
   const { source: apiKeySource } = getLlmProviderApiKeyWithSource({
     skipRetrievingKeyFromApiKeyHelper: true,
+    allowMissingInCi: true,
   })
   const hasExternalApiKey =
     apiKeySource === 'LLM_PROVIDER_API_KEY' || apiKeySource === 'apiKeyHelper'
@@ -226,7 +227,13 @@ export function hasLlmProviderApiKeyAuth(): boolean {
 }
 
 export function getLlmProviderApiKeyWithSource(
-  opts: { skipRetrievingKeyFromApiKeyHelper?: boolean } = {},
+  opts: {
+    skipRetrievingKeyFromApiKeyHelper?: boolean
+    // Auth capability checks run for credential-free CLI commands in CI.
+    // They need to report unauthenticated rather than fail like a request
+    // that actually needs an API key.
+    allowMissingInCi?: boolean
+  } = {},
 ): {
   key: null | string
   source: ApiKeySource
@@ -279,6 +286,9 @@ export function getLlmProviderApiKeyWithSource(
       !process.env.CODE_AGENT_OAUTH_TOKEN &&
       !process.env.CODE_AGENT_OAUTH_TOKEN_FILE_DESCRIPTOR
     ) {
+      if (opts.allowMissingInCi) {
+        return { key: null, source: 'none' }
+      }
       throw new Error(
         'LLM_PROVIDER_API_KEY or CODE_AGENT_OAUTH_TOKEN env var is required',
       )

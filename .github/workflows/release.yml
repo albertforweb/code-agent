@@ -143,10 +143,14 @@ jobs:
             code-agent-packages/package-lock.json
 
       - name: Install feature package dependencies
+        if: matrix.platform != 'windows'
         working-directory: code-agent-packages
         run: npm ci
 
       - name: Build feature packages
+        # The Windows desktop build consumes the generated core catalog, not this
+        # external artifact. The CLI and macOS jobs continue to build it.
+        if: matrix.platform != 'windows'
         working-directory: code-agent-packages
         run: npm run build
 
@@ -165,7 +169,14 @@ jobs:
       - name: Package desktop app
         working-directory: code-agent
         shell: bash
-        run: npx electron-builder ${{ matrix.electron_target }} --publish never
+        run: |
+          # electron-builder distinguishes an unset signing link from an explicitly
+          # empty one. GitHub Actions exports missing secrets as empty strings,
+          # which electron-builder otherwise interprets as the project directory.
+          if [[ -z "${CSC_LINK:-}" ]]; then
+            unset CSC_LINK CSC_KEY_PASSWORD
+          fi
+          npx electron-builder ${{ matrix.electron_target }} --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
