@@ -15,6 +15,7 @@ const cacheRoot = path.join(root, '.cache', 'models')
 const token = process.env.HF_TOKEN ?? process.env.HUGGING_FACE_HUB_TOKEN
 const headers = {
   'User-Agent': 'CodeAgent-build',
+  Accept: 'application/octet-stream',
   ...(token ? { Authorization: `Bearer ${token}` } : {}),
 }
 
@@ -55,16 +56,23 @@ await writeFile(path.join(destination, 'bundle.json'), `${JSON.stringify(catalog
 function resolveUrl(model, file) {
   const repository = model.repository.split('/').map(encodeURIComponent).join('/')
   const encodedFile = file.split('/').map(encodeURIComponent).join('/')
-  // Hugging Face's cache resolver returns the pinned blob/CDN location and
-  // avoids accidentally accepting an HTML model page as the artifact.
-  return `https://huggingface.co/api/resolve-cache/models/${repository}/${encodeURIComponent(model.revision)}/${encodedFile}`
+  // Use the public, revision-pinned repository endpoint. `/api/resolve-cache`
+  // is an internal redirect target whose signed query parameters can expire or
+  // be rejected on a different CI runner.
+  return `https://huggingface.co/${repository}/resolve/${encodeURIComponent(model.revision)}/${encodedFile}?download=true`
 }
 
 async function download(url, output) {
   const partial = `${output}.part`
   await rm(partial, { force: true })
-  const response = await fetch(url, { redirect: 'follow', headers })
-  if (!response.ok || !response.body) throw new Error(`Unable to download ${url}: ${response.status}`)
+  const response = await fetchWithRetry(url)
+  if (!response.ok || !response.body) {
+    const detail = await response.text().then(value => value.trim().slice(0, 500)).catch(() => '')
+    const tokenHint = response.status === 401 || response.status === 403
+      ? ' Set the HF_TOKEN repository secret if Hugging Face requires authenticated CI downloads.'
+      : ''
+    throw new Error(`Unable to download ${url}: ${response.status}${detail ? ` — ${detail}` : ''}.${tokenHint}`)
+  }
   if (response.headers.get('content-type')?.toLowerCase().includes('text/html')) {
     throw new Error(`Hugging Face returned HTML instead of an artifact for ${url}`)
   }
@@ -75,6 +83,22 @@ async function download(url, output) {
     await rm(partial, { force: true })
     throw error
   }
+}
+
+async function fetchWithRetry(url) {
+  const retryableStatuses = new Set([408, 429, 500, 502, 503, 504])
+  let response
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    try {
+      response = await fetch(url, { redirect: 'follow', headers })
+      if (!retryableStatuses.has(response.status) || attempt === 3) return response
+      await response.body?.cancel()
+    } catch (error) {
+      if (attempt === 3) throw error
+    }
+    await new Promise(resolve => setTimeout(resolve, 500 * (2 ** attempt)))
+  }
+  return response
 }
 
 async function verifyArtifact(file, model) {

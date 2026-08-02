@@ -82,6 +82,9 @@ jobs:
       - name: Build and verify CLI package
         working-directory: code-agent
         run: npm run pack:cli:check
+        env:
+          # Optional for public models; raises Hub rate limits when configured.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Generate release notes
         working-directory: code-agent
@@ -175,6 +178,9 @@ jobs:
       - name: Bundle offline starter model
         working-directory: code-agent
         run: npm run bundle:model:desktop
+        env:
+          # Optional for public models; raises Hub rate limits when configured.
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
 
       - name: Package desktop app
         working-directory: code-agent
