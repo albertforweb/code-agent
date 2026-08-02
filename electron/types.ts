@@ -182,7 +182,7 @@ export interface ChatMessage {
   content: ChatMessageContent;
 }
 
-export type LlmProviderType = 'openai' | 'openai-compatible';
+export type LlmProviderType = 'codeagent' | 'openai' | 'openai-compatible';
 
 export interface ChatRequest {
   messages: ChatMessage[];
@@ -236,6 +236,71 @@ export interface BootstrapData {
   user: any;
   config: any;
   features: Record<string, boolean>;
+}
+
+export interface HuggingFaceModel {
+  id: string;
+  downloads: number;
+  likes: number;
+  lastModified?: string;
+  pipelineTag?: string;
+  tags: string[];
+  gated: boolean | string;
+}
+
+export interface HuggingFaceModelFile {
+  name: string;
+  size?: number;
+  quantization?: string;
+}
+
+export interface LocalModelRecord {
+  id: string;
+  repository: string;
+  file: string;
+  path: string;
+  size: number;
+  downloadedAt: string;
+  source?: 'bundled' | 'downloaded';
+  displayName?: string;
+  revision?: string;
+  sha256?: string;
+  license?: string;
+  quantization?: string;
+}
+
+export interface LocalInferenceStartRequest {
+  model: string;
+  enginePath?: string;
+  host?: string;
+  port?: number;
+  contextTokens?: number;
+  gpuLayers?: number;
+}
+
+export interface LocalInferenceStatus {
+  running: boolean;
+  healthy: boolean;
+  pid?: number;
+  model?: string;
+  modelPath?: string;
+  baseUrl: string;
+  enginePath?: string;
+  startedAt?: string;
+  logPath: string;
+  error?: string;
+}
+
+export interface LocalInferenceEngineInfo {
+  installed: boolean;
+  path?: string;
+  version?: string;
+  source?: string;
+}
+
+export interface LocalInferenceLog {
+  path: string;
+  content: string;
 }
 
 // ============================================================================
@@ -344,6 +409,8 @@ export interface AppConfig {
   temperature?: number;
   maxTokens?: number;
   contextTokens?: number;
+  localEnginePath?: string;
+  localGpuLayers?: number;
   enableLlmTools?: boolean;
   disabledLlmTools?: string[];
   toolPermissionPolicies?: Record<string, ToolPermissionMode>;
@@ -720,6 +787,19 @@ export const IPC_CHANNELS = {
   'api:chatComplete': 'api:chatComplete',
   'api:chatError': 'api:chatError',
   'api:fetchBootstrap': 'api:fetchBootstrap',
+
+  // Local model channels
+  'localModels:search': 'localModels:search',
+  'localModels:listFiles': 'localModels:listFiles',
+  'localModels:download': 'localModels:download',
+  'localModels:listDownloaded': 'localModels:listDownloaded',
+  'localModels:installEngine': 'localModels:installEngine',
+  'localModels:engineInfo': 'localModels:engineInfo',
+  'localModels:start': 'localModels:start',
+  'localModels:stop': 'localModels:stop',
+  'localModels:status': 'localModels:status',
+  'localModels:readLog': 'localModels:readLog',
+  'localModels:openLog': 'localModels:openLog',
 
   // MCP channels
   'mcp:listServers': 'mcp:listServers',

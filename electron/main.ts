@@ -219,6 +219,10 @@ app.on('activate', () => {
   }
 });
 
+app.on('will-quit', () => {
+  serviceBridges?.localModelService.shutdownSync();
+});
+
 /**
  * Prevent multiple instances
  */

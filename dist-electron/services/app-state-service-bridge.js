@@ -113,9 +113,9 @@ class AppStateServiceBridge {
         this.stateVersion = 0;
         this.writeQueue = Promise.resolve();
         this.appConfig = {
-            llmProvider: 'openai-compatible',
-            baseUrl: 'http://127.0.0.1:1234/v1',
-            model: 'local-model',
+            llmProvider: 'codeagent',
+            baseUrl: 'http://127.0.0.1:14321/v1',
+            model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
             temperature: 0.7,
             maxTokens: 2048,
             contextTokens: 8192,
@@ -224,9 +224,9 @@ class AppStateServiceBridge {
      */
     async resetConfig() {
         return this.setConfig({
-            llmProvider: 'openai-compatible',
-            baseUrl: 'http://127.0.0.1:1234/v1',
-            model: 'local-model',
+            llmProvider: 'codeagent',
+            baseUrl: 'http://127.0.0.1:14321/v1',
+            model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
             temperature: 0.7,
             maxTokens: 2048,
             contextTokens: 8192,

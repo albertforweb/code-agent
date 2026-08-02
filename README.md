@@ -9,6 +9,7 @@ The project is no longer a provider-branded SDK wrapper. Model calls go through 
 - Runs as a CLI through `code-agent` or directly through `dist/entrypoints/cli.js`
 - Runs as a desktop workbench through Electron and React
 - Connects to OpenAI or any OpenAI-compatible `/chat/completions` API
+- Finds and downloads public GGUF models from Hugging Face and manages a local llama.cpp inference server
 - Reads, writes, edits, searches, and reasons over workspace files
 - Executes shell commands behind permission and sandbox policy
 - Supports MCP servers, MCP tools, and MCP resource access
@@ -54,6 +55,20 @@ You can also pass provider settings at runtime:
 ```bash
 code-agent --llm-provider openai-compatible --base-url http://127.0.0.1:1234/v1 --model <loaded-model-id>
 ```
+
+### CodeAgent local backend
+
+The CLI and desktop distributions bundle [llama.cpp](https://github.com/ggml-org/llama.cpp). Select the `CodeAgent` backend and a public GGUF model from Hugging Face; CodeAgent downloads the selected model and owns the inference process for the lifetime of the CLI or desktop app.
+
+CLI example:
+
+```bash
+code-agent --llm-provider codeagent --model Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF
+```
+
+The managed server binds only to loopback and stops when its owning CodeAgent process exits. Set `HF_TOKEN` when downloading a repository that requires authentication. Downloads and CLI inference state are stored under `~/.code-agent/local-models`. The `code-agent models ...` commands remain available for catalog inspection and diagnostics.
+
+In the desktop app, open **Settings → Model**, choose **CodeAgent** under **LLM backend**, select a Hugging Face model, and save. Saving downloads the model if needed and starts or restarts inference. Desktop downloads live in the application's user-data directory.
 
 ## Local Configuration
 

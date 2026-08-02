@@ -6,18 +6,22 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiServiceBridge = void 0;
 const DEFAULT_MODELS = {
+    codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
     openai: 'gpt-4o-mini',
     'openai-compatible': 'local-model',
 };
 const DEFAULT_BASE_URLS = {
+    codeagent: 'http://127.0.0.1:14321/v1',
     openai: 'https://api.openai.com/v1',
     'openai-compatible': 'http://127.0.0.1:1234/v1',
 };
 const DEFAULT_CONTEXT_TOKENS = {
+    codeagent: 8192,
     openai: 128000,
     'openai-compatible': 8192,
 };
 const DEFAULT_MAX_TOKENS = {
+    codeagent: 2048,
     openai: 4096,
     'openai-compatible': 2048,
 };
@@ -343,7 +347,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         const contextTokens = this.resolveContextTokens(provider, request.contextTokens ?? appConfig?.contextTokens);
         const maxTokens = this.resolveMaxTokens(provider, request.maxTokens ?? appConfig?.maxTokens, contextTokens);
         const apiKey = token?.accessToken || this.getEnvironmentApiKey(provider);
-        if (provider !== 'openai-compatible' && !apiKey) {
+        if (provider === 'openai' && !apiKey) {
             throw new Error(`API client not initialized: configure an API key for ${this.getProviderLabel(provider)} first`);
         }
         return {
@@ -908,6 +912,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         return process.env.OPENAI_COMPATIBLE_API_KEY;
     }
     getProviderLabel(provider) {
+        if (provider === 'codeagent')
+            return 'CodeAgent';
         if (provider === 'openai-compatible') {
             return 'OpenAI-compatible';
         }
@@ -919,7 +925,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         const token = await this.authTokenProvider?.(provider);
         return {
             user: {
-                authenticated: provider === 'openai-compatible' || Boolean(token?.accessToken || this.getEnvironmentApiKey(provider)),
+                authenticated: provider === 'openai-compatible' || provider === 'codeagent' || Boolean(token?.accessToken || this.getEnvironmentApiKey(provider)),
             },
             config: {
                 llmProvider: provider,
@@ -939,6 +945,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         };
     }
     normalizeProvider(value) {
+        if (value === 'codeagent')
+            return 'codeagent';
         return value === 'openai' ? 'openai' : 'openai-compatible';
     }
 }

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "models": [
+    {
+      "id": "codeagent-offline-starter",
+      "displayName": "Offline starter — Qwen2.5 Coder 0.5B",
+      "repository": "Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF",
+      "revision": "ebb2015119c907b064c512bf053e945850b5875f",
+      "file": "qwen2.5-coder-0.5b-instruct-q4_0.gguf",
+      "sha256": "9739055e046d62a937e5b7879012209ef40ebea8a1569a96028de491f3f091d5",
+      "size": 428730240,
+      "quantization": "Q4_0",
+      "license": "Apache-2.0",
+      "contextTokens": 32768
+    }
+  ]
+}

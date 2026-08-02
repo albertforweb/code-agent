@@ -1,23 +1,27 @@
 import { isEnvTruthy } from '../envUtils.js'
 
-export type OpenAIProviderKind = 'openai' | 'openai-compatible'
+export type OpenAIProviderKind = 'codeagent' | 'openai' | 'openai-compatible'
 
 const DEFAULT_BASE_URLS: Record<OpenAIProviderKind, string> = {
+  codeagent: 'http://127.0.0.1:14321/v1',
   openai: 'https://api.openai.com/v1',
   'openai-compatible': 'http://127.0.0.1:1234/v1',
 }
 
 const DEFAULT_MODELS: Record<OpenAIProviderKind, string> = {
+  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
   openai: 'gpt-4o-mini',
   'openai-compatible': 'local-model',
 }
 
 const DEFAULT_CONTEXT_TOKENS: Record<OpenAIProviderKind, number> = {
+  codeagent: 8_192,
   openai: 128_000,
   'openai-compatible': 8_192,
 }
 
 const DEFAULT_MAX_OUTPUT_TOKENS: Record<OpenAIProviderKind, number> = {
+  codeagent: 2_048,
   openai: 4_096,
   'openai-compatible': 2_048,
 }
@@ -32,6 +36,7 @@ export function getOpenAICompatibleProviderKind(): OpenAIProviderKind | null {
 
   const normalized = raw.trim().toLowerCase().replace(/_/g, '-')
   if (normalized === 'openai') return 'openai'
+  if (normalized === 'codeagent' || normalized === 'code-agent') return 'codeagent'
   if (
     normalized === 'openai-compatible' ||
     normalized === 'local' ||

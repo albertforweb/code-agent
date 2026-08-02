@@ -167,6 +167,22 @@ function assertTarball(tarballPath) {
     }
   }
 
+  for (const target of ['darwin-arm64', 'darwin-x64', 'linux-arm64', 'linux-x64', 'win32-arm64', 'win32-x64']) {
+    const suffix = target.startsWith('win32') ? 'llama-server.exe' : 'llama-server';
+    if (!entries.some(entry => entry.startsWith(`package/dist/resources/llama.cpp/${target}/`) && entry.endsWith(suffix))) {
+      fail(`npm package is missing the bundled llama.cpp server for ${target}`);
+    }
+  }
+
+  for (const bundledModelFile of [
+    'package/dist/resources/models/bundle.json',
+    'package/dist/resources/models/codeagent-offline-starter/qwen2.5-coder-0.5b-instruct-q4_0.gguf',
+    'package/dist/resources/models/codeagent-offline-starter/LICENSE',
+    'package/dist/resources/models/codeagent-offline-starter/MODEL_CARD.md',
+  ]) {
+    if (!entrySet.has(bundledModelFile)) fail(`npm package is missing ${bundledModelFile}`);
+  }
+
   for (const prefix of forbiddenPackagePrefixes) {
     const match = entries.find(entry => entry.startsWith(prefix));
     if (match) {
@@ -206,6 +222,11 @@ function assertIsolatedInstall(tarballPath) {
   const featuresResult = run(binPath, ['features', 'packages'], { cwd: tempDir });
   if (!featuresResult.stdout.includes('software-developer') || !featuresResult.stdout.includes('locked')) {
     fail(`unexpected installed CLI features output: ${featuresResult.stdout.trim()}`);
+  }
+
+  const modelsResult = run(binPath, ['models', 'list'], { cwd: tempDir });
+  if (!modelsResult.stdout.includes('Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF') || !modelsResult.stdout.includes('"source": "bundled"')) {
+    fail(`installed CLI did not discover the bundled offline starter model: ${modelsResult.stdout.trim()}`);
   }
 }
 

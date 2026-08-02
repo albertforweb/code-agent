@@ -17,6 +17,7 @@ class IpcBridge {
         this.mcpHandlers = new Map();
         this.automationHandlers = new Map();
         this.historyHandlers = new Map();
+        this.localModelHandlers = new Map();
         this.setupChannelHandlers();
     }
     /**
@@ -33,6 +34,17 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:chatStream'], this.handleApiChatStream.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:search'], (_event, request) => this.getLocalModelHandler('search')(request));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:listFiles'], (_event, repository) => this.getLocalModelHandler('listFiles')(repository));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:download'], (_event, request) => this.getLocalModelHandler('download')(request));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:listDownloaded'], () => this.getLocalModelHandler('listDownloaded')({}));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:installEngine'], () => this.getLocalModelHandler('installEngine')({}));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:engineInfo'], () => this.getLocalModelHandler('engineInfo')({}));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:start'], (_event, request) => this.getLocalModelHandler('start')(request));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:stop'], () => this.getLocalModelHandler('stop')({}));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:status'], () => this.getLocalModelHandler('status')({}));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:readLog'], (_event, tailLines) => this.getLocalModelHandler('readLog')(tailLines));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['localModels:openLog'], () => this.getLocalModelHandler('openLog')({}));
         // MCP channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['mcp:listTools'], this.handleMcpListTools.bind(this));
@@ -184,6 +196,12 @@ class IpcBridge {
             throw new Error('File system handler not configured');
         }
         return handler(request);
+    }
+    getLocalModelHandler(operation) {
+        const handler = this.localModelHandlers.get(operation);
+        if (!handler)
+            throw new Error(`Local model handler not configured: ${operation}`);
+        return handler;
     }
     async handleFileOpen(event, request) {
         const handler = this.fsHandlers.get('open');
@@ -484,6 +502,9 @@ class IpcBridge {
     }
     registerHistoryHandler(operation, handler) {
         this.historyHandlers.set(operation, handler);
+    }
+    registerLocalModelHandler(operation, handler) {
+        this.localModelHandlers.set(operation, handler);
     }
     registerAuthHandler(operation, handler) {
         this.authHandlers.set(operation, handler);

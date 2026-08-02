@@ -19,7 +19,6 @@ import cost from './commands/cost/index.js'
 import diff from './commands/diff/index.js'
 import ctx_viz from './commands/ctx_viz/index.js'
 import doctor from './commands/doctor/index.js'
-import employee from './commands/employee/index.js'
 import memory from './commands/memory/index.js'
 import help from './commands/help/index.js'
 import ide from './commands/ide/index.js'
@@ -45,7 +44,6 @@ import skills from './commands/skills/index.js'
 import status from './commands/status/index.js'
 import tasks from './commands/tasks/index.js'
 import teleport from './commands/teleport/index.js'
-import role from './commands/role/index.js'
 /* eslint-disable @typescript-eslint/no-require-imports */
 const agentsPlatform =
   process.env.USER_TYPE === 'internal'
@@ -56,7 +54,6 @@ import securityReview from './commands/security-review.js'
 import bughunter from './commands/bughunter/index.js'
 import terminalSetup from './commands/terminalSetup/index.js'
 import usage from './commands/usage/index.js'
-import team from './commands/team/index.js'
 import theme from './commands/theme/index.js'
 import vim from './commands/vim/index.js'
 import { feature } from 'bun:bundle'
@@ -128,7 +125,6 @@ import thinkback from './commands/thinkback/index.js'
 import thinkbackPlay from './commands/thinkback-play/index.js'
 import permissions from './commands/permissions/index.js'
 import plan from './commands/plan/index.js'
-import project from './commands/project/index.js'
 import fast from './commands/fast/index.js'
 import passes from './commands/passes/index.js'
 import privacySettings from './commands/privacy-settings/index.js'
@@ -212,6 +208,14 @@ import {
   getCommandName,
   isCommandEnabled,
 } from './types/command.js'
+import {
+  getFeaturePackageExtensions,
+} from './src/features/feature-packages.js'
+import { resolveCliFeaturePackages } from './cli/handlers/features.js'
+import {
+  runSoftwareDeveloperAutomationCommand,
+  runSoftwareDeveloperProjectCommand,
+} from './cli/feature-package-runtime.js'
 
 // Re-export types from the centralized location
 export type {
@@ -224,6 +228,61 @@ export type {
   ResumeEntrypoint,
 } from './types/command.js'
 export { getCommandName, isCommandEnabled } from './types/command.js'
+
+const SOFTWARE_DEVELOPER_LOCAL_COMMANDS = new Set([
+  'project',
+  'projects',
+  'role',
+  'roles',
+  'employee',
+  'employees',
+  'people',
+  'team',
+  'teams',
+  'automation',
+  'auto',
+])
+
+function getSoftwareDeveloperLocalCommands(): Command[] {
+  const resolution = resolveCliFeaturePackages()
+  const commands = new Map<string, Command>()
+
+  for (const { extension } of getFeaturePackageExtensions(resolution, 'cli.command')) {
+    for (const commandName of [extension.command, ...(extension.commandAliases ?? [])].filter(Boolean)) {
+      if (!SOFTWARE_DEVELOPER_LOCAL_COMMANDS.has(commandName)) {
+        continue
+      }
+
+      const scope = getSoftwareDeveloperProjectScope(commandName)
+      const command: Command = {
+        type: 'local',
+        name: commandName,
+        description: extension.title || `Run ${commandName} from an installed feature package`,
+        argumentHint: '[args...]',
+        supportsNonInteractive: true,
+        load: async () => ({
+          call: async args => ({
+            type: 'text',
+            value:
+              commandName === 'automation' || commandName === 'auto'
+                ? await runSoftwareDeveloperAutomationCommand(args)
+                : await runSoftwareDeveloperProjectCommand(args, scope),
+          }),
+        }),
+      }
+      commands.set(commandName, command)
+    }
+  }
+
+  return [...commands.values()]
+}
+
+function getSoftwareDeveloperProjectScope(commandName: string): string {
+  if (commandName === 'role' || commandName === 'roles') return 'role'
+  if (commandName === 'employee' || commandName === 'employees' || commandName === 'people') return 'employee'
+  if (commandName === 'team' || commandName === 'teams') return 'team'
+  return 'project'
+}
 
 // Commands that get eliminated from the external build
 export const INTERNAL_ONLY_COMMANDS = [
@@ -278,7 +337,6 @@ const COMMANDS = memoize((): Command[] => [
   diff,
   doctor,
   effort,
-  employee,
   exit,
   fast,
   files,
@@ -296,7 +354,6 @@ const COMMANDS = memoize((): Command[] => [
   outputStyle,
   remoteEnv,
   plugin,
-  project,
   pr_comments,
   releaseNotes,
   reloadPlugins,
@@ -304,7 +361,6 @@ const COMMANDS = memoize((): Command[] => [
   resume,
   session,
   skills,
-  role,
   stats,
   status,
   statusline,
@@ -345,7 +401,7 @@ const COMMANDS = memoize((): Command[] => [
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,
-  team,
+  ...getSoftwareDeveloperLocalCommands(),
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(torch ? [torch] : []),
   ...(process.env.USER_TYPE === 'internal' && !process.env.IS_DEMO

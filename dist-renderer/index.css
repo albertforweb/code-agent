@@ -658,7 +658,7 @@ body.App_dark .App_navSidebar {
   padding: 0 8px 8px;
 }
 .App_navSidebarCollapsed .App_brandBlock {
-  justify-content: space-between;
+  justify-content: center;
   gap: 4px;
   padding-right: 0;
   padding-left: 0;
@@ -714,35 +714,6 @@ body.App_dark .App_brandMark {
   border-color: rgba(233, 132, 86, 0.35);
   background: #33261f;
   color: #e98456;
-}
-.App_navCollapseButton {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.56);
-  color: #4f5b6b;
-  font-size: var(--font-size-sm);
-  font-weight: 760;
-}
-.App_navCollapseButton:hover {
-  background: #fbfaf7;
-}
-.App_navSidebarCollapsed .App_navCollapseButton {
-  width: 24px;
-  height: 24px;
-  margin-left: 0;
-}
-body.App_dark .App_navCollapseButton {
-  border-color: #403b32;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--color-text-dark-secondary);
-}
-body.App_dark .App_navCollapseButton:hover {
-  background: #302b25;
 }
 .App_newChatButton,
 .App_navItem,
@@ -820,6 +791,10 @@ body.App_dark .App_navCollapseButton:hover {
 .App_recentList {
   display: grid;
   gap: 2px;
+}
+.App_navList {
+  min-height: 0;
+  overflow-y: auto;
 }
 .App_navGroup {
   display: grid;
@@ -965,6 +940,11 @@ body.App_dark .App_navCollapseButton:hover {
 .App_sidebarBottom .App_sidebarFooter {
   margin-top: 0;
 }
+.App_navSidebarCollapsed .App_sidebarFooter {
+  justify-content: center;
+  padding-right: 0;
+  padding-left: 0;
+}
 .App_sidebarSettingsButton,
 .App_sidebarSettingsButtonActive {
   display: flex;
@@ -1089,6 +1069,50 @@ body.App_dark .App_header {
 }
 .App_headerTitle {
   min-width: 0;
+}
+.App_headerLeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.App_headerNavButton {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #6d655b;
+}
+.App_headerNavButton:hover:not(:disabled) {
+  border-color: var(--color-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-primary);
+}
+.App_headerNavButton[aria-pressed=true] {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+.App_headerNavButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.App_headerNavButton:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+body.App_dark .App_headerNavButton {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_headerNavButton:hover:not(:disabled) {
+  border-color: #4b4439;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e98456;
 }
 .App_header h1 {
   max-width: min(620px, 50vw);
@@ -4667,6 +4691,406 @@ body.App_dark .App_settingsSummary p {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.App_localInferencePanel {
+  display: grid;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+body.App_dark .App_localInferencePanel {
+  border-top-color: var(--color-border-dark);
+}
+.App_localInferencePanel h4,
+.App_localInferencePanel p {
+  margin: 0;
+}
+.App_settingsActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.App_modelCatalogSetting {
+  display: grid;
+  gap: 6px;
+}
+.App_modelPicker {
+  position: relative;
+}
+.App_modelPickerTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  background: var(--color-background);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.App_modelPickerTrigger:hover,
+.App_modelPickerTrigger[aria-expanded=true] {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-soft);
+}
+.App_modelPickerTrigger:disabled {
+  border-color: var(--color-border);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+.App_modelPickerTrigger > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.App_modelPickerTrigger strong,
+.App_modelPickerTrigger small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_modelPickerTrigger strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.App_modelPickerTrigger small {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+.App_modelPickerPanel {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(720px, calc(100vw - 72px));
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-background);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.2);
+}
+.App_modelPickerSearch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+.App_modelPickerSearch input {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.App_modelPickerResults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: min(540px, 60vh);
+  padding: 10px;
+  overflow-y: auto;
+  background: var(--color-background-secondary);
+}
+.App_modelPickerCard {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-background);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.App_modelPickerCard:hover {
+  border-color: var(--color-primary-border);
+  transform: translateY(-1px);
+}
+.App_modelPickerCardSelected {
+  border-color: var(--color-primary);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+.App_modelPickerCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.App_modelPickerCardHeader strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.App_modelPickerCardHeader em {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.App_modelPickerMetadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+.App_modelPickerMetadata > span {
+  display: grid;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.App_modelPickerMetadata b {
+  color: var(--color-text-secondary);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.App_modelPickerTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.App_modelPickerTags i {
+  max-width: 100%;
+  padding: 2px 5px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.App_modelPickerEmpty {
+  grid-column: 1 / -1;
+  margin: 18px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+.App_modelCatalogFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+.App_modelCatalogFooter .App_secondaryButton {
+  min-height: 26px;
+  padding: 3px 8px;
+  font-size: 11px;
+}
+body.App_dark .App_modelCatalogFooter {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_modelPickerTrigger,
+body.App_dark .App_modelPickerPanel,
+body.App_dark .App_modelPickerCard {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_modelPickerSearch {
+  border-bottom-color: var(--color-border-dark);
+}
+body.App_dark .App_modelPickerResults,
+body.App_dark .App_modelPickerTags i {
+  background: var(--color-bg-dark-secondary);
+}
+body.App_dark .App_modelPickerMetadata > span {
+  color: var(--color-text-dark);
+}
+body.App_dark .App_modelPickerTrigger small,
+body.App_dark .App_modelPickerMetadata b,
+body.App_dark .App_modelPickerTags i {
+  color: var(--color-text-dark-secondary);
+}
+.App_modelPreparationPanel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+}
+.App_modelPreparationReady {
+  border-color: #86c99a;
+  background: #effaf2;
+}
+.App_modelPreparationError {
+  border-color: #ef9a9a;
+  background: #fff3f3;
+}
+.App_modelPreparationHeader {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.App_modelPreparationHeader > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.App_modelPreparationHeader strong {
+  font-size: 12px;
+}
+.App_modelPreparationHeader span,
+.App_modelPreparationPanel p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.App_modelPreparationIcon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-background);
+  color: var(--color-primary);
+}
+.App_modelPreparationSpinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--color-primary-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: App_modelPreparationSpin 0.8s linear infinite;
+}
+@keyframes App_modelPreparationSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.App_modelLogDetails {
+  overflow: hidden;
+  border: 1px solid rgba(127, 29, 29, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.75);
+}
+.App_modelLogDetails summary {
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+.App_modelLogDetails pre {
+  max-height: 180px;
+  margin: 0;
+  padding: 9px;
+  overflow: auto;
+  border-top: 1px solid rgba(127, 29, 29, 0.12);
+  color: #451a1a;
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.App_modelPreparationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.App_modelPreparationActions button {
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 10px;
+}
+body.App_dark .App_modelPreparationPanel {
+  background: rgba(var(--color-primary-rgb), 0.12);
+}
+body.App_dark .App_modelPreparationReady {
+  border-color: #39784d;
+  background: #14291b;
+}
+body.App_dark .App_modelPreparationError {
+  border-color: #8b4242;
+  background: #321a1a;
+}
+body.App_dark .App_modelPreparationHeader span,
+body.App_dark .App_modelPreparationPanel p {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_modelLogDetails {
+  background: rgba(0, 0, 0, 0.2);
+}
+body.App_dark .App_modelLogDetails pre {
+  color: #fecaca;
+}
+@media (max-width: 720px) {
+  .App_modelPickerPanel {
+    right: auto;
+    left: 0;
+    width: min(560px, calc(100vw - 104px));
+  }
+  .App_modelPickerResults {
+    grid-template-columns: 1fr;
+  }
+}
+.App_localModelList {
+  display: grid;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.App_localModelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background-secondary);
+  color: var(--color-text);
+  text-align: left;
+}
+button.App_localModelRow {
+  cursor: pointer;
+}
+.App_localModelRow > div,
+.App_localModelRow strong,
+.App_localModelRow span {
+  min-width: 0;
+}
+.App_localModelRow > div {
+  display: grid;
+  gap: 2px;
+}
+.App_localModelRow span {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+body.App_dark .App_localModelRow {
+  border-color: var(--color-border-dark);
+  background: var(--color-bg-dark-secondary);
+  color: var(--color-text-dark);
+}
+body.App_dark .App_localModelRow span {
+  color: var(--color-text-dark-secondary);
+}
 body.App_dark .App_settingsMessage {
   color: var(--color-text-dark-secondary);
 }
@@ -4710,11 +5134,12 @@ body.App_dark .App_settingsMessage {
   }
 }
 @media (max-width: 820px) {
-  .App_container {
-    grid-template-columns: 1fr;
+  .App_container,
+  .App_containerCollapsed {
+    grid-template-columns: 72px minmax(0, 1fr);
   }
   .App_navSidebar {
-    display: none;
+    display: flex;
   }
   .App_header h1,
   .App_subtitle {
@@ -5021,4 +5446,3 @@ body.dark ::-webkit-scrollbar-thumb {
 body.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-dark-secondary);
 }
-/*# sourceMappingURL=index.css.map */

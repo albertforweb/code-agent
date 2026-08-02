@@ -39,10 +39,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerServiceBridges = registerServiceBridges;
 const async_hooks_1 = require("async_hooks");
 const electron_1 = require("electron");
+const fs_1 = require("fs");
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const types_1 = require("./types");
 const feature_package_installer_1 = require("./feature-package-installer");
+const local_model_service_1 = require("./services/local-model-service");
 const services_1 = require("./services");
 const DEFAULT_CONTEXT_MAX_FILES = 16;
 const DEFAULT_CONTEXT_MAX_BYTES = 120000;
@@ -519,6 +521,11 @@ function registerServiceBridges(ipcBridge, options) {
     const commandService = new services_1.CommandServiceBridge(workspacePath);
     const automationService = new services_1.AutomationServiceBridge(workspacePath);
     const historyService = new services_1.LocalHistoryServiceBridge(path.join(electron_1.app.getPath('userData'), 'history'));
+    const electronFetch = (input, init) => electron_1.net.fetch(input instanceof URL ? input.toString() : input, init);
+    const localModelService = new local_model_service_1.LocalModelManager({
+        rootDir: path.join(electron_1.app.getPath('userData'), 'local-models'),
+        fetchImpl: electronFetch,
+    });
     const webService = new services_1.WebServiceBridge();
     const financeService = new services_1.FinanceServiceBridge();
     const toolService = new services_1.ToolServiceBridge(createBridgeTools({
@@ -586,7 +593,7 @@ function registerServiceBridges(ipcBridge, options) {
         ]);
         return {
             user: {
-                authenticated: config.llmProvider === 'openai-compatible' ||
+                authenticated: config.llmProvider === 'openai-compatible' || config.llmProvider === 'codeagent' ||
                     Boolean(await authService.getToken(config.llmProvider ?? 'openai-compatible')),
             },
             config,
@@ -678,6 +685,17 @@ function registerServiceBridges(ipcBridge, options) {
         };
     });
     automationService.startScheduler();
+    appStateService.getConfig()
+        .then(config => config.llmProvider === 'codeagent' && config.model
+        ? localModelService.ensureConfigured({
+            model: config.model,
+            contextTokens: config.contextTokens,
+            gpuLayers: config.localGpuLayers,
+        })
+        : undefined)
+        .catch(error => {
+        console.warn('Failed to start configured CodeAgent inference:', error);
+    });
     automationService.getRemoteControl()
         .then(remote => {
         if (remote.enabled && remote.mode === 'local-network') {
@@ -867,6 +885,45 @@ function registerServiceBridges(ipcBridge, options) {
     });
     ipcBridge.registerApiHandler('bootstrap', async () => {
         return apiService.fetchBootstrap();
+    });
+    ipcBridge.registerLocalModelHandler('search', async (request) => {
+        return localModelService.search(request?.query, request?.limit);
+    });
+    ipcBridge.registerLocalModelHandler('listFiles', async (repository) => {
+        return localModelService.listFiles(repository);
+    });
+    ipcBridge.registerLocalModelHandler('download', async (request) => {
+        return localModelService.download(request.repository, request.file);
+    });
+    ipcBridge.registerLocalModelHandler('listDownloaded', async () => {
+        return localModelService.listDownloaded();
+    });
+    ipcBridge.registerLocalModelHandler('installEngine', async () => {
+        return localModelService.installEngine();
+    });
+    ipcBridge.registerLocalModelHandler('engineInfo', async () => {
+        return localModelService.engineInfo();
+    });
+    ipcBridge.registerLocalModelHandler('start', async (request) => {
+        return localModelService.start(request);
+    });
+    ipcBridge.registerLocalModelHandler('stop', async () => {
+        return localModelService.stop();
+    });
+    ipcBridge.registerLocalModelHandler('status', async () => {
+        return localModelService.status();
+    });
+    ipcBridge.registerLocalModelHandler('readLog', async (tailLines) => {
+        return localModelService.readLog(tailLines);
+    });
+    ipcBridge.registerLocalModelHandler('openLog', async () => {
+        const log = await localModelService.readLog(1);
+        if (!(0, fs_1.existsSync)(log.path))
+            throw new Error('The llama.cpp log has not been created yet.');
+        const error = await electron_1.shell.openPath(log.path);
+        if (error)
+            throw new Error(error);
+        return { ok: true, path: log.path };
     });
     ipcBridge.registerFsHandler('read', async (request) => {
         return filesService.readFile(request.path, request.encoding);
@@ -1168,6 +1225,21 @@ function registerServiceBridges(ipcBridge, options) {
         return appStateService.getConfig();
     });
     ipcBridge.registerAppHandler('setConfig', async (config) => {
+        const current = await appStateService.getConfig();
+        const next = { ...current, ...config };
+        if (next.llmProvider === 'codeagent') {
+            if (!next.model)
+                throw new Error('Select a CodeAgent model before saving.');
+            await localModelService.ensureConfigured({
+                model: next.model,
+                contextTokens: next.contextTokens,
+                gpuLayers: next.localGpuLayers,
+            });
+            config = { ...config, baseUrl: local_model_service_1.CODEAGENT_LOCAL_BASE_URL };
+        }
+        else if (current.llmProvider === 'codeagent') {
+            await localModelService.stop();
+        }
         const update = await appStateService.setConfig(config);
         apiService.clearBootstrapCache();
         sendToRenderer(options.getMainWindow, types_1.IPC_CHANNELS['app:configChanged'], update);
@@ -1200,6 +1272,7 @@ function registerServiceBridges(ipcBridge, options) {
         mcpService,
         automationService,
         historyService,
+        localModelService,
     };
 }
 function resolveWorkspacePath(value) {

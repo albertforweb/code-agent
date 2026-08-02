@@ -13,7 +13,7 @@ on:
       draft:
         description: 'Create the GitHub release as a draft when run manually.'
         required: false
-        default: true
+        default: false
         type: boolean
       prerelease:
         description: 'Mark the GitHub release as a prerelease.'
@@ -106,10 +106,12 @@ jobs:
           - platform: macos
             os: macos-latest
             electron_target: --mac
+            llama_target: darwin-arm64
             artifact_name: code-agent-desktop-macos
           - platform: windows
             os: windows-latest
             electron_target: --win
+            llama_target: win32-x64
             artifact_name: code-agent-desktop-windows
 
     steps:
@@ -166,6 +168,14 @@ jobs:
         working-directory: code-agent
         run: npm run build:electron:prod
 
+      - name: Bundle local inference engine
+        working-directory: code-agent
+        run: node scripts/bundle-llama-engine.mjs --target ${{ matrix.llama_target }} --destination electron/resources/llama.cpp
+
+      - name: Bundle offline starter model
+        working-directory: code-agent
+        run: npm run bundle:model:desktop
+
       - name: Package desktop app
         working-directory: code-agent
         shell: bash
@@ -201,6 +211,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Verify Windows local inference engine
+        if: matrix.platform == 'windows'
+        working-directory: code-agent
+        run: npm run verify:llama:windows -- --root dist-build/win-unpacked/resources/llama.cpp
+
+      - name: Verify bundled offline starter model
+        working-directory: code-agent
+        run: npm run verify:model -- --root ${{ matrix.platform == 'windows' && 'dist-build/win-unpacked/resources/models' || 'dist-build/mac-arm64/CodeAgent.app/Contents/Resources/models' }}
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
@@ -247,6 +266,10 @@ jobs:
             tag="${{ inputs.tag }}"
           else
             tag="v$(node -p "require('./package.json').version")"
+          fi
+
+          if [[ "${tag}" != v* ]]; then
+            tag="v${tag}"
           fi
 
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
@@ -301,6 +324,18 @@ jobs:
 
           if gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             gh release upload "${RELEASE_TAG}" "${files[@]}" --clobber --repo "${GITHUB_REPOSITORY}"
+            edit_args=(--title "CodeAgent ${RELEASE_TAG}" --draft="${RELEASE_DRAFT}" --prerelease="${RELEASE_PRERELEASE}")
+            if [[ -n "${notes_file}" ]]; then
+              edit_args+=(--notes-file "${notes_file}")
+            fi
+            gh release edit "${RELEASE_TAG}" "${edit_args[@]}" --repo "${GITHUB_REPOSITORY}"
           else
             gh release create "${RELEASE_TAG}" "${files[@]}" "${create_args[@]}" --repo "${GITHUB_REPOSITORY}"
           fi
+
+          asset_count="$(gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')"
+          if [[ "${asset_count}" -eq 0 ]]; then
+            echo "Release ${RELEASE_TAG} was created without artifacts." >&2
+            exit 1
+          fi
+          gh release view "${RELEASE_TAG}" --repo "${GITHUB_REPOSITORY}" --json url,isDraft,isPrerelease,assets

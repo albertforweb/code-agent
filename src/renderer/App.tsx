@@ -44,6 +44,10 @@ import {
   type VirtualTeamMember,
   type VirtualTeamPermissionMode,
   type VirtualTeamRunRecord,
+  type HuggingFaceModel,
+  type HuggingFaceModelFile,
+  type LocalModelRecord,
+  type LocalInferenceStatus,
 } from './ipc-client';
 import {
   SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID,
@@ -116,6 +120,7 @@ type AutomationSectionId = 'skills' | 'tasks' | 'remote' | 'team' | 'permissions
 type HistorySectionId = 'overview' | 'chats' | 'tools' | 'automation' | 'events' | 'export';
 type SettingsSectionId =
   | 'account'
+  | 'general'
   | 'model'
   | 'packages'
   | 'io-debug'
@@ -124,6 +129,14 @@ type SettingsSectionId =
   | 'sessions'
   | 'advanced';
 type AppSkinAccent = 'blue' | 'teal' | 'violet' | 'graphite' | 'ember';
+type LocalModelPreparationPhase = 'idle' | 'resolving' | 'downloading' | 'starting' | 'ready' | 'error';
+interface LocalModelPreparation {
+  phase: LocalModelPreparationPhase;
+  model?: string;
+  detail?: string;
+  logPath?: string;
+  logContent?: string;
+}
 type IconName =
   | 'activity'
   | 'archive'
@@ -166,6 +179,7 @@ type IconName =
   | 'search'
   | 'send'
   | 'settings'
+  | 'sidebar'
   | 'shield'
   | 'sliders'
   | 'sparkles'
@@ -357,6 +371,8 @@ interface SettingsDraft {
   temperature: number;
   maxTokens: number;
   contextTokens: number;
+  localEnginePath: string;
+  localGpuLayers: string;
   enableLlmTools: boolean;
   theme: 'light' | 'dark' | 'system';
   accentColor: AppSkinAccent;
@@ -571,6 +587,14 @@ const PROVIDER_DEFAULTS: Record<LlmProviderType, {
   contextTokens: number;
   enableLlmTools: boolean;
 }> = {
+  codeagent: {
+    label: 'CodeAgent',
+    model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+    baseUrl: 'http://127.0.0.1:14321/v1',
+    maxTokens: 2048,
+    contextTokens: 8192,
+    enableLlmTools: true,
+  },
   openai: {
     label: 'OpenAI',
     model: 'gpt-4o-mini',
@@ -714,6 +738,8 @@ function Icon({
       return <svg {...common}><path d="M22 2 11 13" /><path d="m22 2-7 20-4-9-9-4z" /></svg>;
     case 'settings':
       return <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 15a8 8 0 0 0 .1-6l2-1.5-2-3.4-2.4 1a8 8 0 0 0-5.2-3L11.5 0h-4l-.4 2.9a8 8 0 0 0-5.2 3l-2.4-1-2 3.4L.5 9.8a8 8 0 0 0 .1 6l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 5.2 3l.4 2.9h4l.4-2.9a8 8 0 0 0 5.2-3l2.4 1 2-3.4z" transform="scale(.88) translate(2 1)" /></svg>;
+    case 'sidebar':
+      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16" /><path d="M6 8h.01" /><path d="M6 12h.01" /></svg>;
     case 'shield':
       return <svg {...common}><path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z" /><path d="m9 12 2 2 4-5" /></svg>;
     case 'sliders':
@@ -857,7 +883,8 @@ const TOOLS_MENU: Array<NavigationChildItem<ToolsSectionId>> = [
 ];
 const SETTINGS_MENU: Array<NavigationChildItem<SettingsSectionId>> = [
   { id: 'account', title: 'Account', description: 'Login, subscription, billing', icon: 'user' },
-  { id: 'model', title: 'Model', description: 'Provider, tokens, theme', icon: 'sparkles' },
+  { id: 'general', title: 'General', description: 'Appearance and run defaults', icon: 'settings' },
+  { id: 'model', title: 'Model', description: 'Provider, inference, and tokens', icon: 'sparkles' },
   { id: 'packages', title: 'Packages', description: 'Feature packages and entitlements', icon: 'puzzle' },
   { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs', icon: 'code', featureId: 'developer-settings' },
   { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety', icon: 'lock', featureId: 'developer-settings' },
@@ -2081,12 +2108,14 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
     platformBaseUrl: typeof config?.platformBaseUrl === 'string' ? config.platformBaseUrl : 'http://127.0.0.1:8000',
     platformOrgId: typeof config?.platformOrgId === 'string' ? config.platformOrgId : '',
     llmProvider,
-    baseUrl: config?.baseUrl || providerDefault.baseUrl,
+    baseUrl: llmProvider === 'codeagent' ? providerDefault.baseUrl : (config?.baseUrl || providerDefault.baseUrl),
     model: config?.model || providerDefault.model,
     fallbackModel: readCliOption(config, 'fallbackModel'),
     temperature: Number(config?.temperature ?? 0.7),
     maxTokens: Number(config?.maxTokens ?? providerDefault.maxTokens),
     contextTokens: Number(config?.contextTokens ?? providerDefault.contextTokens),
+    localEnginePath: typeof config?.localEnginePath === 'string' ? config.localEnginePath : '',
+    localGpuLayers: typeof config?.localGpuLayers === 'number' ? String(config.localGpuLayers) : '',
     enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
     theme: config?.theme || 'system',
     accentColor: getSkinAccent(config?.accentColor),
@@ -3702,6 +3731,7 @@ export function App() {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>(() => createSettingsDraft(null));
   const [settingsMessage, setSettingsMessage] = useState('');
+  const [localModelPreparation, setLocalModelPreparation] = useState<LocalModelPreparation>({ phase: 'idle' });
   const [toolRouterMessage, setToolRouterMessage] = useState('');
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isSyncingPlatform, setIsSyncingPlatform] = useState(false);
@@ -6116,10 +6146,12 @@ export function App() {
     }
   }
 
-  async function saveSettings(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveSettings(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     setIsSavingSettings(true);
-    setSettingsMessage('');
+    setSettingsMessage(settingsDraft.llmProvider === 'codeagent'
+      ? 'Preparing the selected model and starting CodeAgent inference…'
+      : '');
 
     try {
       const currentFeatureProfile = getFeatureProfileFromConfig(appConfig);
@@ -6131,6 +6163,8 @@ export function App() {
         temperature: Number(settingsDraft.temperature),
         maxTokens: Number(settingsDraft.maxTokens),
         contextTokens: Number(settingsDraft.contextTokens),
+        localEnginePath: settingsDraft.llmProvider === 'codeagent' ? '' : settingsDraft.localEnginePath.trim(),
+        localGpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : undefined,
         enableLlmTools: settingsDraft.enableLlmTools,
         theme: settingsDraft.theme,
         accentColor: settingsDraft.accentColor,
@@ -6144,9 +6178,34 @@ export function App() {
         featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile),
       };
 
+      if (settingsDraft.llmProvider === 'codeagent') {
+        if (!settingsDraft.model) throw new Error('Select a CodeAgent model before saving.');
+        setLocalModelPreparation({ phase: 'resolving', model: settingsDraft.model, detail: 'Checking whether the selected model is available locally…' });
+        const downloaded = await ipcClient.localModels.listDownloaded();
+        const available = downloaded.some(model => model.repository === settingsDraft.model || model.id === settingsDraft.model);
+        if (!available) {
+          setLocalModelPreparation({ phase: 'downloading', model: settingsDraft.model, detail: 'Downloading and verifying the recommended GGUF quantization from Hugging Face…' });
+          await ipcClient.localModels.download(settingsDraft.model);
+        }
+        setLocalModelPreparation({ phase: 'starting', model: settingsDraft.model, detail: 'Loading the model into llama.cpp and waiting for the inference API to become healthy…' });
+        const localStatus = await ipcClient.localModels.start({
+          model: settingsDraft.model,
+          contextTokens: Number(settingsDraft.contextTokens),
+          gpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : undefined,
+        });
+        setLocalModelPreparation({
+          phase: 'ready',
+          model: settingsDraft.model,
+          detail: `Ready at ${localStatus.baseUrl}`,
+          logPath: localStatus.logPath,
+        });
+      } else {
+        setLocalModelPreparation({ phase: 'idle' });
+      }
+
       await ipcClient.app.setConfig(nextConfig);
 
-      if (settingsDraft.apiKey.trim()) {
+      if (settingsDraft.llmProvider !== 'codeagent' && settingsDraft.apiKey.trim()) {
         await ipcClient.auth.setToken({
           accessToken: settingsDraft.apiKey.trim(),
           provider: settingsDraft.llmProvider,
@@ -6160,10 +6219,30 @@ export function App() {
       setStatus('Ready');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      setSettingsMessage(message);
+      if (settingsDraft.llmProvider === 'codeagent') {
+        const log = await ipcClient.localModels.readLog(100).catch(() => ({ path: '', content: '' }));
+        setLocalModelPreparation({
+          phase: 'error',
+          model: settingsDraft.model,
+          detail: message,
+          logPath: log.path,
+          logContent: log.content,
+        });
+        setSettingsMessage('The selected model could not be prepared. Review the details below.');
+      } else {
+        setSettingsMessage(message);
+      }
       setStatus('Settings error');
     } finally {
       setIsSavingSettings(false);
+    }
+  }
+
+  async function openLocalModelLog() {
+    try {
+      await ipcClient.localModels.openLog();
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
     }
   }
 
@@ -6737,25 +6816,18 @@ export function App() {
             : activeSettingsMenuItem.description;
   const skinStyle = getSkinStyle(appConfig?.accentColor);
   const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
+  const narrowNavigation = viewportSize.width <= 820;
+  const navigationCollapsed = sidebarCollapsed || narrowNavigation;
 
   return (
-    <div className={`${styles.container} ${sidebarCollapsed ? styles.containerCollapsed : ''}`} style={skinStyle}>
-      <aside className={`${styles.navSidebar} ${sidebarCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
+    <div className={`${styles.container} ${navigationCollapsed ? styles.containerCollapsed : ''}`} style={skinStyle}>
+      <aside className={`${styles.navSidebar} ${navigationCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
         <div className={styles.brandBlock}>
           <span className={styles.brandMark}><Icon name="bot" size={17} /></span>
           <div>
             <strong>CodeAgent</strong>
             <span>{activeProviderLabel}</span>
           </div>
-          <button
-            className={styles.navCollapseButton}
-            type="button"
-            title={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-            aria-label={sidebarCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-            onClick={() => setSidebarCollapsed(value => !value)}
-          >
-            <Icon name={sidebarCollapsed ? 'chevron-right' : 'chevron-left'} size={15} />
-          </button>
         </div>
 
         <button className={styles.newChatButton} type="button" title="New chat" onClick={startNewChat}>
@@ -6862,11 +6934,24 @@ export function App() {
           </div>
         )}
         <header className={styles.header}>
-          <div className={styles.headerTitle}>
-            <h1>{viewTitle}</h1>
-            <span className={styles.subtitle}>
-              {viewSubtitle}
-            </span>
+          <div className={styles.headerLeading}>
+            <button
+              className={styles.headerNavButton}
+              type="button"
+              title={narrowNavigation ? 'Navigation is compact at this window size' : navigationCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+              aria-label={narrowNavigation ? 'Navigation is compact at this window size' : navigationCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+              aria-pressed={navigationCollapsed}
+              disabled={narrowNavigation}
+              onClick={() => setSidebarCollapsed(value => !value)}
+            >
+              <Icon name="sidebar" size={17} />
+            </button>
+            <div className={styles.headerTitle}>
+              <h1>{viewTitle}</h1>
+              <span className={styles.subtitle}>
+                {viewSubtitle}
+              </span>
+            </div>
           </div>
         </header>
 
@@ -7179,6 +7264,7 @@ export function App() {
               draft={settingsDraft}
               message={settingsMessage}
               saving={isSavingSettings}
+              localModelPreparation={localModelPreparation}
               featureResolution={featureResolution}
               onChange={updateSettingsDraft}
               onClearToken={clearToken}
@@ -7192,6 +7278,8 @@ export function App() {
               platformSyncing={isSyncingPlatform}
               onPackageAction={handleFeaturePackageAction}
               onSubmit={saveSettings}
+              onRetryLocalModel={() => void saveSettings()}
+              onOpenLocalModelLog={() => void openLocalModelLog()}
             />
           )}
         </main>
@@ -13507,11 +13595,415 @@ function PackagePurchaseDialog({
   );
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const units = ['KB', 'MB', 'GB', 'TB'];
+  let value = bytes / 1024;
+  let unit = units[0];
+  for (let index = 1; index < units.length && value >= 1024; index += 1) {
+    value /= 1024;
+    unit = units[index];
+  }
+  return `${value.toFixed(value >= 10 ? 1 : 2)} ${unit}`;
+}
+
+function LocalInferenceSettings({
+  enginePath,
+  gpuLayers,
+  contextTokens,
+  onEnginePathChange,
+  onGpuLayersChange,
+  onSelect,
+}: {
+  enginePath: string;
+  gpuLayers: string;
+  contextTokens: number;
+  onEnginePathChange: (value: string) => void;
+  onGpuLayersChange: (value: string) => void;
+  onSelect: (model: string, status: LocalInferenceStatus) => void;
+}) {
+  const [query, setQuery] = useState('code instruct');
+  const [results, setResults] = useState<HuggingFaceModel[]>([]);
+  const [selectedRepository, setSelectedRepository] = useState('');
+  const [files, setFiles] = useState<HuggingFaceModelFile[]>([]);
+  const [downloaded, setDownloaded] = useState<LocalModelRecord[]>([]);
+  const [status, setStatus] = useState<LocalInferenceStatus | null>(null);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function refreshLocal() {
+    const [models, engineStatus] = await Promise.all([
+      ipcClient.localModels.listDownloaded(),
+      ipcClient.localModels.status(),
+    ]);
+    setDownloaded(models);
+    setStatus(engineStatus);
+  }
+
+  async function runAction(action: () => Promise<void>) {
+    setBusy(true);
+    setMessage('');
+    try { await action(); } catch (error) { setMessage(error instanceof Error ? error.message : String(error)); } finally { setBusy(false); }
+  }
+
+  useEffect(() => {
+    refreshLocal().catch(error => setMessage(error instanceof Error ? error.message : String(error)));
+  }, []);
+
+  return (
+    <div className={styles.localInferencePanel}>
+      <h4>CodeAgent local inference</h4>
+      <p className={styles.mutedText}>Search and download GGUF models from Hugging Face, then run the selected model with a managed llama.cpp server.</p>
+      <div className={styles.settingsGrid}>
+        <TextSetting label="Hugging Face search" value={query} onChange={setQuery} />
+        <TextSetting label="llama.cpp executable (optional)" value={enginePath} onChange={onEnginePathChange} placeholder="llama-server or llama from PATH" />
+        <TextSetting label="GPU layers (optional)" type="number" value={gpuLayers} onChange={onGpuLayersChange} />
+      </div>
+      <div className={styles.settingsActionRow}>
+        <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => runAction(async () => {
+          setMessage('Downloading and verifying llama.cpp…');
+          const engine = await ipcClient.localModels.installEngine();
+          if (engine.path) onEnginePathChange(engine.path);
+          setMessage(`llama.cpp ${engine.version || ''} is ready.`);
+        })}>Install engine</button>
+        <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => runAction(async () => setResults(await ipcClient.localModels.search(query, 20)))}>
+          Search Hugging Face
+        </button>
+        <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => runAction(refreshLocal)}>Refresh local models</button>
+        {status?.running && <button className={styles.secondaryButton} type="button" disabled={busy} onClick={() => runAction(async () => { setStatus(await ipcClient.localModels.stop()); setMessage('Local inference stopped.'); })}>Stop engine</button>}
+      </div>
+      {status && <p className={styles.mutedText}>Engine: {status.running ? `${status.healthy ? 'ready' : 'starting'} · ${status.model} · ${status.baseUrl}` : 'stopped'} · log: {status.logPath}</p>}
+      {message && <p className={styles.settingsMessage}>{message}</p>}
+      {results.length > 0 && (
+        <div className={styles.localModelList}>
+          {results.map(model => (
+            <button key={model.id} className={styles.localModelRow} type="button" disabled={busy} onClick={() => runAction(async () => {
+              setSelectedRepository(model.id);
+              setFiles(await ipcClient.localModels.listFiles(model.id));
+            })}>
+              <strong>{model.id}</strong><span>{model.downloads.toLocaleString()} downloads · {model.likes.toLocaleString()} likes</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {selectedRepository && files.length > 0 && (
+        <div className={styles.localModelList}>
+          <p className={styles.mutedText}>Choose a quantization from {selectedRepository}:</p>
+          {files.map(file => (
+            <button key={file.name} className={styles.localModelRow} type="button" disabled={busy} onClick={() => runAction(async () => {
+              setMessage(`Downloading ${file.name}…`);
+              await ipcClient.localModels.download(selectedRepository, file.name);
+              await refreshLocal();
+              setMessage(`Downloaded ${file.name}.`);
+            })}>
+              <strong>{file.name}</strong><span>{file.quantization || 'GGUF'} · {file.size ? formatBytes(file.size) : 'size unavailable'}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {downloaded.length > 0 && (
+        <div className={styles.localModelList}>
+          <p className={styles.mutedText}>Downloaded models:</p>
+          {downloaded.map(model => (
+            <div key={model.id} className={styles.localModelRow}>
+              <div><strong>{model.file}</strong><span>{model.repository} · {formatBytes(model.size)}</span></div>
+              <button className={styles.secondaryButton} type="button" disabled={busy || status?.running === true} onClick={() => runAction(async () => {
+                const nextStatus = await ipcClient.localModels.start({
+                  model: model.id,
+                  enginePath: enginePath.trim() || undefined,
+                  contextTokens,
+                  gpuLayers: gpuLayers.trim() ? Number(gpuLayers) : undefined,
+                });
+                setStatus(nextStatus);
+                onSelect(model.id, nextStatus);
+                setMessage(`Local inference is ready with ${model.file}. Save settings to use it for desktop chat.`);
+              })}>Run & select</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ModelPickerOption {
+  value: string;
+  name: string;
+  label: string;
+  source: string;
+  size?: number;
+  quantization?: string;
+  license?: string;
+  downloads?: number;
+  likes?: number;
+  lastModified?: string;
+  pipelineTag?: string;
+  tags: string[];
+}
+
+function CodeAgentModelSetting({ value, disabled = false, onChange }: { value: string; disabled?: boolean; onChange: (value: string) => void }) {
+  const [models, setModels] = useState<HuggingFaceModel[]>([]);
+  const [localModels, setLocalModels] = useState<LocalModelRecord[]>([]);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const catalogRequest = useRef(0);
+  const pickerRef = useRef<HTMLDivElement | null>(null);
+
+  async function refreshCatalog() {
+    const request = ++catalogRequest.current;
+    setLoading(true);
+    setError('');
+    try {
+      const [available, results] = await Promise.all([
+        ipcClient.localModels.listDownloaded(),
+        ipcClient.localModels.search('', 50),
+      ]);
+      if (request !== catalogRequest.current) return;
+      setLocalModels(available);
+      setModels(results.filter(model => {
+        const task = model.pipelineTag?.toLowerCase();
+        if (task && !['text-generation', 'text2text-generation', 'conversational'].includes(task)) return false;
+        const tags = model.tags.map(tag => tag.toLowerCase());
+        return !tags.some(tag => ['diffusers', 'automatic-speech-recognition', 'text-to-video', 'feature-extraction'].includes(tag));
+      }));
+      if (!value) onChange(available.find(model => model.source === 'bundled')?.repository || results[0]?.id || '');
+    } catch (cause) {
+      if (request !== catalogRequest.current) return;
+      setError(cause instanceof Error ? cause.message : String(cause));
+      const available = await ipcClient.localModels.listDownloaded().catch(() => []);
+      if (request === catalogRequest.current) setLocalModels(available);
+    } finally {
+      if (request === catalogRequest.current) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshCatalog();
+    const handleOnline = () => refreshCatalog();
+    window.addEventListener('online', handleOnline);
+    return () => {
+      catalogRequest.current += 1;
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  const uniqueLocalModels = localModels.filter((model, index) => localModels.findIndex(candidate => candidate.repository === model.repository) === index);
+  const localRepositories = new Set(uniqueLocalModels.map(model => model.repository));
+  const options: ModelPickerOption[] = [
+    ...uniqueLocalModels.map(model => {
+      const catalogModel = models.find(candidate => candidate.id === model.repository);
+      return {
+        value: model.repository,
+        name: model.displayName || model.repository,
+        label: model.source === 'bundled'
+          ? `${model.displayName || model.repository} · included · ${model.quantization || 'GGUF'}`
+          : `${model.repository} · downloaded · ${model.quantization || 'GGUF'}`,
+        source: model.source || 'downloaded',
+        size: model.size,
+        quantization: model.quantization,
+        license: model.license,
+        downloads: catalogModel?.downloads,
+        likes: catalogModel?.likes,
+        lastModified: model.source === 'downloaded' ? model.downloadedAt : catalogModel?.lastModified,
+        pipelineTag: catalogModel?.pipelineTag || 'text-generation',
+        tags: catalogModel?.tags || [],
+      };
+    }),
+    ...(value && !localRepositories.has(value) && !models.some(model => model.id === value) ? [{
+      value,
+      name: value,
+      label: value,
+      source: 'catalog',
+      downloads: undefined,
+      likes: undefined,
+      lastModified: undefined,
+      pipelineTag: undefined,
+      tags: [] as string[],
+    }] : []),
+    ...models.filter(model => !localRepositories.has(model.id)).map(model => ({
+      value: model.id,
+      name: model.id,
+      label: `${model.id} · ${model.downloads.toLocaleString()} downloads`,
+      source: 'catalog',
+      downloads: model.downloads,
+      likes: model.likes,
+      lastModified: model.lastModified,
+      pipelineTag: model.pipelineTag,
+      tags: model.tags,
+      license: model.tags.find(tag => tag.toLowerCase().startsWith('license:'))?.slice('license:'.length),
+    })),
+  ];
+  const selected = options.find(option => option.value === value);
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleOptions = normalizedQuery
+    ? options.filter(option => `${option.name} ${option.pipelineTag || ''} ${option.tags.join(' ')}`.toLowerCase().includes(normalizedQuery))
+    : options;
+
+  function selectModel(model: string) {
+    if (disabled) return;
+    onChange(model);
+    setOpen(false);
+    setQuery('');
+  }
+
+  return (
+    <div className={styles.modelCatalogSetting}>
+      <label className={styles.field}>
+        <span>Model</span>
+        <div className={styles.modelPicker} ref={pickerRef}>
+          <button
+            id="codeagent-model-picker"
+            className={styles.modelPickerTrigger}
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            disabled={disabled}
+            onClick={() => setOpen(current => !current)}
+          >
+            <span>
+              <strong>{selected?.name || (loading ? 'Loading model catalog…' : 'Choose a model')}</strong>
+              {selected && <small>{selected.source === 'bundled' ? 'Included offline model' : selected.source === 'downloaded' ? 'Downloaded model' : `${selected.downloads?.toLocaleString() || 0} downloads`}</small>}
+            </span>
+            <Icon name={open ? 'chevron-left' : 'chevron-right'} size={15} />
+          </button>
+          {open && (
+            <div className={styles.modelPickerPanel} role="listbox" aria-label="CodeAgent models">
+              <div className={styles.modelPickerSearch}>
+                <Icon name="search" size={14} />
+                <input
+                  autoFocus
+                  value={query}
+                  placeholder="Search models, tasks, or tags"
+                  onChange={event => setQuery(event.target.value)}
+                />
+              </div>
+              <div className={styles.modelPickerResults}>
+                {visibleOptions.map(option => {
+                  const usefulTags = option.tags
+                    .filter(tag => !['gguf', option.pipelineTag].includes(tag.toLowerCase()))
+                    .slice(0, 4);
+                  return (
+                    <button
+                      className={`${styles.modelPickerCard} ${option.value === value ? styles.modelPickerCardSelected : ''}`}
+                      type="button"
+                      role="option"
+                      aria-selected={option.value === value}
+                      key={`${option.source}:${option.value}`}
+                      onClick={() => selectModel(option.value)}
+                    >
+                      <span className={styles.modelPickerCardHeader}>
+                        <strong>{option.name}</strong>
+                        <em>{option.source === 'bundled' ? 'Included' : option.source === 'downloaded' ? 'Downloaded' : 'Hugging Face'}</em>
+                      </span>
+                      <span className={styles.modelPickerMetadata}>
+                        {option.pipelineTag && <span><b>Task</b>{option.pipelineTag}</span>}
+                        {option.quantization && <span><b>Quantization</b>{option.quantization}</span>}
+                        {option.size !== undefined && <span><b>Size</b>{formatBytes(option.size)}</span>}
+                        {option.license && <span><b>License</b>{option.license}</span>}
+                        {option.downloads !== undefined && <span><b>Downloads</b>{option.downloads.toLocaleString()}</span>}
+                        {option.likes !== undefined && <span><b>Likes</b>{option.likes.toLocaleString()}</span>}
+                        {option.lastModified && <span><b>{option.source === 'catalog' ? 'Updated' : 'Available since'}</b>{new Date(option.lastModified).toLocaleDateString()}</span>}
+                      </span>
+                      {usefulTags.length > 0 && <span className={styles.modelPickerTags}>{usefulTags.map(tag => <i key={tag}>{tag}</i>)}</span>}
+                    </button>
+                  );
+                })}
+                {visibleOptions.length === 0 && <p className={styles.modelPickerEmpty}>No models match “{query}”.</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      </label>
+      <div className={styles.modelCatalogFooter}>
+        <span>{loading ? 'Loading Hugging Face catalog…' : `${models.length} online model${models.length === 1 ? '' : 's'} available`}</span>
+        <button className={styles.secondaryButton} type="button" disabled={loading || disabled} onClick={refreshCatalog}>
+          <Icon name="refresh" size={13} />
+          Refresh
+        </button>
+      </div>
+      {error && <p className={styles.settingsMessage}>Hugging Face catalog unavailable; included and downloaded models remain available. {error}</p>}
+    </div>
+  );
+}
+
+function LocalModelPreparationPanel({
+  preparation,
+  busy,
+  onRetry,
+  onOpenLog,
+}: {
+  preparation: LocalModelPreparation;
+  busy: boolean;
+  onRetry: () => void;
+  onOpenLog: () => void;
+}) {
+  if (preparation.phase === 'idle') return null;
+  const failed = preparation.phase === 'error';
+  const ready = preparation.phase === 'ready';
+  const title = failed
+    ? 'Model could not be loaded'
+    : ready
+      ? 'Local inference is ready'
+      : preparation.phase === 'downloading'
+        ? 'Downloading model'
+        : preparation.phase === 'starting'
+          ? 'Starting local inference'
+          : 'Preparing model';
+  return (
+    <div className={`${styles.modelPreparationPanel} ${failed ? styles.modelPreparationError : ready ? styles.modelPreparationReady : ''}`} role={failed ? 'alert' : 'status'}>
+      <div className={styles.modelPreparationHeader}>
+        <span className={styles.modelPreparationIcon}>{ready ? <Icon name="check" size={16} /> : failed ? <Icon name="x" size={16} /> : <span className={styles.modelPreparationSpinner} />}</span>
+        <div>
+          <strong>{title}</strong>
+          {preparation.model && <span>{preparation.model}</span>}
+        </div>
+      </div>
+      {preparation.detail && <p>{preparation.detail}</p>}
+      {preparation.logContent && (
+        <details className={styles.modelLogDetails} open>
+          <summary>Recent llama.cpp output</summary>
+          <pre>{preparation.logContent}</pre>
+        </details>
+      )}
+      {(failed || preparation.logPath) && (
+        <div className={styles.modelPreparationActions}>
+          {failed && <button className={styles.primaryButton} type="button" disabled={busy} onClick={onRetry}><Icon name="refresh" size={14} />Retry</button>}
+          {failed && <button className={styles.secondaryButton} type="button" onClick={() => document.getElementById('codeagent-model-picker')?.click()}><Icon name="database" size={14} />Choose another model</button>}
+          {preparation.logPath && <button className={styles.secondaryButton} type="button" onClick={onOpenLog}><Icon name="external" size={14} />Open log</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsView({
   activeSection,
   draft,
   message,
   saving,
+  localModelPreparation,
   featureResolution,
   onChange,
   onClearToken,
@@ -13525,11 +14017,14 @@ function SettingsView({
   platformSyncing,
   onPackageAction,
   onSubmit,
+  onRetryLocalModel,
+  onOpenLocalModelLog,
 }: {
   activeSection: SettingsSectionId;
   draft: SettingsDraft;
   message: string;
   saving: boolean;
+  localModelPreparation: LocalModelPreparation;
   featureResolution: FeaturePackageResolution;
   onChange: (update: Partial<SettingsDraft>) => void;
   onClearToken: () => void;
@@ -13543,6 +14038,8 @@ function SettingsView({
   platformSyncing: boolean;
   onPackageAction: (packageId: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onRetryLocalModel: () => void;
+  onOpenLocalModelLog: () => void;
 }) {
   const selectedSources = new Set(draft.settingSources.split(',').map(source => source.trim()).filter(Boolean));
   const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
@@ -13582,32 +14079,9 @@ function SettingsView({
           />
         )}
 
-        {activeSection === 'model' && (
-        <SettingsSection title="Model">
+        {activeSection === 'general' && (
+        <SettingsSection title="General">
           <div className={styles.settingsGrid}>
-            <SelectSetting
-              label="LLM backend"
-              value={draft.llmProvider}
-              options={providerOptions}
-              onChange={changeProvider}
-            />
-            <TextSetting
-              label={draft.llmProvider === 'openai-compatible' ? 'API key (optional)' : 'API key'}
-              type="password"
-              value={draft.apiKey}
-              onChange={value => onChange({ apiKey: value })}
-            />
-            <TextSetting
-              label="Base URL"
-              value={draft.baseUrl}
-              onChange={value => onChange({ baseUrl: value })}
-            />
-            <TextSetting
-              label="Model"
-              value={draft.model}
-              onChange={value => onChange({ model: value })}
-            />
-            <TextSetting label="Fallback model" value={draft.fallbackModel} onChange={value => onChange({ fallbackModel: value })} />
             <SelectSetting
               label="Theme"
               value={draft.theme}
@@ -13627,6 +14101,42 @@ function SettingsView({
               }))}
               onChange={value => onChange({ accentColor: getSkinAccent(value) })}
             />
+            <TextSetting label="Max turns" type="number" value={draft.maxTurns} onChange={value => onChange({ maxTurns: value })} />
+            <TextSetting label="Max budget USD" type="number" value={draft.maxBudgetUsd} onChange={value => onChange({ maxBudgetUsd: value })} />
+            <TextSetting label="Task budget" type="number" value={draft.taskBudget} onChange={value => onChange({ taskBudget: value })} />
+            <TextSetting label="Workload" value={draft.workload} onChange={value => onChange({ workload: value })} />
+          </div>
+          <div className={styles.toggleGrid}>
+            <ToggleSetting label="Auto-update" checked={draft.autoUpdate} onChange={checked => onChange({ autoUpdate: checked })} />
+            <ToggleSetting label="Proactive" checked={draft.proactive} onChange={checked => onChange({ proactive: checked })} />
+          </div>
+        </SettingsSection>
+        )}
+
+        {activeSection === 'model' && (
+        <SettingsSection title="Model">
+          <div className={styles.settingsGrid}>
+            <SelectSetting
+              label="LLM backend"
+              value={draft.llmProvider}
+              options={providerOptions}
+              onChange={changeProvider}
+            />
+            {draft.llmProvider !== 'codeagent' && <TextSetting
+              label={draft.llmProvider === 'openai-compatible' ? 'API key (optional)' : 'API key'}
+              type="password"
+              value={draft.apiKey}
+              onChange={value => onChange({ apiKey: value })}
+            />}
+            <TextSetting
+              label="Base URL"
+              value={draft.baseUrl}
+              onChange={value => onChange({ baseUrl: value })}
+            />
+            {draft.llmProvider === 'codeagent'
+              ? <CodeAgentModelSetting value={draft.model} disabled={saving} onChange={value => onChange({ model: value })} />
+              : <TextSetting label="Model" value={draft.model} onChange={value => onChange({ model: value })} />}
+            <TextSetting label="Fallback model" value={draft.fallbackModel} onChange={value => onChange({ fallbackModel: value })} />
             <TextSetting
               label="Temperature"
               type="number"
@@ -13667,15 +14177,19 @@ function SettingsView({
               onChange={value => onChange({ effort: value })}
             />
             <TextSetting label="Max thinking tokens" type="number" value={draft.maxThinkingTokens} onChange={value => onChange({ maxThinkingTokens: value })} />
-            <TextSetting label="Max turns" type="number" value={draft.maxTurns} onChange={value => onChange({ maxTurns: value })} />
-            <TextSetting label="Max budget USD" type="number" value={draft.maxBudgetUsd} onChange={value => onChange({ maxBudgetUsd: value })} />
-            <TextSetting label="Task budget" type="number" value={draft.taskBudget} onChange={value => onChange({ taskBudget: value })} />
-            <TextSetting label="Workload" value={draft.workload} onChange={value => onChange({ workload: value })} />
             <TextSetting label="Beta headers" value={draft.betas} onChange={value => onChange({ betas: value })} />
           </div>
           <div className={styles.toggleGrid}>
             <ToggleSetting label="Model tool calls" checked={draft.enableLlmTools} onChange={checked => onChange({ enableLlmTools: checked })} />
           </div>
+          {draft.llmProvider === 'codeagent' && (
+            <LocalModelPreparationPanel
+              preparation={localModelPreparation}
+              busy={saving}
+              onRetry={onRetryLocalModel}
+              onOpenLog={onOpenLocalModelLog}
+            />
+          )}
         </SettingsSection>
         )}
 
@@ -13838,8 +14352,6 @@ function SettingsView({
             <ToggleSetting label="No session persistence" checked={draft.noSessionPersistence} onChange={checked => onChange({ noSessionPersistence: checked })} />
             <ToggleSetting label="Deep link origin" checked={draft.deepLinkOrigin} onChange={checked => onChange({ deepLinkOrigin: checked })} />
             <ToggleSetting label="IDE auto-connect" checked={draft.ideAutoConnect} onChange={checked => onChange({ ideAutoConnect: checked })} />
-            <ToggleSetting label="Auto-update" checked={draft.autoUpdate} onChange={checked => onChange({ autoUpdate: checked })} />
-            <ToggleSetting label="Proactive" checked={draft.proactive} onChange={checked => onChange({ proactive: checked })} />
           </div>
         </SettingsSection>
         )}
@@ -13886,7 +14398,7 @@ function SettingsView({
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onClearToken}>
               <Icon name="key" size={14} />
-              Clear auth
+              Clear LLM API keys
             </button>
             <button className={styles.primaryButton} type="submit" disabled={saving}>
               <Icon name="save" size={14} />

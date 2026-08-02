@@ -87,21 +87,25 @@ interface ProjectActionPlan {
 }
 
 const DEFAULT_MODELS: Record<LlmProviderType, string> = {
+  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
   openai: 'gpt-4o-mini',
   'openai-compatible': 'local-model',
 };
 
 const DEFAULT_BASE_URLS: Record<LlmProviderType, string> = {
+  codeagent: 'http://127.0.0.1:14321/v1',
   openai: 'https://api.openai.com/v1',
   'openai-compatible': 'http://127.0.0.1:1234/v1',
 };
 
 const DEFAULT_CONTEXT_TOKENS: Record<LlmProviderType, number> = {
+  codeagent: 8_192,
   openai: 128_000,
   'openai-compatible': 8_192,
 };
 
 const DEFAULT_MAX_TOKENS: Record<LlmProviderType, number> = {
+  codeagent: 2_048,
   openai: 4096,
   'openai-compatible': 2048,
 };
@@ -512,7 +516,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     );
 
     const apiKey = token?.accessToken || this.getEnvironmentApiKey(provider);
-    if (provider !== 'openai-compatible' && !apiKey) {
+    if (provider === 'openai' && !apiKey) {
       throw new Error(`API client not initialized: configure an API key for ${this.getProviderLabel(provider)} first`);
     }
 
@@ -1208,6 +1212,7 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private getProviderLabel(provider: LlmProviderType): string {
+    if (provider === 'codeagent') return 'CodeAgent';
     if (provider === 'openai-compatible') {
       return 'OpenAI-compatible';
     }
@@ -1222,7 +1227,7 @@ Always be helpful, thorough, and provide clear explanations.`;
 
     return {
       user: {
-        authenticated: provider === 'openai-compatible' || Boolean(token?.accessToken || this.getEnvironmentApiKey(provider)),
+        authenticated: provider === 'openai-compatible' || provider === 'codeagent' || Boolean(token?.accessToken || this.getEnvironmentApiKey(provider)),
       },
       config: {
         llmProvider: provider,
@@ -1243,6 +1248,7 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private normalizeProvider(value: unknown): LlmProviderType {
+    if (value === 'codeagent') return 'codeagent';
     return value === 'openai' ? 'openai' : 'openai-compatible';
   }
 }

@@ -30,6 +30,18 @@ exports.IPC_CHANNELS = {
     'api:chatComplete': 'api:chatComplete',
     'api:chatError': 'api:chatError',
     'api:fetchBootstrap': 'api:fetchBootstrap',
+    // Local model channels
+    'localModels:search': 'localModels:search',
+    'localModels:listFiles': 'localModels:listFiles',
+    'localModels:download': 'localModels:download',
+    'localModels:listDownloaded': 'localModels:listDownloaded',
+    'localModels:installEngine': 'localModels:installEngine',
+    'localModels:engineInfo': 'localModels:engineInfo',
+    'localModels:start': 'localModels:start',
+    'localModels:stop': 'localModels:stop',
+    'localModels:status': 'localModels:status',
+    'localModels:readLog': 'localModels:readLog',
+    'localModels:openLog': 'localModels:openLog',
     // MCP channels
     'mcp:listServers': 'mcp:listServers',
     'mcp:listTools': 'mcp:listTools',

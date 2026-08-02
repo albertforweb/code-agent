@@ -33,11 +33,13 @@ type OpenAIToolCall = {
 }
 
 const DEFAULT_BASE_URLS: Record<OpenAIProviderKind, string> = {
+  codeagent: 'http://127.0.0.1:14321/v1',
   openai: 'https://api.openai.com/v1',
   'openai-compatible': 'http://127.0.0.1:1234/v1',
 }
 
 const DEFAULT_MODELS: Record<OpenAIProviderKind, string> = {
+  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
   openai: 'gpt-4o-mini',
   'openai-compatible': 'local-model',
 }

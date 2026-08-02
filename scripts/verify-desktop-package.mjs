@@ -61,12 +61,17 @@ const executablePath = path.join(contentsPath, 'MacOS', productName);
 const appAsarPath = path.join(resourcesPath, 'app.asar');
 const updateConfigPath = path.join(resourcesPath, 'app-update.yml');
 const iconPath = path.join(resourcesPath, 'icon.icns');
+const inferenceEngineRoot = path.join(resourcesPath, 'llama.cpp');
+const bundledModelsRoot = path.join(resourcesPath, 'models');
 
 mustExist(appPath, 'packaged macOS app');
 mustExist(infoPlistPath, 'Info.plist');
 mustExist(executablePath, 'app executable');
 mustExist(appAsarPath, 'app.asar');
 mustExist(iconPath, 'macOS app icon');
+mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp inference engine');
+mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
+mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
 
 if (existsSync(infoPlistPath)) {
   verifyInfoPlist(infoPlistPath);
@@ -172,6 +177,34 @@ function mustExist(filePath, label) {
   if (!existsSync(filePath)) {
     failures.push(`Missing ${label}: ${path.relative(root, filePath)}`);
   }
+}
+
+function mustContainExecutable(directory, filename, label) {
+  const pending = [directory];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!existsSync(current)) continue;
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(candidate);
+      if (entry.isFile() && entry.name === filename && (statSync(candidate).mode & 0o111) !== 0) return;
+    }
+  }
+  failures.push(`Missing ${label}: ${path.relative(root, directory)}`);
+}
+
+function mustContainFile(directory, filename, label) {
+  const pending = [directory];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!existsSync(current)) continue;
+    for (const entry of readdirSync(current, { withFileTypes: true })) {
+      const candidate = path.join(current, entry.name);
+      if (entry.isDirectory()) pending.push(candidate);
+      if (entry.isFile() && entry.name === filename) return;
+    }
+  }
+  failures.push(`Missing ${label}: ${path.relative(root, directory)}`);
 }
 
 function verifyInfoPlist(filePath) {

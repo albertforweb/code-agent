@@ -26,6 +26,17 @@ const IPC_CHANNELS = {
     'api:chatComplete': 'api:chatComplete',
     'api:chatError': 'api:chatError',
     'api:fetchBootstrap': 'api:fetchBootstrap',
+    'localModels:search': 'localModels:search',
+    'localModels:listFiles': 'localModels:listFiles',
+    'localModels:download': 'localModels:download',
+    'localModels:listDownloaded': 'localModels:listDownloaded',
+    'localModels:installEngine': 'localModels:installEngine',
+    'localModels:engineInfo': 'localModels:engineInfo',
+    'localModels:start': 'localModels:start',
+    'localModels:stop': 'localModels:stop',
+    'localModels:status': 'localModels:status',
+    'localModels:readLog': 'localModels:readLog',
+    'localModels:openLog': 'localModels:openLog',
     'mcp:listServers': 'mcp:listServers',
     'mcp:listTools': 'mcp:listTools',
     'mcp:refresh': 'mcp:refresh',
@@ -122,6 +133,41 @@ const api = {
         },
         fetchBootstrap: () => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['api:fetchBootstrap']);
+        },
+    },
+    localModels: {
+        search: (query, limit) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:search'], { query, limit });
+        },
+        listFiles: (repository) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:listFiles'], repository);
+        },
+        download: (repository, file) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:download'], { repository, file });
+        },
+        listDownloaded: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:listDownloaded']);
+        },
+        installEngine: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:installEngine']);
+        },
+        engineInfo: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:engineInfo']);
+        },
+        start: (request) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:start'], request);
+        },
+        stop: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:stop']);
+        },
+        status: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:status']);
+        },
+        readLog: (tailLines) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:readLog'], tailLines);
+        },
+        openLog: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['localModels:openLog']);
         },
     },
     // ============================================================================

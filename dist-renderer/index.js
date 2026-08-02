@@ -38685,7 +38685,6 @@
     brandMark: "App_brandMark",
     statusDot: "App_statusDot",
     statusDotBusy: "App_statusDotBusy",
-    navCollapseButton: "App_navCollapseButton",
     newChatButton: "App_newChatButton",
     navItem: "App_navItem",
     navItemActive: "App_navItemActive",
@@ -38710,6 +38709,8 @@
     sidebarSettingsButtonActive: "App_sidebarSettingsButtonActive",
     appShell: "App_appShell",
     headerTitle: "App_headerTitle",
+    headerLeading: "App_headerLeading",
+    headerNavButton: "App_headerNavButton",
     messageImageGrid: "App_messageImageGrid",
     messageImageItem: "App_messageImageItem",
     messageImagePlaceholder: "App_messageImagePlaceholder",
@@ -38954,7 +38955,33 @@
     toggleField: "App_toggleField",
     toggleGrid: "App_toggleGrid",
     checkboxGroup: "App_checkboxGroup",
-    settingsMessage: "App_settingsMessage"
+    settingsMessage: "App_settingsMessage",
+    localInferencePanel: "App_localInferencePanel",
+    settingsActionRow: "App_settingsActionRow",
+    modelCatalogSetting: "App_modelCatalogSetting",
+    modelPicker: "App_modelPicker",
+    modelPickerTrigger: "App_modelPickerTrigger",
+    modelPickerPanel: "App_modelPickerPanel",
+    modelPickerSearch: "App_modelPickerSearch",
+    modelPickerResults: "App_modelPickerResults",
+    modelPickerCard: "App_modelPickerCard",
+    modelPickerCardSelected: "App_modelPickerCardSelected",
+    modelPickerCardHeader: "App_modelPickerCardHeader",
+    modelPickerMetadata: "App_modelPickerMetadata",
+    modelPickerTags: "App_modelPickerTags",
+    modelPickerEmpty: "App_modelPickerEmpty",
+    modelCatalogFooter: "App_modelCatalogFooter",
+    modelPreparationPanel: "App_modelPreparationPanel",
+    modelPreparationReady: "App_modelPreparationReady",
+    modelPreparationError: "App_modelPreparationError",
+    modelPreparationHeader: "App_modelPreparationHeader",
+    modelPreparationIcon: "App_modelPreparationIcon",
+    modelPreparationSpinner: "App_modelPreparationSpinner",
+    modelPreparationSpin: "App_modelPreparationSpin",
+    modelLogDetails: "App_modelLogDetails",
+    modelPreparationActions: "App_modelPreparationActions",
+    localModelList: "App_localModelList",
+    localModelRow: "App_localModelRow"
   };
 
   // src/renderer/ipc-client.ts
@@ -38976,6 +39003,19 @@
       chat: (request) => getApi().api.chat(request),
       chatStream: (request) => getApi().api.chatStream(request),
       fetchBootstrap: () => getApi().api.fetchBootstrap()
+    },
+    localModels: {
+      search: (query, limit) => getApi().localModels.search(query, limit),
+      listFiles: (repository) => getApi().localModels.listFiles(repository),
+      download: (repository, file) => getApi().localModels.download(repository, file),
+      listDownloaded: () => getApi().localModels.listDownloaded(),
+      installEngine: () => getApi().localModels.installEngine(),
+      engineInfo: () => getApi().localModels.engineInfo(),
+      start: (request) => getApi().localModels.start(request),
+      stop: () => getApi().localModels.stop(),
+      status: () => getApi().localModels.status(),
+      readLog: (tailLines) => getApi().localModels.readLog(tailLines),
+      openLog: () => getApi().localModels.openLog()
     },
     mcp: {
       listServers: () => getApi().mcp.listServers(),
@@ -40361,6 +40401,14 @@
     recordCount: 0
   };
   var PROVIDER_DEFAULTS = {
+    codeagent: {
+      label: "CodeAgent",
+      model: "Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF",
+      baseUrl: "http://127.0.0.1:14321/v1",
+      maxTokens: 2048,
+      contextTokens: 8192,
+      enableLlmTools: true
+    },
     openai: {
       label: "OpenAI",
       model: "gpt-4o-mini",
@@ -40631,6 +40679,13 @@
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: "12", cy: "12", r: "3" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M19.4 15a8 8 0 0 0 .1-6l2-1.5-2-3.4-2.4 1a8 8 0 0 0-5.2-3L11.5 0h-4l-.4 2.9a8 8 0 0 0-5.2 3l-2.4-1-2 3.4L.5 9.8a8 8 0 0 0 .1 6l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 5.2 3l.4 2.9h4l.4-2.9a8 8 0 0 0 5.2-3l2.4 1 2-3.4z", transform: "scale(.88) translate(2 1)" })
         ] });
+      case "sidebar":
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M9 4v16" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M6 8h.01" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M6 12h.01" })
+        ] });
       case "shield":
         return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z" }),
@@ -40793,7 +40848,8 @@
   ];
   var SETTINGS_MENU = [
     { id: "account", title: "Account", description: "Login, subscription, billing", icon: "user" },
-    { id: "model", title: "Model", description: "Provider, tokens, theme", icon: "sparkles" },
+    { id: "general", title: "General", description: "Appearance and run defaults", icon: "settings" },
+    { id: "model", title: "Model", description: "Provider, inference, and tokens", icon: "sparkles" },
     { id: "packages", title: "Packages", description: "Feature packages and entitlements", icon: "puzzle" },
     { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs", icon: "code", featureId: "developer-settings" },
     { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety", icon: "lock", featureId: "developer-settings" },
@@ -41697,12 +41753,14 @@
       platformBaseUrl: typeof config?.platformBaseUrl === "string" ? config.platformBaseUrl : "http://127.0.0.1:8000",
       platformOrgId: typeof config?.platformOrgId === "string" ? config.platformOrgId : "",
       llmProvider,
-      baseUrl: config?.baseUrl || providerDefault.baseUrl,
+      baseUrl: llmProvider === "codeagent" ? providerDefault.baseUrl : config?.baseUrl || providerDefault.baseUrl,
       model: config?.model || providerDefault.model,
       fallbackModel: readCliOption(config, "fallbackModel"),
       temperature: Number(config?.temperature ?? 0.7),
       maxTokens: Number(config?.maxTokens ?? providerDefault.maxTokens),
       contextTokens: Number(config?.contextTokens ?? providerDefault.contextTokens),
+      localEnginePath: typeof config?.localEnginePath === "string" ? config.localEnginePath : "",
+      localGpuLayers: typeof config?.localGpuLayers === "number" ? String(config.localGpuLayers) : "",
       enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
       theme: config?.theme || "system",
       accentColor: getSkinAccent(config?.accentColor),
@@ -42947,6 +43005,7 @@ ${nextUserMessage}`
     const [copiedMessageId, setCopiedMessageId] = useState(null);
     const [settingsDraft, setSettingsDraft] = useState(() => createSettingsDraft(null));
     const [settingsMessage, setSettingsMessage] = useState("");
+    const [localModelPreparation, setLocalModelPreparation] = useState({ phase: "idle" });
     const [toolRouterMessage, setToolRouterMessage] = useState("");
     const [isSavingSettings, setIsSavingSettings] = useState(false);
     const [isSyncingPlatform, setIsSyncingPlatform] = useState(false);
@@ -45011,9 +45070,9 @@ Attached images: ${imageSummary}` : message.content);
       }
     }
     async function saveSettings(event) {
-      event.preventDefault();
+      event?.preventDefault();
       setIsSavingSettings(true);
-      setSettingsMessage("");
+      setSettingsMessage(settingsDraft.llmProvider === "codeagent" ? "Preparing the selected model and starting CodeAgent inference\u2026" : "");
       try {
         const currentFeatureProfile = getFeatureProfileFromConfig(appConfig);
         const nextFeatureProfile = buildSettingsFeatureProfile(currentFeatureProfile, settingsDraft);
@@ -45024,6 +45083,8 @@ Attached images: ${imageSummary}` : message.content);
           temperature: Number(settingsDraft.temperature),
           maxTokens: Number(settingsDraft.maxTokens),
           contextTokens: Number(settingsDraft.contextTokens),
+          localEnginePath: settingsDraft.llmProvider === "codeagent" ? "" : settingsDraft.localEnginePath.trim(),
+          localGpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : void 0,
           enableLlmTools: settingsDraft.enableLlmTools,
           theme: settingsDraft.theme,
           accentColor: settingsDraft.accentColor,
@@ -45036,8 +45097,32 @@ Attached images: ${imageSummary}` : message.content);
           featureProfile: nextFeatureProfile,
           featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile)
         };
+        if (settingsDraft.llmProvider === "codeagent") {
+          if (!settingsDraft.model) throw new Error("Select a CodeAgent model before saving.");
+          setLocalModelPreparation({ phase: "resolving", model: settingsDraft.model, detail: "Checking whether the selected model is available locally\u2026" });
+          const downloaded = await ipcClient.localModels.listDownloaded();
+          const available = downloaded.some((model) => model.repository === settingsDraft.model || model.id === settingsDraft.model);
+          if (!available) {
+            setLocalModelPreparation({ phase: "downloading", model: settingsDraft.model, detail: "Downloading and verifying the recommended GGUF quantization from Hugging Face\u2026" });
+            await ipcClient.localModels.download(settingsDraft.model);
+          }
+          setLocalModelPreparation({ phase: "starting", model: settingsDraft.model, detail: "Loading the model into llama.cpp and waiting for the inference API to become healthy\u2026" });
+          const localStatus = await ipcClient.localModels.start({
+            model: settingsDraft.model,
+            contextTokens: Number(settingsDraft.contextTokens),
+            gpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : void 0
+          });
+          setLocalModelPreparation({
+            phase: "ready",
+            model: settingsDraft.model,
+            detail: `Ready at ${localStatus.baseUrl}`,
+            logPath: localStatus.logPath
+          });
+        } else {
+          setLocalModelPreparation({ phase: "idle" });
+        }
         await ipcClient.app.setConfig(nextConfig);
-        if (settingsDraft.apiKey.trim()) {
+        if (settingsDraft.llmProvider !== "codeagent" && settingsDraft.apiKey.trim()) {
           await ipcClient.auth.setToken({
             accessToken: settingsDraft.apiKey.trim(),
             provider: settingsDraft.llmProvider
@@ -45050,10 +45135,29 @@ Attached images: ${imageSummary}` : message.content);
         setStatus("Ready");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        setSettingsMessage(message);
+        if (settingsDraft.llmProvider === "codeagent") {
+          const log = await ipcClient.localModels.readLog(100).catch(() => ({ path: "", content: "" }));
+          setLocalModelPreparation({
+            phase: "error",
+            model: settingsDraft.model,
+            detail: message,
+            logPath: log.path,
+            logContent: log.content
+          });
+          setSettingsMessage("The selected model could not be prepared. Review the details below.");
+        } else {
+          setSettingsMessage(message);
+        }
         setStatus("Settings error");
       } finally {
         setIsSavingSettings(false);
+      }
+    }
+    async function openLocalModelLog() {
+      try {
+        await ipcClient.localModels.openLog();
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
       }
     }
     async function clearToken() {
@@ -45547,25 +45651,16 @@ Attached images: ${imageSummary}` : message.content);
     const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activeView === "projects" ? activeProjectsMenuItem.description : activeView === "tools" ? activeToolsMenuItem.description : activeView === "automation" ? activeAutomationMenuItem.description : activeView === "history" ? activeHistoryMenuItem.description : activeSettingsMenuItem.description;
     const skinStyle = getSkinStyle(appConfig?.accentColor);
     const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${sidebarCollapsed ? App_default.containerCollapsed : ""}`, style: skinStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: `${App_default.navSidebar} ${sidebarCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
+    const narrowNavigation = viewportSize.width <= 820;
+    const navigationCollapsed = sidebarCollapsed || narrowNavigation;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${navigationCollapsed ? App_default.containerCollapsed : ""}`, style: skinStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: `${App_default.navSidebar} ${navigationCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 17 }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "CodeAgent" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activeProviderLabel })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: App_default.navCollapseButton,
-              type: "button",
-              title: sidebarCollapsed ? "Expand navigation" : "Collapse navigation",
-              "aria-label": sidebarCollapsed ? "Expand navigation" : "Collapse navigation",
-              onClick: () => setSidebarCollapsed((value) => !value),
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: sidebarCollapsed ? "chevron-right" : "chevron-left", size: 15 })
-            }
-          )
+          ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", title: "New chat", onClick: startNewChat, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }) }),
@@ -45664,9 +45759,24 @@ Attached images: ${imageSummary}` : message.content);
             }
           )
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", { className: App_default.header, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", { className: App_default.header, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerLeading, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.headerNavButton,
+              type: "button",
+              title: narrowNavigation ? "Navigation is compact at this window size" : navigationCollapsed ? "Expand navigation" : "Collapse navigation",
+              "aria-label": narrowNavigation ? "Navigation is compact at this window size" : navigationCollapsed ? "Expand navigation" : "Collapse navigation",
+              "aria-pressed": navigationCollapsed,
+              disabled: narrowNavigation,
+              onClick: () => setSidebarCollapsed((value) => !value),
+              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "sidebar", size: 17 })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
+          ] })
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""}`, children: [
           activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
@@ -45984,6 +46094,7 @@ Attached images: ${imageSummary}` : message.content);
               draft: settingsDraft,
               message: settingsMessage,
               saving: isSavingSettings,
+              localModelPreparation,
               featureResolution,
               onChange: updateSettingsDraft,
               onClearToken: clearToken,
@@ -45996,7 +46107,9 @@ Attached images: ${imageSummary}` : message.content);
               canSyncPlatform,
               platformSyncing: isSyncingPlatform,
               onPackageAction: handleFeaturePackageAction,
-              onSubmit: saveSettings
+              onSubmit: saveSettings,
+              onRetryLocalModel: () => void saveSettings(),
+              onOpenLocalModelLog: () => void openLocalModelLog()
             }
           )
         ] }),
@@ -51327,11 +51440,288 @@ Attached images: ${imageSummary}` : message.content);
       ] })
     ] }) });
   }
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let value = bytes / 1024;
+    let unit = units[0];
+    for (let index = 1; index < units.length && value >= 1024; index += 1) {
+      value /= 1024;
+      unit = units[index];
+    }
+    return `${value.toFixed(value >= 10 ? 1 : 2)} ${unit}`;
+  }
+  function CodeAgentModelSetting({ value, disabled = false, onChange }) {
+    const [models, setModels] = useState([]);
+    const [localModels, setLocalModels] = useState([]);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [open, setOpen] = useState(false);
+    const [query, setQuery] = useState("");
+    const catalogRequest = useRef(0);
+    const pickerRef = useRef(null);
+    async function refreshCatalog() {
+      const request = ++catalogRequest.current;
+      setLoading(true);
+      setError("");
+      try {
+        const [available, results] = await Promise.all([
+          ipcClient.localModels.listDownloaded(),
+          ipcClient.localModels.search("", 50)
+        ]);
+        if (request !== catalogRequest.current) return;
+        setLocalModels(available);
+        setModels(results.filter((model) => {
+          const task = model.pipelineTag?.toLowerCase();
+          if (task && !["text-generation", "text2text-generation", "conversational"].includes(task)) return false;
+          const tags = model.tags.map((tag) => tag.toLowerCase());
+          return !tags.some((tag) => ["diffusers", "automatic-speech-recognition", "text-to-video", "feature-extraction"].includes(tag));
+        }));
+        if (!value) onChange(available.find((model) => model.source === "bundled")?.repository || results[0]?.id || "");
+      } catch (cause) {
+        if (request !== catalogRequest.current) return;
+        setError(cause instanceof Error ? cause.message : String(cause));
+        const available = await ipcClient.localModels.listDownloaded().catch(() => []);
+        if (request === catalogRequest.current) setLocalModels(available);
+      } finally {
+        if (request === catalogRequest.current) setLoading(false);
+      }
+    }
+    useEffect(() => {
+      refreshCatalog();
+      const handleOnline = () => refreshCatalog();
+      window.addEventListener("online", handleOnline);
+      return () => {
+        catalogRequest.current += 1;
+        window.removeEventListener("online", handleOnline);
+      };
+    }, []);
+    useEffect(() => {
+      if (!open) return;
+      const closeOnOutsideClick = (event) => {
+        if (!pickerRef.current?.contains(event.target)) setOpen(false);
+      };
+      const closeOnEscape = (event) => {
+        if (event.key === "Escape") setOpen(false);
+      };
+      document.addEventListener("mousedown", closeOnOutsideClick);
+      document.addEventListener("keydown", closeOnEscape);
+      return () => {
+        document.removeEventListener("mousedown", closeOnOutsideClick);
+        document.removeEventListener("keydown", closeOnEscape);
+      };
+    }, [open]);
+    useEffect(() => {
+      if (disabled) setOpen(false);
+    }, [disabled]);
+    const uniqueLocalModels = localModels.filter((model, index) => localModels.findIndex((candidate) => candidate.repository === model.repository) === index);
+    const localRepositories = new Set(uniqueLocalModels.map((model) => model.repository));
+    const options = [
+      ...uniqueLocalModels.map((model) => {
+        const catalogModel = models.find((candidate) => candidate.id === model.repository);
+        return {
+          value: model.repository,
+          name: model.displayName || model.repository,
+          label: model.source === "bundled" ? `${model.displayName || model.repository} \xB7 included \xB7 ${model.quantization || "GGUF"}` : `${model.repository} \xB7 downloaded \xB7 ${model.quantization || "GGUF"}`,
+          source: model.source || "downloaded",
+          size: model.size,
+          quantization: model.quantization,
+          license: model.license,
+          downloads: catalogModel?.downloads,
+          likes: catalogModel?.likes,
+          lastModified: model.source === "downloaded" ? model.downloadedAt : catalogModel?.lastModified,
+          pipelineTag: catalogModel?.pipelineTag || "text-generation",
+          tags: catalogModel?.tags || []
+        };
+      }),
+      ...value && !localRepositories.has(value) && !models.some((model) => model.id === value) ? [{
+        value,
+        name: value,
+        label: value,
+        source: "catalog",
+        downloads: void 0,
+        likes: void 0,
+        lastModified: void 0,
+        pipelineTag: void 0,
+        tags: []
+      }] : [],
+      ...models.filter((model) => !localRepositories.has(model.id)).map((model) => ({
+        value: model.id,
+        name: model.id,
+        label: `${model.id} \xB7 ${model.downloads.toLocaleString()} downloads`,
+        source: "catalog",
+        downloads: model.downloads,
+        likes: model.likes,
+        lastModified: model.lastModified,
+        pipelineTag: model.pipelineTag,
+        tags: model.tags,
+        license: model.tags.find((tag) => tag.toLowerCase().startsWith("license:"))?.slice("license:".length)
+      }))
+    ];
+    const selected = options.find((option) => option.value === value);
+    const normalizedQuery = query.trim().toLowerCase();
+    const visibleOptions = normalizedQuery ? options.filter((option) => `${option.name} ${option.pipelineTag || ""} ${option.tags.join(" ")}`.toLowerCase().includes(normalizedQuery)) : options;
+    function selectModel(model) {
+      if (disabled) return;
+      onChange(model);
+      setOpen(false);
+      setQuery("");
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelCatalogSetting, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPicker, ref: pickerRef, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              id: "codeagent-model-picker",
+              className: App_default.modelPickerTrigger,
+              type: "button",
+              "aria-haspopup": "listbox",
+              "aria-expanded": open,
+              disabled,
+              onClick: () => setOpen((current) => !current),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: selected?.name || (loading ? "Loading model catalog\u2026" : "Choose a model") }),
+                  selected && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: selected.source === "bundled" ? "Included offline model" : selected.source === "downloaded" ? "Downloaded model" : `${selected.downloads?.toLocaleString() || 0} downloads` })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: open ? "chevron-left" : "chevron-right", size: 15 })
+              ]
+            }
+          ),
+          open && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPickerPanel, role: "listbox", "aria-label": "CodeAgent models", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPickerSearch, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "search", size: 14 }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "input",
+                {
+                  autoFocus: true,
+                  value: query,
+                  placeholder: "Search models, tasks, or tags",
+                  onChange: (event) => setQuery(event.target.value)
+                }
+              )
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPickerResults, children: [
+              visibleOptions.map((option) => {
+                const usefulTags = option.tags.filter((tag) => !["gguf", option.pipelineTag].includes(tag.toLowerCase())).slice(0, 4);
+                return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "button",
+                  {
+                    className: `${App_default.modelPickerCard} ${option.value === value ? App_default.modelPickerCardSelected : ""}`,
+                    type: "button",
+                    role: "option",
+                    "aria-selected": option.value === value,
+                    onClick: () => selectModel(option.value),
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.modelPickerCardHeader, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: option.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: option.source === "bundled" ? "Included" : option.source === "downloaded" ? "Downloaded" : "Hugging Face" })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.modelPickerMetadata, children: [
+                        option.pipelineTag && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Task" }),
+                          option.pipelineTag
+                        ] }),
+                        option.quantization && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Quantization" }),
+                          option.quantization
+                        ] }),
+                        option.size !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Size" }),
+                          formatBytes(option.size)
+                        ] }),
+                        option.license && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "License" }),
+                          option.license
+                        ] }),
+                        option.downloads !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Downloads" }),
+                          option.downloads.toLocaleString()
+                        ] }),
+                        option.likes !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Likes" }),
+                          option.likes.toLocaleString()
+                        ] }),
+                        option.lastModified && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: option.source === "catalog" ? "Updated" : "Available since" }),
+                          new Date(option.lastModified).toLocaleDateString()
+                        ] })
+                      ] }),
+                      usefulTags.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.modelPickerTags, children: usefulTags.map((tag) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { children: tag }, tag)) })
+                    ]
+                  },
+                  `${option.source}:${option.value}`
+                );
+              }),
+              visibleOptions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.modelPickerEmpty, children: [
+                "No models match \u201C",
+                query,
+                "\u201D."
+              ] })
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelCatalogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: loading ? "Loading Hugging Face catalog\u2026" : `${models.length} online model${models.length === 1 ? "" : "s"} available` }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", disabled: loading || disabled, onClick: refreshCatalog, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 13 }),
+          "Refresh"
+        ] })
+      ] }),
+      error && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.settingsMessage, children: [
+        "Hugging Face catalog unavailable; included and downloaded models remain available. ",
+        error
+      ] })
+    ] });
+  }
+  function LocalModelPreparationPanel({
+    preparation,
+    busy,
+    onRetry,
+    onOpenLog
+  }) {
+    if (preparation.phase === "idle") return null;
+    const failed = preparation.phase === "error";
+    const ready = preparation.phase === "ready";
+    const title = failed ? "Model could not be loaded" : ready ? "Local inference is ready" : preparation.phase === "downloading" ? "Downloading model" : preparation.phase === "starting" ? "Starting local inference" : "Preparing model";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.modelPreparationPanel} ${failed ? App_default.modelPreparationError : ready ? App_default.modelPreparationReady : ""}`, role: failed ? "alert" : "status", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPreparationHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.modelPreparationIcon, children: ready ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 16 }) : failed ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 16 }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.modelPreparationSpinner }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: title }),
+          preparation.model && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: preparation.model })
+        ] })
+      ] }),
+      preparation.detail && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: preparation.detail }),
+      preparation.logContent && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.modelLogDetails, open: true, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("summary", { children: "Recent llama.cpp output" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { children: preparation.logContent })
+      ] }),
+      (failed || preparation.logPath) && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.modelPreparationActions, children: [
+        failed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", disabled: busy, onClick: onRetry, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
+          "Retry"
+        ] }),
+        failed && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => document.getElementById("codeagent-model-picker")?.click(), children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "database", size: 14 }),
+          "Choose another model"
+        ] }),
+        preparation.logPath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onOpenLog, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "external", size: 14 }),
+          "Open log"
+        ] })
+      ] })
+    ] });
+  }
   function SettingsView({
     activeSection,
     draft,
     message,
     saving,
+    localModelPreparation,
     featureResolution,
     onChange,
     onClearToken,
@@ -51344,7 +51734,9 @@ Attached images: ${imageSummary}` : message.content);
     canSyncPlatform,
     platformSyncing,
     onPackageAction,
-    onSubmit
+    onSubmit,
+    onRetryLocalModel,
+    onOpenLocalModelLog
   }) {
     const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
     const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
@@ -51381,43 +51773,8 @@ Attached images: ${imageSummary}` : message.content);
             syncing: platformSyncing
           }
         ),
-        activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
+        activeSection === "general" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "General", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              SelectSetting,
-              {
-                label: "LLM backend",
-                value: draft.llmProvider,
-                options: providerOptions,
-                onChange: changeProvider
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              TextSetting,
-              {
-                label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
-                type: "password",
-                value: draft.apiKey,
-                onChange: (value) => onChange({ apiKey: value })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              TextSetting,
-              {
-                label: "Base URL",
-                value: draft.baseUrl,
-                onChange: (value) => onChange({ baseUrl: value })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              TextSetting,
-              {
-                label: "Model",
-                value: draft.model,
-                onChange: (value) => onChange({ model: value })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SelectSetting,
               {
@@ -51443,6 +51800,46 @@ Attached images: ${imageSummary}` : message.content);
                 onChange: (value) => onChange({ accentColor: getSkinAccent(value) })
               }
             ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+          ] })
+        ] }),
+        activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SelectSetting,
+              {
+                label: "LLM backend",
+                value: draft.llmProvider,
+                options: providerOptions,
+                onChange: changeProvider
+              }
+            ),
+            draft.llmProvider !== "codeagent" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: draft.llmProvider === "openai-compatible" ? "API key (optional)" : "API key",
+                type: "password",
+                value: draft.apiKey,
+                onChange: (value) => onChange({ apiKey: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Base URL",
+                value: draft.baseUrl,
+                onChange: (value) => onChange({ baseUrl: value })
+              }
+            ),
+            draft.llmProvider === "codeagent" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CodeAgentModelSetting, { value: draft.model, disabled: saving, onChange: (value) => onChange({ model: value }) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Model", value: draft.model, onChange: (value) => onChange({ model: value }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Fallback model", value: draft.fallbackModel, onChange: (value) => onChange({ fallbackModel: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               TextSetting,
               {
@@ -51498,13 +51895,18 @@ Attached images: ${imageSummary}` : message.content);
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max thinking tokens", type: "number", value: draft.maxThinkingTokens, onChange: (value) => onChange({ maxThinkingTokens: value }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max turns", type: "number", value: draft.maxTurns, onChange: (value) => onChange({ maxTurns: value }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Max budget USD", type: "number", value: draft.maxBudgetUsd, onChange: (value) => onChange({ maxBudgetUsd: value }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Task budget", type: "number", value: draft.taskBudget, onChange: (value) => onChange({ taskBudget: value }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Workload", value: draft.workload, onChange: (value) => onChange({ workload: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Beta headers", value: draft.betas, onChange: (value) => onChange({ betas: value }) })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toggleGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Model tool calls", checked: draft.enableLlmTools, onChange: (checked) => onChange({ enableLlmTools: checked }) }) }),
+          draft.llmProvider === "codeagent" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            LocalModelPreparationPanel,
+            {
+              preparation: localModelPreparation,
+              busy: saving,
+              onRetry: onRetryLocalModel,
+              onOpenLog: onOpenLocalModelLog
+            }
+          )
         ] }),
         activeSection === "packages" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           FeaturePackagesSection,
@@ -51664,9 +52066,7 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Fork session", checked: draft.forkSession, onChange: (checked) => onChange({ forkSession: checked }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "No session persistence", checked: draft.noSessionPersistence, onChange: (checked) => onChange({ noSessionPersistence: checked }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Deep link origin", checked: draft.deepLinkOrigin, onChange: (checked) => onChange({ deepLinkOrigin: checked }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) })
           ] })
         ] }),
         activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
@@ -51711,7 +52111,7 @@ Attached images: ${imageSummary}` : message.content);
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onClearToken, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
-            "Clear auth"
+            "Clear LLM API keys"
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: saving, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
@@ -51800,4 +52200,3 @@ react/cjs/react-jsx-runtime.development.js:
    * LICENSE file in the root directory of this source tree.
    *)
 */
-//# sourceMappingURL=index.js.map

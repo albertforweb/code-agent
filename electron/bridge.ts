@@ -60,6 +60,7 @@ export class IpcBridge {
   private mcpHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private automationHandlers: Map<string, (args: any) => Promise<any>> = new Map();
   private historyHandlers: Map<string, (args: any) => Promise<any>> = new Map();
+  private localModelHandlers: Map<string, (args: any) => Promise<any>> = new Map();
 
   constructor() {
     this.setupChannelHandlers();
@@ -80,6 +81,18 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['api:chat'], this.handleApiChat.bind(this));
     ipcMain.handle(IPC_CHANNELS['api:chatStream'], this.handleApiChatStream.bind(this));
     ipcMain.handle(IPC_CHANNELS['api:fetchBootstrap'], this.handleFetchBootstrap.bind(this));
+
+    ipcMain.handle(IPC_CHANNELS['localModels:search'], (_event, request) => this.getLocalModelHandler('search')(request));
+    ipcMain.handle(IPC_CHANNELS['localModels:listFiles'], (_event, repository) => this.getLocalModelHandler('listFiles')(repository));
+    ipcMain.handle(IPC_CHANNELS['localModels:download'], (_event, request) => this.getLocalModelHandler('download')(request));
+    ipcMain.handle(IPC_CHANNELS['localModels:listDownloaded'], () => this.getLocalModelHandler('listDownloaded')({}));
+    ipcMain.handle(IPC_CHANNELS['localModels:installEngine'], () => this.getLocalModelHandler('installEngine')({}));
+    ipcMain.handle(IPC_CHANNELS['localModels:engineInfo'], () => this.getLocalModelHandler('engineInfo')({}));
+    ipcMain.handle(IPC_CHANNELS['localModels:start'], (_event, request) => this.getLocalModelHandler('start')(request));
+    ipcMain.handle(IPC_CHANNELS['localModels:stop'], () => this.getLocalModelHandler('stop')({}));
+    ipcMain.handle(IPC_CHANNELS['localModels:status'], () => this.getLocalModelHandler('status')({}));
+    ipcMain.handle(IPC_CHANNELS['localModels:readLog'], (_event, tailLines) => this.getLocalModelHandler('readLog')(tailLines));
+    ipcMain.handle(IPC_CHANNELS['localModels:openLog'], () => this.getLocalModelHandler('openLog')({}));
 
     // MCP channels
     ipcMain.handle(IPC_CHANNELS['mcp:listServers'], this.handleMcpListServers.bind(this));
@@ -265,6 +278,12 @@ export class IpcBridge {
       throw new Error('File system handler not configured');
     }
     return handler(request);
+  }
+
+  private getLocalModelHandler(operation: string): (args: any) => Promise<any> {
+    const handler = this.localModelHandlers.get(operation);
+    if (!handler) throw new Error(`Local model handler not configured: ${operation}`);
+    return handler;
   }
 
   private async handleFileOpen(event: any, request: FilePathRequest): Promise<FilePathActionResult> {
@@ -664,6 +683,10 @@ export class IpcBridge {
 
   registerHistoryHandler(operation: string, handler: (args: any) => Promise<any>) {
     this.historyHandlers.set(operation, handler);
+  }
+
+  registerLocalModelHandler(operation: string, handler: (args: any) => Promise<any>) {
+    this.localModelHandlers.set(operation, handler);
   }
 
   registerAuthHandler(operation: string, handler: (args: any) => Promise<any>) {

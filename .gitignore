@@ -17,6 +17,8 @@ build/
 *.swo
 *~
 .cache/
+electron/resources/llama.cpp/
+electron/resources/models/
 .parcel-cache
 coverage/
 .nyc_output/

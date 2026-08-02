@@ -4,10 +4,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
+const packageRoot = process.env.CODEAGENT_FEATURE_PACKAGES_ROOT
+  ? path.resolve(process.env.CODEAGENT_FEATURE_PACKAGES_ROOT)
+  : path.resolve(root, '..', 'code-agent-packages');
 const failures = [];
 
 const bridgePath = path.join(root, 'electron/services/automation-service-bridge.ts');
-const cliAutomationPath = path.join(root, 'cli/handlers/automation.ts');
+const cliAutomationPath = path.join(packageRoot, 'software-developer/src/cli/automation.ts');
 const mainPath = path.join(root, 'main.tsx');
 const rendererIpcPath = path.join(root, 'src/renderer/ipc-client.ts');
 const iosClientPath = path.join(root, 'ios/CodeAgentCompanion/CodeAgentCompanion/RemoteControlClient.swift');
@@ -71,7 +74,8 @@ requireText('automation service bridge', bridge, 'interface RemoteRelayConfig');
 requireText('automation service bridge', bridge, 'configureRemoteRelay');
 requireText('automation service bridge', bridge, 'disableRemoteRelay');
 requireText('CLI automation handler', cliAutomation, 'automationRemoteRelayConfigureHandler');
-requireText('CLI command registration', main, "automationRemote.command('relay')");
+requireText('CLI package command registration', main, 'runSoftwareDeveloperAutomationCommand');
+requireText('CLI package command registration', main, "name: 'automation'");
 requireText('renderer IPC contract', rendererIpc, 'interface RemoteRelayConfig');
 requireText('iOS companion client', iosClient, 'struct RemoteRelayConfig');
 

@@ -61,6 +61,13 @@ import type {
   ChatDeltaMessage,
   ChatCompleteMessage,
   ChatErrorMessage,
+  HuggingFaceModel,
+  HuggingFaceModelFile,
+  LocalModelRecord,
+  LocalInferenceStartRequest,
+  LocalInferenceStatus,
+  LocalInferenceEngineInfo,
+  LocalInferenceLog,
 } from './types';
 
 const IPC_CHANNELS = {
@@ -83,6 +90,17 @@ const IPC_CHANNELS = {
   'api:chatComplete': 'api:chatComplete',
   'api:chatError': 'api:chatError',
   'api:fetchBootstrap': 'api:fetchBootstrap',
+  'localModels:search': 'localModels:search',
+  'localModels:listFiles': 'localModels:listFiles',
+  'localModels:download': 'localModels:download',
+  'localModels:listDownloaded': 'localModels:listDownloaded',
+  'localModels:installEngine': 'localModels:installEngine',
+  'localModels:engineInfo': 'localModels:engineInfo',
+  'localModels:start': 'localModels:start',
+  'localModels:stop': 'localModels:stop',
+  'localModels:status': 'localModels:status',
+  'localModels:readLog': 'localModels:readLog',
+  'localModels:openLog': 'localModels:openLog',
   'mcp:listServers': 'mcp:listServers',
   'mcp:listTools': 'mcp:listTools',
   'mcp:refresh': 'mcp:refresh',
@@ -187,6 +205,42 @@ const api = {
 
     fetchBootstrap: (): Promise<BootstrapData> => {
       return ipcRenderer.invoke(IPC_CHANNELS['api:fetchBootstrap']);
+    },
+  },
+
+  localModels: {
+    search: (query?: string, limit?: number): Promise<HuggingFaceModel[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:search'], { query, limit });
+    },
+    listFiles: (repository: string): Promise<HuggingFaceModelFile[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:listFiles'], repository);
+    },
+    download: (repository: string, file?: string): Promise<LocalModelRecord> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:download'], { repository, file });
+    },
+    listDownloaded: (): Promise<LocalModelRecord[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:listDownloaded']);
+    },
+    installEngine: (): Promise<LocalInferenceEngineInfo> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:installEngine']);
+    },
+    engineInfo: (): Promise<LocalInferenceEngineInfo> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:engineInfo']);
+    },
+    start: (request: LocalInferenceStartRequest): Promise<LocalInferenceStatus> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:start'], request);
+    },
+    stop: (): Promise<LocalInferenceStatus> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:stop']);
+    },
+    status: (): Promise<LocalInferenceStatus> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:status']);
+    },
+    readLog: (tailLines?: number): Promise<LocalInferenceLog> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:readLog'], tailLines);
+    },
+    openLog: (): Promise<{ ok: boolean; path: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['localModels:openLog']);
     },
   },
 

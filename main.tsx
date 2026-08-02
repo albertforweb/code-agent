@@ -108,6 +108,19 @@ function applyLlmProviderCliOptions(options: {
   process.env.LLM_PROVIDER_MODEL = configuredModel
 }
 
+let cliLocalInference: import('./electron/services/local-model-service.js').LocalModelManager | undefined
+
+async function ensureCodeAgentCliInference(options: { model?: string }): Promise<void> {
+  const provider = process.env.CODE_AGENT_LLM_PROVIDER?.trim().toLowerCase().replace(/_/g, '-')
+  if (provider !== 'codeagent' && provider !== 'code-agent') return
+  const model = options.model || process.env.CODE_AGENT_MODEL || 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF'
+  const { CODEAGENT_LOCAL_BASE_URL, LocalModelManager } = await import('./electron/services/local-model-service.js')
+  cliLocalInference = new LocalModelManager()
+  await cliLocalInference.ensureConfigured({ model })
+  process.env.CODE_AGENT_BASE_URL = CODEAGENT_LOCAL_BASE_URL
+  process.env.CODE_AGENT_MODEL = model
+}
+
 // Lazy require to avoid circular dependency: teammate.ts -> AppState.tsx -> ... -> main.tsx
 /* eslint-disable @typescript-eslint/no-require-imports */
 const getTeammateUtils = () => require('./utils/teammate.js') as typeof import('./utils/teammate.js');
@@ -639,6 +652,7 @@ export async function main() {
   initializeWarningHandler();
   process.on('exit', () => {
     resetCursor();
+    cliLocalInference?.shutdownSync();
   });
   process.on('SIGINT', () => {
     // In print mode, print.ts registers its own SIGINT handler that aborts
@@ -958,6 +972,34 @@ async function run(): Promise<CommanderCommand> {
     }
     return command;
   };
+  const writePackageCommandOutput = async (output: string) => {
+    process.stdout.write(`${output}${output.endsWith('\n') ? '' : '\n'}`);
+    process.exit(0);
+  };
+  const registerSoftwareDeveloperCliCommand = (options: {
+    program: CommanderCommand;
+    name: string;
+    aliases: string[];
+    featureId: string;
+    description: string;
+    run: (args: string[]) => Promise<void>;
+  }) => {
+    if (!hasCliFeature(options.featureId)) {
+      registerLockedFeatureCommand(options.name, options.aliases, options.description);
+      return;
+    }
+    const command = options.program
+      .command(`${options.name} [args...]`)
+      .description(options.description)
+      .allowUnknownOption(true)
+      .allowExcessArguments(true)
+      .action(async (args: string[] = []) => {
+        await options.run(args);
+      });
+    for (const alias of options.aliases) {
+      command.alias(alias);
+    }
+  };
   profileCheckpoint('run_commander_initialized');
 
   // Use preAction hook to run initialization only when executing a command,
@@ -1048,7 +1090,7 @@ async function run(): Promise<CommanderCommand> {
     return Number.isFinite(n) ? n : undefined;
   }).hideHelp()).option('--from-pr [value]', 'Resume a session linked to a PR by PR number/URL, or open interactive picker with optional search term', value => value || true).option('--no-session-persistence', 'Disable session persistence - sessions will not be saved to disk and cannot be resumed (only works with --print)').addOption(new Option('--resume-session-at <message id>', 'When resuming, only messages up to and including the assistant message with <message.id> (use with --resume in print mode)').argParser(String).hideHelp()).addOption(new Option('--rewind-files <user-message-id>', 'Restore files to state at the specified user message and exit (requires --resume)').hideHelp())
   // @[MODEL LAUNCH]: Update the example model ID in the --model help text.
-  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'codeAgent-sonnet-4-6').`).addOption(new Option('--llm-provider <provider>', 'LLM provider for API requests: llmProvider, openai, or openai-compatible').choices(['llmProvider', 'openai', 'openai-compatible', 'local'])).addOption(new Option('--base-url <url>', 'Base URL for OpenAI-compatible API requests (for example, http://127.0.0.1:1234/v1)')).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
+  .option('--model <model>', `Model for the current session. Provide an alias for the latest model (e.g. 'sonnet' or 'opus') or a model's full name (e.g. 'codeAgent-sonnet-4-6').`).addOption(new Option('--llm-provider <provider>', 'LLM provider for API requests: codeagent, openai, or openai-compatible').choices(['llmProvider', 'codeagent', 'openai', 'openai-compatible', 'local'])).addOption(new Option('--base-url <url>', 'Base URL for OpenAI-compatible API requests (for example, http://127.0.0.1:1234/v1)')).addOption(new Option('--effort <level>', `Effort level for the current session (low, medium, high, max)`).argParser((rawValue: string) => {
     const value = rawValue.toLowerCase();
     const allowed = ['low', 'medium', 'high', 'max'];
     if (!allowed.includes(value)) {
@@ -1064,6 +1106,7 @@ async function run(): Promise<CommanderCommand> {
 .option('--plugin-dir <path>', 'Load plugins from a directory for this session only (repeatable: --plugin-dir A --plugin-dir B)', (val: string, prev: string[]) => [...prev, val], [] as string[]).option('--disable-slash-commands', 'Disable all skills', () => true).option('--chrome', 'Enable CodeAgent in Chrome integration').option('--no-chrome', 'Disable CodeAgent in Chrome integration').option('--file <specs...>', 'File resources to download at startup. Format: file_id:relative_path (e.g., --file file_abc:doc.txt file_def:img.png)').action(async (prompt, options) => {
     profileCheckpoint('action_handler_start');
     applyLlmProviderCliOptions(options);
+    await ensureCodeAgentCliInference(options);
 
     // --bare = one-switch minimal mode. Sets SIMPLE so all the existing
     // gates fire (AGENTS.md, skills, hooks inside executeHooks, agent
@@ -4178,6 +4221,50 @@ async function run(): Promise<CommanderCommand> {
     await authLogout();
   });
 
+  const localModels = program.command('models').alias('model-hub').description('Find, download, and run open-source GGUF models locally').configureHelp(createSortedHelpConfig());
+  localModels.command('search [query]').description('Search non-gated GGUF models on Hugging Face').option('--limit <count>', 'Maximum results', '20').action(async (query: string | undefined, options: { limit?: string }) => {
+    const { localModelsSearchHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsSearchHandler(query, options);
+  });
+  localModels.command('files <repository>').description('List GGUF files in a Hugging Face model repository').action(async (repository: string) => {
+    const { localModelsFilesHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsFilesHandler(repository);
+  });
+  localModels.command('download <repository>').description('Download a GGUF model from Hugging Face').option('--file <path>', 'Exact GGUF file; defaults to Q4_K_M, then another Q4 file').action(async (repository: string, options: { file?: string }) => {
+    const { localModelsDownloadHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsDownloadHandler(repository, options);
+  });
+  localModels.command('list').description('List locally downloaded GGUF models').action(async () => {
+    const { localModelsListHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsListHandler();
+  });
+  localModels.command('install-engine').description('Download and verify the official llama.cpp CPU inference engine').action(async () => {
+    const { localModelsInstallEngineHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsInstallEngineHandler();
+  });
+  localModels.command('engine').description('Show the managed or PATH llama.cpp engine').action(async () => {
+    const { localModelsEngineInfoHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsEngineInfoHandler();
+  });
+  localModels.command('start <model>').alias('serve').description('Start the managed local llama.cpp inference server').option('--engine-path <path>', 'Path to llama-server or llama').option('--host <host>', 'Loopback host', '127.0.0.1').option('--port <port>', 'OpenAI-compatible API port', '14321').option('--context-tokens <count>', 'Model context size', '8192').option('--gpu-layers <count>', 'Layers to offload to the GPU').action(async (model: string, options: {
+    enginePath?: string;
+    host?: string;
+    port?: string;
+    contextTokens?: string;
+    gpuLayers?: string;
+  }) => {
+    const { localModelsStartHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsStartHandler(model, options);
+  });
+  localModels.command('stop').description('Stop the managed local inference server').action(async () => {
+    const { localModelsStopHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsStopHandler();
+  });
+  localModels.command('status').description('Show managed local inference status').action(async () => {
+    const { localModelsStatusHandler } = await import('./cli/handlers/local-models.js');
+    await localModelsStatusHandler();
+  });
+
   /**
    * Helper function to handle marketplace command errors consistently.
    * Logs the error and exits the process with status 1.
@@ -4432,330 +4519,29 @@ async function run(): Promise<CommanderCommand> {
     process.exit(0);
   });
 
-  if (!hasCliFeature('project-studio')) {
-    registerLockedFeatureCommand('project', ['projects'], 'Manage Project Studio projects, roles, employees, teams, and deliverables');
-  } else {
-  const project = program.command('project').alias('projects').description('Manage Project Studio projects, roles, employees, teams, and deliverables');
-  project.command('list').description('List Project Studio projects').option('--mode <guided|autonomous>', 'Filter by project mode').option('--status <status>', 'Filter by project status').action(async options => {
-    const { projectListHandler } = await import('./cli/handlers/project-studio.js');
-    await projectListHandler(options);
-    process.exit(0);
-  });
-  project.command('show <id>').description('Show one Project Studio project with its prompt context').action(async (id: string) => {
-    const { projectShowHandler } = await import('./cli/handlers/project-studio.js');
-    await projectShowHandler(id);
-    process.exit(0);
-  });
-  project.command('context <id>').description('Print the project-scoped prompt context').action(async (id: string) => {
-    const { projectContextHandler } = await import('./cli/handlers/project-studio.js');
-    await projectContextHandler(id);
-    process.exit(0);
-  });
-  project.command('create').description('Create a guided or autonomous Project Studio project').requiredOption('--name <name>', 'Project name').option('--mode <guided|autonomous>', 'Project mode', 'guided').option('--idea <text>', 'Human idea or product sketch').option('--goals <text>', 'Goals, constraints, and success criteria').option('--artifacts <list>', 'Comma-separated expected artifacts').option('--workspace <dir>', 'Project workspace directory').option('--supervisor <employee-id>', 'Supervisor employee id').option('--employees <ids>', 'Comma-separated direct employee ids').option('--teams <ids>', 'Comma-separated project team ids').option('--permission-mode <supervised|full-access>', 'Autonomous project permission mode', 'supervised').action(async options => {
-    const { projectCreateHandler } = await import('./cli/handlers/project-studio.js');
-    await projectCreateHandler(options);
-    process.exit(0);
-  });
-  project.command('update <id>').description('Update a Project Studio project').option('--name <name>', 'Project name').option('--mode <guided|autonomous>', 'Project mode').option('--status <status>', 'Project status: idea, planning, active, stopped, blocked, done').option('--idea <text>', 'Human idea or product sketch').option('--goals <text>', 'Goals, constraints, and success criteria').option('--artifacts <list>', 'Comma-separated expected artifacts').option('--workspace <dir>', 'Project workspace directory').option('--supervisor <employee-id>', 'Supervisor employee id').option('--employees <ids>', 'Comma-separated direct employee ids').option('--teams <ids>', 'Comma-separated project team ids').option('--permission-mode <supervised|full-access>', 'Autonomous project permission mode').action(async (id: string, options) => {
-    const { projectUpdateHandler } = await import('./cli/handlers/project-studio.js');
-    await projectUpdateHandler(id, options);
-    process.exit(0);
-  });
-  project.command('delete <id>').alias('rm').description('Delete a Project Studio project').action(async (id: string) => {
-    const { projectDeleteHandler } = await import('./cli/handlers/project-studio.js');
-    await projectDeleteHandler(id);
-    process.exit(0);
-  });
-  project.command('start <id>').description('Start or re-run an autonomous Project Studio project').action(async (id: string) => {
-    const { projectStartHandler } = await import('./cli/handlers/project-studio.js');
-    await projectStartHandler(id);
-    process.exit(0);
-  });
-  project.command('status <id> <status>').description('Set a Project Studio project lifecycle status').action(async (id: string, status: string) => {
-    const { projectStatusHandler } = await import('./cli/handlers/project-studio.js');
-    await projectStatusHandler(id, status);
-    process.exit(0);
-  });
-  project.command('runs <id>').description('List autonomous run history for a Project Studio project').action(async (id: string) => {
-    const { projectRunsHandler } = await import('./cli/handlers/project-studio.js');
-    await projectRunsHandler(id);
-    process.exit(0);
-  });
-  project.command('deliverables <id>').alias('deliveries').description('List generated outputs and run artifacts for a Project Studio project').action(async (id: string) => {
-    const { projectDeliverablesHandler } = await import('./cli/handlers/project-studio.js');
-    await projectDeliverablesHandler(id);
-    process.exit(0);
+  registerSoftwareDeveloperCliCommand({
+    program,
+    name: 'project',
+    aliases: ['projects'],
+    featureId: 'project-studio',
+    description: 'Manage Project Studio projects, roles, employees, teams, and deliverables',
+    run: async args => {
+      const { runSoftwareDeveloperProjectCommand } = await import('./cli/feature-package-runtime.js');
+      await writePackageCommandOutput(await runSoftwareDeveloperProjectCommand(args.join(' '), 'project'));
+    },
   });
 
-  const projectRole = project.command('role').alias('roles').description('Manage reusable Project Studio role definitions');
-  projectRole.command('list').description('List role definitions').action(async () => {
-    const { roleListHandler } = await import('./cli/handlers/project-studio.js');
-    await roleListHandler();
-    process.exit(0);
+  registerSoftwareDeveloperCliCommand({
+    program,
+    name: 'automation',
+    aliases: ['auto'],
+    featureId: 'automation',
+    description: 'Manage local skills, scheduled tasks, remote control, and virtual teams',
+    run: async args => {
+      const { runSoftwareDeveloperAutomationCommand } = await import('./cli/feature-package-runtime.js');
+      await writePackageCommandOutput(await runSoftwareDeveloperAutomationCommand(args.join(' ')));
+    },
   });
-  projectRole.command('create').description('Create a role definition').requiredOption('--title <title>', 'Role title').option('--responsibilities <list>', 'Comma-separated responsibilities').option('--goal <text>', 'Default goal').option('--tools <list>', 'Comma-separated default tools').option('--supervisor', 'Allow this role to supervise projects').action(async options => {
-    const { roleCreateHandler } = await import('./cli/handlers/project-studio.js');
-    await roleCreateHandler(options);
-    process.exit(0);
-  });
-  projectRole.command('update <id>').description('Update a role definition').option('--title <title>', 'Role title').option('--responsibilities <list>', 'Comma-separated responsibilities').option('--goal <text>', 'Default goal').option('--tools <list>', 'Comma-separated default tools').option('--supervisor', 'Allow this role to supervise projects').option('--no-supervisor', 'Remove project supervisor capability').action(async (id: string, options) => {
-    const { roleUpdateHandler } = await import('./cli/handlers/project-studio.js');
-    await roleUpdateHandler(id, { ...options, noSupervisor: options.supervisor === false });
-    process.exit(0);
-  });
-  projectRole.command('delete <id>').alias('rm').description('Delete a role definition').action(async (id: string) => {
-    const { roleDeleteHandler } = await import('./cli/handlers/project-studio.js');
-    await roleDeleteHandler(id);
-    process.exit(0);
-  });
-
-  const projectEmployee = project.command('employee').alias('employees').alias('people').description('Manage reusable Project Studio employees');
-  projectEmployee.command('list').description('List employees').action(async () => {
-    const { employeeListHandler } = await import('./cli/handlers/project-studio.js');
-    await employeeListHandler();
-    process.exit(0);
-  });
-  projectEmployee.command('create').description('Create an employee').requiredOption('--name <name>', 'Employee name').option('--role <title>', 'Role title').option('--role-id <id>', 'Role id').option('--model <model>', 'Preferred model').option('--permissions <list>', 'Comma-separated permissions').option('--task <text>', 'Current task or default assignment').action(async options => {
-    const { employeeCreateHandler } = await import('./cli/handlers/project-studio.js');
-    await employeeCreateHandler(options);
-    process.exit(0);
-  });
-  projectEmployee.command('update <id>').description('Update an employee').option('--name <name>', 'Employee name').option('--role <title>', 'Role title').option('--role-id <id>', 'Role id').option('--model <model>', 'Preferred model').option('--permissions <list>', 'Comma-separated permissions').option('--task <text>', 'Current task or default assignment').option('--status <idle|working|approval>', 'Employee status').action(async (id: string, options) => {
-    const { employeeUpdateHandler } = await import('./cli/handlers/project-studio.js');
-    await employeeUpdateHandler(id, options);
-    process.exit(0);
-  });
-  projectEmployee.command('delete <id>').alias('rm').description('Delete an employee').action(async (id: string) => {
-    const { employeeDeleteHandler } = await import('./cli/handlers/project-studio.js');
-    await employeeDeleteHandler(id);
-    process.exit(0);
-  });
-
-  const projectTeam = project.command('team').alias('teams').description('Manage reusable Project Studio teams');
-  projectTeam.command('list').description('List project teams').action(async () => {
-    const { projectTeamListHandler } = await import('./cli/handlers/project-studio.js');
-    await projectTeamListHandler();
-    process.exit(0);
-  });
-  projectTeam.command('create').description('Create a project team').requiredOption('--name <name>', 'Team name').option('--mission <text>', 'Team scoped mission').option('--supervisor <employee-id>', 'Supervisor employee id').option('--members <ids>', 'Comma-separated member employee ids').action(async options => {
-    const { projectTeamCreateHandler } = await import('./cli/handlers/project-studio.js');
-    await projectTeamCreateHandler(options);
-    process.exit(0);
-  });
-  projectTeam.command('update <id>').description('Update a project team').option('--name <name>', 'Team name').option('--mission <text>', 'Team scoped mission').option('--supervisor <employee-id>', 'Supervisor employee id').option('--members <ids>', 'Comma-separated member employee ids').action(async (id: string, options) => {
-    const { projectTeamUpdateHandler } = await import('./cli/handlers/project-studio.js');
-    await projectTeamUpdateHandler(id, options);
-    process.exit(0);
-  });
-  projectTeam.command('delete <id>').alias('rm').description('Delete a project team').action(async (id: string) => {
-    const { projectTeamDeleteHandler } = await import('./cli/handlers/project-studio.js');
-    await projectTeamDeleteHandler(id);
-    process.exit(0);
-  });
-  }
-
-  if (!hasCliFeature('automation')) {
-    registerLockedFeatureCommand('automation', ['auto'], 'Manage local skills, scheduled tasks, remote control, and virtual teams');
-  } else {
-  const automation = program.command('automation').alias('auto').description('Manage local skills, scheduled tasks, remote control, and virtual teams');
-  automation.command('skills').description('List workspace skills discovered from local skill directories').action(async () => {
-    const {
-      automationSkillsHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationSkillsHandler();
-    process.exit(0);
-  });
-  automation.command('skills-refresh').description('Refresh and list workspace skills discovered from local skill directories').action(async () => {
-    const {
-      automationSkillsRefreshHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationSkillsRefreshHandler();
-    process.exit(0);
-  });
-  automation.command('skill <id>').description('Show, enable, or disable a workspace skill').option('--enable', 'Enable this skill').option('--disable', 'Disable this skill').action(async (id: string, options: {
-    enable?: boolean;
-    disable?: boolean;
-  }) => {
-    const {
-      automationSkillEnableHandler,
-      automationSkillGetHandler
-    } = await import('./cli/handlers/automation.js');
-    if (!options.enable && !options.disable) {
-      await automationSkillGetHandler(id);
-    } else {
-      await automationSkillEnableHandler(id, options.disable ? false : true);
-    }
-    process.exit(0);
-  });
-  automation.command('export').description('Export automation skills/tasks/teams state as JSON').option('--no-include-runs', 'Exclude run history from the export').action(async options => {
-    const {
-      automationExportHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationExportHandler(options);
-    process.exit(0);
-  });
-  automation.command('import <file>').description('Import automation skills/tasks/teams state from a JSON file').action(async (file: string) => {
-    const {
-      automationImportHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationImportHandler(file);
-    process.exit(0);
-  });
-  const automationTask = automation.command('task').alias('tasks').description('Manage scheduled automation tasks');
-  automationTask.command('list').description('List scheduled tasks').action(async () => {
-    const {
-      automationTasksHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTasksHandler();
-    process.exit(0);
-  });
-  automationTask.command('runs').description('List recent scheduled task runs').option('--task <id>', 'Filter by task id').action(async options => {
-    const {
-      automationTaskRunsHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskRunsHandler(options.task);
-    process.exit(0);
-  });
-  automationTask.command('add').description('Create a scheduled task').option('--name <name>', 'Task name').requiredOption('--prompt <prompt>', 'Prompt to run on schedule').option('--interval <minutes>', 'Interval in minutes', '60').action(async options => {
-    const {
-      automationTaskAddHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskAddHandler(options);
-    process.exit(0);
-  });
-  automationTask.command('update <id>').description('Update a scheduled task').option('--name <name>', 'Task name').option('--prompt <prompt>', 'Prompt to run on schedule').option('--interval <minutes>', 'Interval in minutes').option('--enable', 'Enable the task').option('--disable', 'Disable the task').action(async (id: string, options) => {
-    const {
-      automationTaskUpdateHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskUpdateHandler(id, options);
-    process.exit(0);
-  });
-  automationTask.command('run <id>').description('Queue a scheduled task for execution').action(async (id: string) => {
-    const {
-      automationTaskRunHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskRunHandler(id);
-    process.exit(0);
-  });
-  automationTask.command('enable <id>').description('Enable a scheduled task').action(async (id: string) => {
-    const {
-      automationTaskEnableHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskEnableHandler(id, true);
-    process.exit(0);
-  });
-  automationTask.command('disable <id>').description('Disable a scheduled task').action(async (id: string) => {
-    const {
-      automationTaskEnableHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskEnableHandler(id, false);
-    process.exit(0);
-  });
-  automationTask.command('delete <id>').alias('rm').description('Delete a scheduled task').action(async (id: string) => {
-    const {
-      automationTaskDeleteHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTaskDeleteHandler(id);
-    process.exit(0);
-  });
-  const automationRemote = automation.command('remote').description('Manage remote-control pairing state');
-  automationRemote.command('status').description('Show remote-control status').action(async () => {
-    const {
-      automationRemoteStatusHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteStatusHandler();
-    process.exit(0);
-  });
-  automationRemote.command('pair').description('Create a temporary remote-control pairing code').option('--device <name>', 'Device name', 'Phone').action(async options => {
-    const {
-      automationRemotePairHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemotePairHandler(options);
-    process.exit(0);
-  });
-  automationRemote.command('serve').description('Run the local-network remote-control web server').action(async () => {
-    const {
-      automationRemoteServeHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteServeHandler();
-  });
-  automationRemote.command('disable').description('Disable the local remote-control server state').action(async () => {
-    const {
-      automationRemoteDisableHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteDisableHandler();
-    process.exit(0);
-  });
-  automationRemote.command('revoke <deviceId>').description('Revoke a paired remote-control device').action(async (deviceId: string) => {
-    const {
-      automationRemoteRevokeHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteRevokeHandler(deviceId);
-    process.exit(0);
-  });
-  const automationRemoteRelay = automationRemote.command('relay').description('Manage managed-relay enrollment metadata');
-  automationRemoteRelay.command('status').description('Show managed-relay enrollment metadata').action(async () => {
-    const {
-      automationRemoteRelayStatusHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteRelayStatusHandler();
-  });
-  automationRemoteRelay.command('configure').description('Store managed-relay enrollment metadata without starting a relay connection').requiredOption('--broker-url <url>', 'Managed relay broker HTTPS URL').option('--account-id <id>', 'Relay account id').option('--device-id <id>', 'Relay device id').option('--relay-public-key <key>', 'Relay public key identifier or material').option('--client-key-id <id>', 'Local client key id').option('--audit-cursor <cursor>', 'Last synchronized relay audit cursor').option('--token-rotates-at <timestamp>', 'Expected token rotation timestamp').action(async options => {
-    const {
-      automationRemoteRelayConfigureHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteRelayConfigureHandler(options);
-  });
-  automationRemoteRelay.command('disable').description('Disable managed-relay enrollment metadata').action(async () => {
-    const {
-      automationRemoteRelayDisableHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationRemoteRelayDisableHandler();
-  });
-  const automationTeam = automation.command('team').alias('teams').description('Manage virtual team blueprints');
-  automationTeam.command('list').description('List virtual teams').action(async () => {
-    const {
-      automationTeamsHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamsHandler();
-    process.exit(0);
-  });
-  automationTeam.command('runs').description('List recent virtual team runs').option('--team <id>', 'Filter by team id').action(async options => {
-    const {
-      automationTeamRunsHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamRunsHandler(options.team);
-    process.exit(0);
-  });
-  automationTeam.command('create-default').description('Create a default software delivery team').option('--objective <text>', 'Team objective').action(async options => {
-    const {
-      automationTeamCreateDefaultHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamCreateDefaultHandler(options);
-    process.exit(0);
-  });
-  automationTeam.command('save').description('Create or update a virtual team blueprint').option('--id <id>', 'Existing team id to update').option('--name <name>', 'Team name').option('--objective <text>', 'Team objective').option('--workspace <dir>', 'Team workspace directory').option('--permission-mode <supervised|full-access>', 'Permission mode').option('--max-iterations <number>', 'Maximum run iterations').option('--require-qa-signoff', 'Require QA signoff before success').action(async options => {
-    const {
-      automationTeamSaveHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamSaveHandler(options);
-    process.exit(0);
-  });
-  automationTeam.command('run <id>').description('Run one virtual team iteration').action(async (id: string) => {
-    const {
-      automationTeamRunHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamRunHandler(id);
-    process.exit(0);
-  });
-  automationTeam.command('delete <id>').alias('rm').description('Delete a virtual team').action(async (id: string) => {
-    const {
-      automationTeamDeleteHandler
-    } = await import('./cli/handlers/automation.js');
-    await automationTeamDeleteHandler(id);
-    process.exit(0);
-  });
-  }
 
   if (feature('TRANSCRIPT_CLASSIFIER')) {
     // Skip when tengu_auto_mode_config.enabled === 'disabled' (circuit breaker).

@@ -144,7 +144,7 @@ export interface ChatMessage {
   content: ChatMessageContent;
 }
 
-export type LlmProviderType = 'openai' | 'openai-compatible';
+export type LlmProviderType = 'codeagent' | 'openai' | 'openai-compatible';
 
 export interface ChatRequest {
   messages: ChatMessage[];
@@ -192,6 +192,71 @@ export interface ChatErrorMessage {
   requestId: string;
   error: string;
   stack?: string;
+}
+
+export interface HuggingFaceModel {
+  id: string;
+  downloads: number;
+  likes: number;
+  lastModified?: string;
+  pipelineTag?: string;
+  tags: string[];
+  gated: boolean | string;
+}
+
+export interface HuggingFaceModelFile {
+  name: string;
+  size?: number;
+  quantization?: string;
+}
+
+export interface LocalModelRecord {
+  id: string;
+  repository: string;
+  file: string;
+  path: string;
+  size: number;
+  downloadedAt: string;
+  source?: 'bundled' | 'downloaded';
+  displayName?: string;
+  revision?: string;
+  sha256?: string;
+  license?: string;
+  quantization?: string;
+}
+
+export interface LocalInferenceStartRequest {
+  model: string;
+  enginePath?: string;
+  host?: string;
+  port?: number;
+  contextTokens?: number;
+  gpuLayers?: number;
+}
+
+export interface LocalInferenceStatus {
+  running: boolean;
+  healthy: boolean;
+  pid?: number;
+  model?: string;
+  modelPath?: string;
+  baseUrl: string;
+  enginePath?: string;
+  startedAt?: string;
+  logPath: string;
+  error?: string;
+}
+
+export interface LocalInferenceEngineInfo {
+  installed: boolean;
+  path?: string;
+  version?: string;
+  source?: string;
+}
+
+export interface LocalInferenceLog {
+  path: string;
+  content: string;
 }
 
 export interface FileEntry {
@@ -261,6 +326,8 @@ export interface AppConfig {
   temperature?: number;
   maxTokens?: number;
   contextTokens?: number;
+  localEnginePath?: string;
+  localGpuLayers?: number;
   enableLlmTools?: boolean;
   disabledLlmTools?: string[];
   toolPermissionPolicies?: Record<string, ToolPermissionMode>;
@@ -656,6 +723,19 @@ export interface ElectronRendererApi {
     chatStream(request: ChatStreamRequest): Promise<ChatStreamResponse>;
     fetchBootstrap(): Promise<BootstrapData>;
   };
+  localModels: {
+    search(query?: string, limit?: number): Promise<HuggingFaceModel[]>;
+    listFiles(repository: string): Promise<HuggingFaceModelFile[]>;
+    download(repository: string, file?: string): Promise<LocalModelRecord>;
+    listDownloaded(): Promise<LocalModelRecord[]>;
+    installEngine(): Promise<LocalInferenceEngineInfo>;
+    engineInfo(): Promise<LocalInferenceEngineInfo>;
+    start(request: LocalInferenceStartRequest): Promise<LocalInferenceStatus>;
+    stop(): Promise<LocalInferenceStatus>;
+    status(): Promise<LocalInferenceStatus>;
+    readLog(tailLines?: number): Promise<LocalInferenceLog>;
+    openLog(): Promise<{ ok: boolean; path: string }>;
+  };
   mcp: {
     listServers(): Promise<McpServerInfo[]>;
     listTools(): Promise<McpToolInfo[]>;
@@ -767,6 +847,19 @@ export const ipcClient: ElectronRendererApi = {
     chat: request => getApi().api.chat(request),
     chatStream: request => getApi().api.chatStream(request),
     fetchBootstrap: () => getApi().api.fetchBootstrap(),
+  },
+  localModels: {
+    search: (query, limit) => getApi().localModels.search(query, limit),
+    listFiles: repository => getApi().localModels.listFiles(repository),
+    download: (repository, file) => getApi().localModels.download(repository, file),
+    listDownloaded: () => getApi().localModels.listDownloaded(),
+    installEngine: () => getApi().localModels.installEngine(),
+    engineInfo: () => getApi().localModels.engineInfo(),
+    start: request => getApi().localModels.start(request),
+    stop: () => getApi().localModels.stop(),
+    status: () => getApi().localModels.status(),
+    readLog: tailLines => getApi().localModels.readLog(tailLines),
+    openLog: () => getApi().localModels.openLog(),
   },
   mcp: {
     listServers: () => getApi().mcp.listServers(),

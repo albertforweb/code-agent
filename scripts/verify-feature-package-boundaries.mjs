@@ -48,6 +48,8 @@ function requireExternalFile(root, relativePath, label) {
 
 const sourceManifestPath = requireExternalFile(packageRoot, 'software-developer/manifest.json', 'software-developer source manifest');
 const packageJsonPath = requireExternalFile(packageRoot, 'software-developer/package.json', 'software-developer package.json');
+const packageCliProjectPath = requireExternalFile(packageRoot, 'software-developer/src/cli/project-studio.ts', 'software-developer CLI project source');
+const packageCliAutomationPath = requireExternalFile(packageRoot, 'software-developer/src/cli/automation.ts', 'software-developer CLI automation source');
 const sdkPath = requireExternalFile(sdkRoot, 'src/index.ts', 'feature package SDK');
 const artifactManifestPath = requireExternalFile(packageDistRoot, 'software-developer/manifest.json', 'software-developer artifact manifest');
 const artifactSummaryPath = requireExternalFile(packageDistRoot, 'software-developer/build-summary.json', 'software-developer artifact summary');
@@ -142,12 +144,6 @@ for (const relativePath of ['feature-packages', 'package-sdk']) {
 const implementationMarkers = [
   ['src/renderer/App.tsx', 'ProjectStudio'],
   ['src/renderer/App.tsx', "AppView = 'chat' | 'projects' | 'tools' | 'automation' | 'history' | 'settings'"],
-  ['main.tsx', "program.command('project')"],
-  ['main.tsx', "program.command('automation')"],
-  ['commands.ts', "commands/project/index.js"],
-  ['commands.ts', "commands/team/index.js"],
-  ['cli/handlers/project-studio.ts', 'runProjectStudioCommand'],
-  ['cli/handlers/automation.ts', 'AutomationServiceBridge'],
 ];
 
 for (const [relativePath, marker] of implementationMarkers) {
@@ -166,6 +162,26 @@ if (existsSync(distFeatureRoot)) {
   if (distEntries.length === 0) {
     failures.push('dist-feature-packages exists but is empty.');
   }
+}
+
+for (const relativePath of [
+  'cli/handlers/project-studio.ts',
+  'cli/handlers/automation.ts',
+  'commands/project',
+  'commands/role',
+  'commands/employee',
+  'commands/team',
+]) {
+  if (existsSync(path.join(repoRoot, relativePath))) {
+    failures.push(`Core still contains paid CLI implementation source: ${relativePath}`);
+  }
+}
+
+if (existsSync(packageCliProjectPath) && !readFileSync(packageCliProjectPath, 'utf8').includes('runProjectStudioCommand')) {
+  failures.push('software-developer package CLI project source is missing runProjectStudioCommand.');
+}
+if (existsSync(packageCliAutomationPath) && !readFileSync(packageCliAutomationPath, 'utf8').includes('runAutomationCommand')) {
+  failures.push('software-developer package CLI automation source is missing runAutomationCommand.');
 }
 
 if (strict && warnings.length > 0) {
