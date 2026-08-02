@@ -26,7 +26,7 @@ if (windows) {
   for (const dependency of ['llama.dll', 'ggml.dll', 'ggml-base.dll', 'llama-server-impl.dll']) {
     assert(files.includes(dependency), `Windows llama.cpp bundle is missing ${dependency}`)
   }
-  assert(files.some(file => file.startsWith('ggml-cpu-') && file.endsWith('.dll')), 'Windows llama.cpp bundle is missing a CPU backend DLL')
+  assert(files.includes('ggml-cpu.dll') || files.some(file => file.startsWith('ggml-cpu-') && file.endsWith('.dll')), 'Windows llama.cpp bundle is missing a CPU backend DLL')
 }
 
 console.log(`Verified bundled llama.cpp ${manifest.version ?? ''} for ${target}: ${targetRoot}`)

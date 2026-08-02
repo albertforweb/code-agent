@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "version": "b10223",
+  "assets": {
+    "darwin-arm64": {
+      "file": "llama-b10223-bin-macos-arm64.tar.gz",
+      "sha256": "2c5e6dca00a3f09ba1030e309ff6fa4c2568a01864de258a4e7752b09e26430e"
+    },
+    "darwin-x64": {
+      "file": "llama-b10223-bin-macos-x64.tar.gz",
+      "sha256": "d5488dd5759f7a086852af5a206c6cded875c716de6a9f9d8460ea6c2dc24138"
+    },
+    "linux-arm64": {
+      "file": "llama-b10223-bin-ubuntu-arm64.tar.gz",
+      "sha256": "dc043ce527e43082d6ee6e83df18a6f1bb3164cd1af3d2f0ae47a5aef92d7aea"
+    },
+    "linux-x64": {
+      "file": "llama-b10223-bin-ubuntu-x64.tar.gz",
+      "sha256": "ef15f7c47c5ef8dc789fb7e8a00961b85bbba442da18ad18c820a16212c822b5"
+    },
+    "win32-arm64": {
+      "file": "llama-b10223-bin-win-cpu-arm64.zip",
+      "sha256": "9d7ca964a8f590ce59b07c7a0f402da9acba55307d2776bd6c82d3bec4fa1146"
+    },
+    "win32-x64": {
+      "file": "llama-b10223-bin-win-cpu-x64.zip",
+      "sha256": "74c1ded0512818d98b51940bf9150e16da8ed79cf0cbe8d85788e01cdd00ff67"
+    }
+  }
+}

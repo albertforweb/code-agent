@@ -85,6 +85,7 @@ jobs:
         env:
           # Optional for public models; raises Hub rate limits when configured.
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate release notes
         working-directory: code-agent
@@ -174,6 +175,8 @@ jobs:
       - name: Bundle local inference engine
         working-directory: code-agent
         run: node scripts/bundle-llama-engine.mjs --target ${{ matrix.llama_target }} --destination electron/resources/llama.cpp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Bundle offline starter model
         working-directory: code-agent
