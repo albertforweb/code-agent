@@ -56,6 +56,21 @@ export class KeychainService {
     }
   }
 
+  async getSecret(key: string): Promise<string | null> {
+    if (!this.keytar) return null;
+    return this.keytar.getPassword(this.serviceName, key);
+  }
+
+  async setSecret(key: string, value: string): Promise<void> {
+    if (!this.keytar) return;
+    await this.keytar.setPassword(this.serviceName, key, value);
+  }
+
+  async deleteSecret(key: string): Promise<void> {
+    if (!this.keytar) return;
+    await this.keytar.deletePassword(this.serviceName, key);
+  }
+
   private getProviderKey(provider: LlmProviderType): string {
     return `llm-api-key-${provider}`;
   }

@@ -56,7 +56,11 @@ for (const target of targets) {
   }
   const targetDestination = path.join(destination, target)
   await rm(targetDestination, { recursive: true, force: true })
-  await cp(targetCache, targetDestination, { recursive: true })
+  // Preserve the release archive's relative dylib symlinks. Node's default
+  // cp behavior resolves symlink targets to absolute cache paths, which makes
+  // the macOS app bundle non-relocatable and causes codesign verification to
+  // fail with "invalid destination for symbolic link in bundle".
+  await cp(targetCache, targetDestination, { recursive: true, verbatimSymlinks: true })
   await makeExecutablesRunnable(targetDestination)
   console.log(`Bundled llama.cpp ${bundle.version} for ${target}`)
 }

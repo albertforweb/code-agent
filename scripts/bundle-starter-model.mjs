@@ -34,13 +34,13 @@ for (const model of catalog.models) {
   }
   if (!validCache) {
     await rm(cachedModel, { force: true })
-    await download(resolveUrl(model, model.file), cachedModel)
+    await downloadArtifact(model, cachedModel)
   }
   await verifyArtifact(cachedModel, model)
 
   for (const supportFile of ['LICENSE', 'README.md']) {
     const cachedSupportFile = path.join(cacheDir, supportFile)
-    if (!existsSync(cachedSupportFile)) await download(resolveUrl(model, supportFile), cachedSupportFile)
+    if (!existsSync(cachedSupportFile)) await download(resolveRawUrl(model, supportFile), cachedSupportFile)
   }
 
   const modelDestination = path.join(destination, model.id)
@@ -60,6 +60,50 @@ function resolveUrl(model, file) {
   // is an internal redirect target whose signed query parameters can expire or
   // be rejected on a different CI runner.
   return `https://huggingface.co/${repository}/resolve/${encodeURIComponent(model.revision)}/${encodedFile}?download=true`
+}
+
+function resolveRawUrl(model, file) {
+  const repository = model.repository.split('/').map(encodeURIComponent).join('/')
+  const encodedFile = file.split('/').map(encodeURIComponent).join('/')
+  return `https://huggingface.co/${repository}/raw/${encodeURIComponent(model.revision)}/${encodedFile}`
+}
+
+async function downloadArtifact(model, output) {
+  try {
+    await download(resolveUrl(model, model.file), output)
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes('returned HTML')) throw error
+    // Some managed networks block Hugging Face's browser-style `/resolve`
+    // endpoint while allowing the standard Git LFS transfer endpoint. Resolve
+    // the same immutable SHA-256 object through LFS without weakening artifact
+    // verification.
+    const lfsUrl = await resolveLfsDownloadUrl(model)
+    await download(lfsUrl, output)
+  }
+}
+
+async function resolveLfsDownloadUrl(model) {
+  const repository = model.repository.split('/').map(encodeURIComponent).join('/')
+  const response = await fetch(`https://huggingface.co/${repository}.git/info/lfs/objects/batch`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      Accept: 'application/vnd.git-lfs+json',
+      'Content-Type': 'application/vnd.git-lfs+json',
+    },
+    body: JSON.stringify({
+      operation: 'download',
+      transfers: ['basic'],
+      objects: [{ oid: model.sha256, size: model.size }],
+    }),
+  })
+  if (!response.ok) throw new Error(`Unable to resolve Git LFS download for ${model.file}: ${response.status}`)
+  const result = await response.json()
+  const href = result?.objects?.[0]?.actions?.download?.href
+  if (typeof href !== 'string' || !href.startsWith('https://')) {
+    throw new Error(`Hugging Face did not provide a Git LFS download for ${model.file}`)
+  }
+  return href
 }
 
 async function download(url, output) {

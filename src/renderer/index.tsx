@@ -3,7 +3,6 @@
  * This is the UI layer that runs in the Electron renderer process
  */
 
-import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './styles/global.css';
@@ -14,11 +13,13 @@ import './styles/global.css';
 async function initializeRenderer() {
   try {
     const root = ReactDOM.createRoot(document.getElementById('root')!);
-    root.render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>
-    );
+    // Desktop startup performs real IPC, secure-session restoration, and
+    // service hydration. React StrictMode intentionally replays mount effects
+    // in development, which can race those one-shot operations and leave the
+    // visible tree detached from the successfully loaded persisted config.
+    // Service behavior is covered by explicit tests, so mount the desktop app
+    // once and keep startup deterministic.
+    root.render(<App />);
   } catch (error) {
     console.error('Failed to initialize renderer:', error);
     document.body.innerHTML = '<div style="padding: 20px; color: red;">Failed to initialize application</div>';

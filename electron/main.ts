@@ -9,6 +9,7 @@ import {
   Menu,
   dialog,
   nativeTheme,
+  type MenuItemConstructorOptions,
 } from 'electron';
 import * as path from 'path';
 import { IpcBridge } from './bridge';
@@ -105,6 +106,37 @@ function saveWindowState() {
 }
 
 /**
+ * Provide the standard desktop text menu that Chromium does not add by
+ * default. Rendered messages only expose Copy when text is selected, while
+ * editable controls receive the usual editing commands.
+ */
+function setupTextContextMenu(window: BrowserWindow) {
+  window.webContents.on('context-menu', (_event, params) => {
+    const hasSelection = params.selectionText.trim().length > 0;
+
+    if (!params.isEditable && !hasSelection) {
+      return;
+    }
+
+    const template: MenuItemConstructorOptions[] = params.isEditable
+      ? [
+          { role: 'undo', enabled: params.editFlags.canUndo },
+          { role: 'redo', enabled: params.editFlags.canRedo },
+          { type: 'separator' },
+          { role: 'cut', enabled: params.editFlags.canCut },
+          { role: 'copy', enabled: params.editFlags.canCopy || hasSelection },
+          { role: 'paste', enabled: params.editFlags.canPaste },
+          { role: 'delete', enabled: params.editFlags.canDelete },
+          { type: 'separator' },
+          { role: 'selectAll', enabled: params.editFlags.canSelectAll },
+        ]
+      : [{ role: 'copy', enabled: true }];
+
+    Menu.buildFromTemplate(template).popup({ window });
+  });
+}
+
+/**
  * Create the main application window
  */
 function createWindow() {
@@ -128,6 +160,8 @@ function createWindow() {
   mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
     console.error(`Preload failed: ${preloadPath}`, error);
   });
+
+  setupTextContextMenu(mainWindow);
 
   if (isDev) {
     mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {

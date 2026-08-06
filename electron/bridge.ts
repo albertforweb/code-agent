@@ -30,6 +30,7 @@ import type {
   FeaturePackageInstallRequest,
   FeaturePackageInstallResult,
   AuthToken,
+  PlatformAuthSession,
   Tool,
   McpServerInfo,
   McpToolInfo,
@@ -148,6 +149,9 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['auth:getToken'], this.handleGetToken.bind(this));
     ipcMain.handle(IPC_CHANNELS['auth:logout'], this.handleLogout.bind(this));
     ipcMain.handle(IPC_CHANNELS['auth:setToken'], this.handleSetToken.bind(this));
+    ipcMain.handle(IPC_CHANNELS['auth:getPlatformSession'], this.handleGetPlatformSession.bind(this));
+    ipcMain.handle(IPC_CHANNELS['auth:setPlatformSession'], this.handleSetPlatformSession.bind(this));
+    ipcMain.handle(IPC_CHANNELS['auth:clearPlatformSession'], this.handleClearPlatformSession.bind(this));
 
     // App state channels
     ipcMain.handle(IPC_CHANNELS['app:info'], this.handleGetInfo.bind(this));
@@ -361,6 +365,24 @@ export class IpcBridge {
       throw new Error('Auth handler not configured');
     }
     return handler(token);
+  }
+
+  private async handleGetPlatformSession() {
+    const handler = this.authHandlers.get('getPlatformSession');
+    if (!handler) throw new Error('Platform session handler not configured');
+    return handler({});
+  }
+
+  private async handleSetPlatformSession(_event: any, session: PlatformAuthSession) {
+    const handler = this.authHandlers.get('setPlatformSession');
+    if (!handler) throw new Error('Platform session handler not configured');
+    return handler(session);
+  }
+
+  private async handleClearPlatformSession() {
+    const handler = this.authHandlers.get('clearPlatformSession');
+    if (!handler) throw new Error('Platform session handler not configured');
+    return handler({});
   }
 
   // ============================================================================

@@ -38,6 +38,21 @@ class KeychainService {
             await this.keytar.deletePassword(this.serviceName, this.getProviderKey(providerName));
         }
     }
+    async getSecret(key) {
+        if (!this.keytar)
+            return null;
+        return this.keytar.getPassword(this.serviceName, key);
+    }
+    async setSecret(key, value) {
+        if (!this.keytar)
+            return;
+        await this.keytar.setPassword(this.serviceName, key, value);
+    }
+    async deleteSecret(key) {
+        if (!this.keytar)
+            return;
+        await this.keytar.deletePassword(this.serviceName, key);
+    }
     getProviderKey(provider) {
         return `llm-api-key-${provider}`;
     }

@@ -7,6 +7,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthServiceBridge = void 0;
 const keychain_1 = require("../keychain");
+const PLATFORM_SESSION_KEY = 'platform-auth-session';
 /**
  * Auth Service Bridge - bridges auth operations to IPC
  */
@@ -14,6 +15,7 @@ class AuthServiceBridge {
     constructor(keytar) {
         this.currentTokens = new Map();
         this.oauth2Config = null;
+        this.platformSession = null;
         this.keychain = new keychain_1.KeychainService(keytar);
     }
     /**
@@ -75,6 +77,50 @@ class AuthServiceBridge {
         }
         catch (error) {
             console.warn('Failed to delete token from keychain:', error);
+        }
+    }
+    async getPlatformSession() {
+        if (this.platformSession) {
+            if (!this.isExpired(this.platformSession))
+                return { ...this.platformSession };
+            await this.clearPlatformSession();
+            return null;
+        }
+        try {
+            const stored = await this.keychain.getSecret(PLATFORM_SESSION_KEY);
+            if (!stored)
+                return null;
+            const session = this.normalizePlatformSession(JSON.parse(stored));
+            if (!session || this.isExpired(session)) {
+                await this.clearPlatformSession();
+                return null;
+            }
+            this.platformSession = session;
+            return { ...session };
+        }
+        catch (error) {
+            console.warn('Failed to restore platform session from keychain:', error);
+            await this.clearPlatformSession();
+            return null;
+        }
+    }
+    async setPlatformSession(session) {
+        const normalized = this.normalizePlatformSession(session);
+        if (!normalized)
+            throw new Error('Invalid platform authentication session');
+        if (!this.keychain.hasKeychain()) {
+            throw new Error('Secure credential storage is unavailable. CodeAgent did not save the platform session.');
+        }
+        await this.keychain.setSecret(PLATFORM_SESSION_KEY, JSON.stringify(normalized));
+        this.platformSession = normalized;
+    }
+    async clearPlatformSession() {
+        this.platformSession = null;
+        try {
+            await this.keychain.deleteSecret(PLATFORM_SESSION_KEY);
+        }
+        catch (error) {
+            console.warn('Failed to delete platform session from keychain:', error);
         }
     }
     /**
@@ -207,6 +253,39 @@ class AuthServiceBridge {
             return process.env.OPENAI_API_KEY;
         }
         return process.env.OPENAI_COMPATIBLE_API_KEY;
+    }
+    normalizePlatformSession(value) {
+        if (!value || typeof value !== 'object')
+            return null;
+        const candidate = value;
+        const accessToken = typeof candidate.accessToken === 'string' ? candidate.accessToken.trim() : '';
+        const baseUrl = typeof candidate.baseUrl === 'string' ? candidate.baseUrl.trim().replace(/\/+$/, '') : '';
+        if (!accessToken || !baseUrl)
+            return null;
+        return {
+            accessToken,
+            baseUrl,
+            orgId: typeof candidate.orgId === 'string' ? candidate.orgId.trim() : undefined,
+            developerMode: candidate.developerMode === true,
+            expiresAt: typeof candidate.expiresAt === 'number'
+                ? candidate.expiresAt
+                : this.readJwtExpiry(accessToken),
+        };
+    }
+    readJwtExpiry(token) {
+        try {
+            const segment = token.split('.')[1];
+            if (!segment)
+                return undefined;
+            const payload = JSON.parse(Buffer.from(segment, 'base64url').toString('utf8'));
+            return typeof payload.exp === 'number' ? payload.exp * 1000 : undefined;
+        }
+        catch {
+            return undefined;
+        }
+    }
+    isExpired(session) {
+        return typeof session.expiresAt === 'number' && session.expiresAt <= Date.now();
     }
     /**
      * Generate PKCE code verifier

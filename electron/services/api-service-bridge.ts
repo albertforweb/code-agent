@@ -14,6 +14,7 @@ import type {
   LlmProviderType,
   Tool,
 } from '../types';
+import * as path from 'node:path';
 
 type AuthTokenProvider = (provider?: LlmProviderType) => Promise<AuthToken | null>;
 type BootstrapProvider = () => Promise<BootstrapData>;
@@ -58,7 +59,18 @@ interface OpenAiToolDefinition {
 interface OpenAiToolSet {
   tools: OpenAiToolDefinition[];
   nameMap: Map<string, string>;
+  toolsByName: Map<string, Tool>;
+  deferredTools: Tool[];
+  usedNames: Set<string>;
 }
+
+interface ToolExecutionSummary {
+  executedCount: number;
+  successfulMutations: number;
+  failedCount: number;
+}
+
+const FINISH_PROJECT_TURN = 'codeagent.finish_project_turn';
 
 interface OpenAiChatMessage {
   role: string;
@@ -67,27 +79,8 @@ interface OpenAiChatMessage {
   tool_calls?: OpenAiToolCall[];
 }
 
-type ProjectActionPlanAction =
-  | {
-      type: 'write_file';
-      path: string;
-      content: string;
-      description?: string;
-    }
-  | {
-      type: 'run_command';
-      command: string;
-      cwd?: string;
-      description?: string;
-    };
-
-interface ProjectActionPlan {
-  summary?: string;
-  actions: ProjectActionPlanAction[];
-}
-
 const DEFAULT_MODELS: Record<LlmProviderType, string> = {
-  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+  codeagent: 'Qwen/Qwen3-4B-GGUF',
   openai: 'gpt-4o-mini',
   'openai-compatible': 'local-model',
 };
@@ -112,8 +105,17 @@ const DEFAULT_MAX_TOKENS: Record<LlmProviderType, number> = {
 
 const DEFAULT_MAX_TOOL_ROUNDS = 4;
 const MAX_ALLOWED_TOOL_ROUNDS = 16;
-const MAX_RECOVERED_PROJECT_ACTIONS = 8;
-const MAX_ACTION_RECOVERY_PROMPT_CHARS = 18_000;
+const LEGACY_LIGHTWEIGHT_MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF';
+const SEARCH_TOOLS = '__codeagent.search-tools';
+const IMMEDIATE_TOOL_NAMES = new Set([
+  'time.now',
+  'web.research',
+  'finance.quote',
+  'bash.run',
+  'fs.read',
+  'fs.write',
+  'fs.list',
+]);
 
 /**
  * API Service Bridge - bridges API operations to IPC.
@@ -152,10 +154,12 @@ export class ApiServiceBridge {
    * Send a chat message and stream text deltas while collecting the final response.
    */
   async streamChat(request: ChatRequest, handlers: ChatStreamHandlers = {}): Promise<ChatResponse> {
+    const startedAt = Date.now();
     const config = await this.resolveRuntimeConfig(request);
+    const runtimeConfigMs = Date.now() - startedAt;
 
     try {
-      return this.streamOpenAiCompatible(request, config, handlers);
+      return this.streamOpenAiCompatible(request, config, handlers, startedAt, runtimeConfigMs);
     } catch (error) {
       throw new Error(`API Stream Error: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -190,6 +194,13 @@ export class ApiServiceBridge {
   private buildSystemPrompt(request: ChatRequest): string {
     const toolScope = request.toolScope;
     const activeWorkspacePath = toolScope?.workspacePath || this.workspacePath;
+    const permissionProfile = request.permissionProfile ?? 'workspace-only';
+    const permissionGuidance = {
+      'workspace-only': 'File and command access is limited to the active workspace. External paths are blocked.',
+      ask: 'File and command access defaults to the active workspace. External paths may be used only after the desktop asks for and receives approval.',
+      'trusted-workspace': 'The active workspace is trusted for supported file and command operations without repeated CodeAgent reviews. External paths are blocked.',
+      'full-access': 'Full computer access is enabled. Supported tools may access any path allowed to the current operating-system user without CodeAgent approval prompts.',
+    }[permissionProfile];
     const projectWorkspaceGuidance = toolScope?.source === 'project-chat'
       ? [
           '',
@@ -198,8 +209,9 @@ export class ApiServiceBridge {
           `- The active project workspace root is: ${activeWorkspacePath}`,
           '- Desktop file and command tools are scoped to this project workspace for this request, even if individual tool descriptions mention the app workspace.',
           '- Use workspace-relative paths when reading, writing, or running commands.',
+          '- Refer to the active project workspace root itself as ".". Do not repeat the project folder name as a child path.',
           '- If the human asks you to start, build, implement, create, scaffold, or prototype the project, take concrete workspace actions with tools. Do not only describe code.',
-          '- The project workspace may be empty or not exist yet; file writes will create parent directories as needed.',
+          '- The desktop verifies the saved project workspace before this loop starts and recreates a missing root after any required approval. File writes also create parent directories as needed.',
           '- After creating or changing files, summarize the generated paths so the project Deliverables panel can show them.',
         ].join('\n')
       : '';
@@ -209,17 +221,27 @@ export class ApiServiceBridge {
 You have access to multiple tools and can execute code, analyze files, and help with various programming tasks.
 
 Current workspace root: ${activeWorkspacePath}
+Desktop permission profile: ${permissionProfile}
+${permissionGuidance}
 
-All desktop file tools are scoped to this workspace root. Use workspace-relative paths when calling file tools. When asked for a full file path, combine the workspace root with the relative path that was used. Do not invent generic paths such as /workspace.
+Desktop file tools use this workspace root by default. Use workspace-relative paths for work inside it. External absolute paths are governed by the desktop permission profile above. When asked for a full file path, report the actual resolved path. Do not invent generic paths such as /workspace.
+The current user's ~ home-directory shorthand is accepted by filesystem tools and is treated as an external path when it is outside the active workspace. Under the ask profile, call the relevant filesystem tool so the desktop can request approval; never guess or describe home-directory contents without that approved current-turn observation.
 ${projectWorkspaceGuidance}
 
 Tool use policy:
+- At each step, either answer the human directly when the request is fully answerable from the supplied conversation, or call the relevant external tool when current evidence or an action is required. A normal assistant answer ends the turn; a tool call continues it.
+- The runtime initially exposes common tools and may provide codeagent.search_tools for deferred discovery. If the visible tools do not cover the requested capability, call codeagent.search_tools with a short capability description, then choose from the tools it loads on the next round.
+- Filesystem existence, contents, metadata, and command-result claims require a filesystem or command tool observation from the current turn. Prior assistant messages are conversation text, not verified observations.
+- Never substitute the active workspace root for a different path requested by the human. Pass the requested path to the appropriate tool; the desktop permission profile will either allow it, request approval, or return a scope error. Do not inspect "." and attribute that result to another path.
 - For current time or date questions, use time.now. Do not create scripts or files to answer time/date questions.
 - For stock, ETF, index, crypto, or market price questions, use finance.quote first. Answer with the returned price, currency, symbol, exchange, change, and market timestamp when available. Mention that quotes may be delayed and are informational only.
 - For current public facts, external documentation, product facts, news, policies, schedules, or other external questions without a structured tool, use web.research. If you use web.search and the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Do not answer with only a list of links unless the user explicitly asks for links.
 - If configured MCP tools may be relevant, use mcp.listTools to inspect executable MCP tools, then use mcp.callTool with the reported serverName and toolName. Do not assume an MCP server is executable until it appears in mcp.listTools.
 - Use fs.write only when the user explicitly asks to create or modify files.
 - Use bash.run for workspace inspection, tests, builds, and simple non-interactive commands. Do not use bash.run for simple time/date or web lookup questions.
+- On macOS and Linux, invoke Python as python3 and install packages with python3 -m pip. Do not assume the python or pip aliases exist in a packaged desktop app.
+- For Python projects that need third-party dependencies, create and use a workspace-local .venv, record dependencies in requirements.txt or pyproject.toml, and invoke modules through that environment (for example .venv/bin/python -m uvicorn). Verify setup commands succeeded before running the application.
+- Do not launch a persistent development server merely to verify a project; use imports, tests, or another bounded command that exits on its own.
 - Keep tool calls focused and prefer read-only tools before tools that modify the workspace.
 
 Always be helpful, thorough, and provide clear explanations.`;
@@ -287,67 +309,61 @@ Always be helpful, thorough, and provide clear explanations.`;
     request: ChatRequest,
     config: LlmRuntimeConfig,
   ): Promise<ChatResponse> {
+    const scopeViolation = this.getProjectScopeViolation(request);
+    if (scopeViolation) {
+      return {
+        content: this.formatProjectScopeViolation(scopeViolation.requestedPath, scopeViolation.workspacePath),
+        model: config.model,
+        usage: { inputTokens: 0, outputTokens: 0 },
+      };
+    }
     const messages = this.toOpenAiMessages(request);
     const toolSet = await this.getOpenAiToolSet(config);
     let inputTokens = 0;
     let outputTokens = 0;
     let lastModel = config.model;
-    let toolExecutionCount = 0;
 
-    for (let round = 0; round <= config.maxToolRounds; round += 1) {
-      const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
-        method: 'POST',
-        headers: this.getOpenAiHeaders(config),
-        body: JSON.stringify(this.buildOpenAiPayload(config, messages, false, toolSet)),
-      });
+    const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true);
+    inputTokens += planning.inputTokens;
+    outputTokens += planning.outputTokens;
+    lastModel = planning.model || lastModel;
+    if (this.shouldRenderVerifiedToolResults(config, messages)) {
+      return {
+        content: this.resolveGroundedAnswer('', messages),
+        model: lastModel,
+        usage: { inputTokens, outputTokens },
+      };
+    }
+    if (planning.content !== undefined) {
+      return {
+        content: this.resolveGroundedAnswer(planning.content, messages),
+        model: lastModel,
+        usage: { inputTokens, outputTokens },
+      };
+    }
+    const answerMessages = this.buildGroundedAnswerMessages(messages);
 
-      if (!response.ok) {
-        throw new Error(await this.formatOpenAiError(response));
-      }
-
-      const data = await response.json() as any;
-      const message = data.choices?.[0]?.message ?? {};
-      const toolCalls = this.normalizeOpenAiToolCalls(message.tool_calls);
-      lastModel = data.model || config.model;
-      inputTokens += Number(data.usage?.prompt_tokens ?? 0);
-      outputTokens += Number(data.usage?.completion_tokens ?? 0);
-
-      if (!toolCalls.length) {
-        const recovery = await this.recoverProjectActionsIfNeeded(
-          request,
-          config,
-          messages,
-          message.content ?? '',
-          toolSet,
-          toolExecutionCount,
-        );
-        const content = `${message.content ?? ''}${recovery.suffix}`;
-        return {
-          content,
-          model: lastModel,
-          usage: { inputTokens, outputTokens },
-        };
-      }
-
-      if (round === config.maxToolRounds) {
-        return {
-          content: 'Stopped after reaching the desktop tool-call round limit.',
-          model: lastModel,
-          usage: { inputTokens, outputTokens },
-        };
-      }
-
-      messages.push({
-        role: 'assistant',
-        content: message.content || null,
-        tool_calls: toolCalls,
-      });
-      toolExecutionCount += await this.appendToolResults(messages, toolCalls, toolSet);
+    const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+      method: 'POST',
+      headers: this.getOpenAiHeaders(config),
+      body: JSON.stringify(this.buildOpenAiPayload(
+        config,
+        answerMessages,
+        false,
+        { tools: [], nameMap: new Map(), toolsByName: new Map(), deferredTools: [], usedNames: new Set() },
+      )),
+    });
+    if (!response.ok) {
+      throw new Error(await this.formatOpenAiError(response));
     }
 
+    const data = await response.json() as any;
+    const message = data.choices?.[0]?.message ?? {};
+    inputTokens += Number(data.usage?.prompt_tokens ?? 0);
+    outputTokens += Number(data.usage?.completion_tokens ?? 0);
     return {
-      content: '',
-      model: lastModel,
+      content: this.resolveGroundedAnswer(String(message.content ?? ''), messages),
+      model: data.model || lastModel,
       usage: { inputTokens, outputTokens },
     };
   }
@@ -356,74 +372,101 @@ Always be helpful, thorough, and provide clear explanations.`;
     request: ChatRequest,
     config: LlmRuntimeConfig,
     handlers: ChatStreamHandlers,
+    startedAt: number,
+    runtimeConfigMs: number,
   ): Promise<ChatResponse> {
+    let firstTokenAt: number | undefined;
+    const observedHandlers: ChatStreamHandlers = {
+      onDelta: delta => {
+        if (delta && firstTokenAt === undefined) firstTokenAt = Date.now();
+        handlers.onDelta?.(delta);
+      },
+    };
+    const preparationStartedAt = Date.now();
+    const scopeViolation = this.getProjectScopeViolation(request);
+    if (scopeViolation) {
+      const content = this.formatProjectScopeViolation(scopeViolation.requestedPath, scopeViolation.workspacePath);
+      observedHandlers.onDelta?.(content);
+      const backendMs = Date.now() - startedAt;
+      return {
+        content,
+        model: config.model,
+        usage: { inputTokens: 0, outputTokens: 0 },
+        performance: {
+          backendMs,
+          firstTokenMs: firstTokenAt === undefined ? undefined : firstTokenAt - startedAt,
+          toolRounds: 0,
+          toolCalls: 0,
+          phases: [{ phase: 'preparation', durationMs: backendMs }],
+        },
+      };
+    }
     const messages = this.toOpenAiMessages(request);
     const toolSet = await this.getOpenAiToolSet(config);
+    const preparationMs = runtimeConfigMs + (Date.now() - preparationStartedAt);
     let content = '';
     let inputTokens = 0;
     let outputTokens = 0;
     let lastModel = config.model;
-    let toolExecutionCount = 0;
 
-    for (let round = 0; round <= config.maxToolRounds; round += 1) {
-      const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
-        method: 'POST',
-        headers: this.getOpenAiHeaders(config),
-        body: JSON.stringify(this.buildOpenAiPayload(config, messages, true, toolSet)),
-      });
+    const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true);
+    inputTokens += planning.inputTokens;
+    outputTokens += planning.outputTokens;
+    lastModel = planning.model || lastModel;
+    if (this.shouldRenderVerifiedToolResults(config, messages)) {
+      content = this.resolveGroundedAnswer('', messages);
+      observedHandlers.onDelta?.(content);
+      const backendMs = Date.now() - startedAt;
+      return {
+        content,
+        model: lastModel,
+        usage: { inputTokens, outputTokens },
+        performance: this.buildPerformanceMetrics(backendMs, firstTokenAt, startedAt, preparationMs, planning),
+      };
+    }
+    if (planning.content !== undefined) {
+      content = this.resolveGroundedAnswer(planning.content, messages);
+      observedHandlers.onDelta?.(content);
+      const backendMs = Date.now() - startedAt;
+      return {
+        content,
+        model: lastModel,
+        usage: { inputTokens, outputTokens },
+        performance: this.buildPerformanceMetrics(backendMs, firstTokenAt, startedAt, preparationMs, planning),
+      };
+    }
+    const answerMessages = this.buildGroundedAnswerMessages(messages);
 
-      if (!response.ok) {
-        throw new Error(await this.formatOpenAiError(response));
-      }
-
-      if (!response.body) {
-        throw new Error('Streaming response did not include a response body');
-      }
-
-      const result = await this.readOpenAiStream(response, handlers);
-      content += result.content;
-      inputTokens += result.inputTokens;
-      outputTokens += result.outputTokens;
-      lastModel = result.model || lastModel;
-
-      if (!result.toolCalls.length) {
-        const recovery = await this.recoverProjectActionsIfNeeded(
-          request,
-          config,
-          messages,
-          content,
-          toolSet,
-          toolExecutionCount,
-        );
-        if (recovery.suffix) {
-          content += recovery.suffix;
-          handlers.onDelta?.(recovery.suffix);
-        }
-        return {
-          content,
-          model: lastModel,
-          usage: {
-            inputTokens,
-            outputTokens,
-          },
-        };
-      }
-
-      if (round === config.maxToolRounds) {
-        const limitMessage = '\n\nStopped after reaching the desktop tool-call round limit.';
-        content += limitMessage;
-        handlers.onDelta?.(limitMessage);
-        break;
-      }
-
-      messages.push({
-        role: 'assistant',
-        content: result.assistantContent || null,
-        tool_calls: result.toolCalls,
-      });
-      toolExecutionCount += await this.appendToolResults(messages, result.toolCalls, toolSet);
+    const answerStartedAt = Date.now();
+    const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+      method: 'POST',
+      headers: this.getOpenAiHeaders(config),
+      body: JSON.stringify(this.buildOpenAiPayload(
+        config,
+        answerMessages,
+        true,
+        { tools: [], nameMap: new Map(), toolsByName: new Map(), deferredTools: [], usedNames: new Set() },
+      )),
+    });
+    if (!response.ok) {
+      throw new Error(await this.formatOpenAiError(response));
+    }
+    if (!response.body) {
+      throw new Error('Streaming response did not include a response body');
     }
 
+    const bufferGroundedAnswer = messages.some(message => message.role === 'tool');
+    const result = await this.readOpenAiStream(response, bufferGroundedAnswer ? {} : observedHandlers);
+    content += this.resolveGroundedAnswer(result.content, messages);
+    if (bufferGroundedAnswer) {
+      observedHandlers.onDelta?.(content);
+    }
+    const answerGenerationMs = Date.now() - answerStartedAt;
+    inputTokens += result.inputTokens;
+    outputTokens += result.outputTokens;
+    lastModel = result.model || lastModel;
+
+    const backendMs = Date.now() - startedAt;
     return {
       content,
       model: lastModel,
@@ -431,6 +474,42 @@ Always be helpful, thorough, and provide clear explanations.`;
         inputTokens,
         outputTokens,
       },
+      performance: this.buildPerformanceMetrics(
+        backendMs,
+        firstTokenAt,
+        startedAt,
+        preparationMs,
+        planning,
+        answerGenerationMs,
+      ),
+    };
+  }
+
+  private buildPerformanceMetrics(
+    backendMs: number,
+    firstTokenAt: number | undefined,
+    startedAt: number,
+    preparationMs: number,
+    planning: { selectionMs: number; executionMs: number; toolRounds: number; toolCalls: number },
+    answerGenerationMs?: number,
+  ) {
+    return {
+      backendMs,
+      firstTokenMs: firstTokenAt === undefined ? undefined : firstTokenAt - startedAt,
+      toolRounds: planning.toolRounds,
+      toolCalls: planning.toolCalls,
+      phases: [
+        { phase: 'preparation' as const, durationMs: preparationMs },
+        ...(planning.toolRounds > 0
+          ? [{ phase: 'tool-selection' as const, durationMs: planning.selectionMs, count: planning.toolRounds }]
+          : []),
+        ...(planning.toolCalls > 0
+          ? [{ phase: 'tool-execution' as const, durationMs: planning.executionMs, count: planning.toolCalls }]
+          : []),
+        ...(answerGenerationMs !== undefined
+          ? [{ phase: 'answer-generation' as const, durationMs: answerGenerationMs }]
+          : []),
+      ],
     };
   }
 
@@ -548,18 +627,27 @@ Always be helpful, thorough, and provide clear explanations.`;
     messages: OpenAiChatMessage[],
     stream: boolean,
     toolSet: OpenAiToolSet,
+    toolChoice: 'auto' | 'required' = 'auto',
+    overrides: { maxTokens?: number; temperature?: number; disableThinking?: boolean } = {},
   ): Record<string, any> {
     const payload: Record<string, any> = {
       model: config.model,
       messages,
-      max_tokens: config.maxTokens,
-      temperature: config.temperature,
+      max_tokens: overrides.maxTokens ?? config.maxTokens,
+      temperature: overrides.temperature ?? config.temperature,
       stream,
     };
 
+    // Qwen3's thinking mode is valuable for difficult answers but wasteful for
+    // the constrained function-selection pass. llama.cpp accepts these template
+    // arguments on its OpenAI-compatible endpoint and omits hidden reasoning.
+    if (overrides.disableThinking && config.provider === 'codeagent') {
+      payload.chat_template_kwargs = { enable_thinking: false };
+    }
+
     if (config.enableTools && toolSet.tools.length > 0) {
       payload.tools = toolSet.tools;
-      payload.tool_choice = 'auto';
+      payload.tool_choice = toolChoice;
     }
 
     return Object.fromEntries(
@@ -569,54 +657,767 @@ Always be helpful, thorough, and provide clear explanations.`;
 
   private async getOpenAiToolSet(config: LlmRuntimeConfig): Promise<OpenAiToolSet> {
     if (!config.enableTools || !this.toolProvider) {
-      return { tools: [], nameMap: new Map() };
+      return { tools: [], nameMap: new Map(), toolsByName: new Map(), deferredTools: [], usedNames: new Set() };
     }
 
     const nameMap = new Map<string, string>();
     const usedNames = new Set<string>();
     const bridgeTools = (await this.toolProvider())
       .filter(tool => !config.disabledTools.has(tool.name));
-    const tools = bridgeTools.map(tool => {
-      const safeName = this.toOpenAiToolName(tool.name, usedNames);
-      nameMap.set(safeName, tool.name);
+    const toolsByName = new Map(bridgeTools.map(tool => [tool.name, tool]));
+    const immediateTools = bridgeTools.filter(tool => IMMEDIATE_TOOL_NAMES.has(tool.name));
+    const deferredTools = bridgeTools.filter(tool => !IMMEDIATE_TOOL_NAMES.has(tool.name));
+    const tools: OpenAiToolDefinition[] = [];
+    for (const tool of immediateTools) {
+      this.addToolDefinition(tools, nameMap, usedNames, tool);
+    }
 
-      return {
-        type: 'function' as const,
+    if (deferredTools.length > 0) {
+      const searchName = this.toOpenAiToolName('codeagent.search_tools', usedNames);
+      nameMap.set(searchName, SEARCH_TOOLS);
+      tools.push({
+        type: 'function',
         function: {
-          name: safeName,
-          description: tool.description || `Run ${tool.name}`,
-          parameters: this.normalizeToolInputSchema(tool.inputSchema),
+          name: searchName,
+          description: 'Search for additional desktop tools that are not loaded in the current tool set. Use this when the visible tools do not cover the requested operation, including MCP, automation, app configuration, specialized web access, or extension-provided capabilities.',
+          parameters: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'Describe the capability needed, not the final answer.',
+              },
+              limit: {
+                type: 'integer',
+                minimum: 1,
+                maximum: 8,
+                description: 'Maximum matching tools to load. Defaults to 5.',
+              },
+            },
+            required: ['query'],
+            additionalProperties: false,
+          },
         },
-      };
-    });
+      });
+    }
 
-    return { tools, nameMap };
+    return { tools, nameMap, toolsByName, deferredTools, usedNames };
+  }
+
+  private addStructuredProjectFinishTool(toolSet: OpenAiToolSet): void {
+    if (Array.from(toolSet.nameMap.values()).includes(FINISH_PROJECT_TURN)) return;
+    const safeName = this.toOpenAiToolName(FINISH_PROJECT_TURN, toolSet.usedNames);
+    toolSet.nameMap.set(safeName, FINISH_PROJECT_TURN);
+    toolSet.tools.push({
+      type: 'function',
+      function: {
+        name: safeName,
+        description: [
+          'Finish the current project-agent turn with a user-facing response.',
+          'Call this only when no further real tool is needed.',
+          'Set requestRequiresWorkspaceChanges=true when the latest human asks to create, implement, fix, run, continue, or complete project work, OR gives a short confirmation such as "yes", "proceed", or "go ahead" to workspace work proposed in the preceding conversation.',
+          'A plan, promise, explanation of the next step, or inspection of an empty workspace does not complete such a request. The runtime verifies that a mutating tool actually succeeded.',
+        ].join(' '),
+        parameters: {
+          type: 'object',
+          properties: {
+            requestRequiresWorkspaceChanges: {
+              type: 'boolean',
+              description: 'Whether satisfying the latest human request requires concrete project workspace changes or commands.',
+            },
+            outcome: {
+              type: 'string',
+              enum: ['answered', 'completed', 'blocked'],
+              description: 'answered for information, completed after requested work, blocked only after a real tool or permission failure.',
+            },
+            response: {
+              type: 'string',
+              description: 'The concise final response shown to the human. Never claim work was done unless tool observations prove it.',
+            },
+          },
+          required: ['requestRequiresWorkspaceChanges', 'outcome', 'response'],
+          additionalProperties: false,
+        },
+      },
+    });
+  }
+
+  private addToolDefinition(
+    tools: OpenAiToolDefinition[],
+    nameMap: Map<string, string>,
+    usedNames: Set<string>,
+    tool: Tool,
+  ): void {
+    if (Array.from(nameMap.values()).includes(tool.name)) return;
+    const safeName = this.toOpenAiToolName(tool.name, usedNames);
+    nameMap.set(safeName, tool.name);
+    tools.push({
+      type: 'function',
+      function: {
+        name: safeName,
+        description: tool.description || `Run ${tool.name}`,
+        parameters: this.normalizeToolInputSchema(tool.inputSchema),
+      },
+    });
+  }
+
+  private discoverDeferredTools(toolSet: OpenAiToolSet, query: string, requestedLimit: unknown): Tool[] {
+    const limit = Math.min(8, Math.max(1, Math.floor(Number(requestedLimit) || 5)));
+    const queryTerms = this.getToolSearchTerms(query);
+    const ranked = toolSet.deferredTools
+      .map((tool, index) => {
+        const namespace = tool.name.split('.')[0];
+        const nameTerms = this.getToolSearchTerms(tool.name.replace(/[._-]+/g, ' '));
+        const descriptionTerms = this.getToolSearchTerms(tool.description || '');
+        const score = Array.from(queryTerms).reduce((total, term) => (
+          total +
+          (nameTerms.has(term) ? 8 : 0) +
+          (descriptionTerms.has(term) ? 2 : 0) +
+          (namespace === term ? 12 : 0)
+        ), 0);
+        return { tool, score, index };
+      })
+      .sort((left, right) => right.score - left.score || left.index - right.index);
+    const matches = ranked.filter(candidate => candidate.score > 0);
+    return (matches.length > 0 ? matches : ranked).slice(0, limit).map(candidate => candidate.tool);
+  }
+
+  private getToolSearchTerms(value: string): Set<string> {
+    return new Set(value.toLowerCase().match(/[a-z0-9]+/g) ?? []);
+  }
+
+  private async requestModelToolDecision(
+    config: LlmRuntimeConfig,
+    messages: OpenAiChatMessage[],
+    toolSet: OpenAiToolSet,
+    structuredAgentLoop = false,
+    executionRequired = false,
+  ): Promise<{
+    toolCalls: OpenAiToolCall[];
+    content: string;
+    inputTokens: number;
+    outputTokens: number;
+    model?: string;
+  }> {
+    if (!config.enableTools || !this.toolExecutor || toolSet.tools.length === 0) {
+      return { toolCalls: [], content: '', inputTokens: 0, outputTokens: 0 };
+    }
+    const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
+      method: 'POST',
+      headers: this.getOpenAiHeaders(config),
+      body: JSON.stringify(this.buildOpenAiPayload(
+        config,
+        messages,
+        false,
+        toolSet,
+        structuredAgentLoop ? 'required' : 'auto',
+        {
+          maxTokens: Math.min(
+            config.maxTokens,
+            structuredAgentLoop ? (executionRequired ? 1_024 : 512) : 256,
+          ),
+          temperature: 0,
+          disableThinking: true,
+        },
+      )),
+    });
+    if (!response.ok) {
+      throw new Error(await this.formatOpenAiError(response));
+    }
+
+    const data = await response.json() as any;
+    const message = data.choices?.[0]?.message ?? {};
+    return {
+      toolCalls: this.normalizeModelToolDecision(message),
+      content: typeof message.content === 'string' ? message.content : '',
+      inputTokens: Number(data.usage?.prompt_tokens ?? 0),
+      outputTokens: Number(data.usage?.completion_tokens ?? 0),
+      model: data.model || config.model,
+    };
+  }
+
+  private async runModelToolLoop(
+    config: LlmRuntimeConfig,
+    messages: OpenAiChatMessage[],
+    toolSet: OpenAiToolSet,
+    structuredAgentLoop = false,
+  ): Promise<{
+    inputTokens: number;
+    outputTokens: number;
+    model?: string;
+    content?: string;
+    selectionMs: number;
+    executionMs: number;
+    toolRounds: number;
+    toolCalls: number;
+  }> {
+    // A request without usable tools does not need a separate structured
+    // tool-selection pass. Continue directly to the normal answer request.
+    if (!config.enableTools || toolSet.tools.length === 0 || !this.toolExecutor) {
+      return { inputTokens: 0, outputTokens: 0, selectionMs: 0, executionMs: 0, toolRounds: 0, toolCalls: 0 };
+    }
+
+    if (structuredAgentLoop) {
+      this.addStructuredProjectFinishTool(toolSet);
+      messages.push({
+        role: 'system',
+        content: [
+          'PROJECT AGENT COMPLETION PROTOCOL:',
+          'For each round, call a real tool or codeagent.finish_project_turn. Do not return unstructured prose.',
+          'If the human requests project work or confirms previously proposed work, take concrete tool actions now.',
+          'Do not call the finish function with a promise such as "I will proceed" or "the next step is".',
+          'Use "." only when a tool expects the active project directory (for example fs.list or bash.run cwd). For fs.write, path must name a file such as "main.py" or "src/app.py"; never pass "." as the file path.',
+          'If the workspace is empty, create the required project files with fs.write or an appropriate write-capable tool.',
+        ].join('\n'),
+      });
+    }
+
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let model: string | undefined;
+    const executedCallSignatures = new Set<string>();
+    let madeStructuredDecision = false;
+    let producedToolObservation = false;
+    let selectionMs = 0;
+    let executionMs = 0;
+    let toolRounds = 0;
+    let toolCalls = 0;
+    let recoverableErrorRetryRequested = false;
+    let successfulMutations = 0;
+    let observedToolFailure = false;
+    let executionRequired = false;
+
+    let roundLimit = this.isLimitedStarterModel(config)
+      ? Math.min(config.maxToolRounds, 1)
+      : config.maxToolRounds;
+    for (let round = 0; round < roundLimit; round += 1) {
+      const selectionStartedAt = Date.now();
+      const decision = await this.requestModelToolDecision(
+        config,
+        messages,
+        toolSet,
+        structuredAgentLoop,
+        executionRequired,
+      );
+      selectionMs += Date.now() - selectionStartedAt;
+      toolRounds += 1;
+      inputTokens += decision.inputTokens;
+      outputTokens += decision.outputTokens;
+      model = decision.model || model;
+      if (decision.toolCalls.length === 0) {
+        const directAnswer = decision.content.trim();
+        if (structuredAgentLoop) {
+          messages.push({
+            role: 'system',
+            content: [
+              'Protocol correction: unstructured prose cannot finish a project-agent turn.',
+              'Call a real tool to perform the work, or call codeagent.finish_project_turn with an accurate structured outcome.',
+            ].join('\n'),
+          });
+          continue;
+        }
+        if (!recoverableErrorRetryRequested && this.hasRecoverableToolError(messages)) {
+          recoverableErrorRetryRequested = true;
+          messages.push({
+            role: 'system',
+            content: [
+              'The preceding tool call failed with a recoverable path error.',
+              'Do not end the turn by merely reporting that error.',
+              'Correct the tool arguments and try again. In a project chat, use "." for the active project workspace root rather than repeating its folder name.',
+            ].join('\n'),
+          });
+          continue;
+        }
+        if (directAnswer) {
+          return { inputTokens, outputTokens, model, content: directAnswer, selectionMs, executionMs, toolRounds, toolCalls };
+        }
+        if (!madeStructuredDecision) {
+          messages.push({
+            role: 'system',
+            content: [
+              'Your preceding output was empty or unusable.',
+              'Answer the latest human request directly, or make a native function call when current evidence or an action is required.',
+            ].join('\n'),
+          });
+          continue;
+        }
+        break;
+      }
+
+      const finishCall = decision.toolCalls.find(candidate => (
+        (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) === FINISH_PROJECT_TURN
+      ));
+      const executableCalls = decision.toolCalls.filter(candidate => (
+        (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) !== FINISH_PROJECT_TURN
+      ));
+      if (structuredAgentLoop && finishCall && executableCalls.length === 0) {
+        madeStructuredDecision = true;
+        const finish = this.parseToolArguments(finishCall.function.arguments);
+        const response = typeof finish.response === 'string' ? finish.response.trim() : '';
+        const requiresChanges = finish.requestRequiresWorkspaceChanges === true;
+        const outcome = String(finish.outcome ?? '');
+        if (!recoverableErrorRetryRequested && this.hasRecoverableToolError(messages)) {
+          recoverableErrorRetryRequested = true;
+          executionRequired = true;
+          messages.push({
+            role: 'system',
+            content: [
+              'The preceding tool failed because its path arguments were recoverably invalid. Do not finish or report this as unavailable tool access.',
+              'Correct the arguments and retry now.',
+              'Use "." for a directory-list root, but fs.write must name a file such as "main.py", "requirements.txt", or "src/app.py". Never use "." as the fs.write path.',
+            ].join('\n'),
+          });
+          continue;
+        }
+        if (requiresChanges && successfulMutations === 0) {
+          executionRequired = true;
+          messages.push({
+            role: 'system',
+            content: [
+              'Completion rejected: this request requires workspace action, but no mutating tool has succeeded in this turn.',
+              'Do the work now with fs.write, bash.run, or another appropriate write-capable tool. Do not merely restate the plan.',
+            ].join('\n'),
+          });
+          continue;
+        }
+        if (outcome === 'blocked' && !observedToolFailure) {
+          messages.push({
+            role: 'system',
+            content: 'A blocked outcome requires evidence from an attempted tool or permission failure. Try the appropriate tool now.',
+          });
+          continue;
+        }
+        if (response) {
+          return { inputTokens, outputTokens, model, content: response, selectionMs, executionMs, toolRounds, toolCalls };
+        }
+        messages.push({
+          role: 'system',
+          content: 'The finish response was empty. Continue with a real tool or provide a non-empty structured final response.',
+        });
+        continue;
+      }
+
+      if (executableCalls.length === 0) {
+        messages.push({
+          role: 'system',
+          content: 'Choose a real tool or provide a valid codeagent.finish_project_turn call.',
+        });
+        continue;
+      }
+
+      const call = executableCalls[0];
+      madeStructuredDecision = true;
+      const signature = `${call.function.name}:${call.function.arguments}`;
+      if (executedCallSignatures.has(signature)) {
+        break;
+      }
+      executedCallSignatures.add(signature);
+
+      messages.push({
+        role: 'assistant',
+        content: null,
+        tool_calls: executableCalls,
+      });
+      const executionStartedAt = Date.now();
+      const execution = await this.appendToolResults(messages, executableCalls, toolSet);
+      executionMs += Date.now() - executionStartedAt;
+      toolCalls += executableCalls.length;
+      successfulMutations += execution.successfulMutations;
+      executionRequired ||= execution.successfulMutations > 0;
+      observedToolFailure ||= execution.failedCount > 0;
+      producedToolObservation = true;
+      if (structuredAgentLoop && execution.failedCount > 0 && !recoverableErrorRetryRequested && this.hasRecoverableCommandError(messages)) {
+        recoverableErrorRetryRequested = true;
+        executionRequired = true;
+        messages.push({
+          role: 'system',
+          content: [
+            'The preceding tool failed with a recoverable command, dependency, or path error.',
+            'Inspect the actual error, correct the setup or arguments, and retry now instead of ending the turn.',
+            'For a missing Python command or module, use python3, create a workspace-local .venv when dependencies are required, install the declared dependencies, and run modules through that environment.',
+          ].join('\n'),
+        });
+        if (round + 1 >= roundLimit && roundLimit < MAX_ALLOWED_TOOL_ROUNDS) {
+          // Dependency recovery commonly needs setup, verification, and a
+          // structured finish response. Preserve those corrective rounds even
+          // when the original action used its normal budget.
+          roundLimit = Math.min(MAX_ALLOWED_TOOL_ROUNDS, roundLimit + 3);
+        }
+      }
+    }
+
+    return {
+      inputTokens,
+      outputTokens,
+      model,
+      selectionMs,
+      executionMs,
+      toolRounds,
+      toolCalls,
+      content: madeStructuredDecision || producedToolObservation
+        ? structuredAgentLoop
+          ? 'I could not complete the requested project action because the model did not produce a valid, verifiable completion after the available agent rounds.'
+          : undefined
+        : 'The model did not produce a valid structured tool decision for this turn.',
+    };
+  }
+
+  private isLimitedStarterModel(config: LlmRuntimeConfig): boolean {
+    return config.provider === 'codeagent' && config.model === LEGACY_LIGHTWEIGHT_MODEL;
+  }
+
+  private hasRecoverableToolError(messages: OpenAiChatMessage[]): boolean {
+    const latestToolMessage = [...messages].reverse().find(message => message.role === 'tool');
+    if (!latestToolMessage) {
+      return false;
+    }
+
+    try {
+      const result = JSON.parse(this.chatContentToText(latestToolMessage.content)) as Record<string, unknown>;
+      const error = [
+        typeof result.error === 'string' ? result.error : '',
+        result.ok === false && typeof result.stderr === 'string' ? result.stderr : '',
+      ].filter(Boolean).join('\n');
+      return /(?:directory|file|executable) not found:|EISDIR|ENOENT|illegal operation on a directory|no module named|not recognized as an internal or external command/i.test(error);
+    } catch {
+      return false;
+    }
+  }
+
+  private hasRecoverableCommandError(messages: OpenAiChatMessage[]): boolean {
+    const latestToolMessage = [...messages].reverse().find(message => message.role === 'tool');
+    if (!latestToolMessage) {
+      return false;
+    }
+
+    try {
+      const result = JSON.parse(this.chatContentToText(latestToolMessage.content)) as Record<string, unknown>;
+      const error = [
+        typeof result.error === 'string' ? result.error : '',
+        result.ok === false && typeof result.stderr === 'string' ? result.stderr : '',
+      ].filter(Boolean).join('\n');
+      return /executable not found:|ENOENT|no module named|not recognized as an internal or external command/i.test(error);
+    } catch {
+      return false;
+    }
+  }
+
+  private shouldRenderVerifiedToolResults(
+    config: LlmRuntimeConfig,
+    messages: OpenAiChatMessage[],
+  ): boolean {
+    // Only the legacy starter model needs a deterministic rendering fallback.
+    // Capable agent models must receive tool observations back through the loop
+    // so they can decide whether to call another tool or synthesize the answer.
+    // Bypassing on a tool type alone loses the human's intent: an fs.list call
+    // may support a directory listing, an implementation assessment, a build,
+    // or many other tasks.
+    return this.isLimitedStarterModel(config) && messages.some(message => message.role === 'tool');
+  }
+
+  private buildGroundedAnswerMessages(messages: OpenAiChatMessage[]): OpenAiChatMessage[] {
+    const callsById = new Map<string, OpenAiToolCall>();
+    for (const message of messages) {
+      for (const call of message.tool_calls ?? []) {
+        callsById.set(call.id, call);
+      }
+    }
+
+    const observations = messages
+      .filter(message => message.role === 'tool')
+      .map(message => {
+        const call = message.tool_call_id ? callsById.get(message.tool_call_id) : undefined;
+        return [
+          `Tool: ${call?.function.name || 'unknown'}`,
+          `Arguments: ${call?.function.arguments || '{}'}`,
+          `Result: ${this.chatContentToText(message.content)}`,
+        ].join('\n');
+      });
+    const conversationMessages = messages.filter(message => message.role !== 'tool' && !message.tool_calls?.length);
+    const answerPolicy = [
+      'The tool-selection and execution stage is complete for this turn.',
+      'Answer the latest human request now in plain natural language, grounded only in the conversation and actual tool observations.',
+      'Do not emit JSON tool decisions, function calls, or commands for the human to run.',
+      'Do not say that you will inspect or perform something later.',
+      'Distinguish the existence of a container such as a directory from whether it contains any entries.',
+      'A successful directory-list observation with zero entries proves that the directory exists and is empty; a missing or inaccessible directory would produce an error observation.',
+      'Attribute a filesystem result only to the exact resolved path reported by the tool. Never describe a different requested path using an observation from the workspace root or another location.',
+      'Do not speculate about permissions, failures, or possible causes unless a tool observation explicitly reports them.',
+    ].join('\n');
+
+    if (observations.length === 0) {
+      return [...conversationMessages, { role: 'system', content: answerPolicy }];
+    }
+
+    return [
+      ...conversationMessages,
+      { role: 'system', content: answerPolicy },
+      {
+        role: 'user',
+        content: [
+          'The agent runtime produced these verified tool observations for my preceding request:',
+          '',
+          observations.join('\n\n'),
+          '',
+          'Answer my preceding request using these observations. Report the observed results directly.',
+        ].join('\n'),
+      },
+    ];
+  }
+
+  private resolveGroundedAnswer(content: string, messages: OpenAiChatMessage[]): string {
+    const observations = messages.filter(message => message.role === 'tool');
+    const normalized = content.trim();
+    const leakedInternalPolicy = normalized.includes('The tool-selection and execution stage is complete for this turn.');
+    if (observations.length === 0) {
+      return leakedInternalPolicy
+        ? 'The model did not produce a usable answer, and no verified tool result was available for this turn.'
+        : content;
+    }
+
+    const observationErrors = observations.flatMap(message => {
+      try {
+        const result = JSON.parse(this.chatContentToText(message.content)) as Record<string, unknown>;
+        return typeof result.error === 'string' && result.error.trim() ? [result.error.trim()] : [];
+      } catch {
+        return [];
+      }
+    });
+    if (observationErrors.length === observations.length) {
+      return [
+        'I couldn’t complete that request because the required tool access was not available.',
+        '',
+        ...observationErrors.map(error => `- ${error}`),
+      ].join('\n');
+    }
+
+    const emittedToolDecision = this.normalizeModelToolDecision({ content: normalized }).length > 0;
+    if (normalized && !leakedInternalPolicy && !emittedToolDecision) {
+      return content;
+    }
+
+    const directoryListings = observations.map(message => {
+      const resultText = this.chatContentToText(message.content);
+      try {
+        const result = JSON.parse(resultText) as Record<string, unknown>;
+        if (typeof result.absolutePath === 'string' &&
+          typeof result.totalCount === 'number' &&
+          Array.isArray(result.entries)) {
+          return this.formatVerifiedToolResult(resultText);
+        }
+      } catch {
+        // Non-directory observations use the generic tool-result presentation below.
+      }
+      return null;
+    });
+    if (directoryListings.length > 0 && directoryListings.every(Boolean)) {
+      return directoryListings.join('\n\n');
+    }
+
+    const callsById = new Map<string, OpenAiToolCall>();
+    for (const message of messages) {
+      for (const call of message.tool_calls ?? []) {
+        callsById.set(call.id, call);
+      }
+    }
+    const rendered = observations.map(message => {
+      const call = message.tool_call_id ? callsById.get(message.tool_call_id) : undefined;
+      const toolName = call?.function.name || 'tool';
+      const args = call?.function.arguments || '{}';
+      const result = this.formatVerifiedToolResult(this.chatContentToText(message.content));
+      return `- **${toolName}** ${args}\n\n  ${result}`;
+    });
+    return [
+      'Verified tool result:',
+      '',
+      ...rendered,
+    ].join('\n');
+  }
+
+  private formatVerifiedToolResult(content: string): string {
+    try {
+      const value = JSON.parse(content) as unknown;
+      if (Array.isArray(value)) {
+        if (value.length === 0) {
+          return 'No items were returned.';
+        }
+        return value.map(item => {
+          if (item && typeof item === 'object' && 'name' in item) {
+            const record = item as Record<string, unknown>;
+            const suffix = record.type === 'directory' ? '/' : '';
+            return `- ${String(record.name)}${suffix}`;
+          }
+          return `- ${this.stringifyToolResult(item)}`;
+        }).join('\n  ');
+      }
+      if (value && typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        if (typeof record.absolutePath === 'string' &&
+          typeof record.totalCount === 'number' &&
+          Array.isArray(record.entries)) {
+          const entries = record.entries as Array<Record<string, unknown>>;
+          const totalCount = Math.max(0, Math.floor(record.totalCount));
+          if (totalCount === 0) {
+            return `\`${record.absolutePath}\` exists and is empty.`;
+          }
+          const lines = entries.map(entry => {
+            const suffix = entry.type === 'directory' ? '/' : '';
+            return `- ${String(entry.name)}${suffix}`;
+          });
+          const omittedCount = typeof record.omittedCount === 'number'
+            ? Math.max(0, Math.floor(record.omittedCount))
+            : Math.max(0, totalCount - entries.length);
+          return [
+            `\`${record.absolutePath}\` exists and contains ${totalCount} top-level entries.`,
+            '',
+            ...lines,
+            ...(omittedCount > 0
+              ? ['', `${omittedCount} additional ${omittedCount === 1 ? 'entry was' : 'entries were'} not included in this page.`]
+              : []),
+          ].join('\n');
+        }
+      }
+      return this.stringifyToolResult(value);
+    } catch {
+      return content;
+    }
+  }
+
+  private normalizeModelToolDecision(message: any): OpenAiToolCall[] {
+    const nativeCalls = this.normalizeOpenAiToolCalls(message?.tool_calls);
+    if (nativeCalls.length > 0) {
+      return nativeCalls;
+    }
+
+    const content = typeof message?.content === 'string' ? message.content.trim() : '';
+    if (!content) {
+      return [];
+    }
+
+    const jsonObject = this.extractFirstJsonObject(content);
+    if (!jsonObject) {
+      return [];
+    }
+
+    try {
+      const decision = JSON.parse(jsonObject) as {
+        name?: unknown;
+        arguments?: unknown;
+      };
+      if (typeof decision.name !== 'string' || !decision.name.trim()) {
+        return [];
+      }
+
+      return [{
+        id: `tool-decision-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: 'function',
+        function: {
+          name: decision.name.trim(),
+          arguments: typeof decision.arguments === 'string'
+            ? decision.arguments
+            : JSON.stringify(decision.arguments ?? {}),
+        },
+      }];
+    } catch {
+      return [];
+    }
+  }
+
+  private extractFirstJsonObject(content: string): string | null {
+    const start = content.indexOf('{');
+    if (start < 0) {
+      return null;
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < content.length; index += 1) {
+      const character = content[index];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (character === '\\') {
+          escaped = true;
+        } else if (character === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (character === '"') {
+        inString = true;
+      } else if (character === '{') {
+        depth += 1;
+      } else if (character === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return content.slice(start, index + 1);
+        }
+      }
+    }
+
+    return null;
   }
 
   private async appendToolResults(
     messages: OpenAiChatMessage[],
     toolCalls: OpenAiToolCall[],
     toolSet: OpenAiToolSet,
-  ): Promise<number> {
+  ): Promise<ToolExecutionSummary> {
     if (!this.toolExecutor) {
       throw new Error('Desktop tool executor is not configured');
     }
 
     let executedCount = 0;
+    let successfulMutations = 0;
+    let failedCount = 0;
     for (const toolCall of toolCalls) {
       const requestedName = toolCall.function.name;
       const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
       const args = this.parseToolArguments(toolCall.function.arguments);
 
       try {
+        if (toolName === SEARCH_TOOLS) {
+          const discovered = this.discoverDeferredTools(toolSet, String(args.query ?? ''), args.limit);
+          for (const tool of discovered) {
+            this.addToolDefinition(toolSet.tools, toolSet.nameMap, toolSet.usedNames, tool);
+          }
+          executedCount += 1;
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: this.stringifyToolResult({
+              query: String(args.query ?? ''),
+              loadedTools: discovered.map(tool => ({
+                name: tool.name,
+                description: tool.description,
+                readOnly: tool.readOnly,
+              })),
+              instruction: discovered.length > 0
+                ? 'The listed tools are now available for the next structured tool-decision round.'
+                : 'No additional tools matched this capability request.',
+            }),
+          });
+          continue;
+        }
         const result = await this.toolExecutor(toolName, args);
         executedCount += 1;
+        const commandFailed = Boolean(
+          result && typeof result === 'object' && 'ok' in result && (result as Record<string, unknown>).ok === false,
+        );
+        if (commandFailed) {
+          failedCount += 1;
+        } else if (toolSet.toolsByName.get(toolName)?.readOnly === false) {
+          successfulMutations += 1;
+        }
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
           content: this.stringifyToolResult(result),
         });
       } catch (error) {
+        failedCount += 1;
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -627,276 +1428,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       }
     }
 
-    return executedCount;
-  }
-
-  private async recoverProjectActionsIfNeeded(
-    request: ChatRequest,
-    config: LlmRuntimeConfig,
-    messages: OpenAiChatMessage[],
-    assistantContent: string,
-    toolSet: OpenAiToolSet,
-    toolExecutionCount: number,
-  ): Promise<{ suffix: string }> {
-    if (!this.shouldRecoverProjectActions(request, config, assistantContent, toolSet, toolExecutionCount)) {
-      return { suffix: '' };
-    }
-
-    try {
-      const plan = await this.requestProjectActionPlan(request, config, messages, assistantContent);
-      const actions = this.normalizeProjectActionPlan(plan).slice(0, MAX_RECOVERED_PROJECT_ACTIONS);
-      if (!actions.length) {
-        return {
-          suffix: this.hasActionableProjectText(assistantContent)
-            ? '\n\nNo executable workspace actions were produced by the action recovery pass.'
-            : '',
-        };
-      }
-
-      const execution = await this.executeProjectActionPlan(actions);
-      return { suffix: this.formatProjectActionRecoverySuffix(execution.executed, execution.failed) };
-    } catch (error) {
-      if (!this.hasActionableProjectText(assistantContent)) {
-        return { suffix: '' };
-      }
-
-      const message = error instanceof Error ? error.message : String(error);
-      return {
-        suffix: `\n\nWorkspace action recovery did not run: ${message}`,
-      };
-    }
-  }
-
-  private shouldRecoverProjectActions(
-    request: ChatRequest,
-    config: LlmRuntimeConfig,
-    assistantContent: string,
-    toolSet: OpenAiToolSet,
-    toolExecutionCount: number,
-  ): boolean {
-    if (request.toolScope?.source !== 'project-chat' || !config.enableTools || toolExecutionCount > 0 || !this.toolExecutor) {
-      return false;
-    }
-
-    if (!assistantContent.trim()) {
-      return false;
-    }
-
-    const availableTools = new Set(Array.from(toolSet.nameMap.values()));
-    return availableTools.has('fs.write') && this.hasActionableProjectText(assistantContent);
-  }
-
-  private hasActionableProjectText(content: string): boolean {
-    const normalized = content.toLowerCase();
-    return [
-      'mkdir',
-      'touch ',
-      'create ',
-      'write ',
-      'file',
-      'requirements.txt',
-      'package.json',
-      'main.py',
-      'app.py',
-      'index.html',
-      '```',
-    ].some(marker => normalized.includes(marker));
-  }
-
-  private async requestProjectActionPlan(
-    request: ChatRequest,
-    config: LlmRuntimeConfig,
-    messages: OpenAiChatMessage[],
-    assistantContent: string,
-  ): Promise<ProjectActionPlan> {
-    const activeWorkspacePath = request.toolScope?.workspacePath || this.workspacePath;
-    const recentMessages = messages
-      .slice(-8)
-      .map(message => `${message.role.toUpperCase()}:\n${this.chatContentToText(message.content)}`)
-      .join('\n\n')
-      .slice(-MAX_ACTION_RECOVERY_PROMPT_CHARS);
-    const plannerMessages: OpenAiChatMessage[] = [
-      {
-        role: 'system',
-        content: [
-          'You are CodeAgent action recovery. Convert a project-chat assistant response into safe workspace actions.',
-          'Output only valid JSON. Do not include markdown fences or commentary.',
-          'Schema: {"summary":"short summary","actions":[{"type":"write_file","path":"relative/path","content":"file contents","description":"why"},{"type":"run_command","command":"single command","cwd":"relative/path","description":"why"}]}',
-          'Prefer write_file actions with real useful starter contents. Do not output empty placeholder files.',
-          'Do not include mkdir, cd, or touch actions. Parent directories are created automatically by write_file.',
-          'Only use paths relative to the active project workspace. Never use absolute paths, "~", "..", or paths outside the workspace.',
-          'Use run_command only when it is necessary after file creation. Commands must be single non-interactive commands without shell operators.',
-          `Active project workspace root: ${activeWorkspacePath}`,
-          `Maximum actions: ${MAX_RECOVERED_PROJECT_ACTIONS}`,
-          'If no workspace mutation is clearly needed, output {"summary":"No action needed","actions":[]}.',
-        ].join('\n'),
-      },
-      {
-        role: 'user',
-        content: [
-          'Recent project-chat context:',
-          recentMessages,
-          '',
-          'Assistant response to convert:',
-          assistantContent,
-        ].join('\n'),
-      },
-    ];
-    const plannerConfig: LlmRuntimeConfig = {
-      ...config,
-      enableTools: false,
-      maxToolRounds: 0,
-      maxTokens: Math.max(2048, Math.min(config.maxTokens, 8192)),
-      temperature: 0.1,
-    };
-    const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
-      method: 'POST',
-      headers: this.getOpenAiHeaders(config),
-      body: JSON.stringify(this.buildOpenAiPayload(plannerConfig, plannerMessages, false, { tools: [], nameMap: new Map() })),
-    });
-
-    if (!response.ok) {
-      throw new Error(await this.formatOpenAiError(response));
-    }
-
-    const data = await response.json() as any;
-    const rawContent = String(data.choices?.[0]?.message?.content ?? '');
-    return this.parseProjectActionPlan(rawContent);
-  }
-
-  private parseProjectActionPlan(content: string): ProjectActionPlan {
-    const stripped = content
-      .trim()
-      .replace(/^```(?:json)?/i, '')
-      .replace(/```$/i, '')
-      .trim();
-    const jsonText = stripped.startsWith('{')
-      ? stripped
-      : stripped.slice(stripped.indexOf('{'), stripped.lastIndexOf('}') + 1);
-
-    if (!jsonText.trim()) {
-      throw new Error('The action recovery model did not return JSON.');
-    }
-
-    const parsed = JSON.parse(jsonText) as Partial<ProjectActionPlan>;
-    return {
-      summary: typeof parsed.summary === 'string' ? parsed.summary : undefined,
-      actions: Array.isArray(parsed.actions) ? parsed.actions as ProjectActionPlanAction[] : [],
-    };
-  }
-
-  private normalizeProjectActionPlan(plan: ProjectActionPlan): ProjectActionPlanAction[] {
-    return plan.actions
-      .map(action => this.normalizeProjectAction(action))
-      .filter((action: ProjectActionPlanAction | null): action is ProjectActionPlanAction => Boolean(action));
-  }
-
-  private normalizeProjectAction(action: ProjectActionPlanAction): ProjectActionPlanAction | null {
-    if (!action || typeof action !== 'object') {
-      return null;
-    }
-
-    if (action.type === 'write_file') {
-      const targetPath = this.normalizeWorkspaceRelativePath(action.path);
-      const content = typeof action.content === 'string' ? action.content : '';
-      if (!targetPath || !content.trim()) {
-        return null;
-      }
-
-      return {
-        type: 'write_file',
-        path: targetPath,
-        content,
-        description: typeof action.description === 'string' ? action.description : undefined,
-      };
-    }
-
-    if (action.type === 'run_command') {
-      const command = typeof action.command === 'string' ? action.command.trim() : '';
-      const cwd = this.normalizeWorkspaceRelativePath(action.cwd || '.');
-      if (!command || !cwd) {
-        return null;
-      }
-
-      return {
-        type: 'run_command',
-        command,
-        cwd,
-        description: typeof action.description === 'string' ? action.description : undefined,
-      };
-    }
-
-    return null;
-  }
-
-  private normalizeWorkspaceRelativePath(value: unknown): string | null {
-    const rawPath = typeof value === 'string' && value.trim() ? value.trim() : '.';
-    if (rawPath === '~' || rawPath.startsWith('~/') || rawPath.startsWith('/')) {
-      return null;
-    }
-
-    const normalized = rawPath.replace(/\\/g, '/').replace(/^\.\/+/, '') || '.';
-    if (normalized.split('/').some(part => part === '..')) {
-      return null;
-    }
-
-    return normalized;
-  }
-
-  private async executeProjectActionPlan(
-    actions: ProjectActionPlanAction[],
-  ): Promise<{
-    executed: string[];
-    failed: string[];
-  }> {
-    if (!this.toolExecutor) {
-      throw new Error('Desktop tool executor is not configured.');
-    }
-
-    const executed: string[] = [];
-    const failed: string[] = [];
-
-    for (const action of actions) {
-      try {
-        if (action.type === 'write_file') {
-          await this.toolExecutor('fs.write', {
-            path: action.path,
-            content: action.content,
-          });
-          executed.push(`wrote ${action.path}`);
-        } else {
-          await this.toolExecutor('bash.run', {
-            command: action.command,
-            cwd: action.cwd || '.',
-          });
-          executed.push(`ran ${action.command}`);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        failed.push(`${action.type === 'write_file' ? action.path : action.command}: ${message}`);
-      }
-    }
-
-    return { executed, failed };
-  }
-
-  private formatProjectActionRecoverySuffix(executed: string[], failed: string[]): string {
-    const lines: string[] = [];
-    if (executed.length > 0) {
-      lines.push('', 'Workspace actions executed:');
-      for (const item of executed) {
-        lines.push(`- ${item}`);
-      }
-    }
-
-    if (failed.length > 0) {
-      lines.push('', 'Workspace actions that need attention:');
-      for (const item of failed) {
-        lines.push(`- ${item}`);
-      }
-    }
-
-    return lines.length > 0 ? `\n${lines.join('\n')}` : '';
+    return { executedCount, successfulMutations, failedCount };
   }
 
   private normalizeOpenAiToolCalls(value: unknown): OpenAiToolCall[] {
@@ -1051,13 +1583,79 @@ Always be helpful, thorough, and provide clear explanations.`;
     return provider !== 'openai-compatible';
   }
 
-  private toOpenAiMessages(request: ChatRequest): OpenAiChatMessage[] {
+  private getProjectScopeViolation(request: ChatRequest): { requestedPath: string; workspacePath: string } | null {
+    if (request.permissionProfile === 'ask' || request.permissionProfile === 'full-access') {
+      return null;
+    }
+    if (request.toolScope?.source !== 'project-chat' || !request.toolScope.workspacePath) {
+      return null;
+    }
+    const latestUserMessage = [...request.messages].reverse().find(message => message.role === 'user');
+    if (!latestUserMessage) {
+      return null;
+    }
+
+    const workspacePath = path.resolve(request.toolScope.workspacePath);
+    const candidates = this.chatContentToText(latestUserMessage.content)
+      .match(/\/(?:[^/\s"'`<>|?*]+\/?)+/g) ?? [];
+    for (const candidate of candidates) {
+      const requestedPath = candidate.replace(/[.,;:!\])}]+$/g, '');
+      if (!path.isAbsolute(requestedPath)) {
+        continue;
+      }
+      const resolvedPath = path.resolve(requestedPath);
+      const relativePath = path.relative(workspacePath, resolvedPath);
+      const outsideWorkspace = relativePath === '..' ||
+        relativePath.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relativePath);
+      if (outsideWorkspace) {
+        return { requestedPath: resolvedPath, workspacePath };
+      }
+    }
+    return null;
+  }
+
+  private formatProjectScopeViolation(requestedPath: string, workspacePath: string): string {
     return [
-      { role: 'system', content: this.buildSystemPrompt(request) },
-      ...request.messages.map(message => ({
+      `I did not inspect \`${requestedPath}\` because it is outside this project chat's authorized workspace, \`${workspacePath}\`.`,
+      'I cannot report whether that external directory exists or what it contains from this project context.',
+      'Open that directory as the project workspace, or explicitly add it as an authorized workspace directory, before asking me to inspect it.',
+    ].join(' ');
+  }
+
+  private toOpenAiMessages(request: ChatRequest): OpenAiChatMessage[] {
+    const conversation = request.messages.map(message => ({
         role: message.role,
         content: this.normalizeChatMessageContent(message.content),
-      })),
+      }));
+    let latestUserIndex = -1;
+    for (let index = conversation.length - 1; index >= 0; index -= 1) {
+      if (conversation[index].role === 'user') {
+        latestUserIndex = index;
+        break;
+      }
+    }
+    const currentWorkspacePath = request.toolScope?.workspacePath || this.workspacePath;
+    const currentTurnContext: OpenAiChatMessage = {
+      role: 'system',
+      content: [
+        'Current-turn execution context (authoritative):',
+        `- Authorized workspace root: ${currentWorkspacePath}`,
+        `- External tools enabled: ${request.enableTools !== false ? 'yes' : 'no'}`,
+        '- Ignore any conflicting workspace or authorization claims in earlier assistant messages; they are stale conversation text.',
+        '- Before making a claim about current external state, obtain a tool observation during this turn.',
+      ].join('\n'),
+    };
+
+    if (latestUserIndex < 0) {
+      return [{ role: 'system', content: this.buildSystemPrompt(request) }, ...conversation];
+    }
+
+    return [
+      { role: 'system', content: this.buildSystemPrompt(request) },
+      ...conversation.slice(0, latestUserIndex),
+      currentTurnContext,
+      ...conversation.slice(latestUserIndex),
     ];
   }
 

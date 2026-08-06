@@ -7,12 +7,16 @@
 import type { AppConfig, AppConfigChangedMessage, AppStateChangedMessage } from '../types';
 import Store from 'electron-store';
 
+const LEGACY_OFFLINE_MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF';
+const DEFAULT_OFFLINE_AGENT_MODEL = 'Qwen/Qwen3-4B-GGUF';
+
 interface AppStateStoreSchema {
   config: AppConfig;
   state: Record<string, any>;
   metadata: {
     configVersion: number;
     stateVersion: number;
+    defaultAgentModelMigrated?: boolean;
   };
 }
 
@@ -133,17 +137,19 @@ export class AppStateServiceBridge {
   private currentState: Record<string, any> = {};
   private configVersion: number = 0;
   private stateVersion: number = 0;
+  private defaultAgentModelMigrated = false;
   private writeQueue: Promise<void> = Promise.resolve();
   private appConfig: AppConfig = {
     llmProvider: 'codeagent',
     baseUrl: 'http://127.0.0.1:14321/v1',
-    model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+    model: DEFAULT_OFFLINE_AGENT_MODEL,
     temperature: 0.7,
     maxTokens: 2048,
     contextTokens: 8192,
     enableLlmTools: false,
     disabledLlmTools: [],
     toolPermissionPolicies: {},
+    desktopPermissionProfile: 'workspace-only',
     theme: 'system',
     accentColor: 'blue',
     language: 'en',
@@ -153,7 +159,7 @@ export class AppStateServiceBridge {
 
   constructor(options: AppStateServiceBridgeOptions = {}) {
     // Initialize electron-store for persistent storage
-    this.store = new Store({
+    this.store = new Store<AppStateStoreSchema>({
       name: 'code-agent',
       cwd: options.storeCwd,
       defaults: {
@@ -162,6 +168,7 @@ export class AppStateServiceBridge {
         metadata: {
           configVersion: 0,
           stateVersion: 0,
+          defaultAgentModelMigrated: false,
         },
       },
     });
@@ -182,9 +189,15 @@ export class AppStateServiceBridge {
    */
   async setConfig(config: Partial<AppConfig>): Promise<AppConfigChangedMessage> {
     return this.enqueueWrite(async () => {
+      const safeConfig = { ...config };
+      // Platform credentials belong in the OS keychain. Preserve the field as
+      // an empty compatibility value so legacy plaintext tokens are removed.
+      if (Object.prototype.hasOwnProperty.call(safeConfig, 'platformAccessToken')) {
+        safeConfig.platformAccessToken = '';
+      }
       this.appConfig = {
         ...this.appConfig,
-        ...config,
+        ...safeConfig,
       };
       this.appConfig = migrateFeatureProfile(this.appConfig);
       this.configVersion += 1;
@@ -264,13 +277,14 @@ export class AppStateServiceBridge {
     return this.setConfig({
       llmProvider: 'codeagent',
       baseUrl: 'http://127.0.0.1:14321/v1',
-      model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+      model: DEFAULT_OFFLINE_AGENT_MODEL,
       temperature: 0.7,
       maxTokens: 2048,
       contextTokens: 8192,
       enableLlmTools: false,
       disabledLlmTools: [],
       toolPermissionPolicies: {},
+      desktopPermissionProfile: 'workspace-only',
       theme: 'system',
       accentColor: 'blue',
       language: 'en',
@@ -319,6 +333,14 @@ export class AppStateServiceBridge {
       if (storedConfig) {
         this.appConfig = { ...this.appConfig, ...storedConfig };
       }
+      const metadata = this.store.get('metadata');
+      this.defaultAgentModelMigrated = metadata?.defaultAgentModelMigrated === true;
+      if (!this.defaultAgentModelMigrated) {
+        if (this.appConfig.llmProvider === 'codeagent' && this.appConfig.model === LEGACY_OFFLINE_MODEL) {
+          this.appConfig = { ...this.appConfig, model: DEFAULT_OFFLINE_AGENT_MODEL };
+        }
+        this.defaultAgentModelMigrated = true;
+      }
       this.appConfig = migrateFeatureProfile(this.appConfig);
       this.store.set('config', this.appConfig);
 
@@ -327,11 +349,11 @@ export class AppStateServiceBridge {
         this.currentState = storedState;
       }
 
-      const metadata = this.store.get('metadata');
       if (metadata) {
         this.configVersion = Number(metadata.configVersion ?? 0);
         this.stateVersion = Number(metadata.stateVersion ?? 0);
       }
+      this.store.set('metadata', this.getMetadata());
     } catch (error) {
       console.warn('Failed to load from store:', error);
     }
@@ -388,6 +410,7 @@ export class AppStateServiceBridge {
     return {
       configVersion: this.configVersion,
       stateVersion: this.stateVersion,
+      defaultAgentModelMigrated: this.defaultAgentModelMigrated,
     };
   }
 

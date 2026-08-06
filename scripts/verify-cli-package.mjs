@@ -225,8 +225,8 @@ function assertIsolatedInstall(tarballPath) {
   }
 
   const modelsResult = run(binPath, ['models', 'list'], { cwd: tempDir });
-  if (!modelsResult.stdout.includes('Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF') || !modelsResult.stdout.includes('"source": "bundled"')) {
-    fail(`installed CLI did not discover the bundled offline starter model: ${modelsResult.stdout.trim()}`);
+  if (!modelsResult.stdout.includes('Qwen/Qwen3-4B-GGUF') || !modelsResult.stdout.includes('"source": "bundled"')) {
+    fail(`installed CLI did not discover the bundled offline agent model: ${modelsResult.stdout.trim()}`);
   }
 }
 

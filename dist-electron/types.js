@@ -92,6 +92,9 @@ exports.IPC_CHANNELS = {
     'auth:getToken': 'auth:getToken',
     'auth:logout': 'auth:logout',
     'auth:setToken': 'auth:setToken',
+    'auth:getPlatformSession': 'auth:getPlatformSession',
+    'auth:setPlatformSession': 'auth:setPlatformSession',
+    'auth:clearPlatformSession': 'auth:clearPlatformSession',
     // App state channels
     'app:info': 'app:info',
     'app:getConfig': 'app:getConfig',

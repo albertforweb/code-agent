@@ -66,6 +66,7 @@ class ToolServiceBridge {
                 source: tool.source ?? 'bridge',
                 readOnly: tool.readOnly,
                 category: tool.category,
+                owner: tool.owner,
             });
         }
         return tools;

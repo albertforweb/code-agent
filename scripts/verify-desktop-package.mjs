@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import plist from 'plist';
@@ -72,9 +73,10 @@ mustExist(iconPath, 'macOS app icon');
 mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp inference engine');
 mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
 mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
+mustContainFile(bundledModelsRoot, 'Qwen3-4B-Q4_K_M.gguf', 'bundled offline agent model');
 
 if (existsSync(infoPlistPath)) {
-  verifyInfoPlist(infoPlistPath);
+  verifyInfoPlist(infoPlistPath, appAsarPath);
 }
 
 if (existsSync(executablePath)) {
@@ -207,7 +209,7 @@ function mustContainFile(directory, filename, label) {
   failures.push(`Missing ${label}: ${path.relative(root, directory)}`);
 }
 
-function verifyInfoPlist(filePath) {
+function verifyInfoPlist(filePath, asarPath) {
   const parsed = plist.parse(readFileSync(filePath, 'utf8'));
   expectEqual(parsed.CFBundleName, productName, 'CFBundleName');
   expectEqual(parsed.CFBundleDisplayName, productName, 'CFBundleDisplayName');
@@ -222,6 +224,14 @@ function verifyInfoPlist(filePath) {
 
   if (parsed.LSApplicationCategoryType !== 'public.app-category.developer-tools') {
     failures.push('LSApplicationCategoryType must be public.app-category.developer-tools.');
+  }
+
+  const integrity = parsed.ElectronAsarIntegrity?.['Resources/app.asar'];
+  if (existsSync(asarPath)) {
+    const actualHash = createHash('sha256').update(readFileSync(asarPath)).digest('hex');
+    if (integrity?.algorithm !== 'SHA256' || integrity?.hash !== actualHash) {
+      failures.push('ElectronAsarIntegrity must contain the current SHA-256 hash of Contents/Resources/app.asar.');
+    }
   }
 }
 
@@ -289,6 +299,36 @@ function verifyCodesign(targetPath) {
 
   if (!details.output.includes('flags=0x10000(runtime)')) {
     failures.push('Code signature must enable the hardened runtime.');
+  }
+
+  verifyElectronEntitlements(targetPath, 'main app');
+
+  const rendererHelper = path.join(
+    targetPath,
+    'Contents',
+    'Frameworks',
+    `${productName} Helper (Renderer).app`,
+  );
+  if (existsSync(rendererHelper)) {
+    verifyElectronEntitlements(rendererHelper, 'renderer helper');
+  }
+}
+
+function verifyElectronEntitlements(targetPath, label) {
+  const result = run('codesign', ['-d', '--entitlements', ':-', targetPath]);
+  if (result.status !== 0) {
+    failures.push(`Unable to read Electron entitlements for ${label}:\n${result.output}`);
+    return;
+  }
+
+  for (const entitlement of [
+    'com.apple.security.cs.allow-jit',
+    'com.apple.security.cs.allow-unsigned-executable-memory',
+  ]) {
+    const enabledPattern = new RegExp(`<key>${entitlement.replaceAll('.', '\\.')}</key>\\s*<true\\s*/>`);
+    if (!enabledPattern.test(result.output)) {
+      failures.push(`${label} signature is missing required Electron entitlement ${entitlement}.`);
+    }
   }
 }
 

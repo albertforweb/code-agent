@@ -4,6 +4,12 @@ export interface Tool {
   inputSchema: Record<string, any>;
   source?: 'bridge' | 'mcp' | 'cli';
   readOnly?: boolean;
+  category?: string;
+  owner?: {
+    kind: 'core' | 'package';
+    id: string;
+    name: string;
+  };
 }
 
 export interface ToolExecuteResponse {
@@ -11,7 +17,7 @@ export interface ToolExecuteResponse {
 }
 
 export interface ToolEventScope {
-  source: 'scheduled-task' | 'virtual-team' | 'project-chat';
+  source: 'scheduled-task' | 'virtual-team' | 'project-chat' | 'chat';
   workspacePath?: string;
   runId?: string;
   taskId?: string;
@@ -98,6 +104,7 @@ export interface ToolErrorMessage {
 }
 
 export type ToolPermissionMode = 'allow' | 'ask' | 'deny';
+export type DesktopPermissionProfile = 'workspace-only' | 'ask' | 'trusted-workspace' | 'full-access';
 
 export interface ToolPermissionReviewRequest {
   requestId: string;
@@ -140,7 +147,7 @@ export type ChatMessageContentPart =
 export type ChatMessageContent = string | ChatMessageContentPart[];
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant';
   content: ChatMessageContent;
 }
 
@@ -148,6 +155,11 @@ export type LlmProviderType = 'codeagent' | 'openai' | 'openai-compatible';
 
 export interface ChatRequest {
   messages: ChatMessage[];
+  /** Require project-agent turns to end with a structured, verifiable outcome. */
+  structuredAgentLoop?: boolean;
+  /** Folder explicitly authorized for this chat through the desktop folder picker. */
+  authorizedWorkspacePath?: string;
+  permissionProfile?: DesktopPermissionProfile;
   provider?: LlmProviderType;
   baseUrl?: string;
   model?: string;
@@ -166,6 +178,21 @@ export interface ChatResponse {
     inputTokens: number;
     outputTokens: number;
   };
+  performance?: ChatPerformanceMetrics;
+}
+
+export interface ChatPhaseMetric {
+  phase: 'preparation' | 'tool-selection' | 'tool-execution' | 'answer-generation';
+  durationMs: number;
+  count?: number;
+}
+
+export interface ChatPerformanceMetrics {
+  backendMs: number;
+  firstTokenMs?: number;
+  toolRounds: number;
+  toolCalls: number;
+  phases: ChatPhaseMetric[];
 }
 
 export interface ChatStreamRequest extends ChatRequest {
@@ -318,6 +345,14 @@ export interface AuthToken {
   refreshToken?: string;
 }
 
+export interface PlatformAuthSession {
+  accessToken: string;
+  baseUrl: string;
+  orgId?: string;
+  developerMode?: boolean;
+  expiresAt?: number;
+}
+
 export interface AppConfig {
   apiKey?: string;
   llmProvider?: LlmProviderType;
@@ -331,11 +366,13 @@ export interface AppConfig {
   enableLlmTools?: boolean;
   disabledLlmTools?: string[];
   toolPermissionPolicies?: Record<string, ToolPermissionMode>;
+  desktopPermissionProfile?: DesktopPermissionProfile;
   theme?: 'light' | 'dark' | 'system';
   accentColor?: 'blue' | 'teal' | 'violet' | 'graphite' | 'ember';
   language?: string;
   featureProfile?: Record<string, any>;
   featureAccounts?: Record<string, any>;
+  platformDeveloperMode?: boolean;
   platformBaseUrl?: string;
   platformAccessToken?: string;
   platformOrgId?: string;
@@ -790,6 +827,9 @@ export interface ElectronRendererApi {
     getToken(): Promise<AuthToken | null>;
     logout(): Promise<void>;
     setToken(token: AuthToken): Promise<void>;
+    getPlatformSession(): Promise<PlatformAuthSession | null>;
+    setPlatformSession(session: PlatformAuthSession): Promise<void>;
+    clearPlatformSession(): Promise<void>;
   };
   app: {
     info(): Promise<AppInfo>;
@@ -915,6 +955,9 @@ export const ipcClient: ElectronRendererApi = {
     getToken: () => getApi().auth.getToken(),
     logout: () => getApi().auth.logout(),
     setToken: token => getApi().auth.setToken(token),
+    getPlatformSession: () => getApi().auth.getPlatformSession(),
+    setPlatformSession: session => getApi().auth.setPlatformSession(session),
+    clearPlatformSession: () => getApi().auth.clearPlatformSession(),
   },
   app: {
     info: () => getApi().app.info(),

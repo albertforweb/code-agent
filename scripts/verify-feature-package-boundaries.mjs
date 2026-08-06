@@ -142,9 +142,29 @@ for (const relativePath of ['feature-packages', 'package-sdk']) {
 }
 
 const implementationMarkers = [
-  ['src/renderer/App.tsx', 'ProjectStudio'],
-  ['src/renderer/App.tsx', "AppView = 'chat' | 'projects' | 'tools' | 'automation' | 'history' | 'settings'"],
+  ['src/renderer/App.tsx', 'function ProjectsView('],
+  ['src/renderer/App.tsx', 'function ToolsView('],
+  ['src/renderer/App.tsx', 'function AutomationView('],
+  ['src/renderer/App.tsx', 'function HistoryView('],
 ];
+
+const packageNavigationMarkers = [
+  'DeveloperNavigationGroupId',
+  'DEVELOPER_NAVIGATION_GROUPS',
+  'PROJECTS_MENU',
+  'TOOLS_MENU',
+  'AUTOMATION_MENU',
+  'HISTORY_MENU',
+  'SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID',
+];
+const appRendererPath = path.join(repoRoot, 'src/renderer/App.tsx');
+const resolverSource = existsSync(resolverPath) ? readFileSync(resolverPath, 'utf8') : '';
+const rendererSource = existsSync(appRendererPath) ? readFileSync(appRendererPath, 'utf8') : '';
+for (const marker of packageNavigationMarkers) {
+  if (rendererSource.includes(marker) || resolverSource.includes(marker)) {
+    failures.push(`Core still owns Software Developer navigation metadata: ${marker}`);
+  }
+}
 
 for (const [relativePath, marker] of implementationMarkers) {
   const filePath = path.join(repoRoot, relativePath);

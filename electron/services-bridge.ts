@@ -11,6 +11,7 @@ import { IpcBridge } from './bridge';
 import {
   IPC_CHANNELS,
   type ChatStreamRequest,
+  type DesktopPermissionProfile,
   type CommandReviewResponse,
   type FeaturePackageInstallRequest,
   type FileWritePreview,
@@ -27,6 +28,11 @@ import {
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
 import { installSignedPackageArtifact } from './feature-package-installer';
 import { CODEAGENT_LOCAL_BASE_URL, LocalModelManager } from './services/local-model-service';
+import {
+  expandHomePath,
+  isPathOutsideWorkspace as isRequestedPathOutsideWorkspace,
+} from './services/path-permission';
+import { ensureProjectChatWorkspace } from './services/project-workspace-service';
 import {
   ToolServiceBridge,
   type BridgeToolDefinition,
@@ -326,7 +332,7 @@ function createToolPermissionReviewId(): string {
 }
 
 type AutomationExecutionScope = {
-  source: 'scheduled-task' | 'virtual-team' | 'project-chat';
+  source: 'scheduled-task' | 'virtual-team' | 'project-chat' | 'chat';
   permissionMode: VirtualTeamPermissionMode;
   workspacePath: string;
   runId?: string;
@@ -380,6 +386,9 @@ export function registerServiceBridges(
   }>();
   const scopedFileServices = new Map<string, FileSystemServiceBridge>();
   const scopedCommandServices = new Map<string, CommandServiceBridge>();
+  const computerRootPath = path.parse(workspacePath).root;
+  const unrestrictedFileService = new FileSystemServiceBridge(computerRootPath);
+  const unrestrictedCommandService = new CommandServiceBridge(computerRootPath);
 
   function hasFullAccessAutomationScope(): boolean {
     return automationExecutionScope.getStore()?.permissionMode === 'full-access';
@@ -421,6 +430,30 @@ export function registerServiceBridges(
     };
   }
 
+  // Keep lifecycle events attached to the run that created the tool. Looking
+  // only at the current async scope can misroute a late event after the user
+  // switches conversations.
+  const toolEventScopes = new Map<string, ToolEventScope | undefined>();
+
+  function getToolEventScope(toolId: string): ToolEventScope | undefined {
+    return toolEventScopes.has(toolId)
+      ? toolEventScopes.get(toolId)
+      : getAutomationToolEventScope();
+  }
+
+  async function executeToolWithCapturedScope(
+    toolName: string,
+    args: Record<string, any>,
+    toolId: string,
+  ): Promise<any> {
+    toolEventScopes.set(toolId, getAutomationToolEventScope());
+    try {
+      return await toolService.executeToolAndReturn(toolName, args, toolId);
+    } finally {
+      toolEventScopes.delete(toolId);
+    }
+  }
+
   function getScopedFileService(): FileSystemServiceBridge {
     const scopedWorkspacePath = getScopedWorkspacePath();
     if (scopedWorkspacePath === workspacePath) {
@@ -449,10 +482,74 @@ export function registerServiceBridges(
     return service;
   }
 
+  function normalizeRequestedPath(requestedPath: string): string {
+    return expandHomePath(requestedPath, app.getPath('home'));
+  }
+
+  function isPathOutsideWorkspace(requestedPath: string, scopedWorkspacePath = getScopedWorkspacePath()): boolean {
+    return isRequestedPathOutsideWorkspace(requestedPath, scopedWorkspacePath, app.getPath('home'));
+  }
+
+  async function getDesktopPermissionProfile(): Promise<DesktopPermissionProfile> {
+    return normalizeDesktopPermissionProfile((await appStateService.getConfig()).desktopPermissionProfile);
+  }
+
+  async function getFileServiceForPath(
+    requestedPath: string,
+    toolName: string,
+    toolId: string,
+    requestExternalReview: boolean,
+  ): Promise<FileSystemServiceBridge> {
+    const profile = await getDesktopPermissionProfile();
+    const outsideWorkspace = isPathOutsideWorkspace(requestedPath);
+    if (profile === 'full-access' && outsideWorkspace) {
+      return unrestrictedFileService;
+    }
+    if (profile === 'ask' && outsideWorkspace) {
+      if (requestExternalReview) {
+        const resolvedPath = normalizeRequestedPath(requestedPath);
+        await requestToolPermissionReview(toolName, {
+          path: path.resolve(resolvedPath),
+          reason: 'Access outside the active workspace',
+        }, toolId);
+      }
+      return unrestrictedFileService;
+    }
+    if (outsideWorkspace) {
+      const resolvedPath = path.resolve(normalizeRequestedPath(requestedPath));
+      const activeWorkspace = getScopedWorkspacePath();
+      throw new Error(
+        `Access denied by the ${profile} permission profile: ${resolvedPath} is outside the active workspace ${activeWorkspace}. ` +
+        'Select that folder as the workspace or change the permission profile to Ask when needed.',
+      );
+    }
+    return getScopedFileService();
+  }
+
+  async function getCommandServiceForArgs(args: Record<string, any>): Promise<CommandServiceBridge> {
+    const profile = await getDesktopPermissionProfile();
+    const requestedCwd = typeof args.cwd === 'string' && args.cwd.trim() ? args.cwd.trim() : '.';
+    const outsideWorkspace = isPathOutsideWorkspace(requestedCwd);
+    if ((profile === 'full-access' || profile === 'ask') && outsideWorkspace) {
+      return unrestrictedCommandService;
+    }
+    return getScopedCommandService();
+  }
+
   function requestFileWriteReview(preview: FileWritePreview, toolId: string): Promise<void> {
     if (hasFullAccessAutomationScope()) {
       return Promise.resolve();
     }
+
+    return getDesktopPermissionProfile().then(profile => {
+      if (profile === 'trusted-workspace' || profile === 'full-access') {
+        return;
+      }
+      return requestFileWriteReviewDialog(preview, toolId);
+    });
+  }
+
+  function requestFileWriteReviewDialog(preview: FileWritePreview, toolId: string): Promise<void> {
 
     const window = options.getMainWindow();
     const requestId = createFileWriteReviewId();
@@ -461,7 +558,7 @@ export function registerServiceBridges(
       requestId,
       toolId,
       createdAt: Date.now(),
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     };
 
     return new Promise((resolve, reject) => {
@@ -514,6 +611,16 @@ export function registerServiceBridges(
       return Promise.resolve();
     }
 
+    return getDesktopPermissionProfile().then(profile => {
+      if (profile === 'trusted-workspace' || profile === 'full-access') {
+        return;
+      }
+      return requestCommandReviewDialog(preview, toolId);
+    });
+  }
+
+  function requestCommandReviewDialog(preview: CommandRunPreview, toolId: string): Promise<void> {
+
     const window = options.getMainWindow();
     const requestId = createCommandReviewId();
     const payload = {
@@ -521,7 +628,7 @@ export function registerServiceBridges(
       requestId,
       toolId,
       createdAt: Date.now(),
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     };
 
     return new Promise((resolve, reject) => {
@@ -586,7 +693,7 @@ export function registerServiceBridges(
       toolName,
       args,
       createdAt: Date.now(),
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     };
 
     return new Promise((resolve, reject) => {
@@ -638,6 +745,12 @@ export function registerServiceBridges(
     return value === 'allow' || value === 'ask' || value === 'deny' ? value : undefined;
   }
 
+  function normalizeDesktopPermissionProfile(value: unknown): DesktopPermissionProfile {
+    return value === 'ask' || value === 'trusted-workspace' || value === 'full-access'
+      ? value
+      : 'workspace-only';
+  }
+
   const apiService = new ApiServiceBridge(undefined, workspacePath);
   const filesService = new FileSystemServiceBridge(workspacePath);
   const authService = new AuthServiceBridge(options.keytar);
@@ -666,8 +779,9 @@ export function registerServiceBridges(
       automationService,
       webService,
       financeService,
-      getScopedFileService,
-      getScopedCommandService,
+      getFileServiceForPath,
+      getCommandServiceForArgs,
+      normalizeRequestedPath,
       requestFileWriteReview,
       requestCommandReview,
     }),
@@ -720,7 +834,7 @@ export function registerServiceBridges(
   apiService.setAppConfigProvider(() => appStateService.getConfig());
   apiService.setToolProvider(
     () => toolService.getTools(),
-    (toolName, args) => toolService.executeToolAndReturn(toolName, args, createToolId()),
+    (toolName, args) => executeToolWithCapturedScope(toolName, args, createToolId()),
   );
   apiService.setBootstrapProvider(async () => {
     const [config, tools, mcpServers, mcpTools] = await Promise.all([
@@ -872,7 +986,7 @@ export function registerServiceBridges(
         toolName,
         args,
         status: 'running',
-        scope: getAutomationToolEventScope(),
+        scope: getToolEventScope(toolId),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -882,7 +996,7 @@ export function registerServiceBridges(
       toolName,
       args,
       timestamp: Date.now(),
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     });
   });
 
@@ -895,7 +1009,7 @@ export function registerServiceBridges(
         toolId,
         result: data,
         status: 'result',
-        scope: getAutomationToolEventScope(),
+        scope: getToolEventScope(toolId),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -904,7 +1018,7 @@ export function registerServiceBridges(
       toolId,
       data,
       timestamp: Date.now(),
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     });
   });
 
@@ -918,7 +1032,7 @@ export function registerServiceBridges(
         success,
         duration,
         status: success ? 'succeeded' : 'failed',
-        scope: getAutomationToolEventScope(),
+        scope: getToolEventScope(toolId),
       },
     }).catch(error => {
       console.warn('Failed to save tool history event:', error);
@@ -927,7 +1041,7 @@ export function registerServiceBridges(
       toolId,
       success,
       duration,
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     });
   });
 
@@ -941,7 +1055,7 @@ export function registerServiceBridges(
         error,
         stack,
         status: 'failed',
-        scope: getAutomationToolEventScope(),
+        scope: getToolEventScope(toolId),
       },
     }).catch(saveError => {
       console.warn('Failed to save tool history event:', saveError);
@@ -950,7 +1064,7 @@ export function registerServiceBridges(
       toolId,
       error,
       stack,
-      scope: getAutomationToolEventScope(),
+      scope: getToolEventScope(toolId),
     });
   });
 
@@ -971,7 +1085,7 @@ export function registerServiceBridges(
   ipcBridge.registerToolHandler('execute', async (message: ToolExecuteMessage) => {
     const toolId = message.toolId ?? createToolId();
 
-    toolService.executeTool(message.toolName, message.args ?? {}, toolId).catch(error => {
+    executeToolWithCapturedScope(message.toolName, message.args ?? {}, toolId).catch(error => {
       console.error('Tool execution error:', error);
     });
 
@@ -1019,32 +1133,96 @@ export function registerServiceBridges(
   ipcBridge.registerApiHandler('chatStream', async (request: ChatStreamRequest) => {
     const requestId = request.requestId ?? createChatRequestId();
     const startTime = Date.now();
-    const streamScope = request.toolScope
+    const configuredPermissionProfile = normalizeDesktopPermissionProfile(
+      (await appStateService.getConfig()).desktopPermissionProfile,
+    );
+    const desktopPermissionProfile = request.permissionProfile
+      ? normalizeDesktopPermissionProfile(request.permissionProfile)
+      : configuredPermissionProfile;
+    const authorizedWorkspacePath = typeof request.authorizedWorkspacePath === 'string' && request.authorizedWorkspacePath.trim()
+      ? path.resolve(request.authorizedWorkspacePath.trim())
+      : undefined;
+    const requestedScopePath = request.toolScope?.workspacePath
+      ? path.resolve(request.toolScope.workspacePath)
+      : undefined;
+    if (authorizedWorkspacePath && requestedScopePath && authorizedWorkspacePath !== requestedScopePath) {
+      throw new Error(`Chat workspace authorization mismatch: ${authorizedWorkspacePath} does not match ${requestedScopePath}`);
+    }
+    const effectiveToolScope: ToolEventScope | undefined = request.toolScope
       ? {
-          source: request.toolScope.source,
-          permissionMode: 'supervised' as VirtualTeamPermissionMode,
-          workspacePath: request.toolScope.workspacePath || workspacePath,
-          runId: request.toolScope.runId,
-          taskId: request.toolScope.taskId,
-          taskName: request.toolScope.taskName,
-          teamId: request.toolScope.teamId,
-          teamName: request.toolScope.teamName,
-          projectId: request.toolScope.projectId,
-          projectName: request.toolScope.projectName,
-          projectChatKey: request.toolScope.projectChatKey,
-          channel: request.toolScope.channel,
-          memberId: request.toolScope.memberId,
-          memberName: request.toolScope.memberName,
-          assignmentId: request.toolScope.assignmentId,
-          assignmentTitle: request.toolScope.assignmentTitle,
+          ...request.toolScope,
+          workspacePath: requestedScopePath || authorizedWorkspacePath || (
+            request.toolScope.source === 'chat'
+              ? path.join(app.getPath('userData'), 'chat-workspace')
+              : workspacePath
+          ),
+        }
+      : authorizedWorkspacePath
+        ? {
+            source: 'project-chat',
+            workspacePath: authorizedWorkspacePath,
+            projectId: `ad-hoc-${requestId}`,
+            projectName: path.basename(authorizedWorkspacePath) || authorizedWorkspacePath,
+            projectChatKey: `main:${requestId}`,
+            channel: 'guided',
+          }
+        : {
+            source: 'chat',
+            workspacePath: path.join(app.getPath('userData'), 'chat-workspace'),
+          };
+    const effectiveRequest: ChatStreamRequest = {
+      ...request,
+      permissionProfile: desktopPermissionProfile,
+      enableTools: request.enableTools !== false,
+      toolScope: effectiveToolScope,
+    };
+    if (process.env.CODEAGENT_DEBUG_CHAT_SCOPE === '1') {
+      console.info('[CodeAgent chat scope]', JSON.stringify({
+        requestId,
+        authorizedWorkspacePath: request.authorizedWorkspacePath ?? null,
+        requestedScopePath: request.toolScope?.workspacePath ?? null,
+        effectiveWorkspacePath: effectiveToolScope?.workspacePath ?? null,
+        toolsEnabled: effectiveRequest.enableTools,
+      }));
+    }
+    const streamScope = effectiveToolScope
+      ? {
+          source: effectiveToolScope.source,
+          permissionMode: desktopPermissionProfile === 'full-access'
+            ? 'full-access' as VirtualTeamPermissionMode
+            : 'supervised' as VirtualTeamPermissionMode,
+          workspacePath: effectiveToolScope.workspacePath || workspacePath,
+          runId: effectiveToolScope.runId,
+          taskId: effectiveToolScope.taskId,
+          taskName: effectiveToolScope.taskName,
+          teamId: effectiveToolScope.teamId,
+          teamName: effectiveToolScope.teamName,
+          projectId: effectiveToolScope.projectId,
+          projectName: effectiveToolScope.projectName,
+          projectChatKey: effectiveToolScope.projectChatKey,
+          channel: effectiveToolScope.channel,
+          memberId: effectiveToolScope.memberId,
+          memberName: effectiveToolScope.memberName,
+          assignmentId: effectiveToolScope.assignmentId,
+          assignmentTitle: effectiveToolScope.assignmentTitle,
         }
       : undefined;
     const runStream = async () => {
       if (streamScope?.source === 'project-chat' && streamScope.workspacePath) {
+        const resolvedWorkspacePath = path.resolve(streamScope.workspacePath);
+        await ensureProjectChatWorkspace(
+          resolvedWorkspacePath,
+          desktopPermissionProfile,
+          () => requestToolPermissionReview('workspace.create', {
+            path: resolvedWorkspacePath,
+            reason: 'The saved project folder is missing and must be recreated before project work can continue.',
+          }, `workspace-create-${requestId}`),
+        );
+      } else if (streamScope?.source === 'chat' && streamScope.workspacePath) {
         await fs.mkdir(path.resolve(streamScope.workspacePath), { recursive: true });
       }
 
-      return apiService.streamChat(request, {
+      return apiService.streamChat(effectiveRequest, {
         onDelta: delta => {
           sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatDelta'], {
             requestId,
@@ -1056,10 +1234,20 @@ export function registerServiceBridges(
     };
 
     (streamScope ? automationExecutionScope.run(streamScope, runStream) : runStream()).then(response => {
+      const duration = Date.now() - startTime;
+      if (response.performance) {
+        const bridgePreparationMs = Math.max(0, duration - response.performance.backendMs);
+        const preparation = response.performance.phases.find(phase => phase.phase === 'preparation');
+        if (preparation) preparation.durationMs += bridgePreparationMs;
+        response.performance.backendMs = duration;
+        if (response.performance.firstTokenMs !== undefined) {
+          response.performance.firstTokenMs += bridgePreparationMs;
+        }
+      }
       sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatComplete'], {
         requestId,
         response,
-        duration: Date.now() - startTime,
+        duration,
       });
     }).catch(error => {
       sendToRenderer(options.getMainWindow, IPC_CHANNELS['api:chatError'], {
@@ -1468,6 +1656,18 @@ export function registerServiceBridges(
     return authService.setToken(token);
   });
 
+  ipcBridge.registerAuthHandler('getPlatformSession', async () => {
+    return authService.getPlatformSession();
+  });
+
+  ipcBridge.registerAuthHandler('setPlatformSession', async session => {
+    return authService.setPlatformSession(session);
+  });
+
+  ipcBridge.registerAuthHandler('clearPlatformSession', async () => {
+    return authService.clearPlatformSession();
+  });
+
   ipcBridge.registerAppHandler('info', async () => {
     return {
       version: app.getVersion(),
@@ -1487,11 +1687,17 @@ export function registerServiceBridges(
     const next = { ...current, ...config };
     if (next.llmProvider === 'codeagent') {
       if (!next.model) throw new Error('Select a CodeAgent model before saving.');
-      await localModelService.ensureConfigured({
-        model: next.model,
-        contextTokens: next.contextTokens,
-        gpuLayers: next.localGpuLayers,
-      });
+      const localModelConfigurationChanged = current.llmProvider !== 'codeagent' ||
+        current.model !== next.model ||
+        current.contextTokens !== next.contextTokens ||
+        current.localGpuLayers !== next.localGpuLayers;
+      if (localModelConfigurationChanged) {
+        await localModelService.ensureConfigured({
+          model: next.model,
+          contextTokens: next.contextTokens,
+          gpuLayers: next.localGpuLayers,
+        });
+      }
       config = { ...config, baseUrl: CODEAGENT_LOCAL_BASE_URL };
     } else if (current.llmProvider === 'codeagent') {
       await localModelService.stop();
@@ -1558,8 +1764,9 @@ function createBridgeTools({
   automationService,
   webService,
   financeService,
-  getScopedFileService,
-  getScopedCommandService,
+  getFileServiceForPath,
+  getCommandServiceForArgs,
+  normalizeRequestedPath,
   requestFileWriteReview,
   requestCommandReview,
 }: {
@@ -1571,14 +1778,15 @@ function createBridgeTools({
   automationService: AutomationServiceBridge;
   webService: WebServiceBridge;
   financeService: FinanceServiceBridge;
-  getScopedFileService: () => FileSystemServiceBridge;
-  getScopedCommandService: () => CommandServiceBridge;
+  getFileServiceForPath: (requestedPath: string, toolName: string, toolId: string, requestExternalReview: boolean) => Promise<FileSystemServiceBridge>;
+  getCommandServiceForArgs: (args: Record<string, any>) => Promise<CommandServiceBridge>;
+  normalizeRequestedPath: (requestedPath: string) => string;
   requestFileWriteReview: (preview: FileWritePreview, toolId: string) => Promise<void>;
   requestCommandReview: (preview: CommandRunPreview, toolId: string) => Promise<void>;
 }): BridgeToolDefinition[] {
   const workspacePath = 'the current scoped workspace';
 
-  return [
+  const tools: BridgeToolDefinition[] = [
     {
       name: 'time.now',
       description: 'Get the current date and time for a requested IANA timezone. Use this for current time/date questions; do not write scripts or files to answer those questions.',
@@ -1667,7 +1875,7 @@ function createBridgeTools({
     },
     {
       name: 'bash.run',
-      description: `Run one approved non-interactive command inside the current workspace (${workspacePath}). Use for inspecting files, running tests, and checking project state. Do not use for simple time/date or public web questions. Shell operators, home-directory cwd paths, and destructive commands are blocked.`,
+      description: `Run one supported non-interactive command in the current workspace (${workspacePath}) by default. An external absolute cwd is governed by the desktop permission profile and may require user approval. Use for inspecting files, running tests, and checking project state. Do not use for simple time/date or public web questions. Shell operators, home-directory shorthand, and destructive commands are blocked.`,
       source: 'bridge',
       readOnly: false,
       customReview: true,
@@ -1681,7 +1889,7 @@ function createBridgeTools({
         required: ['command'],
       },
       execute: async (args, context) => {
-        const scopedCommandService = getScopedCommandService();
+        const scopedCommandService = await getCommandServiceForArgs(args);
         const preview = scopedCommandService.createRunPreview(args);
         await requestCommandReview(preview, context.toolId);
         return scopedCommandService.runCommand(args);
@@ -1689,7 +1897,7 @@ function createBridgeTools({
     },
     {
       name: 'fs.read',
-      description: `Read a file inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
+      description: `Read a file in the current workspace (${workspacePath}) by default. Use workspace-relative paths for workspace files. External absolute paths and the current user's ~ home shorthand are governed by the desktop permission profile and may require user approval.`,
       source: 'bridge',
       readOnly: true,
       inputSchema: {
@@ -1700,11 +1908,15 @@ function createBridgeTools({
         },
         required: ['path'],
       },
-      execute: args => getScopedFileService().readFile(String(args.path), args.encoding as BufferEncoding | undefined),
+      execute: async (args, context) => {
+        const requestedPath = normalizeRequestedPath(String(args.path));
+        const service = await getFileServiceForPath(requestedPath, 'fs.read', context.toolId, true);
+        return service.readFile(requestedPath, args.encoding as BufferEncoding | undefined);
+      },
     },
     {
       name: 'fs.write',
-      description: `Write a file inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
+      description: `Write a file in the current workspace (${workspacePath}) by default. Use workspace-relative paths for workspace files. External absolute paths and the current user's ~ home shorthand are governed by the desktop permission profile and may require user approval.`,
       source: 'bridge',
       readOnly: false,
       customReview: true,
@@ -1718,8 +1930,8 @@ function createBridgeTools({
         required: ['path', 'content'],
       },
       execute: async (args, context) => {
-        const scopedFilesService = getScopedFileService();
-        const targetPath = String(args.path);
+        const targetPath = normalizeRequestedPath(String(args.path));
+        const scopedFilesService = await getFileServiceForPath(targetPath, 'fs.write', context.toolId, false);
         const content = String(args.content ?? '');
         const encoding = args.encoding as BufferEncoding | undefined;
         const preview = await scopedFilesService.createWritePreview(targetPath, content, encoding);
@@ -1738,21 +1950,52 @@ function createBridgeTools({
         type: 'object',
         properties: {},
       },
-      execute: () => getScopedFileService().restoreLastWriteCheckpoint(),
+      execute: async (_args, context) => {
+        const service = await getFileServiceForPath('.', 'fs.undoLastWrite', context.toolId, false);
+        return service.restoreLastWriteCheckpoint();
+      },
     },
     {
       name: 'fs.list',
-      description: `List a directory inside the current workspace (${workspacePath}). Use workspace-relative paths, not home-directory paths.`,
+      description: `List a directory in the current workspace (${workspacePath}) by default. Use "." for the current scoped workspace root and workspace-relative paths for its children; do not repeat the workspace folder name as a child path. Pass an external absolute path or the current user's ~ home shorthand exactly when the human explicitly requests that external path; the runtime expands ~ without a shell, then the desktop permission profile will allow access, request approval, or return a scope error. A successful result confirms that the resolved directory exists; an empty entries array means it exists and is empty.`,
       source: 'bridge',
       readOnly: true,
       inputSchema: {
         type: 'object',
         properties: {
           path: { type: 'string' },
+          offset: { type: 'integer', minimum: 0, description: 'Zero-based entry offset for large directories. Defaults to 0.' },
+          limit: { type: 'integer', minimum: 1, maximum: 200, description: 'Maximum entries to return. Defaults to 100 and is capped at 200.' },
         },
         required: ['path'],
       },
-      execute: args => getScopedFileService().listDirectory(String(args.path ?? '.')),
+      execute: async (args, context) => {
+        const requestedPath = normalizeRequestedPath(String(args.path ?? '.'));
+        const scopedFileService = await getFileServiceForPath(requestedPath, 'fs.list', context.toolId, true);
+        const absolutePath = scopedFileService.resolveWorkspacePath(requestedPath);
+        const allEntries = (await scopedFileService.listDirectory(requestedPath))
+          .sort((left, right) => left.name.localeCompare(right.name));
+        const offset = Math.max(0, Math.floor(Number(args.offset) || 0));
+        const limit = Math.min(200, Math.max(1, Math.floor(Number(args.limit) || 100)));
+        const entries = allEntries
+          .slice(offset, offset + limit)
+          .map(entry => ({ name: entry.name, type: entry.type }));
+        const returnedCount = entries.length;
+        const nextOffset = offset + returnedCount;
+        return {
+          path: requestedPath,
+          absolutePath,
+          exists: true,
+          empty: allEntries.length === 0,
+          totalCount: allEntries.length,
+          offset,
+          returnedCount,
+          omittedCount: Math.max(0, allEntries.length - nextOffset),
+          truncated: nextOffset < allEntries.length,
+          nextOffset: nextOffset < allEntries.length ? nextOffset : null,
+          entries,
+        };
+      },
     },
     {
       name: 'api.chat',
@@ -1922,6 +2165,15 @@ function createBridgeTools({
       ),
     },
   ];
+
+  return tools.map(tool => ({
+    ...tool,
+    owner: {
+      kind: 'core',
+      id: 'codeagent-core',
+      name: 'CodeAgent',
+    },
+  }));
 }
 
 function formatCurrentTime(timezone?: string, locale = 'en-US'): {

@@ -82,6 +82,9 @@ const IPC_CHANNELS = {
     'auth:getToken': 'auth:getToken',
     'auth:logout': 'auth:logout',
     'auth:setToken': 'auth:setToken',
+    'auth:getPlatformSession': 'auth:getPlatformSession',
+    'auth:setPlatformSession': 'auth:setPlatformSession',
+    'auth:clearPlatformSession': 'auth:clearPlatformSession',
     'app:info': 'app:info',
     'app:getConfig': 'app:getConfig',
     'app:setConfig': 'app:setConfig',
@@ -328,6 +331,15 @@ const api = {
         },
         setToken: (token) => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['auth:setToken'], token);
+        },
+        getPlatformSession: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['auth:getPlatformSession']);
+        },
+        setPlatformSession: (session) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['auth:setPlatformSession'], session);
+        },
+        clearPlatformSession: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['auth:clearPlatformSession']);
         },
     },
     // ============================================================================

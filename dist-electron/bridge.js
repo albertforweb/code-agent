@@ -95,6 +95,9 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:getToken'], this.handleGetToken.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:logout'], this.handleLogout.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:setToken'], this.handleSetToken.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:getPlatformSession'], this.handleGetPlatformSession.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:setPlatformSession'], this.handleSetPlatformSession.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['auth:clearPlatformSession'], this.handleClearPlatformSession.bind(this));
         // App state channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:info'], this.handleGetInfo.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:getConfig'], this.handleGetConfig.bind(this));
@@ -267,6 +270,24 @@ class IpcBridge {
             throw new Error('Auth handler not configured');
         }
         return handler(token);
+    }
+    async handleGetPlatformSession() {
+        const handler = this.authHandlers.get('getPlatformSession');
+        if (!handler)
+            throw new Error('Platform session handler not configured');
+        return handler({});
+    }
+    async handleSetPlatformSession(_event, session) {
+        const handler = this.authHandlers.get('setPlatformSession');
+        if (!handler)
+            throw new Error('Platform session handler not configured');
+        return handler(session);
+    }
+    async handleClearPlatformSession() {
+        const handler = this.authHandlers.get('clearPlatformSession');
+        if (!handler)
+            throw new Error('Platform session handler not configured');
+        return handler({});
     }
     // ============================================================================
     // APP STATE HANDLERS

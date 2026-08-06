@@ -4,6 +4,7 @@
  */
 
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import * as path from 'path';
 
 const { parse: parseShellCommand } = require('shell-quote') as {
@@ -13,6 +14,17 @@ const { parse: parseShellCommand } = require('shell-quote') as {
 const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_TIMEOUT_MS = 60_000;
 const MAX_OUTPUT_BYTES = 100_000;
+
+const STANDARD_EXECUTABLE_DIRECTORIES = process.platform === 'win32'
+  ? []
+  : [
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+      '/usr/bin',
+      '/bin',
+      '/usr/sbin',
+      '/sbin',
+    ];
 
 export interface CommandRunPreview {
   command: string;
@@ -42,10 +54,10 @@ export class CommandServiceBridge {
       throw new Error('bash.run requires a command string.');
     }
 
-    const argv = this.parseCommand(command);
-    this.validateCommand(argv);
-
+    const parsedArgv = this.parseCommand(command);
+    this.validateCommand(parsedArgv);
     const absoluteCwd = this.resolveCwd(args.cwd);
+    const argv = this.resolveExecutionArgv(parsedArgv, absoluteCwd);
     return {
       command,
       argv,
@@ -64,7 +76,7 @@ export class CommandServiceBridge {
         cwd: preview.absoluteCwd,
         shell: false,
         windowsHide: true,
-        env: process.env,
+        env: this.executionEnvironment(preview.absoluteCwd),
       });
 
       let stdout = '';
@@ -170,6 +182,113 @@ export class CommandServiceBridge {
     if (executable === 'git' && (commandText.includes(' reset --hard') || commandText.includes(' clean '))) {
       throw new Error('Blocked destructive git command. Use non-destructive inspection commands first.');
     }
+  }
+
+  /**
+   * Packaged macOS apps inherit a minimal launch-services PATH rather than the
+   * user's interactive shell PATH. Resolve the common Python aliases before
+   * presenting a review so the approved argv is also the argv we execute.
+   */
+  private resolveExecutionArgv(argv: string[], absoluteCwd: string): string[] {
+    const [requestedExecutable, ...args] = argv;
+    const requestedName = path.basename(requestedExecutable).toLowerCase();
+    const resolvedRequested = this.findExecutable(requestedExecutable, absoluteCwd);
+    if (resolvedRequested) {
+      return [resolvedRequested, ...args];
+    }
+
+    if (requestedName === 'python') {
+      const python3 = this.findExecutable('python3', absoluteCwd);
+      if (python3) {
+        return [python3, ...args];
+      }
+    }
+
+    if (requestedName === 'pip') {
+      const python3 = this.findExecutable('python3', absoluteCwd);
+      if (python3) {
+        return [python3, '-m', 'pip', ...args];
+      }
+
+      const pip3 = this.findExecutable('pip3', absoluteCwd);
+      if (pip3) {
+        return [pip3, ...args];
+      }
+    }
+
+    if (['uvicorn', 'pytest'].includes(requestedName)) {
+      const python = this.findExecutable('python', absoluteCwd) || this.findExecutable('python3', absoluteCwd);
+      if (python) {
+        return [python, '-m', requestedName, ...args];
+      }
+    }
+
+    throw new Error(
+      `Executable not found: ${requestedExecutable}. ` +
+      (requestedName === 'python' || requestedName === 'pip'
+        ? 'Use python3 (and python3 -m pip) or install Python 3.'
+        : 'Install it or add its directory to PATH.'),
+    );
+  }
+
+  private findExecutable(executable: string, absoluteCwd: string): string | null {
+    if (executable.includes('/') || executable.includes('\\')) {
+      const absolute = path.isAbsolute(executable)
+        ? executable
+        : path.resolve(absoluteCwd, executable);
+      return this.isExecutableFile(absolute) ? absolute : null;
+    }
+
+    const extensions = process.platform === 'win32'
+      ? String(process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM').split(';')
+      : [''];
+    const names = path.extname(executable) || process.platform !== 'win32'
+      ? [executable]
+      : extensions.map(extension => `${executable}${extension.toLowerCase()}`);
+
+    for (const directory of this.executableDirectories(absoluteCwd)) {
+      for (const name of names) {
+        const candidate = path.join(directory, name);
+        if (this.isExecutableFile(candidate)) {
+          return candidate;
+        }
+      }
+    }
+    return null;
+  }
+
+  private isExecutableFile(candidate: string): boolean {
+    try {
+      const stat = fs.statSync(candidate);
+      if (!stat.isFile()) {
+        return false;
+      }
+      fs.accessSync(candidate, process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private executableDirectories(absoluteCwd?: string): string[] {
+    const configured = String(process.env.PATH || '')
+      .split(path.delimiter)
+      .map(directory => directory.trim())
+      .filter(Boolean);
+    const workspaceEnvironments = [
+      absoluteCwd && path.join(absoluteCwd, '.venv', process.platform === 'win32' ? 'Scripts' : 'bin'),
+      absoluteCwd && path.join(absoluteCwd, 'venv', process.platform === 'win32' ? 'Scripts' : 'bin'),
+      path.join(this.workspacePath, '.venv', process.platform === 'win32' ? 'Scripts' : 'bin'),
+      path.join(this.workspacePath, 'venv', process.platform === 'win32' ? 'Scripts' : 'bin'),
+    ].filter((directory): directory is string => Boolean(directory));
+    return [...new Set([...workspaceEnvironments, ...configured, ...STANDARD_EXECUTABLE_DIRECTORIES])];
+  }
+
+  private executionEnvironment(absoluteCwd: string): NodeJS.ProcessEnv {
+    return {
+      ...process.env,
+      PATH: this.executableDirectories(absoluteCwd).join(path.delimiter),
+    };
   }
 
   private resolveCwd(value: unknown): string {

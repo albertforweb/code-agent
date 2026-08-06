@@ -12,6 +12,7 @@ import {
   type AppInfo,
   type ChatMessage,
   type ChatMessageContentPart,
+  type ChatPerformanceMetrics,
   type CommandReviewRequest,
   type FileContextReadItem,
   type FileContextReadResult,
@@ -25,6 +26,7 @@ import {
   type ToolResultMessage,
   type ToolStartMessage,
   type ToolPermissionMode,
+  type DesktopPermissionProfile,
   type ToolPermissionReviewRequest,
   type LlmProviderType,
   type AutomationProjectExport,
@@ -48,9 +50,10 @@ import {
   type HuggingFaceModelFile,
   type LocalModelRecord,
   type LocalInferenceStatus,
+  type PlatformAuthSession,
 } from './ipc-client';
 import {
-  SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID,
+  BASE_FEATURE_PACKAGE_ID,
   getFeaturePackageExtensions,
   getFeaturePackageSummary,
   isFeatureAvailable,
@@ -69,7 +72,8 @@ import {
 type MessageRole = 'assistant' | 'user' | 'system' | 'tool' | 'error';
 type MessageStatus = 'sent' | 'sending' | 'failed';
 type ToolActivityStatus = 'running' | 'succeeded' | 'failed';
-type AppView = 'chat' | 'projects' | 'tools' | 'automation' | 'history' | 'settings';
+type ChatToolActivityStatus = 'waiting-approval' | 'running' | 'succeeded' | 'failed' | 'rejected';
+type AppView = string;
 type RecordViewMode = 'table' | 'cards';
 type ProjectsSectionId =
   | 'studio'
@@ -121,6 +125,7 @@ type HistorySectionId = 'overview' | 'chats' | 'tools' | 'automation' | 'events'
 type SettingsSectionId =
   | 'account'
   | 'general'
+  | 'chat-history'
   | 'model'
   | 'packages'
   | 'io-debug'
@@ -184,6 +189,7 @@ type IconName =
   | 'sliders'
   | 'sparkles'
   | 'stop'
+  | 'table'
   | 'terminal'
   | 'trash'
   | 'user'
@@ -196,6 +202,11 @@ type NavigationChildItem<T extends string> = {
   description: string;
   icon: IconName;
   featureId?: string;
+};
+type DesktopNavigationItem = NavigationChildItem<string> & {
+  packageId: string;
+  route: string;
+  parentRoute?: string;
 };
 
 interface UiMessage {
@@ -210,6 +221,29 @@ interface UiMessage {
     outputTokens: number;
   };
   imageAttachments?: UiImageAttachment[];
+  activity?: ChatToolActivity;
+  performance?: ChatPerformanceMetrics & {
+    endToEndMs?: number;
+    uiDeliveryMs?: number;
+  };
+}
+
+interface ChatToolActivity {
+  toolId: string;
+  toolName: string;
+  args: Record<string, any>;
+  status: ChatToolActivityStatus;
+  startedAt: number;
+  completedAt?: number;
+  duration?: number;
+  result?: unknown;
+  error?: string;
+  approval?: {
+    required: boolean;
+    decision?: 'approved' | 'rejected';
+    resolvedAt?: number;
+    resolvedBy?: string;
+  };
 }
 
 interface ChatContextAttachment {
@@ -235,7 +269,7 @@ interface ChatImageAttachment extends UiImageAttachment {
 }
 
 type ChatStreamTarget =
-  | { scope: 'main'; messageId: string }
+  | { scope: 'main'; sessionId: string; messageId: string }
   | { scope: 'project'; projectChatKey: string; projectId: string; messageId: string };
 
 interface PersistedChatSession {
@@ -246,6 +280,8 @@ interface PersistedChatSession {
   workspacePath?: string;
   toolWorkspacePath?: string;
   contextAttachments?: ChatContextAttachment[];
+  executionMode?: ChatExecutionMode;
+  permissionProfile?: DesktopPermissionProfile;
   messages: UiMessage[];
 }
 
@@ -255,6 +291,7 @@ interface PersistedSessionsState {
 }
 
 type SoftwareProjectMode = 'guided' | 'autonomous';
+type ChatExecutionMode = 'chat' | 'agent';
 type SoftwareProjectStatus = 'idea' | 'planning' | 'active' | 'stopped' | 'blocked' | 'done';
 
 interface SoftwareProjectPlan {
@@ -362,6 +399,7 @@ interface SettingsDraft {
   accountDisplayName: string;
   accountPassword: string;
   accountResetToken: string;
+  platformDeveloperMode: boolean;
   platformBaseUrl: string;
   platformOrgId: string;
   llmProvider: LlmProviderType;
@@ -374,6 +412,7 @@ interface SettingsDraft {
   localEnginePath: string;
   localGpuLayers: string;
   enableLlmTools: boolean;
+  desktopPermissionProfile: DesktopPermissionProfile;
   theme: 'light' | 'dark' | 'system';
   accentColor: AppSkinAccent;
   memoryEnabled: boolean;
@@ -470,9 +509,22 @@ interface PurchaseDraft {
   postalCode: string;
 }
 
-const DEFAULT_PROVIDER: LlmProviderType = 'openai-compatible';
+interface PackageOperationError {
+  packageId: string;
+  packageName: string;
+  productSku: string;
+  version: string;
+  phase: string;
+  message: string;
+  occurredAt: string;
+}
+
+const DEFAULT_PROVIDER: LlmProviderType = 'codeagent';
 const MAX_TOOL_ACTIVITIES = 20;
 const MAX_PERSISTED_MESSAGES = 80;
+const MAX_PROJECT_CHAT_CONTEXT_MESSAGES = 10;
+const MAX_PROJECT_CHAT_CONTEXT_CHARACTERS = 10_000;
+const MAX_PROJECT_CHAT_MESSAGE_CHARACTERS = 4_000;
 const MAX_RECENT_SESSIONS = 12;
 const CHAT_CONTEXT_MAX_FILES = 16;
 const CHAT_CONTEXT_MAX_BYTES = 120_000;
@@ -551,6 +603,37 @@ const TOOL_PERMISSION_OPTIONS: Array<{ value: ToolPermissionMode; label: string 
   { value: 'ask', label: 'Ask' },
   { value: 'deny', label: 'Deny' },
 ];
+const DESKTOP_PERMISSION_PROFILES: Array<{
+  value: DesktopPermissionProfile;
+  title: string;
+  description: string;
+  badge?: string;
+  danger?: boolean;
+}> = [
+  {
+    value: 'workspace-only',
+    title: 'Workspace only',
+    description: 'Read and edit files only inside the selected workspace. Commands and writes require review.',
+  },
+  {
+    value: 'ask',
+    title: 'Ask when needed',
+    description: 'Use the workspace by default and request approval before accessing an external path.',
+    badge: 'Recommended',
+  },
+  {
+    value: 'trusted-workspace',
+    title: 'Trusted workspace',
+    description: 'Read, edit, and run approved commands inside the workspace without repeated reviews. External paths remain blocked.',
+  },
+  {
+    value: 'full-access',
+    title: 'Full computer access',
+    description: 'Access any path allowed to your OS account and run supported commands without CodeAgent approval prompts.',
+    badge: 'High risk',
+    danger: true,
+  },
+];
 const TOOL_CATEGORY_ORDER = ['core', 'research', 'connectors', 'mcp', 'api', 'other'] as const;
 type ToolCategoryId = typeof TOOL_CATEGORY_ORDER[number];
 const TOOL_CATEGORY_LABELS: Record<ToolCategoryId, string> = {
@@ -589,7 +672,7 @@ const PROVIDER_DEFAULTS: Record<LlmProviderType, {
 }> = {
   codeagent: {
     label: 'CodeAgent',
-    model: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
+    model: 'Qwen/Qwen3-4B-GGUF',
     baseUrl: 'http://127.0.0.1:14321/v1',
     maxTokens: 2048,
     contextTokens: 8192,
@@ -748,6 +831,8 @@ function Icon({
       return <svg {...common}><path d="M12 3 14 9l6 3-6 3-2 6-2-6-6-3 6-3z" /><path d="M5 3v4" /><path d="M3 5h4" /></svg>;
     case 'stop':
       return <svg {...common}><rect x="6" y="6" width="12" height="12" rx="2" /></svg>;
+    case 'table':
+      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /><path d="M3 14h18" /><path d="M9 4v16" /></svg>;
     case 'terminal':
       return <svg {...common}><path d="m4 7 5 5-5 5" /><path d="M12 19h8" /></svg>;
     case 'trash':
@@ -841,71 +926,29 @@ const DESKTOP_COMMANDS: DesktopCommand[] = [
   { command: '/login local', description: 'Open Settings with OpenAI-compatible defaults' },
   { command: '/account', description: 'Open account and subscription settings' },
   { command: '/settings', description: 'Open Settings' },
-  { command: '/tools', description: 'List bridge and MCP tools', featureId: 'developer-tools' },
-  { command: '/mcp', description: 'Refresh and list MCP servers/tools', featureId: 'mcp' },
-  { command: '/automation', description: 'Open skills, scheduled tasks, remote control, and automation permissions', featureId: 'automation' },
-  { command: '/skills', description: 'Open local skills and automation extensions', featureId: 'automation' },
-  { command: '/tasks', description: 'Open scheduled automation tasks', featureId: 'automation' },
-  { command: '/remote', description: 'Open remote-control setup', featureId: 'automation' },
-  { command: '/team', description: 'Open project teams', featureId: 'project-studio' },
-  { command: '/history', description: 'Open local history and export records', featureId: 'developer-history' },
   { command: '/sessions', description: 'List saved desktop sessions' },
   { command: '/config', description: 'Show persisted desktop configuration' },
-  { command: '/run <tool> <json>', description: 'Run a bridge tool manually', featureId: 'developer-tools' },
+  { command: '/tools', description: 'List built-in and discovered tools', featureId: 'developer-tools' },
+  { command: '/mcp', description: 'Refresh and list MCP servers and tools', featureId: 'mcp' },
   { command: '/clear', description: 'Clear the visible chat' },
-];
-const PRIMARY_NAV: Array<{
-  id: AppView;
-  label: string;
-  description: string;
-  icon: IconName;
-  featureId?: string;
-}> = [
-  { id: 'chat', label: 'Chats', description: 'Conversation workspace', icon: 'chat' },
-  { id: 'projects', label: 'Projects', description: 'Ideas, guided builds, and autonomous teams', icon: 'briefcase', featureId: 'project-studio' },
-  { id: 'tools', label: 'Tools', description: 'Bridge tools, MCP, and activity', icon: 'wrench', featureId: 'developer-tools' },
-  { id: 'automation', label: 'Automation', description: 'Skills, tasks, remote control, and permissions', icon: 'bot', featureId: 'automation' },
-  { id: 'history', label: 'History', description: 'Chats, tool activity, exports, audit', icon: 'history', featureId: 'developer-history' },
-  { id: 'settings', label: 'Settings', description: 'Model, tools, workspace, sessions', icon: 'settings' },
-];
-const PROJECTS_MENU: Array<NavigationChildItem<ProjectsSectionId>> = [
-  { id: 'studio', title: 'Project Studio', description: 'Create software from ideas or autonomous teams', icon: 'board', featureId: 'project-studio' },
-  { id: 'roles', title: 'Roles', description: 'Responsibilities, default goals, and tool scope', icon: 'shield', featureId: 'project-studio' },
-  { id: 'employees', title: 'Employees', description: 'Create employees, roles, models, and permission scope', icon: 'users', featureId: 'project-studio' },
-  { id: 'teams', title: 'Teams', description: 'Scoped missions, supervisors, and members', icon: 'network', featureId: 'project-studio' },
-];
-const TOOLS_MENU: Array<NavigationChildItem<ToolsSectionId>> = [
-  { id: 'bridge', title: 'Bridge Tools', description: 'Exposure and permissions', icon: 'plug', featureId: 'developer-tools' },
-  { id: 'mcp', title: 'MCP Registry', description: 'Servers and executable tools', icon: 'database', featureId: 'mcp' },
-  { id: 'command', title: 'Command Runner', description: 'Approved workspace commands', icon: 'terminal', featureId: 'developer-tools' },
-  { id: 'activity', title: 'Activity', description: 'Tool-call timeline', icon: 'activity', featureId: 'developer-tools' },
-  { id: 'plugins', title: 'Plugins & Skills', description: 'Configured extension paths', icon: 'puzzle', featureId: 'developer-settings' },
 ];
 const SETTINGS_MENU: Array<NavigationChildItem<SettingsSectionId>> = [
   { id: 'account', title: 'Account', description: 'Login, subscription, billing', icon: 'user' },
   { id: 'general', title: 'General', description: 'Appearance and run defaults', icon: 'settings' },
+  { id: 'chat-history', title: 'Chat history', description: 'Manage saved conversations', icon: 'history' },
   { id: 'model', title: 'Model', description: 'Provider, inference, and tokens', icon: 'sparkles' },
-  { id: 'packages', title: 'Packages', description: 'Feature packages and entitlements', icon: 'puzzle' },
-  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, logs', icon: 'code', featureId: 'developer-settings' },
-  { id: 'tools-permissions', title: 'Tools & Permissions', description: 'Agent tools and safety', icon: 'lock', featureId: 'developer-settings' },
-  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, directories', icon: 'folder', featureId: 'developer-settings' },
-  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, browser', icon: 'rotate', featureId: 'developer-settings' },
+  { id: 'packages', title: 'Store', description: 'Browse, purchase, and manage packages', icon: 'puzzle' },
+  { id: 'io-debug', title: 'Output & Debug', description: 'Formats, traces, and logs', icon: 'code', featureId: 'developer-settings' },
+  { id: 'workspace', title: 'Prompts & Directories', description: 'System prompts, MCP, and directories', icon: 'folder', featureId: 'developer-settings' },
+  { id: 'sessions', title: 'Sessions & Integrations', description: 'Resume, IDE, and browser', icon: 'rotate', featureId: 'developer-settings' },
   { id: 'advanced', title: 'Advanced Compatibility', description: 'Channels and agent metadata', icon: 'sliders', featureId: 'developer-settings' },
 ];
-const AUTOMATION_MENU: Array<NavigationChildItem<AutomationSectionId>> = [
-  { id: 'skills', title: 'Skills', description: 'Workspace extensions', icon: 'sparkles', featureId: 'automation' },
-  { id: 'tasks', title: 'Scheduled Tasks', description: 'Recurring runs and history', icon: 'calendar', featureId: 'automation' },
-  { id: 'remote', title: 'Remote Control', description: 'Phone pairing and approvals', icon: 'phone', featureId: 'automation' },
-  { id: 'permissions', title: 'Permissions', description: 'Unattended execution policy', icon: 'shield', featureId: 'automation' },
-];
-const HISTORY_MENU: Array<NavigationChildItem<HistorySectionId>> = [
-  { id: 'overview', title: 'Overview', description: 'Storage and record counts', icon: 'bar-chart', featureId: 'developer-history' },
-  { id: 'chats', title: 'Chats', description: 'Saved conversations', icon: 'chat', featureId: 'developer-history' },
-  { id: 'tools', title: 'Tool Events', description: 'Tool-call audit records', icon: 'wrench', featureId: 'developer-history' },
-  { id: 'automation', title: 'Automation Runs', description: 'Task and team run history', icon: 'bot', featureId: 'developer-history' },
-  { id: 'events', title: 'Project Events', description: 'Imports, exports, and audit events', icon: 'activity', featureId: 'developer-history' },
-  { id: 'export', title: 'Export', description: 'Download or copy local history', icon: 'download', featureId: 'developer-history' },
-];
+const SYSTEM_SETTINGS_SECTION_IDS = new Set<SettingsSectionId>([
+  'general',
+  'chat-history',
+  'model',
+  'packages',
+]);
 const AUTOMATION_PERMISSION_TOOLS = [
   'bash.run',
   'fs.write',
@@ -1013,6 +1056,17 @@ function sanitizeImageAttachments(value: unknown, includeDataUrl = false): UiIma
     .slice(0, CHAT_IMAGE_MAX_COUNT);
 }
 
+function normalizeMessageSenderTitle(role: MessageRole, value: unknown): string | undefined {
+  const title = typeof value === 'string' ? value.trim() : '';
+  if (role !== 'assistant') return title || undefined;
+  if (!title) return 'CodeAgent';
+
+  const looksLikeLegacyModelIdentity = title.includes(' / ') ||
+    title.includes('/') ||
+    /^(?:gpt|claude|gemini|llama|mistral|qwen|deepseek|codellama|phi)[-_.\d]/i.test(title);
+  return looksLikeLegacyModelIdentity ? 'CodeAgent' : title;
+}
+
 function sanitizeMessage(value: unknown): UiMessage | null {
   if (!value || typeof value !== 'object') {
     return null;
@@ -1032,7 +1086,7 @@ function sanitizeMessage(value: unknown): UiMessage | null {
     status: message.status === 'sending' || message.status === 'failed' || message.status === 'sent'
       ? message.status
       : undefined,
-    title: typeof message.title === 'string' ? message.title : undefined,
+    title: normalizeMessageSenderTitle(role, message.title),
     usage: message.usage && typeof message.usage === 'object'
       ? {
         inputTokens: Number((message.usage as UiMessage['usage'])?.inputTokens ?? 0),
@@ -1040,6 +1094,70 @@ function sanitizeMessage(value: unknown): UiMessage | null {
       }
       : undefined,
     imageAttachments: sanitizeImageAttachments(message.imageAttachments),
+    activity: sanitizeChatToolActivity(message.activity),
+    performance: sanitizeChatPerformance(message.performance),
+  };
+}
+
+function sanitizeChatPerformance(value: unknown): UiMessage['performance'] {
+  if (!value || typeof value !== 'object') return undefined;
+  const metric = value as Partial<UiMessage['performance']>;
+  const validPhases = new Set(['preparation', 'tool-selection', 'tool-execution', 'answer-generation']);
+  const phases = Array.isArray(metric.phases)
+    ? metric.phases.flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
+      const phase = item as ChatPerformanceMetrics['phases'][number];
+      if (!validPhases.has(phase.phase) || !Number.isFinite(Number(phase.durationMs))) return [];
+      return [{
+        phase: phase.phase,
+        durationMs: Math.max(0, Number(phase.durationMs)),
+        count: Number.isFinite(Number(phase.count)) ? Math.max(0, Number(phase.count)) : undefined,
+      }];
+    })
+    : [];
+  const backendMs = Number(metric.backendMs);
+  if (!Number.isFinite(backendMs)) return undefined;
+  return {
+    backendMs: Math.max(0, backendMs),
+    firstTokenMs: Number.isFinite(Number(metric.firstTokenMs)) ? Math.max(0, Number(metric.firstTokenMs)) : undefined,
+    toolRounds: Math.max(0, Number(metric.toolRounds) || 0),
+    toolCalls: Math.max(0, Number(metric.toolCalls) || 0),
+    phases,
+    endToEndMs: Number.isFinite(Number(metric.endToEndMs)) ? Math.max(0, Number(metric.endToEndMs)) : undefined,
+    uiDeliveryMs: Number.isFinite(Number(metric.uiDeliveryMs)) ? Math.max(0, Number(metric.uiDeliveryMs)) : undefined,
+  };
+}
+
+function sanitizeChatToolActivity(value: unknown): ChatToolActivity | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const activity = value as Partial<ChatToolActivity>;
+  const validStatuses: ChatToolActivityStatus[] = ['waiting-approval', 'running', 'succeeded', 'failed', 'rejected'];
+  if (typeof activity.toolId !== 'string' || typeof activity.toolName !== 'string' || !validStatuses.includes(activity.status as ChatToolActivityStatus)) {
+    return undefined;
+  }
+
+  return {
+    toolId: activity.toolId,
+    toolName: activity.toolName,
+    args: activity.args && typeof activity.args === 'object' ? activity.args : {},
+    status: activity.status as ChatToolActivityStatus,
+    startedAt: Number.isFinite(Number(activity.startedAt)) ? Number(activity.startedAt) : Date.now(),
+    completedAt: Number.isFinite(Number(activity.completedAt)) ? Number(activity.completedAt) : undefined,
+    duration: Number.isFinite(Number(activity.duration)) ? Number(activity.duration) : undefined,
+    result: activity.result,
+    error: typeof activity.error === 'string' ? activity.error : undefined,
+    approval: activity.approval && typeof activity.approval === 'object'
+      ? {
+        required: Boolean(activity.approval.required),
+        decision: activity.approval.decision === 'approved' || activity.approval.decision === 'rejected'
+          ? activity.approval.decision
+          : undefined,
+        resolvedAt: Number.isFinite(Number(activity.approval.resolvedAt))
+          ? Number(activity.approval.resolvedAt)
+          : undefined,
+        resolvedBy: typeof activity.approval.resolvedBy === 'string' ? activity.approval.resolvedBy : undefined,
+      }
+      : undefined,
   };
 }
 
@@ -1158,6 +1276,8 @@ function createSessionSnapshot(
   previous?: PersistedChatSession,
   toolWorkspacePath?: string | null,
   contextAttachments: ChatContextAttachment[] = [],
+  executionMode?: ChatExecutionMode | null,
+  permissionProfile?: DesktopPermissionProfile | null,
 ): PersistedChatSession {
   const sanitizedMessages = sanitizeMessages(messages);
   const normalizedToolWorkspacePath = typeof toolWorkspacePath === 'string' && toolWorkspacePath.trim()
@@ -1172,6 +1292,8 @@ function createSessionSnapshot(
     workspacePath,
     toolWorkspacePath: normalizedToolWorkspacePath,
     contextAttachments: normalizedContextAttachments.length > 0 ? normalizedContextAttachments : undefined,
+    executionMode: executionMode ?? undefined,
+    permissionProfile: permissionProfile ?? undefined,
     messages: sanitizedMessages,
   };
 }
@@ -1242,6 +1364,12 @@ function sanitizeSession(value: unknown, workspacePath?: string): PersistedChatS
       ? raw.toolWorkspacePath.trim()
       : undefined,
     contextAttachments: sanitizeContextAttachments(raw.contextAttachments),
+    executionMode: raw.executionMode === 'chat' || raw.executionMode === 'agent'
+      ? raw.executionMode
+      : undefined,
+    permissionProfile: DESKTOP_PERMISSION_PROFILES.some(profile => profile.value === raw.permissionProfile)
+      ? raw.permissionProfile
+      : undefined,
     messages,
   };
 }
@@ -1303,6 +1431,21 @@ type ProjectChatChannel = 'guided' | 'team';
 
 function getProjectChatKey(projectId: string, channel: ProjectChatChannel): string {
   return `${projectId}:${channel}`;
+}
+
+function isReviewForProjectChat(
+  review: { scope?: ToolEventScope },
+  projectId: string,
+  channel: ProjectChatChannel,
+): boolean {
+  if (review.scope?.source !== 'project-chat') return false;
+  const projectChatKey = getProjectChatKey(projectId, channel);
+  return review.scope.projectChatKey === projectChatKey
+    || (review.scope.projectId === projectId && (review.scope.channel ?? 'guided') === channel);
+}
+
+function isMainChatReview(review: { scope?: ToolEventScope }): boolean {
+  return review.scope?.source !== 'project-chat';
 }
 
 function getProjectAutomationTeamId(projectId: string): string {
@@ -2098,6 +2241,12 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
   const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
   const providerDefault = getProviderDefault(llmProvider);
   const featureProfile = normalizeFeatureProfile(config?.featureProfile as FeatureEntitlementProfile | undefined);
+  const configuredPlatformBaseUrl = typeof config?.platformBaseUrl === 'string'
+    ? normalizePlatformBaseUrl(config.platformBaseUrl)
+    : '';
+  const platformDeveloperMode = typeof config?.platformDeveloperMode === 'boolean'
+    ? config.platformDeveloperMode
+    : isLocalPlatformUrl(configuredPlatformBaseUrl);
 
   return {
     apiKey: '',
@@ -2105,7 +2254,10 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
     accountDisplayName: featureProfile.accountStatus === 'signed-in' ? featureProfile.displayName : '',
     accountPassword: '',
     accountResetToken: '',
-    platformBaseUrl: typeof config?.platformBaseUrl === 'string' ? config.platformBaseUrl : 'http://127.0.0.1:8000',
+    platformDeveloperMode,
+    platformBaseUrl: platformDeveloperMode
+      ? configuredPlatformBaseUrl || DEVELOPMENT_PLATFORM_BASE_URL
+      : PRODUCTION_PLATFORM_BASE_URL,
     platformOrgId: typeof config?.platformOrgId === 'string' ? config.platformOrgId : '',
     llmProvider,
     baseUrl: llmProvider === 'codeagent' ? providerDefault.baseUrl : (config?.baseUrl || providerDefault.baseUrl),
@@ -2117,6 +2269,7 @@ function createSettingsDraft(config: AppConfig | null): SettingsDraft {
     localEnginePath: typeof config?.localEnginePath === 'string' ? config.localEnginePath : '',
     localGpuLayers: typeof config?.localGpuLayers === 'number' ? String(config.localGpuLayers) : '',
     enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
+    desktopPermissionProfile: config?.desktopPermissionProfile ?? 'workspace-only',
     theme: config?.theme || 'system',
     accentColor: getSkinAccent(config?.accentColor),
     memoryEnabled: Boolean(config?.memoryEnabled ?? true),
@@ -2374,6 +2527,24 @@ function normalizePlatformBaseUrl(value: string): string {
   return value.trim().replace(/\/+$/, '');
 }
 
+const PRODUCTION_PLATFORM_BASE_URL = 'https://app.crovyn.com';
+const DEVELOPMENT_PLATFORM_BASE_URL = 'http://127.0.0.1:18080';
+
+function isLocalPlatformUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  } catch {
+    return false;
+  }
+}
+
+function getEffectivePlatformBaseUrl(draft: SettingsDraft): string {
+  return draft.platformDeveloperMode
+    ? normalizePlatformBaseUrl(draft.platformBaseUrl)
+    : PRODUCTION_PLATFORM_BASE_URL;
+}
+
 function platformOrgQuery(orgId: string): string {
   const trimmed = orgId.trim();
   return trimmed ? `?org_id=${encodeURIComponent(trimmed)}` : '';
@@ -2450,7 +2621,7 @@ interface PlatformPackageActionResponse {
 }
 
 async function loginToPlatform(draft: SettingsDraft): Promise<PlatformLoginResponse> {
-  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  const baseUrl = getEffectivePlatformBaseUrl(draft);
   if (!baseUrl) {
     throw new Error('Enter the agent-platform base URL.');
   }
@@ -2478,7 +2649,7 @@ function getPlatformWorkspaceName(draft: SettingsDraft): string {
 }
 
 async function registerWithPlatform(draft: SettingsDraft): Promise<PlatformRegisterResponse> {
-  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  const baseUrl = getEffectivePlatformBaseUrl(draft);
   if (!baseUrl) {
     throw new Error('Enter the agent-platform base URL.');
   }
@@ -2496,7 +2667,7 @@ async function registerWithPlatform(draft: SettingsDraft): Promise<PlatformRegis
 }
 
 async function requestPlatformPasswordReset(draft: SettingsDraft): Promise<PlatformForgotPasswordResponse> {
-  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  const baseUrl = getEffectivePlatformBaseUrl(draft);
   if (!baseUrl) {
     throw new Error('Enter the agent-platform base URL.');
   }
@@ -2510,7 +2681,7 @@ async function requestPlatformPasswordReset(draft: SettingsDraft): Promise<Platf
 }
 
 async function resetPlatformPassword(draft: SettingsDraft): Promise<PlatformResetPasswordResponse> {
-  const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+  const baseUrl = getEffectivePlatformBaseUrl(draft);
   if (!baseUrl) {
     throw new Error('Enter the agent-platform base URL.');
   }
@@ -2574,22 +2745,22 @@ async function createPlatformPaymentMethod(
   baseUrl: string,
   token: string,
   orgId: string,
-  manifest: FeaturePackageManifest,
+  holderFallback: string,
   draft: PurchaseDraft,
-): Promise<void> {
+): Promise<{ method_id?: string; id?: string }> {
   const expiry = parseCardExpiry(draft.expiry);
   if (!expiry) {
     throw new Error('Enter a valid future expiration date as MM/YY or MM/YYYY.');
   }
   const digits = draft.cardNumber.replace(/\D/g, '');
-  await readPlatformJson(baseUrl, '/billing/payment-methods', token, {
+  return readPlatformJson(baseUrl, '/billing/payment-methods', token, {
     method: 'POST',
     body: JSON.stringify({
       ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
       method_type: 'card',
       brand: getCardBrand(digits),
       last4: digits.slice(-4),
-      holder_name: draft.nameOnCard.trim() || manifest.displayName,
+      holder_name: draft.nameOnCard.trim() || holderFallback,
       exp_month: expiry.expMonth,
       exp_year: expiry.expYear,
       make_default: true,
@@ -3030,6 +3201,44 @@ function summarizeToolResult(data: unknown): string {
   return truncateText(compact || 'ok', 220);
 }
 
+function getChatToolActivityAction(toolName: string): string {
+  const normalized = toolName.toLowerCase();
+  if (normalized === 'fs.list' || normalized === 'fs_list') return 'List directory';
+  if (normalized === 'fs.read' || normalized === 'fs_read') return 'Read file';
+  if (normalized === 'fs.write' || normalized === 'fs_write') return 'Write file';
+  if (normalized === 'bash.run' || normalized === 'bash_run') return 'Run command';
+  if (normalized.includes('search')) return 'Search';
+  return toolName.replace(/[._-]+/g, ' ').replace(/^\w/, character => character.toUpperCase());
+}
+
+function getChatToolActivityTarget(activity: ChatToolActivity): string {
+  const args = activity.args || {};
+  const value = args.path ?? args.command ?? args.cwd ?? args.query ?? args.pattern ?? args.url;
+  if (typeof value === 'string' && value.trim()) return truncateText(value.trim(), 120);
+  return '';
+}
+
+function getChatToolActivityStatusLabel(status: ChatToolActivityStatus): string {
+  if (status === 'waiting-approval') return 'Waiting for approval';
+  if (status === 'running') return 'Running';
+  if (status === 'succeeded') return 'Completed';
+  if (status === 'rejected') return 'Not approved';
+  return 'Failed';
+}
+
+function formatChatToolActivityCopy(activity: ChatToolActivity): string {
+  const target = getChatToolActivityTarget(activity);
+  const lines = [
+    `${getChatToolActivityAction(activity.toolName)}${target ? `: ${target}` : ''}`,
+    `Status: ${getChatToolActivityStatusLabel(activity.status)}`,
+    `Tool: ${activity.toolName}`,
+    `Arguments: ${formatJson(activity.args)}`,
+  ];
+  if (activity.result !== undefined) lines.push(`Result: ${formatJson(activity.result)}`);
+  if (activity.error) lines.push(`Error: ${activity.error}`);
+  return lines.join('\n');
+}
+
 function formatSidebarLabel(content: string, maxLength = 42): string {
   const normalized = content.replace(/\s+/g, ' ').trim();
   return truncateText(normalized || 'Untitled chat', maxLength);
@@ -3330,6 +3539,10 @@ function getToolPermissionPolicy(tool: Tool, config: AppConfig | null): ToolPerm
     : 'allow';
 }
 
+function isCoreTool(tool: Tool): boolean {
+  return tool.owner?.kind === 'core' || (!tool.owner && tool.source === 'bridge');
+}
+
 function getToolCategory(tool: Tool): ToolCategoryId {
   if (tool.name.startsWith('fs.') || tool.name.startsWith('bash.') || tool.name.startsWith('time.')) {
     return 'core';
@@ -3387,11 +3600,11 @@ function formatProjectOutputSource(source: ProjectGeneratedOutput['source']): st
   if (source === 'tool') {
     return 'Tool output';
   }
-  return 'Guided chat output';
+  return 'Project chat output';
 }
 
 function isAutomationScopedToolEvent(data: { scope?: ToolEventScope }): boolean {
-  return data.scope?.source === 'scheduled-task' || data.scope?.source === 'virtual-team' || data.scope?.source === 'project-chat';
+  return data.scope?.source === 'scheduled-task' || data.scope?.source === 'virtual-team';
 }
 
 function isProjectToolActivity(activity: ToolActivity, projectId: string, automationTeamId: string): boolean {
@@ -3422,6 +3635,42 @@ function filterNavigationItems<T extends string>(
   resolution: FeaturePackageResolution,
 ): Array<NavigationChildItem<T>> {
   return items.filter(item => hasShellFeature(resolution, item.featureId));
+}
+
+function toDesktopNavigationItem(
+  entry: ReturnType<typeof getFeaturePackageExtensions>[number],
+): DesktopNavigationItem | null {
+  const extension = entry.extension;
+  const route = extension.childRoute || extension.route;
+  if (!route) {
+    return null;
+  }
+  return {
+    id: route,
+    packageId: entry.packageId,
+    route,
+    parentRoute: extension.parentRoute,
+    title: extension.title,
+    description: extension.description || '',
+    icon: (extension.icon || 'puzzle') as IconName,
+    featureId: extension.featureId,
+  };
+}
+
+function getDesktopPrimaryNavigation(resolution: FeaturePackageResolution): DesktopNavigationItem[] {
+  return getFeaturePackageExtensions(resolution, 'desktop.primary-nav')
+    .map(toDesktopNavigationItem)
+    .filter((item): item is DesktopNavigationItem => Boolean(item));
+}
+
+function getDesktopChildNavigation(
+  resolution: FeaturePackageResolution,
+  parentRoute: string,
+): DesktopNavigationItem[] {
+  return getFeaturePackageExtensions(resolution, 'desktop.child-route')
+    .filter(entry => entry.extension.parentRoute === parentRoute)
+    .map(toDesktopNavigationItem)
+    .filter((item): item is DesktopNavigationItem => Boolean(item));
 }
 
 function getAvailableDesktopCommands(resolution: FeaturePackageResolution): DesktopCommand[] {
@@ -3596,22 +3845,46 @@ function getProjectChatRequestMessages(
   const projectContext = [
     channel === 'team'
       ? 'You are supporting an autonomous project team chat. Treat the human message as direction to the supervisor/team.'
-      : 'You are supporting a guided project chat. Treat the human message as project-scoped product/software direction.',
+      : 'You are supporting a standard project chat. Treat the human message as project-scoped product/software direction.',
     formatProjectPrompt(project, employees, roles, projectTeams),
     channel === 'guided'
       ? 'Use the project details above to infer intent and continue work. Avoid generic intake questions unless they are strictly necessary to unblock the next step.'
       : 'Use the project details above as the team operating context.',
-    `Human message:\n${nextUserMessage}`,
   ].join('\n\n');
 
-  const history = messages
+  const eligibleHistory = messages
     .filter(message => message.role === 'user' || message.role === 'assistant')
-    .map(message => ({
-      role: message.role as 'user' | 'assistant',
-      content: message.content,
-    }));
+    .filter(message => message.content.trim() && !message.content.startsWith('Project chat is ready for'));
+  const history: ChatMessage[] = [];
+  let remainingCharacters = MAX_PROJECT_CHAT_CONTEXT_CHARACTERS;
 
-  return [...history, { role: 'user', content: projectContext }];
+  for (const message of eligibleHistory.slice(-MAX_PROJECT_CHAT_CONTEXT_MESSAGES).reverse()) {
+    if (remainingCharacters <= 0) break;
+    const compactedContent = compactProjectChatHistoryContent(
+      message.content,
+      Math.min(MAX_PROJECT_CHAT_MESSAGE_CHARACTERS, remainingCharacters),
+    );
+    history.unshift({
+      role: message.role as 'user' | 'assistant',
+      content: compactedContent,
+    });
+    remainingCharacters -= compactedContent.length;
+  }
+
+  return [
+    { role: 'system', content: projectContext },
+    ...history,
+    { role: 'user', content: nextUserMessage },
+  ];
+}
+
+function compactProjectChatHistoryContent(content: string, limit: number): string {
+  if (content.length <= limit) return content;
+  const marker = '\n\n[Earlier response shortened for context]\n\n';
+  const usable = Math.max(0, limit - marker.length);
+  const leadingLength = Math.ceil(usable * 0.7);
+  const trailingLength = usable - leadingLength;
+  return `${content.slice(0, leadingLength)}${marker}${content.slice(-trailingLength)}`;
 }
 
 function parseAnsiText(text: string): AnsiSegment[] {
@@ -3726,6 +3999,10 @@ export function App() {
   const [chatToolWorkspacePath, setChatToolWorkspacePath] = useState('');
   const [chatContextAttachments, setChatContextAttachments] = useState<ChatContextAttachment[]>([]);
   const [chatImageAttachments, setChatImageAttachments] = useState<ChatImageAttachment[]>([]);
+  const [chatExecutionModeOverride, setChatExecutionModeOverride] = useState<ChatExecutionMode | null>(null);
+  const [chatPermissionProfileOverride, setChatPermissionProfileOverride] = useState<DesktopPermissionProfile | null>(null);
+  const [composerMenu, setComposerMenu] = useState<'mode' | 'permission' | null>(null);
+  const [pendingChatPermissionProfile, setPendingChatPermissionProfile] = useState<DesktopPermissionProfile | null>(null);
   const [sessionSearch, setSessionSearch] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
@@ -3737,18 +4014,31 @@ export function App() {
   const [isSyncingPlatform, setIsSyncingPlatform] = useState(false);
   const [purchasePackageId, setPurchasePackageId] = useState<string | null>(null);
   const [purchaseDraft, setPurchaseDraft] = useState<PurchaseDraft>(() => ({ ...EMPTY_PURCHASE_DRAFT }));
+  const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+  const [packageOperationError, setPackageOperationError] = useState<PackageOperationError | null>(null);
   const [activeView, setActiveView] = useState<AppView>('chat');
   const [activeProjectsSection, setActiveProjectsSection] = useState<ProjectsSectionId>('studio');
-  const [activeToolsSection, setActiveToolsSection] = useState<ToolsSectionId>('bridge');
+  const [activeToolsSection, setActiveToolsSection] = useState<ToolsSectionId>('mcp');
   const [activeAutomationSection, setActiveAutomationSection] = useState<AutomationSectionId>('tasks');
   const [activeHistorySection, setActiveHistorySection] = useState<HistorySectionId>('overview');
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('account');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const developmentPlatformSessionRef = useRef<Partial<AppConfig> | null>(null);
+
+  const effectiveChatExecutionMode: ChatExecutionMode = chatExecutionModeOverride
+    ?? (appConfig?.enableLlmTools === false ? 'chat' : 'agent');
+  const effectiveChatPermissionProfile: DesktopPermissionProfile = chatPermissionProfileOverride
+    ?? appConfig?.desktopPermissionProfile
+    ?? 'workspace-only';
 
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const streamMessageIds = useRef<Map<string, ChatStreamTarget>>(new Map());
+  const chatRequestStartedAtRef = useRef<Map<string, number>>(new Map());
   const toolActivityNamesRef = useRef<Map<string, string>>(new Map());
+  const approvalRequestToolIdsRef = useRef<Map<string, string>>(new Map());
+  const currentSessionIdRef = useRef(currentSessionId);
   const hasHydratedSessionsRef = useRef(false);
   const hasHydratedProjectsRef = useRef(false);
   const hasHydratedRolesRef = useRef(false);
@@ -3756,6 +4046,89 @@ export function App() {
   const hasHydratedProjectTeamsRef = useRef(false);
   const hasHydratedProjectChatsRef = useRef(false);
   const hasHydratedProjectOutputsRef = useRef(false);
+  const chatToolWorkspacePathRef = useRef('');
+
+  currentSessionIdRef.current = currentSessionId;
+
+  function applyChatToolWorkspacePath(nextPath: string) {
+    const normalizedPath = nextPath.trim();
+    chatToolWorkspacePathRef.current = normalizedPath;
+    setChatToolWorkspacePath(normalizedPath);
+  }
+
+  function applyChatExecutionSettings(session?: PersistedChatSession) {
+    setChatExecutionModeOverride(session?.executionMode ?? null);
+    setChatPermissionProfileOverride(session?.permissionProfile ?? null);
+    setPendingChatPermissionProfile(null);
+    setComposerMenu(null);
+  }
+
+  function withDevelopmentPlatformSession(config: AppConfig): AppConfig {
+    return developmentPlatformSessionRef.current
+      ? { ...config, ...developmentPlatformSessionRef.current }
+      : config;
+  }
+
+  function updateDevelopmentPlatformSession(
+    update: Partial<AppConfig>,
+    baseConfig: AppConfig = appConfig ?? {},
+  ): AppConfig {
+    developmentPlatformSessionRef.current = {
+      ...(developmentPlatformSessionRef.current ?? {}),
+      ...update,
+    };
+    const merged = withDevelopmentPlatformSession(baseConfig);
+    setAppConfig(merged);
+    return merged;
+  }
+
+  function platformSessionFromConfig(config: AppConfig | null): PlatformAuthSession | null {
+    const accessToken = typeof config?.platformAccessToken === 'string' ? config.platformAccessToken.trim() : '';
+    const baseUrl = normalizePlatformBaseUrl(String(config?.platformBaseUrl || ''));
+    if (!accessToken || !baseUrl) return null;
+    return {
+      accessToken,
+      baseUrl,
+      orgId: String(config?.platformOrgId || '').trim() || undefined,
+      developerMode: config?.platformDeveloperMode === true,
+    };
+  }
+
+  async function commitAuthenticatedPlatformConfig(
+    nextConfig: Partial<AppConfig>,
+    session: PlatformAuthSession,
+    persistSession = true,
+  ): Promise<AppConfig> {
+    if (persistSession) await ipcClient.auth.setPlatformSession(session);
+    const inMemoryConfig: Partial<AppConfig> = {
+      ...nextConfig,
+      platformBaseUrl: session.baseUrl,
+      platformDeveloperMode: session.developerMode === true,
+      platformAccessToken: session.accessToken,
+      platformOrgId: session.orgId || nextConfig.platformOrgId,
+    };
+    if (session.developerMode) {
+      // This can run in the same startup closure that just hydrated config.
+      // React state updates are asynchronous, so `appConfig` may still be the
+      // pre-hydration null value. Merge the session overlay onto persistent
+      // storage directly to retain appearance, model, permissions, and every
+      // other saved preference across restart.
+      const persistedConfig = await ipcClient.app.getConfig();
+      return updateDevelopmentPlatformSession(inMemoryConfig, persistedConfig);
+    }
+
+    await ipcClient.app.setConfig({
+      ...nextConfig,
+      platformBaseUrl: session.baseUrl,
+      platformDeveloperMode: false,
+      platformAccessToken: '',
+      platformOrgId: session.orgId || nextConfig.platformOrgId,
+    });
+    return {
+      ...(await ipcClient.app.getConfig()),
+      platformAccessToken: session.accessToken,
+    };
+  }
 
   const tokenUsage = useMemo(() => {
     return messages.reduce(
@@ -3782,19 +4155,22 @@ export function App() {
     return getAvailableDesktopCommands(featureResolution);
   }, [featureResolution]);
   const availablePrimaryNav = useMemo(() => {
-    return PRIMARY_NAV.filter(item => hasShellFeature(featureResolution, item.featureId));
+    return getDesktopPrimaryNavigation(featureResolution);
   }, [featureResolution]);
 
   useEffect(() => {
-    initializeApp();
+    void initializeApp();
   }, []);
 
   useEffect(() => {
-    const activeNavItem = PRIMARY_NAV.find(item => item.id === activeView);
-    if (activeNavItem && !hasShellFeature(featureResolution, activeNavItem.featureId)) {
+    const activeRouteIsAvailable = availablePrimaryNav.some(item => item.route === activeView) ||
+      getFeaturePackageExtensions(featureResolution, 'desktop.child-route').some(entry => (
+        entry.extension.route === activeView || entry.extension.parentRoute === activeView
+      ));
+    if (!activeRouteIsAvailable) {
       setActiveView('chat');
     }
-  }, [activeView, featureResolution]);
+  }, [activeView, availablePrimaryNav, featureResolution]);
 
   useEffect(() => {
     try {
@@ -3803,6 +4179,15 @@ export function App() {
       // Non-critical preference persistence.
     }
   }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!mobileNavigationOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileNavigationOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileNavigationOpen]);
 
   useEffect(() => {
     softwareProjectsRef.current = softwareProjects;
@@ -3880,7 +4265,7 @@ export function App() {
           return;
         }
 
-        setMessages(current => current.map(message => (
+        updateMainChatSessionMessages(target.sessionId, current => current.map(message => (
           message.id === target.messageId
             ? { ...message, content: `${message.content}${data.delta}` }
             : message
@@ -3890,6 +4275,17 @@ export function App() {
       removers.push(ipcClient.onChatComplete(data => {
         const target = streamMessageIds.current.get(data.requestId);
         streamMessageIds.current.delete(data.requestId);
+        const requestStartedAt = chatRequestStartedAtRef.current.get(data.requestId);
+        chatRequestStartedAtRef.current.delete(data.requestId);
+        const endToEndMs = requestStartedAt === undefined ? data.duration : Date.now() - requestStartedAt;
+        const backendPerformance = data.response.performance;
+        const performance = backendPerformance
+          ? {
+            ...backendPerformance,
+            endToEndMs,
+            uiDeliveryMs: Math.max(0, endToEndMs - backendPerformance.backendMs),
+          }
+          : undefined;
 
         if (target?.scope === 'project') {
           setProjectChatMessages(current => updateProjectChatMessage(
@@ -3900,8 +4296,8 @@ export function App() {
               ...message,
               content: data.response.content || message.content || 'No response content.',
               status: 'sent',
-              title: data.response.model,
               usage: data.response.usage,
+              performance,
             }),
           ));
           setProjectChatSendingKeys(current => {
@@ -3910,14 +4306,14 @@ export function App() {
             return next;
           });
         } else if (target?.scope === 'main') {
-          setMessages(current => current.map(message => (
+          updateMainChatSessionMessages(target.sessionId, current => current.map(message => (
             message.id === target.messageId
               ? {
                 ...message,
                 content: data.response.content || message.content || 'No response content.',
                 status: 'sent',
-                title: data.response.model,
                 usage: data.response.usage,
+                performance,
               }
               : message
           )));
@@ -3933,6 +4329,7 @@ export function App() {
       removers.push(ipcClient.onChatError(data => {
         const target = streamMessageIds.current.get(data.requestId);
         streamMessageIds.current.delete(data.requestId);
+        chatRequestStartedAtRef.current.delete(data.requestId);
 
         if (target?.scope === 'project') {
           setProjectChatMessages(current => updateProjectChatMessage(
@@ -3947,7 +4344,7 @@ export function App() {
             return next;
           });
         } else if (target?.scope === 'main') {
-          setMessages(current => current.map(message => (
+          updateMainChatSessionMessages(target.sessionId, current => current.map(message => (
             message.id === target.messageId
               ? { ...message, content: formatDesktopError(data.error), status: 'failed', title: 'Request failed', role: 'error' }
               : message
@@ -3970,33 +4367,42 @@ export function App() {
 
       removers.push(ipcClient.onToolStart(data => {
         recordToolStart(data);
+        if (!isAutomationScopedToolEvent(data)) {
+          upsertChatToolActivity(data.toolId, {
+            toolName: data.toolName,
+            args: data.args || {},
+            status: 'running',
+            startedAt: data.timestamp,
+          }, data.scope);
+        }
       }));
 
       removers.push(ipcClient.onToolResult(data => {
         recordToolResult(data);
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('tool', `\`\`\`json\n${formatJson(data.data)}\n\`\`\``, {
-            title: `Tool result ${data.toolId}`,
-          }));
+          upsertChatToolActivity(data.toolId, { result: data.data }, data.scope);
         }
       }));
 
       removers.push(ipcClient.onToolComplete(data => {
         recordToolComplete(data);
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('tool', `${data.success ? 'Completed' : 'Failed'} in ${data.duration} ms`, {
-            title: `Tool ${data.toolId}`,
-          }));
+          upsertChatToolActivity(data.toolId, {
+            status: data.success ? 'succeeded' : 'failed',
+            duration: data.duration,
+            completedAt: Date.now(),
+          }, data.scope);
         }
       }));
 
       removers.push(ipcClient.onToolError(data => {
         recordToolError(data);
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('error', formatDesktopError(data.error), {
-            title: `Tool error ${data.toolId}`,
+          upsertChatToolActivity(data.toolId, {
             status: 'failed',
-          }));
+            error: formatDesktopError(data.error),
+            completedAt: Date.now(),
+          }, data.scope);
         } else if ((data.scope?.source === 'virtual-team' || data.scope?.source === 'project-chat') && data.scope.projectId) {
           const project = softwareProjectsRef.current.find(candidate => candidate.id === data.scope?.projectId);
           if (project) {
@@ -4011,61 +4417,83 @@ export function App() {
       }));
 
       removers.push(ipcClient.onFileWriteReview(data => {
+        approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
         setFileWriteReviews(current => [
           ...current.filter(review => review.requestId !== data.requestId),
           data,
         ]);
         setStatus('Approval needed');
+        if (data.scope?.source !== 'project-chat') setActiveView('chat');
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('system', `Review requested for ${data.path}`, {
-            title: 'File write approval',
-          }));
+          upsertChatToolActivity(data.toolId, {
+            status: 'waiting-approval',
+            approval: { required: true },
+          }, data.scope);
         }
       }));
 
       removers.push(ipcClient.onCommandReview(data => {
+        approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
         setCommandReviews(current => [
           ...current.filter(review => review.requestId !== data.requestId),
           data,
         ]);
         setStatus('Approval needed');
+        if (data.scope?.source !== 'project-chat') setActiveView('chat');
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('system', `Review requested for command: ${data.command}`, {
-            title: 'Command approval',
-          }));
+          upsertChatToolActivity(data.toolId, {
+            status: 'waiting-approval',
+            approval: { required: true },
+          }, data.scope);
         }
       }));
 
       removers.push(ipcClient.onToolPermissionReview(data => {
+        approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
         setToolPermissionReviews(current => [
           ...current.filter(review => review.requestId !== data.requestId),
           data,
         ]);
         setStatus('Approval needed');
+        if (data.scope?.source !== 'project-chat') setActiveView('chat');
         if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('system', `Review requested for tool: ${data.toolName}`, {
-            title: 'Tool permission',
-          }));
+          upsertChatToolActivity(data.toolId, {
+            toolName: data.toolName,
+            args: data.args || {},
+            status: 'waiting-approval',
+            startedAt: data.createdAt,
+            approval: { required: true },
+          }, data.scope);
         }
       }));
 
       removers.push(ipcClient.onToolApprovalResolved(data => {
+        const toolId = approvalRequestToolIdsRef.current.get(data.requestId);
+        approvalRequestToolIdsRef.current.delete(data.requestId);
+        if (toolId && !isAutomationScopedToolEvent(data)) {
+          upsertChatToolActivity(toolId, {
+            status: data.approved ? 'running' : 'rejected',
+            completedAt: data.approved ? undefined : Date.now(),
+            approval: {
+              required: true,
+              decision: data.approved ? 'approved' : 'rejected',
+              resolvedAt: Date.now(),
+              resolvedBy: data.resolvedBy,
+            },
+          }, data.scope);
+        }
         setFileWriteReviews(current => current.filter(review => review.requestId !== data.requestId));
         setCommandReviews(current => current.filter(review => review.requestId !== data.requestId));
         setToolPermissionReviews(current => current.filter(review => review.requestId !== data.requestId));
         setStatus('Ready');
-        if (!isAutomationScopedToolEvent(data)) {
-          appendMessage(createMessage('system', `${data.approved ? 'Approved' : 'Rejected'} by ${data.resolvedBy}: ${data.title ?? data.requestId}`, {
-            title: 'Remote approval resolved',
-          }));
-        }
         inputRef.current?.focus();
       }));
 
       removers.push(ipcClient.onConfigChanged(data => {
-        setAppConfig(data.config);
+        const config = withDevelopmentPlatformSession(data.config);
+        setAppConfig(config);
         setSettingsDraft(current => ({
-          ...createSettingsDraft(data.config),
+          ...createSettingsDraft(config),
           apiKey: current.apiKey,
         }));
       }));
@@ -4116,10 +4544,12 @@ export function App() {
           previous,
           chatToolWorkspacePath || null,
           chatContextAttachments,
+          chatExecutionModeOverride,
+          chatPermissionProfileOverride,
         ),
       );
     });
-  }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments]);
+  }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments, chatExecutionModeOverride, chatPermissionProfileOverride]);
 
   useEffect(() => {
     if (!hasHydratedSessionsRef.current || sessions.length === 0 || !currentSessionId) {
@@ -4212,9 +4642,55 @@ export function App() {
 
   async function initializeApp() {
     try {
+      async function optionalStartupValue<T>(label: string, request: Promise<T>, fallback: T): Promise<T> {
+        try {
+          return await request;
+        } catch (error) {
+          console.warn(`Failed to load optional startup resource (${label}):`, error);
+          return fallback;
+        }
+      }
+
+      // Appearance and model preferences are part of the critical startup
+      // path. Hydrate them before loading history, tools, and automation so a
+      // slow optional service cannot leave the renderer showing defaults.
+      const config = await ipcClient.app.getConfig();
+      setAppConfig(config);
+      setSettingsDraft(createSettingsDraft(config));
+
+      const [info, storedPlatformSession] = await Promise.all([
+        ipcClient.app.info(),
+        optionalStartupValue('platform session', ipcClient.auth.getPlatformSession(), null),
+      ]);
+
+      const legacySession = !storedPlatformSession ? platformSessionFromConfig(config) : null;
+      const restoredPlatformSession = storedPlatformSession ?? legacySession;
+      if (legacySession) await ipcClient.auth.setPlatformSession(legacySession);
+
+      const effectiveConfig: AppConfig = restoredPlatformSession
+        ? {
+            ...config,
+            platformDeveloperMode: restoredPlatformSession.developerMode === true,
+            platformBaseUrl: restoredPlatformSession.baseUrl,
+            platformOrgId: restoredPlatformSession.orgId || config.platformOrgId || '',
+            platformAccessToken: restoredPlatformSession.accessToken,
+          }
+        : {
+            ...config,
+            platformDeveloperMode: false,
+            platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+            platformOrgId: '',
+            platformAccessToken: '',
+            platformCatalogSource: 'local',
+            platformFeaturePackageCatalog: [],
+            featureProfile: normalizeFeatureProfile(null),
+          };
+
+      setAppInfo(info);
+      setAppConfig(effectiveConfig);
+      setSettingsDraft(createSettingsDraft(effectiveConfig));
+
       const [
-        info,
-        config,
         state,
         bridgeTools,
         servers,
@@ -4230,28 +4706,40 @@ export function App() {
         allHistoryRecords,
         storageInfo,
       ] = await Promise.all([
-        ipcClient.app.info(),
-        ipcClient.app.getConfig(),
-        ipcClient.app.getState(),
-        ipcClient.tools.list(),
-        ipcClient.mcp.listServers(),
-        ipcClient.mcp.listTools(),
-        ipcClient.automation.listSkills(),
-        ipcClient.automation.listTasks(),
-        ipcClient.automation.listTaskRuns(),
-        ipcClient.automation.getRemoteControl(),
-        ipcClient.automation.listTeams(),
-        ipcClient.automation.listTeamRuns(),
-        ipcClient.automation.getSchedulerStatus(),
-        ipcClient.history.listRecords({ type: 'chat-session', limit: MAX_RECENT_SESSIONS }),
-        ipcClient.history.listRecords({ limit: 500 }),
-        ipcClient.history.getStorageInfo(),
+        optionalStartupValue('application state', ipcClient.app.getState(), {}),
+        optionalStartupValue('tools', ipcClient.tools.list(), []),
+        optionalStartupValue('MCP servers', ipcClient.mcp.listServers(), []),
+        optionalStartupValue('MCP tools', ipcClient.mcp.listTools(), []),
+        optionalStartupValue('skills', ipcClient.automation.listSkills(), []),
+        optionalStartupValue('scheduled tasks', ipcClient.automation.listTasks(), []),
+        optionalStartupValue('task runs', ipcClient.automation.listTaskRuns(), []),
+        optionalStartupValue('remote control', ipcClient.automation.getRemoteControl(), EMPTY_REMOTE_CONTROL),
+        optionalStartupValue('virtual teams', ipcClient.automation.listTeams(), []),
+        optionalStartupValue('team runs', ipcClient.automation.listTeamRuns(), []),
+        optionalStartupValue('scheduler', ipcClient.automation.getSchedulerStatus(), EMPTY_SCHEDULER_STATUS),
+        optionalStartupValue('chat history', ipcClient.history.listRecords({ type: 'chat-session', limit: MAX_RECENT_SESSIONS }), []),
+        optionalStartupValue('history records', ipcClient.history.listRecords({ limit: 500 }), []),
+        optionalStartupValue('history storage', ipcClient.history.getStorageInfo(), EMPTY_HISTORY_STORAGE),
       ]);
+      if (config.platformAccessToken || config.platformDeveloperMode) {
+        void ipcClient.app.setConfig({
+          platformDeveloperMode: false,
+          platformBaseUrl: restoredPlatformSession?.developerMode
+            ? PRODUCTION_PLATFORM_BASE_URL
+            : restoredPlatformSession?.baseUrl || PRODUCTION_PLATFORM_BASE_URL,
+          platformOrgId: restoredPlatformSession?.developerMode ? '' : restoredPlatformSession?.orgId || '',
+          platformAccessToken: '',
+          ...(!restoredPlatformSession
+            ? {
+                platformCatalogSource: 'local' as const,
+                platformFeaturePackageCatalog: [],
+                featureProfile: normalizeFeatureProfile(null),
+              }
+            : {}),
+        });
+      }
 
-      setAppInfo(info);
-      setAppConfig(config);
       setAppState(state);
-      setSettingsDraft(createSettingsDraft(config));
       setTools(bridgeTools);
       setMcpServers(servers);
       setMcpTools(discoveredMcpTools);
@@ -4287,8 +4775,9 @@ export function App() {
       setSessions(restoredSessions.sessions);
       setCurrentSessionId(restoredSessions.currentSessionId);
       setMessages(activeSession?.messages ?? createReadyMessages());
-      setChatToolWorkspacePath(activeSession?.toolWorkspacePath ?? '');
+      applyChatToolWorkspacePath(activeSession?.toolWorkspacePath ?? '');
       setChatContextAttachments(activeSession?.contextAttachments ?? []);
+      applyChatExecutionSettings(activeSession);
       hasHydratedSessionsRef.current = true;
       hasHydratedProjectsRef.current = true;
       hasHydratedRolesRef.current = true;
@@ -4297,7 +4786,7 @@ export function App() {
       hasHydratedProjectChatsRef.current = true;
       hasHydratedProjectOutputsRef.current = true;
       setStatus('Ready');
-      void syncPlatformStateFromConfig(config, { reason: 'startup', silent: true });
+      void syncPlatformStateFromConfig(effectiveConfig, { reason: 'startup', silent: true });
     } catch (error) {
       console.error('Failed to initialize app:', error);
       hasHydratedSessionsRef.current = true;
@@ -4319,6 +4808,29 @@ export function App() {
     setMessages(current => [...current, message]);
   }
 
+  function updateMainChatSessionMessages(
+    sessionId: string,
+    update: (messages: UiMessage[]) => UiMessage[],
+  ) {
+    if (currentSessionIdRef.current === sessionId) {
+      setMessages(update);
+      return;
+    }
+
+    setSessions(current => current.map(session => {
+      if (session.id !== sessionId) {
+        return session;
+      }
+      const nextMessages = update(session.messages).slice(-MAX_PERSISTED_MESSAGES);
+      return {
+        ...session,
+        messages: nextMessages,
+        title: getSessionTitle(nextMessages),
+        updatedAt: Date.now(),
+      };
+    }));
+  }
+
   function startNewChat() {
     const nextSession = createEmptySession(appInfo?.workspacePath);
     setSessions(current => {
@@ -4333,6 +4845,8 @@ export function App() {
             previous,
             chatToolWorkspacePath || null,
             chatContextAttachments,
+            chatExecutionModeOverride,
+            chatPermissionProfileOverride,
           ),
         )
         : current;
@@ -4340,12 +4854,14 @@ export function App() {
     });
     setCurrentSessionId(nextSession.id);
     setMessages(nextSession.messages);
-    setChatToolWorkspacePath(nextSession.toolWorkspacePath ?? '');
+    applyChatToolWorkspacePath(nextSession.toolWorkspacePath ?? '');
     setChatContextAttachments(nextSession.contextAttachments ?? []);
+    applyChatExecutionSettings(nextSession);
     setChatImageAttachments([]);
     setInput('');
     setStatus('Ready');
     setActiveView('chat');
+    setMobileNavigationOpen(false);
     inputRef.current?.focus();
   }
 
@@ -4357,8 +4873,9 @@ export function App() {
 
     setCurrentSessionId(session.id);
     setMessages(sanitizeMessages(session.messages));
-    setChatToolWorkspacePath(session.toolWorkspacePath ?? '');
+    applyChatToolWorkspacePath(session.toolWorkspacePath ?? '');
     setChatContextAttachments(session.contextAttachments ?? []);
+    applyChatExecutionSettings(session);
     setChatImageAttachments([]);
     setInput('');
     setStatus('Ready');
@@ -4980,6 +5497,65 @@ export function App() {
     ].slice(0, MAX_TOOL_ACTIVITIES));
   }
 
+  function upsertChatToolActivity(
+    toolId: string,
+    update: Partial<ChatToolActivity>,
+    scope?: ToolEventScope,
+  ) {
+    const updateMessages = (current: UiMessage[]): UiMessage[] => {
+      const existingIndex = current.findIndex(message => message.activity?.toolId === toolId);
+      const existing = existingIndex >= 0 ? current[existingIndex].activity : undefined;
+      const activity: ChatToolActivity = {
+        toolId,
+        toolName: update.toolName || existing?.toolName || toolActivityNamesRef.current.get(toolId) || 'Tool',
+        args: update.args || existing?.args || {},
+        status: update.status || existing?.status || 'running',
+        startedAt: update.startedAt || existing?.startedAt || Date.now(),
+        ...existing,
+        ...update,
+      };
+
+      if (existingIndex >= 0) {
+        return current.map((message, index) => index === existingIndex ? {
+          ...message,
+          activity,
+          content: formatChatToolActivityCopy(activity),
+          status: activity.status === 'failed' || activity.status === 'rejected' ? 'failed' as const : 'sent' as const,
+        } : message);
+      }
+
+      return [...current, createMessage('tool', formatChatToolActivityCopy(activity), {
+        id: `tool-activity-${toolId}`,
+        title: 'Activity',
+        activity,
+        status: activity.status === 'failed' || activity.status === 'rejected' ? 'failed' : 'sent',
+      })];
+    };
+
+    const scopedProjectChatKey = scope?.projectChatKey
+      ?? (scope?.projectId ? getProjectChatKey(scope.projectId, scope.channel ?? 'guided') : undefined);
+    const mainSessionId = scopedProjectChatKey?.startsWith('main:')
+      ? scopedProjectChatKey.slice('main:'.length)
+      : undefined;
+    if (mainSessionId) {
+      updateMainChatSessionMessages(mainSessionId, updateMessages);
+      return;
+    }
+
+    const projectChatKey = scope?.source === 'project-chat'
+      ? scopedProjectChatKey
+      : undefined;
+    if (projectChatKey) {
+      setProjectChatMessages(current => ({
+        ...current,
+        [projectChatKey]: updateMessages(current[projectChatKey] ?? []),
+      }));
+      return;
+    }
+
+    setMessages(updateMessages);
+  }
+
   function updateToolActivity(
     toolId: string,
     update: Partial<ToolActivity>,
@@ -5035,6 +5611,36 @@ export function App() {
 
   function updateSettingsDraft(update: Partial<SettingsDraft>) {
     setSettingsDraft(current => ({ ...current, ...update }));
+
+    const appearanceUpdate: Partial<AppConfig> = {};
+    if (Object.prototype.hasOwnProperty.call(update, 'theme') && update.theme) {
+      appearanceUpdate.theme = update.theme;
+    }
+    if (Object.prototype.hasOwnProperty.call(update, 'accentColor') && update.accentColor) {
+      appearanceUpdate.accentColor = update.accentColor;
+    }
+    if (Object.keys(appearanceUpdate).length === 0) return;
+
+    setAppConfig(current => ({ ...(current ?? {}), ...appearanceUpdate }));
+    ipcClient.app.setConfig(appearanceUpdate)
+      .then(() => {
+        setSettingsMessage('Appearance saved');
+        setStatus('Ready');
+      })
+      .catch(async error => {
+        const persistedConfig = await ipcClient.app.getConfig().catch(() => null);
+        if (persistedConfig) {
+          const config = withDevelopmentPlatformSession(persistedConfig);
+          setAppConfig(config);
+          setSettingsDraft(current => ({
+            ...current,
+            theme: config.theme || 'system',
+            accentColor: getSkinAccent(config.accentColor),
+          }));
+        }
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus('Appearance settings error');
+      });
   }
 
   async function refreshBridgeData() {
@@ -5097,6 +5703,46 @@ export function App() {
     }
   }
 
+  async function deleteChatSession(sessionId: string) {
+    setSettingsMessage('');
+    try {
+      const recordId = `${CHAT_SESSION_HISTORY_ID_PREFIX}${sessionId}`;
+      const deletedRecord = historyRecords.find(record => record.id === recordId);
+      await ipcClient.history.deleteRecord(recordId);
+      const removed = removeDeletedChatSession(recordId, deletedRecord);
+      setHistoryRecords(current => current.filter(record => record.id !== recordId));
+      setSettingsMessage(removed ? 'Chat deleted.' : 'The chat was already removed.');
+    } catch (error) {
+      setSettingsMessage(formatDesktopError(error));
+    }
+  }
+
+  async function deleteAllChatSessions() {
+    setSettingsMessage('');
+    try {
+      const recordIds = new Set([
+        ...sessions.map(session => `${CHAT_SESSION_HISTORY_ID_PREFIX}${session.id}`),
+        ...historyRecords.filter(record => record.type === 'chat-session').map(record => record.id),
+      ]);
+      await Promise.all(Array.from(recordIds, recordId => ipcClient.history.deleteRecord(recordId)));
+
+      const nextSession = createEmptySession(appInfo?.workspacePath);
+      setSessions([nextSession]);
+      setCurrentSessionId(nextSession.id);
+      setMessages(nextSession.messages);
+      applyChatToolWorkspacePath('');
+      setChatContextAttachments([]);
+      applyChatExecutionSettings(nextSession);
+      setChatImageAttachments([]);
+      setInput('');
+      setHistoryRecords(current => current.filter(record => record.type !== 'chat-session'));
+      setSettingsMessage('All saved chats were deleted. Workspace files were not changed.');
+      setStatus('Ready');
+    } catch (error) {
+      setSettingsMessage(formatDesktopError(error));
+    }
+  }
+
   function removeDeletedChatSession(recordId: string, record?: LocalHistoryRecord): boolean {
     const deletedSessionId = getChatSessionIdFromHistoryRecord(recordId, record);
     if (!deletedSessionId || !sessions.some(session => session.id === deletedSessionId)) {
@@ -5117,8 +5763,9 @@ export function App() {
     if (shouldSwitchActiveSession && nextActiveSession) {
       setCurrentSessionId(nextActiveSession.id);
       setMessages(nextActiveSession.messages);
-      setChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? '');
+      applyChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? '');
       setChatContextAttachments(nextActiveSession.contextAttachments ?? []);
+      applyChatExecutionSettings(nextActiveSession);
       setChatImageAttachments([]);
       setInput('');
       setStatus('Ready');
@@ -5138,8 +5785,9 @@ export function App() {
     setSessions(current => upsertSession(current, session));
     setCurrentSessionId(session.id);
     setMessages(session.messages);
-    setChatToolWorkspacePath(session.toolWorkspacePath ?? '');
+    applyChatToolWorkspacePath(session.toolWorkspacePath ?? '');
     setChatContextAttachments(session.contextAttachments ?? []);
+    applyChatExecutionSettings(session);
     setChatImageAttachments([]);
     setActiveView('chat');
     setHistoryMessage(`Restored chat "${session.title}".`);
@@ -5387,8 +6035,8 @@ export function App() {
         return;
       }
 
-      setChatToolWorkspacePath(normalizeWorkspacePath(result.path));
-      setStatus('Guided project folder set');
+      applyChatToolWorkspacePath(normalizeWorkspacePath(result.path));
+      setStatus('Working folder set');
       inputRef.current?.focus();
     } catch (error) {
       appendMessage(createMessage('error', formatDesktopError(error), {
@@ -5400,7 +6048,7 @@ export function App() {
   }
 
   function clearChatToolWorkspaceFolder() {
-    setChatToolWorkspacePath('');
+    applyChatToolWorkspacePath('');
     setStatus('Chat only');
     inputRef.current?.focus();
   }
@@ -5579,9 +6227,14 @@ export function App() {
     }
   }
 
-  function applyToolPermissionPreset(preset: 'allow-all' | 'ask-mutating' | 'deny-mutating') {
-    const toolPermissionPolicies: Record<string, ToolPermissionMode> = {};
-    for (const tool of tools) {
+  function applyToolPermissionPreset(
+    preset: 'allow-all' | 'ask-mutating' | 'deny-mutating',
+    targetTools: Tool[] = tools,
+  ) {
+    const toolPermissionPolicies: Record<string, ToolPermissionMode> = {
+      ...(appConfig?.toolPermissionPolicies ?? {}),
+    };
+    for (const tool of targetTools) {
       if (preset === 'allow-all') {
         toolPermissionPolicies[tool.name] = 'allow';
       } else if (tool.readOnly) {
@@ -5672,40 +6325,55 @@ export function App() {
       const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
       const activeProviderDefault = getProviderDefault(activeProvider);
       const assistantMessage = createMessage('assistant', '', {
-        title: `${activeProviderDefault.label} / ${appConfig?.model || activeProviderDefault.model}`,
+        title: 'CodeAgent',
         status: 'sending',
       });
 
-      streamMessageIds.current.set(requestId, { scope: 'main', messageId: assistantMessage.id });
+      streamMessageIds.current.set(requestId, {
+        scope: 'main',
+        sessionId: currentSessionId,
+        messageId: assistantMessage.id,
+      });
+      chatRequestStartedAtRef.current.set(requestId, Date.now());
       appendMessage(assistantMessage);
-      const scopedWorkspacePath = chatToolWorkspacePath.trim();
-      const chatToolScope: ToolEventScope | undefined = scopedWorkspacePath
-        ? {
-          source: 'project-chat',
-          workspacePath: scopedWorkspacePath,
-          projectId: `ad-hoc-${currentSessionId}`,
-          projectName: getPathBasename(scopedWorkspacePath),
-          projectChatKey: `main:${currentSessionId}`,
-          channel: 'guided',
-        }
-        : undefined;
+      const persistedWorkspacePath = sessions.find(session => session.id === currentSessionId)?.toolWorkspacePath ?? '';
+      const scopedWorkspacePath = (
+        chatToolWorkspacePathRef.current ||
+        chatToolWorkspacePath ||
+        persistedWorkspacePath
+      ).trim();
+      const chatToolScope: ToolEventScope = {
+        source: 'chat',
+        workspacePath: scopedWorkspacePath || undefined,
+        projectId: `ad-hoc-${currentSessionId}`,
+        projectName: scopedWorkspacePath ? getPathBasename(scopedWorkspacePath) : 'Chat',
+        projectChatKey: `main:${currentSessionId}`,
+        channel: 'guided',
+      };
+      // Keep the agent loop available even when no folder is selected. The main
+      // process owns the permission boundary and returns a grounded denial for
+      // out-of-scope filesystem calls. Disabling tools here lets the model guess.
+      const chatToolsEnabled = effectiveChatExecutionMode === 'agent';
 
       await ipcClient.api.chatStream({
         requestId,
+        authorizedWorkspacePath: scopedWorkspacePath || undefined,
         messages: getChatMessages(messages, requestContent),
         provider: activeProvider,
         baseUrl: appConfig?.baseUrl || activeProviderDefault.baseUrl,
         model: appConfig?.model || activeProviderDefault.model,
         maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault.maxTokens),
         contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault.contextTokens),
-        enableTools: Boolean(chatToolScope),
-        maxToolRounds: chatToolScope ? 12 : 0,
+        enableTools: chatToolsEnabled,
+        maxToolRounds: chatToolsEnabled ? 12 : 0,
+        permissionProfile: effectiveChatPermissionProfile,
         toolScope: chatToolScope,
         temperature: Number(appConfig?.temperature ?? 0.7),
       });
     } catch (error) {
       if (pendingStreamRequestId) {
         streamMessageIds.current.delete(pendingStreamRequestId);
+        chatRequestStartedAtRef.current.delete(pendingStreamRequestId);
       }
 
       const message = formatDesktopError(error);
@@ -5734,7 +6402,7 @@ export function App() {
     const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
     const activeProviderDefault = getProviderDefault(activeProvider);
     const assistantMessage = createMessage('assistant', '', {
-      title: `${activeProviderDefault.label} / ${appConfig?.model || activeProviderDefault.model}`,
+      title: channel === 'team' ? 'Project Team' : 'CodeAgent',
       status: 'sending',
     });
     const requestId = `project-chat-${project.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -5754,11 +6422,15 @@ export function App() {
       projectId: project.id,
       messageId: assistantMessage.id,
     });
+    chatRequestStartedAtRef.current.set(requestId, Date.now());
     setStatus('Streaming');
 
     try {
+      const authorizedWorkspacePath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
       await ipcClient.api.chatStream({
         requestId,
+        structuredAgentLoop: true,
+        authorizedWorkspacePath,
         messages: getProjectChatRequestMessages(
           currentMessages,
           project,
@@ -5771,7 +6443,8 @@ export function App() {
         provider: activeProvider,
         toolScope: {
           source: 'project-chat',
-          workspacePath: project.workspacePath ?? appInfo?.workspacePath ?? workspacePath,
+          runId: requestId,
+          workspacePath: authorizedWorkspacePath,
           projectId: project.id,
           projectName: project.name,
           projectChatKey,
@@ -5783,10 +6456,12 @@ export function App() {
         contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault.contextTokens),
         enableTools: true,
         maxToolRounds: 12,
+        permissionProfile: project.permissionMode === 'full-access' ? 'full-access' : 'ask',
         temperature: Number(appConfig?.temperature ?? 0.7),
       });
     } catch (error) {
       streamMessageIds.current.delete(requestId);
+      chatRequestStartedAtRef.current.delete(requestId);
       setProjectChatMessages(current => updateProjectChatMessage(
         current,
         projectChatKey,
@@ -6077,6 +6752,13 @@ export function App() {
     inputRef.current?.focus();
   }
 
+  function clearComposerInput() {
+    setInput('');
+    setChatImageAttachments([]);
+    setStatus('Ready');
+    inputRef.current?.focus();
+  }
+
   async function resolveFileWriteReview(review: FileWriteReviewRequest, approved: boolean) {
     try {
       await ipcClient.tools.respondToFileWriteReview({
@@ -6086,9 +6768,11 @@ export function App() {
       });
 
       setFileWriteReviews(current => current.filter(item => item.requestId !== review.requestId));
-      appendMessage(createMessage('system', `${approved ? 'Approved' : 'Rejected'} write to ${review.path}.`, {
-        title: 'File write review',
-      }));
+      upsertChatToolActivity(review.toolId, {
+        status: approved ? 'running' : 'rejected',
+        completedAt: approved ? undefined : Date.now(),
+        error: approved ? undefined : 'Permission was not granted.',
+      });
       setStatus('Ready');
       inputRef.current?.focus();
     } catch (error) {
@@ -6109,9 +6793,11 @@ export function App() {
       });
 
       setCommandReviews(current => current.filter(item => item.requestId !== review.requestId));
-      appendMessage(createMessage('system', `${approved ? 'Approved' : 'Rejected'} command: ${review.command}`, {
-        title: 'Command review',
-      }));
+      upsertChatToolActivity(review.toolId, {
+        status: approved ? 'running' : 'rejected',
+        completedAt: approved ? undefined : Date.now(),
+        error: approved ? undefined : 'Permission was not granted.',
+      });
       setStatus('Ready');
       inputRef.current?.focus();
     } catch (error) {
@@ -6132,9 +6818,13 @@ export function App() {
       });
 
       setToolPermissionReviews(current => current.filter(item => item.requestId !== review.requestId));
-      appendMessage(createMessage('system', `${approved ? 'Approved' : 'Rejected'} tool call: ${review.toolName}.`, {
-        title: 'Tool permission',
-      }));
+      upsertChatToolActivity(review.toolId, {
+        toolName: review.toolName,
+        args: review.args || {},
+        status: approved ? 'running' : 'rejected',
+        completedAt: approved ? undefined : Date.now(),
+        error: approved ? undefined : 'Permission was not granted.',
+      });
       setStatus('Ready');
       inputRef.current?.focus();
     } catch (error) {
@@ -6148,8 +6838,18 @@ export function App() {
 
   async function saveSettings(event?: React.FormEvent<HTMLFormElement>) {
     event?.preventDefault();
+    if (settingsDraft.desktopPermissionProfile === 'full-access' && appConfig?.desktopPermissionProfile !== 'full-access') {
+      const confirmed = window.confirm(
+        'Enable full computer access? CodeAgent will be able to access any file allowed to your OS account and run supported commands without CodeAgent approval prompts.',
+      );
+      if (!confirmed) {
+        setSettingsMessage('Full access was not enabled.');
+        return;
+      }
+    }
+    const shouldPrepareLocalModel = activeSettingsSection === 'model' && settingsDraft.llmProvider === 'codeagent';
     setIsSavingSettings(true);
-    setSettingsMessage(settingsDraft.llmProvider === 'codeagent'
+    setSettingsMessage(shouldPrepareLocalModel
       ? 'Preparing the selected model and starting CodeAgent inference…'
       : '');
 
@@ -6166,19 +6866,22 @@ export function App() {
         localEnginePath: settingsDraft.llmProvider === 'codeagent' ? '' : settingsDraft.localEnginePath.trim(),
         localGpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : undefined,
         enableLlmTools: settingsDraft.enableLlmTools,
+        desktopPermissionProfile: settingsDraft.desktopPermissionProfile,
         theme: settingsDraft.theme,
         accentColor: settingsDraft.accentColor,
         memoryEnabled: settingsDraft.memoryEnabled,
         pluginsEnabled: settingsDraft.pluginsEnabled,
         autoUpdate: settingsDraft.autoUpdate,
         cliOptions: buildCliOptions(settingsDraft),
-        platformBaseUrl: normalizePlatformBaseUrl(settingsDraft.platformBaseUrl),
-        platformOrgId: settingsDraft.platformOrgId.trim(),
-        featureProfile: nextFeatureProfile,
-        featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile),
+        ...(developmentPlatformSessionRef.current
+          ? {}
+          : {
+              featureProfile: nextFeatureProfile,
+              featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile),
+            }),
       };
 
-      if (settingsDraft.llmProvider === 'codeagent') {
+      if (shouldPrepareLocalModel) {
         if (!settingsDraft.model) throw new Error('Select a CodeAgent model before saving.');
         setLocalModelPreparation({ phase: 'resolving', model: settingsDraft.model, detail: 'Checking whether the selected model is available locally…' });
         const downloaded = await ipcClient.localModels.listDownloaded();
@@ -6199,7 +6902,7 @@ export function App() {
           detail: `Ready at ${localStatus.baseUrl}`,
           logPath: localStatus.logPath,
         });
-      } else {
+      } else if (settingsDraft.llmProvider !== 'codeagent') {
         setLocalModelPreparation({ phase: 'idle' });
       }
 
@@ -6212,14 +6915,14 @@ export function App() {
         });
       }
 
-      const config = await ipcClient.app.getConfig();
+      const config = withDevelopmentPlatformSession(await ipcClient.app.getConfig());
       setAppConfig(config);
       setSettingsDraft({ ...createSettingsDraft(config), apiKey: '' });
       setSettingsMessage('Saved');
       setStatus('Ready');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (settingsDraft.llmProvider === 'codeagent') {
+      if (shouldPrepareLocalModel) {
         const log = await ipcClient.localModels.readLog(100).catch(() => ({ path: '', content: '' }));
         setLocalModelPreparation({
           phase: 'error',
@@ -6300,17 +7003,21 @@ export function App() {
       const profile = normalizeFeatureProfile(platformProfile.profile);
       const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
       const syncedAt = new Date().toISOString();
-      await ipcClient.app.setConfig({
+      const nextConfig: Partial<AppConfig> = {
         platformBaseUrl,
-        platformAccessToken: platformToken,
         platformOrgId: syncedOrgId,
         platformCatalogSource: 'platform',
         platformCatalogLastSyncedAt: syncedAt,
         platformFeaturePackageCatalog: platformCatalog.packages,
         featureProfile: profile,
         featureAccounts: writeProfileToAccountStore(configSnapshot, profile),
+      };
+      const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+        accessToken: platformToken,
+        baseUrl: platformBaseUrl,
+        orgId: syncedOrgId,
+        developerMode: configSnapshot?.platformDeveloperMode === true,
       });
-      const config = await ipcClient.app.getConfig();
       setAppConfig(config);
       setSettingsDraft(current => ({
         ...createSettingsDraft(config),
@@ -6324,12 +7031,36 @@ export function App() {
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const invalidSession = /Platform API 401\b/.test(message);
+      if (invalidSession) {
+        await ipcClient.auth.clearPlatformSession();
+        developmentPlatformSessionRef.current = null;
+        const guestProfile = normalizeFeatureProfile(null);
+        await ipcClient.app.setConfig({
+          platformAccessToken: '',
+          platformDeveloperMode: false,
+          platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+          platformOrgId: '',
+          platformCatalogSource: 'local',
+          platformFeaturePackageCatalog: [],
+          featureProfile: guestProfile,
+        });
+        const guestConfig = await ipcClient.app.getConfig();
+        setAppConfig(guestConfig);
+        setSettingsDraft(current => ({
+          ...createSettingsDraft(guestConfig),
+          apiKey: current.apiKey,
+        }));
+        if (!options.silent) setSettingsMessage('Your platform session expired or was revoked. Sign in again.');
+      }
       if (options.silent) {
         console.warn('Platform startup sync failed:', error);
         setStatus('Ready');
-      } else {
+      } else if (!invalidSession) {
         setSettingsMessage(message);
         setStatus('Platform sync error');
+      } else {
+        setStatus('Platform session expired');
       }
       return false;
     } finally {
@@ -6339,6 +7070,42 @@ export function App() {
 
   async function handlePlatformSync() {
     await syncPlatformStateFromConfig(appConfig, { reason: 'manual' });
+  }
+
+  async function handlePlatformDeveloperModeChange(checked: boolean) {
+    if (checked) {
+      updateSettingsDraft({
+        platformDeveloperMode: true,
+        platformBaseUrl: DEVELOPMENT_PLATFORM_BASE_URL,
+        platformOrgId: '',
+      });
+      setSettingsMessage('Developer connection settings apply only to this window. If you sign in, that authenticated session is restored securely until it expires or you sign out.');
+      return;
+    }
+
+    await ipcClient.auth.clearPlatformSession();
+    developmentPlatformSessionRef.current = null;
+    const persistedConfig = await ipcClient.app.getConfig();
+    const config: AppConfig = {
+      ...persistedConfig,
+      platformDeveloperMode: false,
+      platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+      platformOrgId: '',
+      platformAccessToken: '',
+      platformCatalogSource: 'local',
+      platformFeaturePackageCatalog: [],
+      featureProfile: normalizeFeatureProfile(null),
+    };
+    setAppConfig(config);
+    setSettingsDraft(current => ({
+      ...current,
+      platformDeveloperMode: false,
+      platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+      platformOrgId: '',
+      accountPassword: '',
+      accountResetToken: '',
+    }));
+    setSettingsMessage('Developer mode disabled. Authentication now uses the managed platform.');
   }
 
   async function handleAccountLogin() {
@@ -6351,7 +7118,7 @@ export function App() {
     if (settingsDraft.accountPassword.trim()) {
       try {
         const login = await loginToPlatform(settingsDraft);
-        const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+        const platformBaseUrl = getEffectivePlatformBaseUrl(settingsDraft);
         const platformOrgId = settingsDraft.platformOrgId.trim() ||
           login.session?.org_id ||
           login.workspace?.organization?.org_id ||
@@ -6359,18 +7126,23 @@ export function App() {
         const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, login.access_token, platformOrgId);
         const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, login.access_token, platformOrgId);
         const profile = normalizeFeatureProfile(platformProfile.profile);
+        const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
         const nextConfig: Partial<AppConfig> = {
           platformBaseUrl,
-          platformAccessToken: login.access_token,
-          platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+          platformDeveloperMode: settingsDraft.platformDeveloperMode,
+          platformOrgId: syncedOrgId,
           platformCatalogSource: 'platform',
           platformCatalogLastSyncedAt: new Date().toISOString(),
           platformFeaturePackageCatalog: platformCatalog.packages,
           featureProfile: profile,
           featureAccounts: writeProfileToAccountStore(appConfig, profile),
         };
-        await ipcClient.app.setConfig(nextConfig);
-        const config = await ipcClient.app.getConfig();
+        const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+          accessToken: login.access_token,
+          baseUrl: platformBaseUrl,
+          orgId: syncedOrgId,
+          developerMode: settingsDraft.platformDeveloperMode,
+        });
         setAppConfig(config);
         setSettingsDraft(current => ({
           ...createSettingsDraft(config),
@@ -6428,7 +7200,7 @@ export function App() {
       setSettingsMessage('Creating account in agent-platform...');
       setStatus('Creating account');
       const registration = await registerWithPlatform(settingsDraft);
-      const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+      const platformBaseUrl = getEffectivePlatformBaseUrl(settingsDraft);
       const platformOrgId = registration.session?.org_id ||
         registration.workspace?.organization?.org_id ||
         settingsDraft.platformOrgId.trim() ||
@@ -6436,17 +7208,23 @@ export function App() {
       const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, registration.access_token, platformOrgId);
       const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, registration.access_token, platformOrgId);
       const profile = normalizeFeatureProfile(platformProfile.profile);
-      await ipcClient.app.setConfig({
+      const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
+      const nextConfig: Partial<AppConfig> = {
         platformBaseUrl,
-        platformAccessToken: registration.access_token,
-        platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+        platformDeveloperMode: settingsDraft.platformDeveloperMode,
+        platformOrgId: syncedOrgId,
         platformCatalogSource: 'platform',
         platformCatalogLastSyncedAt: new Date().toISOString(),
         platformFeaturePackageCatalog: platformCatalog.packages,
         featureProfile: profile,
         featureAccounts: writeProfileToAccountStore(appConfig, profile),
+      };
+      const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+        accessToken: registration.access_token,
+        baseUrl: platformBaseUrl,
+        orgId: syncedOrgId,
+        developerMode: settingsDraft.platformDeveloperMode,
       });
-      const config = await ipcClient.app.getConfig();
       setAppConfig(config);
       setSettingsDraft(current => ({
         ...createSettingsDraft(config),
@@ -6518,8 +7296,24 @@ export function App() {
 
   async function handleAccountLogout() {
     const nextProfile = normalizeFeatureProfile(null);
-    await ipcClient.auth.logout();
+    await ipcClient.auth.clearPlatformSession();
     setPurchasePackageId(null);
+    if (appConfig?.platformDeveloperMode) {
+      const config = updateDevelopmentPlatformSession({
+        platformAccessToken: '',
+        platformCatalogSource: 'local',
+        platformFeaturePackageCatalog: [],
+        featureProfile: nextProfile,
+      });
+      setSettingsDraft(current => ({
+        ...createSettingsDraft(config),
+        apiKey: current.apiKey,
+        accountPassword: '',
+      }));
+      setSettingsMessage('Signed out. Developer connection settings remain active for this window.');
+      setStatus('Ready');
+      return;
+    }
     await ipcClient.app.setConfig({
       featureProfile: nextProfile,
       featureAccounts: getFeatureAccountStore(appConfig),
@@ -6547,6 +7341,7 @@ export function App() {
 
     const isEntitled = packageEntry.state === 'available' || packageEntry.state === 'trial';
     if (isEntitled && !isPackageRuntimeAvailable(packageEntry.installState)) {
+      setPackageOperationError(null);
       const profile = getFeatureProfileFromConfig(appConfig);
       const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
       const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
@@ -6568,14 +7363,19 @@ export function App() {
             packageEntry.manifest,
             localInstall,
           );
-          await ipcClient.app.setConfig({
+          const nextConfig: Partial<AppConfig> = {
             featureProfile: result.profile,
             featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
             platformOrgId: result.org_id || appConfig?.platformOrgId,
             platformCatalogSource: 'platform',
             platformCatalogLastSyncedAt: new Date().toISOString(),
-          });
-          const config = await ipcClient.app.getConfig();
+          };
+          const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+            accessToken: platformToken,
+            baseUrl: platformBaseUrl,
+            orgId: result.org_id || platformOrgId,
+            developerMode: appConfig?.platformDeveloperMode === true,
+          }, false);
           setAppConfig(config);
           setSettingsDraft(current => ({
             ...createSettingsDraft(config),
@@ -6587,10 +7387,21 @@ export function App() {
               ? `${packageEntry.manifest.displayName} verified and installed through agent-platform.`
               : `${packageEntry.manifest.displayName} installed through agent-platform.`,
           );
+          setPackageOperationError(null);
           setStatus('Ready');
           return;
         } catch (error) {
-          setSettingsMessage(error instanceof Error ? error.message : String(error));
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          setSettingsMessage(`Couldn’t install ${packageEntry.manifest.displayName}. Open the error details in Store.`);
+          setPackageOperationError({
+            packageId: packageEntry.manifest.id,
+            packageName: packageEntry.manifest.displayName,
+            productSku: packageEntry.manifest.productSku,
+            version: packageEntry.manifest.version,
+            phase: 'Platform download, verification, and installation',
+            message: errorMessage,
+            occurredAt: new Date().toISOString(),
+          });
           setStatus('Platform install error');
           return;
         }
@@ -6608,8 +7419,19 @@ export function App() {
             ? `${packageEntry.manifest.displayName} verified and installed locally. ${packageEntry.manifest.distribution.notes}`
             : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`,
         );
+        setPackageOperationError(null);
       } catch (error) {
-        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setSettingsMessage(`Couldn’t install ${packageEntry.manifest.displayName}. Open the error details in Store.`);
+        setPackageOperationError({
+          packageId: packageEntry.manifest.id,
+          packageName: packageEntry.manifest.displayName,
+          productSku: packageEntry.manifest.productSku,
+          version: packageEntry.manifest.version,
+          phase: 'Local verification and installation',
+          message: errorMessage,
+          occurredAt: new Date().toISOString(),
+        });
         setStatus('Package install error');
       }
       return;
@@ -6660,18 +7482,29 @@ export function App() {
     if (platformBaseUrl && platformToken) {
       try {
         const orgId = String(appConfig?.platformOrgId || (profile as any).platform?.orgId || '');
-        await createPlatformPaymentMethod(platformBaseUrl, platformToken, orgId, selectedPurchasePackage, purchaseDraft);
+        await createPlatformPaymentMethod(
+          platformBaseUrl,
+          platformToken,
+          orgId,
+          featureResolution.profile.displayName || selectedPurchasePackage.displayName,
+          purchaseDraft,
+        );
         const result = await purchasePlatformPackage(platformBaseUrl, platformToken, orgId, selectedPurchasePackage.id);
         setPurchasePackageId(null);
         setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
-        await ipcClient.app.setConfig({
+        const nextConfig: Partial<AppConfig> = {
           featureProfile: result.profile,
           featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
           platformOrgId: result.org_id || appConfig?.platformOrgId,
           platformCatalogSource: 'platform',
           platformCatalogLastSyncedAt: new Date().toISOString(),
-        });
-        const config = await ipcClient.app.getConfig();
+        };
+        const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+          accessToken: platformToken,
+          baseUrl: platformBaseUrl,
+          orgId: result.org_id || orgId,
+          developerMode: appConfig?.platformDeveloperMode === true,
+        }, false);
         setAppConfig(config);
         setSettingsDraft(current => ({
           ...createSettingsDraft(config),
@@ -6704,6 +7537,128 @@ export function App() {
     );
   }
 
+  function openPaymentMethodDialog() {
+    setPurchaseDraft({
+      ...EMPTY_PURCHASE_DRAFT,
+      nameOnCard: featureResolution.profile.displayName || '',
+    });
+    setSettingsMessage('');
+    setPaymentMethodDialogOpen(true);
+  }
+
+  async function addAccountPaymentMethod(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const validationError = validatePurchaseDraft(purchaseDraft);
+    if (validationError) {
+      setSettingsMessage(validationError);
+      return;
+    }
+    const profile = getFeatureProfileFromConfig(appConfig);
+    if (profile.accountStatus !== 'signed-in') {
+      setPaymentMethodDialogOpen(false);
+      setSettingsMessage('Sign in before adding a payment method.');
+      return;
+    }
+    const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+    const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
+    try {
+      setIsSavingSettings(true);
+      if (platformBaseUrl && platformToken) {
+        const orgId = String(appConfig?.platformOrgId || (profile as any).platform?.orgId || '');
+        await createPlatformPaymentMethod(
+          platformBaseUrl,
+          platformToken,
+          orgId,
+          profile.displayName || profile.email || 'CodeAgent User',
+          purchaseDraft,
+        );
+        await syncPlatformStateFromConfig(appConfig, { reason: 'manual', silent: true });
+        setSettingsMessage('Payment method added and set as the default.');
+      } else {
+        const digits = purchaseDraft.cardNumber.replace(/\D/g, '');
+        const expiry = parseCardExpiry(purchaseDraft.expiry)!;
+        const paymentMethod: AccountPaymentMethod = {
+          id: createLocalRecordId('pm'),
+          type: 'card',
+          brand: getCardBrand(digits),
+          last4: digits.slice(-4),
+          expMonth: expiry.expMonth,
+          expYear: expiry.expYear,
+          createdAt: new Date().toISOString(),
+        };
+        await persistFeatureProfile(
+          { ...profile, paymentMethods: [...profile.paymentMethods, paymentMethod], updatedAt: new Date().toISOString() },
+          'Payment method added for this local account.',
+        );
+      }
+      setPaymentMethodDialogOpen(false);
+      setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
+
+  async function removeAccountPaymentMethod(methodId: string) {
+    const profile = getFeatureProfileFromConfig(appConfig);
+    const method = profile.paymentMethods.find(item => item.id === methodId);
+    if (!method || !window.confirm(`Remove ${method.brand} ending ${method.last4}?`)) return;
+    const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+    const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
+    try {
+      setIsSavingSettings(true);
+      if (platformBaseUrl && platformToken) {
+        await readPlatformJson(platformBaseUrl, `/billing/payment-methods/${encodeURIComponent(methodId)}`, platformToken, { method: 'DELETE' });
+        await syncPlatformStateFromConfig(appConfig, { reason: 'manual', silent: true });
+        setSettingsMessage('Payment method removed.');
+      } else {
+        if (profile.purchases.some(purchase => purchase.paymentMethodId === methodId)) {
+          throw new Error('This payment method is attached to purchase history and cannot be removed.');
+        }
+        await persistFeatureProfile(
+          { ...profile, paymentMethods: profile.paymentMethods.filter(item => item.id !== methodId), updatedAt: new Date().toISOString() },
+          'Payment method removed from this local account.',
+        );
+      }
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
+
+  async function setDefaultAccountPaymentMethod(methodId: string) {
+    const profile = getFeatureProfileFromConfig(appConfig);
+    const method = profile.paymentMethods.find(item => item.id === methodId);
+    if (!method) return;
+    const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ''));
+    const platformToken = typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '';
+    try {
+      setIsSavingSettings(true);
+      if (platformBaseUrl && platformToken) {
+        await readPlatformJson(
+          platformBaseUrl,
+          `/billing/payment-methods/${encodeURIComponent(methodId)}/default`,
+          platformToken,
+          { method: 'POST' },
+        );
+        await syncPlatformStateFromConfig(appConfig, { reason: 'manual', silent: true });
+        setSettingsMessage(`${method.brand} ending ${method.last4} is now the default payment method.`);
+      } else {
+        const reordered = [method, ...profile.paymentMethods.filter(item => item.id !== methodId)];
+        await persistFeatureProfile(
+          { ...profile, paymentMethods: reordered, updatedAt: new Date().toISOString() },
+          `${method.brand} ending ${method.last4} is now the default payment method.`,
+        );
+      }
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
+
   function openPrimaryView(view: AppView) {
     if (view === 'settings') {
       setSettingsMessage('');
@@ -6711,25 +7666,51 @@ export function App() {
       setHistoryMessage('');
     }
     setActiveView(view);
+    setMobileNavigationOpen(false);
+  }
+
+  function openPrimaryNavigationItem(item: DesktopNavigationItem) {
+    if (item.route === 'settings') {
+      openChildRoute('settings', 'general');
+      return;
+    }
+    if (item.route === 'chat') {
+      openPrimaryView('chat');
+      return;
+    }
+    if (item.packageId === BASE_FEATURE_PACKAGE_ID) {
+      openChildRoute(item.route, item.route);
+      return;
+    }
+    const firstGroup = getDesktopChildNavigation(featureResolution, item.route)[0];
+    if (firstGroup) {
+      openPackageNavigationGroup(firstGroup);
+    }
+  }
+
+  function isPrimaryNavigationItemActive(item: DesktopNavigationItem): boolean {
+    if (item.route === 'settings') {
+      return activeView === 'settings' && SYSTEM_SETTINGS_SECTION_IDS.has(activeSettingsSection);
+    }
+    if (item.route === 'chat') {
+      return activeView === 'chat';
+    }
+    if (item.packageId === BASE_FEATURE_PACKAGE_ID) {
+      return activeView === item.route;
+    }
+    return activePackageWorkspace?.id === item.id;
   }
 
   function getActiveChildMenu(): Array<NavigationChildItem<string>> {
-    if (activeView === 'projects') {
-      return filterNavigationItems(PROJECTS_MENU, featureResolution);
-    }
-    if (activeView === 'tools') {
-      return filterNavigationItems(TOOLS_MENU, featureResolution);
-    }
-    if (activeView === 'automation') {
-      return filterNavigationItems(AUTOMATION_MENU, featureResolution);
-    }
-    if (activeView === 'history') {
-      return filterNavigationItems(HISTORY_MENU, featureResolution);
-    }
     if (activeView === 'settings') {
-      return filterNavigationItems(SETTINGS_MENU, featureResolution);
+      return filterNavigationItems(SETTINGS_MENU, featureResolution).filter(item => SYSTEM_SETTINGS_SECTION_IDS.has(item.id));
     }
     return [];
+  }
+
+  function openPackageNavigationGroup(group: DesktopNavigationItem) {
+    const firstPage = getDesktopChildNavigation(featureResolution, group.route)[0];
+    openChildRoute(group.route, firstPage?.id || group.id);
   }
 
   function getActiveChildId(): string {
@@ -6766,61 +7747,74 @@ export function App() {
       setSettingsMessage('');
     }
     setActiveView(view);
+    setMobileNavigationOpen(false);
   }
 
   const statusLabel = isSending ? 'Working' : status;
   const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
   const activeProviderDefault = getProviderDefault(activeProvider);
   const activeProviderLabel = activeProviderDefault.label;
-  const activeFileWriteReview = fileWriteReviews[0] ?? null;
-  const activeCommandReview = commandReviews[0] ?? null;
-  const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
+  const mainFileWriteReviews = fileWriteReviews.filter(isMainChatReview);
+  const mainCommandReviews = commandReviews.filter(isMainChatReview);
+  const mainToolPermissionReviews = toolPermissionReviews.filter(isMainChatReview);
   const activeSession = sessions.find(session => session.id === currentSessionId);
   const conversationTitle = activeSession?.title || getSessionTitle(messages);
   const recentSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
   const visibleRecentSessions = recentSessions.filter(session => matchesSessionSearch(session, sessionSearch));
   const exposedBridgeToolCount = tools.filter(tool => isToolExposedToModel(tool, appConfig)).length;
+  const sidebarAccountProfile = featureResolution.profile;
+  const sidebarAccountSignedIn = sidebarAccountProfile.accountStatus === 'signed-in';
+  const sidebarAccountName = sidebarAccountSignedIn
+    ? sidebarAccountProfile.displayName || sidebarAccountProfile.email || 'CodeAgent account'
+    : 'Guest account';
+  const sidebarAccountInitials = sidebarAccountName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'CA';
+  const packageWorkspaceNavigation = availablePrimaryNav.filter(item => item.packageId !== BASE_FEATURE_PACKAGE_ID);
+  const packageWorkspaceGroups = packageWorkspaceNavigation.flatMap(workspace => (
+    getDesktopChildNavigation(featureResolution, workspace.route)
+  ));
+  const activePackageGroup = packageWorkspaceGroups.find(group => {
+    if (group.route !== activeView) {
+      return false;
+    }
+    if (group.route !== 'settings') {
+      return true;
+    }
+    return getDesktopChildNavigation(featureResolution, group.route)
+      .some(page => page.id === activeSettingsSection);
+  }) ?? null;
+  const activePackageWorkspace = activePackageGroup
+    ? packageWorkspaceNavigation.find(workspace => workspace.route === activePackageGroup.parentRoute) ?? null
+    : null;
+  const activePackagePageMenu = activePackageGroup
+    ? getDesktopChildNavigation(featureResolution, activePackageGroup.route)
+    : [];
   const commandSuggestions = filterDesktopCommands(input, availableDesktopCommands);
   const showCommandPalette = activeView === 'chat' && commandSuggestions.length > 0 && !isSending;
   const selectedPurchasePackage = purchasePackageId
     ? featureResolution.packages.find(entry => entry.manifest.id === purchasePackageId)?.manifest ?? null
     : null;
-  const activeProjectsMenuItem = PROJECTS_MENU.find(item => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
-  const activeToolsMenuItem = TOOLS_MENU.find(item => item.id === activeToolsSection) ?? TOOLS_MENU[0];
-  const activeAutomationMenuItem = AUTOMATION_MENU.find(item => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
-  const activeHistoryMenuItem = HISTORY_MENU.find(item => item.id === activeHistorySection) ?? HISTORY_MENU[0];
   const activeSettingsMenuItem = SETTINGS_MENU.find(item => item.id === activeSettingsSection) ?? SETTINGS_MENU[0];
   const activeChildMenu = getActiveChildMenu();
   const activeChildId = getActiveChildId();
+  const activePackagePage = activePackagePageMenu.find(item => item.id === activeChildId) ?? activePackageGroup;
   const viewTitle = activeView === 'chat'
     ? conversationTitle
-    : activeView === 'projects'
-      ? activeProjectsMenuItem.title
-      : activeView === 'tools'
-        ? activeToolsMenuItem.title
-        : activeView === 'automation'
-          ? activeAutomationMenuItem.title
-          : activeView === 'history'
-            ? activeHistoryMenuItem.title
-            : activeSettingsMenuItem.title;
+    : activePackagePage?.title || activeSettingsMenuItem.title;
   const viewSubtitle = activeView === 'chat'
     ? appConfig?.model || activeProviderDefault.model
-    : activeView === 'projects'
-      ? activeProjectsMenuItem.description
-      : activeView === 'tools'
-        ? activeToolsMenuItem.description
-        : activeView === 'automation'
-          ? activeAutomationMenuItem.description
-          : activeView === 'history'
-            ? activeHistoryMenuItem.description
-            : activeSettingsMenuItem.description;
+    : activePackagePage?.description || activeSettingsMenuItem.description;
   const skinStyle = getSkinStyle(appConfig?.accentColor);
   const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
   const narrowNavigation = viewportSize.width <= 820;
-  const navigationCollapsed = sidebarCollapsed || narrowNavigation;
+  const navigationCollapsed = narrowNavigation ? !mobileNavigationOpen : sidebarCollapsed;
 
   return (
-    <div className={`${styles.container} ${navigationCollapsed ? styles.containerCollapsed : ''}`} style={skinStyle}>
+    <div className={`${styles.container} ${navigationCollapsed ? styles.containerCollapsed : ''} ${narrowNavigation ? styles.containerNarrow : ''}`} style={skinStyle}>
       <aside className={`${styles.navSidebar} ${navigationCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
         <div className={styles.brandBlock}>
           <span className={styles.brandMark}><Icon name="bot" size={17} /></span>
@@ -6836,27 +7830,51 @@ export function App() {
         </button>
 
         <nav className={styles.navList} aria-label="Primary">
-          {availablePrimaryNav.map(item => (
-            <div className={styles.navGroup} key={item.id}>
+          {availablePrimaryNav.map(item => {
+            const workspaceGroups = getDesktopChildNavigation(featureResolution, item.route);
+            const isPackageWorkspace = item.packageId !== BASE_FEATURE_PACKAGE_ID;
+            const itemIsActive = isPrimaryNavigationItemActive(item);
+            return <div className={styles.navGroup} key={item.id}>
               <button
-                className={activeView === item.id ? styles.navItemActive : styles.navItem}
+                className={itemIsActive ? styles.navItemActive : styles.navItem}
                 type="button"
                 title={item.description}
-                onClick={() => openPrimaryView(item.id)}
+                aria-expanded={isPackageWorkspace ? itemIsActive : undefined}
+                onClick={() => openPrimaryNavigationItem(item)}
               >
                 <span className={styles.navGlyph}><Icon name={item.icon} size={14} /></span>
-                <span className={styles.navLabel}>{item.label}</span>
+                <span className={styles.navLabel}>{item.title}</span>
               </button>
 
-              {activeView === item.id && activeChildMenu.length > 0 && (
-                <div className={styles.navSubList} aria-label={`${item.label} sections`}>
+              {isPackageWorkspace && itemIsActive && workspaceGroups.length > 0 && (
+                <div className={styles.navSubList} aria-label={`${item.title} areas`}>
+                  {workspaceGroups.map(group => (
+                    <button
+                      className={activePackageGroup?.id === group.id ? styles.navChildItemActive : styles.navChildItem}
+                      type="button"
+                      key={group.id}
+                      title={`${group.title}: ${group.description}`}
+                      onClick={() => openPackageNavigationGroup(group)}
+                    >
+                      <span className={styles.navChildGlyph}><Icon name={group.icon} size={13} /></span>
+                      <span className={styles.navChildLabel}>
+                        <strong>{group.title}</strong>
+                        <span>{group.description}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!isPackageWorkspace && itemIsActive && activeChildMenu.length > 0 && (
+                <div className={styles.navSubList} aria-label={`${item.title} sections`}>
                   {activeChildMenu.map(child => (
                     <button
                       className={child.id === activeChildId ? styles.navChildItemActive : styles.navChildItem}
                       type="button"
                       key={child.id}
                       title={`${child.title}: ${child.description}`}
-                      onClick={() => openChildRoute(item.id, child.id)}
+                      onClick={() => openChildRoute(item.route as AppView, child.id)}
                     >
                       <span className={styles.navChildGlyph}><Icon name={child.icon} size={13} /></span>
                       <span className={styles.navChildLabel}>
@@ -6868,10 +7886,10 @@ export function App() {
                 </div>
               )}
             </div>
-          ))}
+          })}
         </nav>
 
-        <section className={styles.recentSection}>
+        {!activePackageWorkspace && <section className={styles.recentSection}>
           <h2>Recents</h2>
           <input
             className={styles.sessionSearchInput}
@@ -6902,18 +7920,36 @@ export function App() {
               </button>
             ))}
           </div>
-        </section>
+        </section>}
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.sidebarFooter} title={statusLabel}>
-            <span className={`${styles.statusDot} ${isSending ? styles.statusDotBusy : ''}`} />
+          <button
+            className={activeView === 'settings' && activeSettingsSection === 'account'
+              ? styles.sidebarAccountButtonActive
+              : styles.sidebarAccountButton}
+            type="button"
+            title={sidebarAccountSignedIn ? sidebarAccountName : 'Open account settings'}
+            onClick={() => openChildRoute('settings', 'account')}
+          >
+            <span className={styles.sidebarAccountAvatar} aria-hidden="true">
+              {sidebarAccountSignedIn ? sidebarAccountInitials : <Icon name="user" size={14} />}
+            </span>
             <div>
-              <strong>{statusLabel}</strong>
-              <span>{appConfig?.enableLlmTools ? `${exposedBridgeToolCount} tools exposed` : 'Chat mode'}</span>
+              <strong>{sidebarAccountName}</strong>
+              <span>{sidebarAccountSignedIn ? formatAccountTier(sidebarAccountProfile) : 'Sign in or create an account'}</span>
             </div>
-          </div>
+          </button>
         </div>
       </aside>
+
+      {narrowNavigation && mobileNavigationOpen && (
+        <button
+          className={styles.mobileNavBackdrop}
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setMobileNavigationOpen(false)}
+        />
+      )}
 
       <div className={styles.appShell}>
         {projectActionMessage && (
@@ -6938,11 +7974,16 @@ export function App() {
             <button
               className={styles.headerNavButton}
               type="button"
-              title={narrowNavigation ? 'Navigation is compact at this window size' : navigationCollapsed ? 'Expand navigation' : 'Collapse navigation'}
-              aria-label={narrowNavigation ? 'Navigation is compact at this window size' : navigationCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+              title={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
+              aria-label={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
               aria-pressed={navigationCollapsed}
-              disabled={narrowNavigation}
-              onClick={() => setSidebarCollapsed(value => !value)}
+              onClick={() => {
+                if (narrowNavigation) {
+                  setMobileNavigationOpen(value => !value);
+                } else {
+                  setSidebarCollapsed(value => !value);
+                }
+              }}
             >
               <Icon name="sidebar" size={17} />
             </button>
@@ -6955,18 +7996,48 @@ export function App() {
           </div>
         </header>
 
-        <main className={`${styles.workspace} ${activeView !== 'chat' ? styles.workspaceDetail : ''}`}>
+        <div className={styles.workspaceFrame}>
+          <div className={styles.workspaceColumn}>
+            {activePackageWorkspace && activePackageGroup && (
+              <div className={styles.developerPageNavigation}>
+                <nav className={styles.pageTabs} aria-label={`${activePackageGroup.title} pages`}>
+                  {activePackagePageMenu.map(child => (
+                    <button
+                      className={child.id === activeChildId ? styles.pageTabActive : styles.pageTab}
+                      type="button"
+                      key={child.id}
+                      title={child.description}
+                      onClick={() => openChildRoute(activePackageGroup.route as AppView, child.id)}
+                    >
+                      <Icon name={child.icon} size={13} />
+                      <span>{child.title}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            )}
+
+        <main className={`${styles.workspace} ${activeView !== 'chat' ? styles.workspaceDetail : ''} ${activeView === 'settings' ? styles.workspaceSettings : ''}`}>
           {activeView === 'chat' && (
             <section className={styles.chatPanel} aria-label="Chat">
               <div className={styles.messageList} ref={messageListRef}>
-                {messages.map(message => (
+                {groupMessagesByAssistantRun(messages).map(({ message, activities }) => (
                   <MessageItem
                     key={message.id}
                     message={message}
+                    activities={activities}
                     copied={copiedMessageId === message.id}
                     onCopy={() => copyMessage(message)}
                   />
                 ))}
+                <InlineApprovalQueue
+                  fileWriteReviews={mainFileWriteReviews}
+                  commandReviews={mainCommandReviews}
+                  toolPermissionReviews={mainToolPermissionReviews}
+                  onResolveFileWrite={resolveFileWriteReview}
+                  onResolveCommand={resolveCommandReview}
+                  onResolveToolPermission={resolveToolPermissionReview}
+                />
                 {isSending && (
                   <div className={styles.typingIndicator} role="status">
                     <span />
@@ -7000,14 +8071,40 @@ export function App() {
                 )}
                 <div className={styles.composerContextPanel}>
                   <div className={styles.composerContextBar}>
-                    <div className={styles.composerContextStatus} title={chatToolWorkspacePath || 'No folder selected'}>
-                      <Icon name={chatToolWorkspacePath ? 'folder-open' : 'message'} size={14} />
-                      <span>{chatToolWorkspacePath ? 'Guided project folder' : 'Chat only'}</span>
-                      <strong>{chatToolWorkspacePath ? chatToolWorkspacePath : 'No local folder selected'}</strong>
-                    </div>
                     <div className={styles.composerContextActions}>
+                      {chatToolWorkspacePath ? (
+                        <details className={styles.composerFolderMenu}>
+                          <summary title={chatToolWorkspacePath}>
+                            <Icon name="folder-open" size={13} />
+                            <strong>{getPathBasename(chatToolWorkspacePath)}</strong>
+                            <span className={styles.composerFolderChevron}><Icon name="chevron-right" size={12} /></span>
+                          </summary>
+                          <div className={styles.composerFolderMenuPopover}>
+                            <span title={chatToolWorkspacePath}>{chatToolWorkspacePath}</span>
+                            <button type="button" onClick={chooseChatToolWorkspaceFolder} disabled={isSending}>
+                              <Icon name="folder-open" size={13} />
+                              Change folder
+                            </button>
+                            <button type="button" onClick={clearChatToolWorkspaceFolder} disabled={isSending}>
+                              <Icon name="x" size={13} />
+                              Clear folder
+                            </button>
+                          </div>
+                        </details>
+                      ) : (
+                        <button
+                          className={styles.composerContextChip}
+                          type="button"
+                          onClick={chooseChatToolWorkspaceFolder}
+                          disabled={isSending}
+                          title="Choose a working folder"
+                        >
+                          <Icon name="folder-open" size={13} />
+                          Set folder
+                        </button>
+                      )}
                       <button
-                        className={styles.textButton}
+                        className={styles.composerContextChip}
                         type="button"
                         onClick={chooseChatContextAttachments}
                         disabled={isSending}
@@ -7015,28 +8112,6 @@ export function App() {
                       >
                         <Icon name="plus" size={13} />
                         Add context
-                      </button>
-                      {chatToolWorkspacePath && (
-                        <button
-                          className={styles.textButton}
-                          type="button"
-                          onClick={clearChatToolWorkspaceFolder}
-                          disabled={isSending}
-                          title="Return this chat to chat-only mode"
-                        >
-                          <Icon name="x" size={13} />
-                          Clear folder
-                        </button>
-                      )}
-                      <button
-                        className={styles.textButton}
-                        type="button"
-                        onClick={chooseChatToolWorkspaceFolder}
-                        disabled={isSending}
-                        title={chatToolWorkspacePath ? 'Change working folder' : 'Choose a working folder'}
-                      >
-                        <Icon name="folder-open" size={13} />
-                        {chatToolWorkspacePath ? 'Change folder' : 'Set folder'}
                       </button>
                     </div>
                   </div>
@@ -7103,20 +8178,165 @@ export function App() {
                   onChange={event => setInput(event.target.value)}
                   onKeyDown={handleInputKeyDown}
                   onPaste={handleComposerPaste}
-                  placeholder="Reply to CodeAgent or paste an image..."
+                  placeholder="Ask CodeAgent…"
                   rows={1}
                   disabled={isSending}
                   aria-label="Message"
                 />
-                <div className={styles.composerActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={clearChat} title="Clear chat">
-                    <Icon name="x" size={14} />
-                    Clear
-                  </button>
-                  <button className={styles.primaryButton} type="submit" disabled={isSending || (!input.trim() && chatImageAttachments.length === 0)} title="Send message">
-                    <Icon name="send" size={14} />
-                    Send
-                  </button>
+                <div className={styles.composerToolbar}>
+                  <div className={styles.composerMeta} aria-label="Chat execution settings">
+                    <div className={styles.composerSettingMenu}>
+                      <button
+                        className={styles.composerSettingTrigger}
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded={composerMenu === 'mode'}
+                        onClick={() => {
+                          setPendingChatPermissionProfile(null);
+                          setComposerMenu(current => current === 'mode' ? null : 'mode');
+                        }}
+                        disabled={isSending}
+                        title={`Mode: ${effectiveChatExecutionMode === 'agent' ? 'Agent can use tools and the working folder' : 'Chat answers without tools'}`}
+                      >
+                        <Icon name={effectiveChatExecutionMode === 'agent' ? 'bot' : 'chat'} size={13} />
+                        <span>{effectiveChatExecutionMode === 'agent' ? 'Agent' : 'Chat'}</span>
+                        <Icon name="chevron-right" size={11} />
+                      </button>
+                      {composerMenu === 'mode' && (
+                        <div className={styles.composerSettingPopover} role="menu" aria-label="Choose chat mode">
+                          <strong>Mode for this chat</strong>
+                          <button
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={effectiveChatExecutionMode === 'chat'}
+                            onClick={() => {
+                              setChatExecutionModeOverride('chat');
+                              setComposerMenu(null);
+                            }}
+                          >
+                            <Icon name="chat" size={15} />
+                            <span><b>Chat</b><small>Answer without running tools.</small></span>
+                            {effectiveChatExecutionMode === 'chat' && <Icon name="check" size={14} />}
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={effectiveChatExecutionMode === 'agent'}
+                            onClick={() => {
+                              setChatExecutionModeOverride('agent');
+                              setComposerMenu(null);
+                            }}
+                          >
+                            <Icon name="bot" size={15} />
+                            <span><b>Agent</b><small>Use tools and work in the selected folder.</small></span>
+                            {effectiveChatExecutionMode === 'agent' && <Icon name="check" size={14} />}
+                          </button>
+                          <div className={styles.composerSettingFooter}>
+                            <button type="button" onClick={() => {
+                              setChatExecutionModeOverride(null);
+                              setComposerMenu(null);
+                            }}>Use default</button>
+                            <button type="button" onClick={() => {
+                              setComposerMenu(null);
+                              openChildRoute('settings', 'model');
+                            }}>Manage default</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.composerSettingMenu}>
+                      <button
+                        className={`${styles.composerSettingTrigger} ${effectiveChatPermissionProfile === 'full-access' ? styles.composerSettingTriggerDanger : ''}`}
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded={composerMenu === 'permission'}
+                        onClick={() => {
+                          setPendingChatPermissionProfile(null);
+                          setComposerMenu(current => current === 'permission' ? null : 'permission');
+                        }}
+                        disabled={isSending || effectiveChatExecutionMode === 'chat'}
+                        title={effectiveChatExecutionMode === 'chat'
+                          ? 'Permissions are inactive in Chat mode because tools are disabled'
+                          : `Permissions: ${DESKTOP_PERMISSION_PROFILES.find(profile => profile.value === effectiveChatPermissionProfile)?.description}`}
+                      >
+                        <Icon name="lock" size={13} />
+                        <span>{DESKTOP_PERMISSION_PROFILES.find(profile => profile.value === effectiveChatPermissionProfile)?.title}</span>
+                        <Icon name="chevron-right" size={11} />
+                      </button>
+                      {composerMenu === 'permission' && (
+                        <div className={`${styles.composerSettingPopover} ${styles.composerPermissionPopover}`} role="menu" aria-label="Choose permission level">
+                          <strong>Permissions for this chat</strong>
+                          <small className={styles.composerSettingWorkspace} title={chatToolWorkspacePath || 'No working folder selected'}>
+                            {chatToolWorkspacePath ? `Working folder: ${chatToolWorkspacePath}` : 'No working folder selected'}
+                          </small>
+                          {DESKTOP_PERMISSION_PROFILES.map(profile => (
+                            <button
+                              type="button"
+                              role="menuitemradio"
+                              aria-checked={effectiveChatPermissionProfile === profile.value}
+                              className={profile.danger ? styles.composerSettingDangerOption : undefined}
+                              key={profile.value}
+                              onClick={() => {
+                                if (profile.danger) {
+                                  setPendingChatPermissionProfile(profile.value);
+                                  return;
+                                }
+                                setChatPermissionProfileOverride(profile.value);
+                                setComposerMenu(null);
+                              }}
+                            >
+                              <Icon name={profile.danger ? 'lock' : 'check'} size={15} />
+                              <span><b>{profile.title}</b><small>{profile.description}</small></span>
+                              {effectiveChatPermissionProfile === profile.value && <Icon name="check" size={14} />}
+                            </button>
+                          ))}
+                          {pendingChatPermissionProfile === 'full-access' && (
+                            <div className={styles.composerPermissionConfirm} role="alert">
+                              <strong>Allow full computer access?</strong>
+                              <span>CodeAgent may access any path available to your OS account and run supported commands without approval.</span>
+                              <div>
+                                <button type="button" onClick={() => setPendingChatPermissionProfile(null)}>Cancel</button>
+                                <button type="button" onClick={() => {
+                                  setChatPermissionProfileOverride('full-access');
+                                  setPendingChatPermissionProfile(null);
+                                  setComposerMenu(null);
+                                }}>Use full access</button>
+                              </div>
+                            </div>
+                          )}
+                          <div className={styles.composerSettingFooter}>
+                            <button type="button" onClick={() => {
+                              setChatPermissionProfileOverride(null);
+                              setPendingChatPermissionProfile(null);
+                              setComposerMenu(null);
+                            }}>Use default</button>
+                            <button type="button" onClick={() => {
+                              setComposerMenu(null);
+                              openChildRoute('settings', 'general');
+                            }}>Manage default</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className={styles.composerActions}>
+                    {(input || chatImageAttachments.length > 0) && (
+                      <button
+                        className={styles.composerClearButton}
+                        type="button"
+                        onClick={clearComposerInput}
+                        disabled={isSending}
+                        title="Clear the draft message and pasted images"
+                      >
+                        Clear input
+                      </button>
+                    )}
+                    <button className={styles.primaryButton} type="submit" disabled={isSending || (!input.trim() && chatImageAttachments.length === 0)} title="Send message (Command+Enter)">
+                      <Icon name="send" size={14} />
+                      Send
+                      <kbd>⌘↵</kbd>
+                    </button>
+                  </div>
                 </div>
               </form>
             </section>
@@ -7143,6 +8363,9 @@ export function App() {
               employees={virtualEmployees}
               projectTeams={projectTeams}
               projectChatMessages={projectChatMessages}
+              fileWriteReviews={fileWriteReviews}
+              commandReviews={commandReviews}
+              toolPermissionReviews={toolPermissionReviews}
               projectGeneratedOutputs={projectGeneratedOutputs}
               projectChatSendingKeys={projectChatSendingKeys}
               workspacePath={workspacePath}
@@ -7168,6 +8391,9 @@ export function App() {
               onSetProjectStatus={markSoftwareProjectStatus}
               onDeleteProject={deleteSoftwareProjectPlan}
               onSendProjectChat={submitProjectPrompt}
+              onResolveFileWrite={resolveFileWriteReview}
+              onResolveCommand={resolveCommandReview}
+              onResolveToolPermission={resolveToolPermissionReview}
               onChangeSection={setActiveProjectsSection}
             />
           )}
@@ -7262,11 +8488,17 @@ export function App() {
             <SettingsView
               activeSection={activeSettingsSection}
               draft={settingsDraft}
+              tools={tools}
+              sessions={sessions}
+              currentSessionId={currentSessionId}
+              appConfig={appConfig}
               message={settingsMessage}
               saving={isSavingSettings}
               localModelPreparation={localModelPreparation}
               featureResolution={featureResolution}
               onChange={updateSettingsDraft}
+              onSetToolPermission={updateToolPermissionPolicy}
+              onApplyToolPermissionPreset={preset => applyToolPermissionPreset(preset, tools.filter(isCoreTool))}
               onClearToken={clearToken}
               onAccountLogin={handleAccountLogin}
               onAccountRegister={handleAccountRegister}
@@ -7276,13 +8508,24 @@ export function App() {
               onPlatformSync={handlePlatformSync}
               canSyncPlatform={canSyncPlatform}
               platformSyncing={isSyncingPlatform}
+              onDeveloperModeChange={checked => void handlePlatformDeveloperModeChange(checked)}
               onPackageAction={handleFeaturePackageAction}
+              packageOperationError={packageOperationError}
+              onDismissPackageOperationError={() => setPackageOperationError(null)}
+              onAddPaymentMethod={openPaymentMethodDialog}
+              onSetDefaultPaymentMethod={methodId => void setDefaultAccountPaymentMethod(methodId)}
+              onRemovePaymentMethod={methodId => void removeAccountPaymentMethod(methodId)}
+              onOpenChat={loadSession}
+              onDeleteChat={sessionId => void deleteChatSession(sessionId)}
+              onDeleteAllChats={() => void deleteAllChatSessions()}
               onSubmit={saveSettings}
               onRetryLocalModel={() => void saveSettings()}
               onOpenLocalModelLog={() => void openLocalModelLog()}
             />
           )}
         </main>
+          </div>
+        </div>
 
         <footer className={styles.footer}>
           <button className={styles.statusPane} type="button" onClick={() => setActiveView('chat')}>
@@ -7307,7 +8550,7 @@ export function App() {
               className={styles.statusPane}
               type="button"
               onClick={() => {
-                setActiveToolsSection('bridge');
+                setActiveToolsSection('mcp');
                 setActiveView('tools');
               }}
             >
@@ -7328,7 +8571,7 @@ export function App() {
               <strong>{scheduledTasks.length} tasks / {virtualTeams.length} teams</strong>
             </button>
           )}
-          {hasShellFeature(featureResolution, 'developer-history') && (
+          {hasShellFeature(featureResolution, 'project-history') && (
             <button
               className={styles.statusPane}
               type="button"
@@ -7352,33 +8595,6 @@ export function App() {
         </footer>
       </div>
 
-      {activeFileWriteReview && (
-        <FileWriteReviewDialog
-          review={activeFileWriteReview}
-          queuedCount={fileWriteReviews.length}
-          onApprove={() => resolveFileWriteReview(activeFileWriteReview, true)}
-          onReject={() => resolveFileWriteReview(activeFileWriteReview, false)}
-        />
-      )}
-
-      {activeCommandReview && (
-        <CommandReviewDialog
-          review={activeCommandReview}
-          queuedCount={commandReviews.length}
-          onApprove={() => resolveCommandReview(activeCommandReview, true)}
-          onReject={() => resolveCommandReview(activeCommandReview, false)}
-        />
-      )}
-
-      {activeToolPermissionReview && (
-        <ToolPermissionReviewDialog
-          review={activeToolPermissionReview}
-          queuedCount={toolPermissionReviews.length}
-          onApprove={() => resolveToolPermissionReview(activeToolPermissionReview, true)}
-          onReject={() => resolveToolPermissionReview(activeToolPermissionReview, false)}
-        />
-      )}
-
       {selectedPurchasePackage && (
         <PackagePurchaseDialog
           manifest={selectedPurchasePackage}
@@ -7389,6 +8605,21 @@ export function App() {
           onSubmit={completePackagePurchase}
           onCancel={() => {
             setPurchasePackageId(null);
+            setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+            setSettingsMessage('');
+          }}
+        />
+      )}
+
+      {paymentMethodDialogOpen && (
+        <PaymentMethodDialog
+          draft={purchaseDraft}
+          message={settingsMessage}
+          busy={isSavingSettings}
+          onChange={update => setPurchaseDraft(current => ({ ...current, ...update }))}
+          onSubmit={addAccountPaymentMethod}
+          onCancel={() => {
+            setPaymentMethodDialogOpen(false);
             setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
             setSettingsMessage('');
           }}
@@ -7405,6 +8636,7 @@ function WorkbenchEditorPanel({
   footer,
   onClose,
   wide = false,
+  bodyClassName,
 }: {
   title: string;
   subtitle?: string;
@@ -7412,6 +8644,7 @@ function WorkbenchEditorPanel({
   footer?: React.ReactNode;
   onClose: () => void;
   wide?: boolean;
+  bodyClassName?: string;
 }) {
   return (
     <aside className={wide ? `${styles.workbenchEditorPanel} ${styles.workbenchEditorPanelWide}` : styles.workbenchEditorPanel} aria-label={title}>
@@ -7425,7 +8658,7 @@ function WorkbenchEditorPanel({
           Close
         </button>
       </div>
-      <div className={styles.workbenchEditorBody}>
+      <div className={bodyClassName ? `${styles.workbenchEditorBody} ${bodyClassName}` : styles.workbenchEditorBody}>
         {children}
       </div>
       {footer && (
@@ -7457,6 +8690,9 @@ function ProjectsView({
   employees,
   projectTeams,
   projectChatMessages,
+  fileWriteReviews,
+  commandReviews,
+  toolPermissionReviews,
   projectGeneratedOutputs,
   projectChatSendingKeys,
   workspacePath,
@@ -7482,6 +8718,9 @@ function ProjectsView({
   onSetProjectStatus,
   onDeleteProject,
   onSendProjectChat,
+  onResolveFileWrite,
+  onResolveCommand,
+  onResolveToolPermission,
   onChangeSection,
 }: {
   activeSection: ProjectsSectionId;
@@ -7503,6 +8742,9 @@ function ProjectsView({
   employees: VirtualEmployeeProfile[];
   projectTeams: ProjectTeamDefinition[];
   projectChatMessages: Record<string, UiMessage[]>;
+  fileWriteReviews: FileWriteReviewRequest[];
+  commandReviews: CommandReviewRequest[];
+  toolPermissionReviews: ToolPermissionReviewRequest[];
   projectGeneratedOutputs: Record<string, ProjectGeneratedOutput[]>;
   projectChatSendingKeys: Set<string>;
   workspacePath: string;
@@ -7528,9 +8770,12 @@ function ProjectsView({
   onSetProjectStatus: (projectId: string, status: SoftwareProjectStatus) => void;
   onDeleteProject: (projectId: string) => void;
   onSendProjectChat: (project: SoftwareProjectPlan, channel: ProjectChatChannel, prompt: string) => void;
+  onResolveFileWrite: (review: FileWriteReviewRequest, approved: boolean) => void;
+  onResolveCommand: (review: CommandReviewRequest, approved: boolean) => void;
+  onResolveToolPermission: (review: ToolPermissionReviewRequest, approved: boolean) => void;
   onChangeSection: (section: ProjectsSectionId) => void;
 }) {
-  const visibleActiveSection = PROJECTS_MENU.some(item => item.id === activeSection)
+  const visibleActiveSection = (['studio', 'roles', 'employees', 'teams'] as ProjectsSectionId[]).includes(activeSection)
     ? activeSection
     : 'studio';
   const workspaceTitle = appInfo?.workspacePath?.split('/').filter(Boolean).pop() || 'Workspace';
@@ -7581,8 +8826,8 @@ function ProjectsView({
   )).length;
   const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
   const projectModeMetrics = [
-    { label: 'Guided', value: guidedProjects.length, className: styles.projectMetricGuided },
-    { label: 'Autonomous', value: autonomousProjects.length, className: styles.projectMetricAutonomous },
+    { label: 'Standard', value: guidedProjects.length, className: styles.projectMetricGuided },
+    { label: 'Fully autonomous', value: autonomousProjects.length, className: styles.projectMetricAutonomous },
   ];
   const projectStatusMetrics = ([
     ['Active', 'active', styles.projectMetricActive],
@@ -7652,27 +8897,17 @@ function ProjectsView({
     }
   }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
 
-  function startDraft(mode: SoftwareProjectMode) {
+  function startDraft() {
     const supervisor = employees.find(employee => isSupervisorEmployee(employee, roles)) ?? employees[0];
     setDraft({
       ...createSoftwareProjectDraft(appInfo?.workspacePath),
-      mode,
-      permissionMode: mode === 'autonomous' ? 'full-access' : 'supervised',
+      mode: 'guided',
+      permissionMode: 'supervised',
       supervisorEmployeeId: supervisor?.id ?? '',
       supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : 'Supervisor',
-      assignedEmployeeIds: mode === 'autonomous'
-        ? []
-        : employees
-          .filter(employee => employee.id !== supervisor?.id)
-          .slice(0, 4)
-          .map(employee => employee.id),
-      assignedTeamIds: mode === 'autonomous' ? projectTeams.slice(0, 2).map(team => team.id) : [],
-      teamRoles: mode === 'autonomous'
-        ? projectTeams.slice(0, 2).map(team => team.name)
-        : employees
-          .filter(employee => employee.id !== supervisor?.id)
-          .slice(0, 4)
-          .map(employee => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role),
+      assignedEmployeeIds: [],
+      assignedTeamIds: [],
+      teamRoles: [],
     });
     setProfileEmployeeId('');
     setProjectDeleteTarget(null);
@@ -8733,18 +9968,30 @@ function ProjectsView({
     const panelMessages = getProjectPanelMessages(project, channel);
     const draftValue = projectChatDrafts[projectChatKey] ?? '';
     const isProjectSending = projectChatSendingKeys.has(projectChatKey);
+    const scopedFileWriteReviews = fileWriteReviews.filter(review => isReviewForProjectChat(review, project.id, channel));
+    const scopedCommandReviews = commandReviews.filter(review => isReviewForProjectChat(review, project.id, channel));
+    const scopedToolPermissionReviews = toolPermissionReviews.filter(review => isReviewForProjectChat(review, project.id, channel));
 
     return (
       <section className={styles.projectChatSurface}>
         <div className={styles.projectChatTranscript} ref={projectChatTranscriptRef}>
-          {panelMessages.map(message => (
+          {groupMessagesByAssistantRun(panelMessages).map(({ message, activities }) => (
             <MessageItem
               key={message.id}
               message={message}
+              activities={activities}
               copied={copiedProjectMessageId === message.id}
               onCopy={() => copyProjectMessage(message)}
             />
           ))}
+          <InlineApprovalQueue
+            fileWriteReviews={scopedFileWriteReviews}
+            commandReviews={scopedCommandReviews}
+            toolPermissionReviews={scopedToolPermissionReviews}
+            onResolveFileWrite={onResolveFileWrite}
+            onResolveCommand={onResolveCommand}
+            onResolveToolPermission={onResolveToolPermission}
+          />
           {isProjectSending && (
             <div className={styles.typingIndicator} role="status">
               <span />
@@ -8761,26 +10008,56 @@ function ProjectsView({
             value={draftValue}
             onChange={event => updateProjectChatDraft(project, channel, event.target.value)}
             onKeyDown={event => handleProjectChatKeyDown(event, project, channel)}
-            placeholder={channel === 'team' ? 'Send direction to the supervisor or team...' : 'Reply in this project...'}
-            rows={3}
+            placeholder={channel === 'team' ? 'Direct the supervisor or team…' : 'Ask about this project…'}
+            rows={2}
             disabled={isProjectSending}
             aria-label={channel === 'team' ? 'Team chat message' : 'Project chat message'}
           />
-          <div className={styles.composerActions}>
-            <button
-              className={styles.secondaryButton}
-              type="button"
-              onClick={() => updateProjectChatDraft(project, channel, '')}
-              disabled={!draftValue || isProjectSending}
-              title="Clear the draft message"
-            >
-              <Icon name="x" size={14} />
-              Clear
-            </button>
-            <button className={styles.primaryButton} type="submit" disabled={isProjectSending || !draftValue.trim()} title="Send this project message">
-              <Icon name="send" size={14} />
-              Send
-            </button>
+          <div className={styles.composerToolbar}>
+            <div className={styles.composerMeta}>
+              <span className={styles.projectComposerIdentity} title={channel === 'team'
+                ? 'Instructions are handled by this autonomous project’s supervisor and team'
+                : 'This agent can use tools within the project working folder'}>
+                <Icon name={channel === 'team' ? 'network' : 'bot'} size={13} />
+                {channel === 'team' ? 'Project supervisor' : 'Project agent'}
+              </span>
+              <label className={styles.projectComposerPermission} title="Permission level for this project">
+                <Icon name="lock" size={12} />
+                <span className={styles.visuallyHidden}>Project permissions</span>
+                <select
+                  value={project.permissionMode}
+                  onChange={event => onSaveProject({
+                    ...project,
+                    permissionMode: event.target.value as VirtualTeamPermissionMode,
+                    updatedAt: Date.now(),
+                  })}
+                  disabled={isProjectSending}
+                  aria-label="Project permissions"
+                >
+                  <option value="supervised">Ask for risky actions</option>
+                  <option value="full-access">Full project access</option>
+                </select>
+              </label>
+              <span title={project.workspacePath}>{getPathBasename(project.workspacePath)}</span>
+            </div>
+            <div className={styles.composerActions}>
+              {draftValue && (
+                <button
+                  className={styles.composerClearButton}
+                  type="button"
+                  onClick={() => updateProjectChatDraft(project, channel, '')}
+                  disabled={isProjectSending}
+                  title="Clear the draft message"
+                >
+                  Clear input
+                </button>
+              )}
+              <button className={styles.primaryButton} type="submit" disabled={isProjectSending || !draftValue.trim()} title="Send this project message (Command+Enter)">
+                <Icon name="send" size={14} />
+                Send
+                <kbd>⌘↵</kbd>
+              </button>
+            </div>
           </div>
         </form>
       </section>
@@ -8927,7 +10204,7 @@ function ProjectsView({
         timestamp: project.updatedAt,
         employee: 'Project Studio',
         title: 'Project ready',
-        summary: `${project.mode === 'autonomous' ? 'Autonomous' : 'Guided'} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
+        summary: `${project.mode === 'autonomous' ? 'Fully autonomous' : 'Standard'} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
         status: effectiveStatus,
       });
     }
@@ -9192,22 +10469,6 @@ function ProjectsView({
           <input value={draft.name} onChange={event => updateDraft({ name: event.target.value })} />
         </label>
         <label className={styles.field}>
-          <span>Project type</span>
-          <select
-            value={draft.mode}
-            onChange={event => {
-              const mode = event.target.value as SoftwareProjectMode;
-              updateDraft({
-                mode,
-                permissionMode: mode === 'autonomous' ? 'full-access' : 'supervised',
-              });
-            }}
-          >
-            <option value="guided">Guided human/app project</option>
-            <option value="autonomous">Autonomous project</option>
-          </select>
-        </label>
-        <label className={styles.field}>
           <span>Status</span>
           <select value={draft.status} onChange={event => updateDraft({ status: event.target.value as SoftwareProjectStatus })}>
             <option value="idea">Idea</option>
@@ -9237,6 +10498,21 @@ function ProjectsView({
             onChange={event => updateDraft({ artifacts: normalizeStringList(event.target.value.split('\n'), DEFAULT_PROJECT_ARTIFACTS) })}
             rows={6}
           />
+        </label>
+        <label className={`${styles.employeeAssignOption} ${styles.fieldWide}`}>
+          <input
+            type="checkbox"
+            checked={draft.mode === 'autonomous'}
+            onChange={event => updateDraft({
+              mode: event.target.checked ? 'autonomous' : 'guided',
+              permissionMode: event.target.checked ? 'full-access' : 'supervised',
+              assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+              assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+              teamRoles: event.target.checked ? draft.teamRoles : [],
+            })}
+          />
+          <span>Fully autonomous</span>
+          <em>A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project.</em>
         </label>
         {draft.mode === 'autonomous' && (
           <>
@@ -9315,7 +10591,7 @@ function ProjectsView({
     return (
       <WorkbenchEditorPanel
         title={projects.some(project => project.id === draft.id) ? 'Edit Project' : 'New Project'}
-        subtitle={draft.mode === 'autonomous' ? 'Autonomous staffing, permissions, and deliverables' : 'Guided idea, goals, and deliverables'}
+        subtitle={draft.mode === 'autonomous' ? 'Project details with autonomous staffing and execution' : 'Project details, workspace, goals, and deliverables'}
         onClose={closeProjectEditorPanel}
         footer={(
           <div className={styles.toolRouterActions}>
@@ -9435,7 +10711,13 @@ function ProjectsView({
 
     if (projectEditorPanel === 'project-chat') {
       return (
-        <WorkbenchEditorPanel title="Project Chat" subtitle={project.name} onClose={closeProjectEditorPanel} wide>
+        <WorkbenchEditorPanel
+          title="Project Chat"
+          subtitle={project.name}
+          onClose={closeProjectEditorPanel}
+          wide
+          bodyClassName={styles.projectChatPanelBody}
+        >
           {renderGuidedProjectChat(project)}
         </WorkbenchEditorPanel>
       );
@@ -9553,7 +10835,7 @@ function ProjectsView({
       <div className={actionsClassName}>
         {project.mode === 'guided' ? (
           <>
-            {renderActionButton('project-chat', 'chat', 'Chat', 'Open this guided project chat')}
+            {renderActionButton('project-chat', 'chat', 'Chat', 'Open this project chat')}
             {renderActionButton('project-deliverables', 'archive', 'Deliverables', 'View project deliverables')}
           </>
         ) : (
@@ -9587,7 +10869,7 @@ function ProjectsView({
       <article className={`${styles.workbenchRecordRow} ${styles.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`} key={project.id}>
         <div className={styles.workbenchRecordPrimary}>
           <strong>{project.name}</strong>
-          <span>{project.mode === 'autonomous' ? 'Autonomous' : 'Guided'} / {formatProjectStatus(effectiveStatus)}</span>
+          <span>{project.mode === 'autonomous' ? 'Fully autonomous' : 'Standard'} / {formatProjectStatus(effectiveStatus)}</span>
         </div>
         <span className={styles.workbenchRecordCell} title={summarizeProjectGoals(project)}>
           {summarizeProjectGoals(project)}
@@ -9617,7 +10899,7 @@ function ProjectsView({
         <div className={styles.projectCardHeader}>
           <div>
             <strong>{project.name}</strong>
-            <span>{project.mode === 'autonomous' ? 'Autonomous project' : 'Guided build'} / {formatProjectStatus(effectiveStatus)}</span>
+            <span>{project.mode === 'autonomous' ? 'Fully autonomous' : 'Standard project'} / {formatProjectStatus(effectiveStatus)}</span>
           </div>
           <button className={styles.textButton} type="button" onClick={() => editProject(project)} title="Edit this project">
             <Icon name="edit" size={13} />
@@ -9684,7 +10966,7 @@ function ProjectsView({
         <div className={styles.projectCardHeader}>
           <div>
             <strong>{project.name}</strong>
-            <span>{project.mode === 'autonomous' ? 'Autonomous project' : 'Guided project'} / {formatProjectStatus(effectiveStatus)}</span>
+            <span>{project.mode === 'autonomous' ? 'Fully autonomous' : 'Standard project'} / {formatProjectStatus(effectiveStatus)}</span>
           </div>
           <span className={`${styles.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}`}>{formatProjectStatus(effectiveStatus)}</span>
         </div>
@@ -9874,7 +11156,7 @@ function ProjectsView({
               </div>
               {renderProjectMetricBar(projectStatusMetrics, projects.length)}
               <p className={styles.mutedText}>
-                Multiple autonomous projects can run at once; the table below is the source of project navigation.
+                Fully autonomous projects can run in the background; the table below is the source of project navigation.
               </p>
             </section>
             <section className={styles.detailPanel}>
@@ -9909,13 +11191,9 @@ function ProjectsView({
               </div>
               <div className={styles.panelActions}>
                 <RecordViewToggle view={projectPortfolioView} onChange={setProjectPortfolioView} label="Project list view" />
-                <button className={styles.primaryButton} type="button" onClick={() => startDraft('guided')} title="Create a human-guided project">
-                  <Icon name="chat" size={14} />
-                  New Guided
-                </button>
-                <button className={styles.secondaryButton} type="button" onClick={() => startDraft('autonomous')} title="Create an autonomous project">
-                  <Icon name="bot" size={14} />
-                  New Autonomous
+                <button className={styles.primaryButton} type="button" onClick={startDraft} title="Create a software project">
+                  <Icon name="plus" size={14} />
+                  New Project
                 </button>
               </div>
             </div>
@@ -10265,7 +11543,7 @@ function ProjectsView({
           <div className={styles.panelHeader}>
             <div>
               <h3>Project Definition</h3>
-              <span>{draft.mode === 'autonomous' ? 'Autonomous project' : 'Guided project chat'}</span>
+              <span>{draft.mode === 'autonomous' ? 'Fully autonomous execution enabled' : 'Standard project'}</span>
             </div>
           </div>
 
@@ -10273,22 +11551,6 @@ function ProjectsView({
             <label className={styles.field}>
               <span>Project name</span>
               <input value={draft.name} onChange={event => updateDraft({ name: event.target.value })} />
-            </label>
-            <label className={styles.field}>
-              <span>Project type</span>
-              <select
-                value={draft.mode}
-                onChange={event => {
-                  const mode = event.target.value as SoftwareProjectMode;
-                  updateDraft({
-                    mode,
-                    permissionMode: mode === 'autonomous' ? 'full-access' : 'supervised',
-                  });
-                }}
-              >
-                <option value="guided">Guided human/app project</option>
-                <option value="autonomous">Autonomous project</option>
-              </select>
             </label>
             <label className={styles.field}>
               <span>Status</span>
@@ -10320,6 +11582,21 @@ function ProjectsView({
                 onChange={event => updateDraft({ artifacts: normalizeStringList(event.target.value.split('\n'), DEFAULT_PROJECT_ARTIFACTS) })}
                 rows={6}
               />
+            </label>
+            <label className={`${styles.employeeAssignOption} ${styles.fieldWide}`}>
+              <input
+                type="checkbox"
+                checked={draft.mode === 'autonomous'}
+                onChange={event => updateDraft({
+                  mode: event.target.checked ? 'autonomous' : 'guided',
+                  permissionMode: event.target.checked ? 'full-access' : 'supervised',
+                  assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+                  assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+                  teamRoles: event.target.checked ? draft.teamRoles : [],
+                })}
+              />
+              <span>Fully autonomous</span>
+              <em>A supervisor and virtual team manage this project on your behalf.</em>
             </label>
             {draft.mode === 'autonomous' && (
               <>
@@ -10390,7 +11667,7 @@ function ProjectsView({
                 Save And View Team
               </button>
             ) : (
-              <button className={styles.secondaryButton} type="button" onClick={saveDraftAndOpenProjectChat} title="Save this guided project and open chat">
+              <button className={styles.secondaryButton} type="button" onClick={saveDraftAndOpenProjectChat} title="Save this project and open chat">
                 <Icon name="chat" size={14} />
                 Save And Open Chat
               </button>
@@ -10401,10 +11678,10 @@ function ProjectsView({
 
       {visibleActiveSection === 'guided' && (
         <section className={styles.detailPanel}>
-          <h3>Guided Builds</h3>
+          <h3>Standard Projects</h3>
           <div className={styles.projectList}>
             {guidedProjects.map(project => renderProjectCard(project, 'chat'))}
-            {guidedProjects.length === 0 && <span className={styles.mutedText}>No guided projects yet.</span>}
+            {guidedProjects.length === 0 && <span className={styles.mutedText}>No standard projects yet.</span>}
           </div>
         </section>
       )}
@@ -11184,19 +12461,14 @@ function HistoryView({
   onRestoreChat: (record: LocalHistoryRecord) => void;
   onExportRecords: (type?: LocalHistoryRecordType) => void;
 }) {
-  const chatRecords = records.filter(record => record.type === 'chat-session');
-  const toolRecords = records.filter(record => record.type === 'tool-event');
   const automationRecords = records.filter(record => record.type === 'automation-run');
   const projectEventRecords = records.filter(record => record.type === 'project-event');
-  const visibleRecords = activeSection === 'chats'
-    ? chatRecords
-    : activeSection === 'tools'
-      ? toolRecords
-      : activeSection === 'automation'
-        ? automationRecords
-        : activeSection === 'events'
-          ? projectEventRecords
-          : records;
+  const projectActivityRecords = records.filter(record => record.type === 'automation-run' || record.type === 'project-event');
+  const visibleRecords = activeSection === 'automation'
+    ? automationRecords
+    : activeSection === 'events'
+      ? projectEventRecords
+      : projectActivityRecords;
   const [historyDeleteTarget, setHistoryDeleteTarget] = useState<DeleteTarget<'record'> | null>(null);
 
   function openHistoryDeleteConfirmation(record: LocalHistoryRecord) {
@@ -11281,8 +12553,8 @@ function HistoryView({
   }
 
   return (
-    <section className={styles.settingsView} aria-label="History">
-      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-label="History">
+    <section className={styles.settingsView} aria-label="Project activity">
+      <div className={`${styles.settingsDialog} ${styles.settingsPageForm}`} role="region" aria-label="Project activity">
         <div className={historyDeleteTarget ? `${styles.settingsContent} ${styles.workbenchSplitWithRail}` : styles.settingsContent}>
           <div className={styles.pageActionBar}>
             <button className={styles.secondaryButton} type="button" onClick={onRefresh}>
@@ -11300,15 +12572,7 @@ function HistoryView({
                 <dl className={styles.detailList}>
                   <div>
                     <dt>Records</dt>
-                    <dd>{storageInfo.recordCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Chats</dt>
-                    <dd>{chatRecords.length}</dd>
-                  </div>
-                  <div>
-                    <dt>Tool events</dt>
-                    <dd>{toolRecords.length}</dd>
+                    <dd>{projectActivityRecords.length}</dd>
                   </div>
                   <div>
                     <dt>Automation</dt>
@@ -11322,14 +12586,14 @@ function HistoryView({
                 <p className={styles.mutedText} title={storageInfo.storagePath}>Storage path: {storageInfo.storagePath || 'Unavailable'}</p>
               </SettingsSection>
               <HistoryRecordList
-                records={records.slice(0, 12)}
+                records={projectActivityRecords.slice(0, 12)}
                 onRequestDeleteRecord={openHistoryDeleteConfirmation}
                 onRestoreChat={onRestoreChat}
               />
             </>
           )}
 
-          {(activeSection === 'chats' || activeSection === 'tools' || activeSection === 'automation' || activeSection === 'events') && (
+          {(activeSection === 'automation' || activeSection === 'events') && (
             <HistoryRecordList
               records={visibleRecords}
               onRequestDeleteRecord={openHistoryDeleteConfirmation}
@@ -11342,18 +12606,6 @@ function HistoryView({
               <SettingsSection title="Export History">
                 <p className={styles.mutedText}>Exports are local JSON snapshots. They do not include provider API keys.</p>
                 <div className={styles.toolRouterActions}>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords()}>
-                    <Icon name="download" size={14} />
-                    Export All
-                  </button>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('chat-session')}>
-                    <Icon name="chat" size={14} />
-                    Export Chats
-                  </button>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('tool-event')}>
-                    <Icon name="wrench" size={14} />
-                    Export Tool Events
-                  </button>
                   <button className={styles.secondaryButton} type="button" onClick={() => onExportRecords('automation-run')}>
                     <Icon name="bot" size={14} />
                     Export Automation
@@ -12563,7 +13815,7 @@ function PluginSkillPanel({ appConfig }: { appConfig: AppConfig | null }) {
   );
 }
 
-function FileWriteReviewDialog({
+function FileWriteReviewCard({
   review,
   queuedCount,
   onApprove,
@@ -12575,11 +13827,10 @@ function FileWriteReviewDialog({
   onReject: () => void;
 }) {
   return (
-    <div className={styles.dialogBackdrop} role="presentation">
-      <section className={styles.reviewDialog} role="dialog" aria-modal="true" aria-labelledby="file-write-review-title">
+      <section className={styles.inlineReviewCard} role="group" aria-labelledby={`file-write-review-title-${review.requestId}`}>
         <div className={styles.dialogHeader}>
           <div>
-            <h2 id="file-write-review-title">Review File Write</h2>
+            <h3 id={`file-write-review-title-${review.requestId}`}>Review File Write</h3>
             <p className={styles.reviewSubtitle}>
               {review.exists ? 'Update existing file' : 'Create new file'}
               {queuedCount > 1 ? ` · ${queuedCount - 1} more pending` : ''}
@@ -12621,11 +13872,10 @@ function FileWriteReviewDialog({
           </div>
         </div>
       </section>
-    </div>
   );
 }
 
-function CommandReviewDialog({
+function CommandReviewCard({
   review,
   queuedCount,
   onApprove,
@@ -12637,11 +13887,10 @@ function CommandReviewDialog({
   onReject: () => void;
 }) {
   return (
-    <div className={styles.dialogBackdrop} role="presentation">
-      <section className={styles.reviewDialog} role="dialog" aria-modal="true" aria-labelledby="command-review-title">
+      <section className={styles.inlineReviewCard} role="group" aria-labelledby={`command-review-title-${review.requestId}`}>
         <div className={styles.dialogHeader}>
           <div>
-            <h2 id="command-review-title">Review Command</h2>
+            <h3 id={`command-review-title-${review.requestId}`}>Review Command</h3>
             <p className={styles.reviewSubtitle}>
               Non-interactive workspace command
               {queuedCount > 1 ? ` · ${queuedCount - 1} more pending` : ''}
@@ -12686,11 +13935,10 @@ function CommandReviewDialog({
           </div>
         </div>
       </section>
-    </div>
   );
 }
 
-function ToolPermissionReviewDialog({
+function ToolPermissionReviewCard({
   review,
   queuedCount,
   onApprove,
@@ -12701,14 +13949,18 @@ function ToolPermissionReviewDialog({
   onApprove: () => void;
   onReject: () => void;
 }) {
+  const isWorkspaceCreation = review.toolName === 'workspace.create';
   return (
-    <div className={styles.dialogBackdrop} role="presentation">
-      <section className={styles.reviewDialog} role="dialog" aria-modal="true" aria-labelledby="tool-permission-review-title">
+      <section className={styles.inlineReviewCard} role="group" aria-labelledby={`tool-permission-review-title-${review.requestId}`}>
         <div className={styles.dialogHeader}>
           <div>
-            <h2 id="tool-permission-review-title">Review Tool Call</h2>
+            <h3 id={`tool-permission-review-title-${review.requestId}`}>
+              {isWorkspaceCreation ? 'Recreate Project Folder' : 'Review Tool Call'}
+            </h3>
             <p className={styles.reviewSubtitle}>
-              Desktop permission policy requires approval
+              {isWorkspaceCreation
+                ? 'The saved project folder is missing and is required to continue.'
+                : 'Desktop permission policy requires approval'}
               {queuedCount > 1 ? ` · ${queuedCount - 1} more pending` : ''}
             </p>
           </div>
@@ -12717,8 +13969,8 @@ function ToolPermissionReviewDialog({
 
         <dl className={styles.reviewMeta}>
           <div>
-            <dt>Tool</dt>
-            <dd title={review.toolName}>{review.toolName}</dd>
+            <dt>{isWorkspaceCreation ? 'Action' : 'Tool'}</dt>
+            <dd title={review.toolName}>{isWorkspaceCreation ? 'Create project workspace' : review.toolName}</dd>
           </div>
           <div>
             <dt>Requested</dt>
@@ -12731,20 +13983,78 @@ function ToolPermissionReviewDialog({
         </pre>
 
         <div className={styles.dialogFooter}>
-          <span className={styles.settingsMessage}>The tool call is blocked until you approve it.</span>
+          <span className={styles.settingsMessage}>
+            {isWorkspaceCreation
+              ? 'No project files will be created until you approve this folder.'
+              : 'The tool call is blocked until you approve it.'}
+          </span>
           <div className={styles.dialogActions}>
             <button className={styles.dangerButton} type="button" onClick={onReject}>
               <Icon name="x" size={14} />
-              Reject
+              {isWorkspaceCreation ? 'Cancel' : 'Reject'}
             </button>
             <button className={styles.primaryButton} type="button" onClick={onApprove}>
               <Icon name="check" size={14} />
-              Approve Tool
+              {isWorkspaceCreation ? 'Recreate Folder' : 'Approve Tool'}
             </button>
           </div>
         </div>
       </section>
-    </div>
+  );
+}
+
+function InlineApprovalQueue({
+  fileWriteReviews,
+  commandReviews,
+  toolPermissionReviews,
+  onResolveFileWrite,
+  onResolveCommand,
+  onResolveToolPermission,
+}: {
+  fileWriteReviews: FileWriteReviewRequest[];
+  commandReviews: CommandReviewRequest[];
+  toolPermissionReviews: ToolPermissionReviewRequest[];
+  onResolveFileWrite: (review: FileWriteReviewRequest, approved: boolean) => void;
+  onResolveCommand: (review: CommandReviewRequest, approved: boolean) => void;
+  onResolveToolPermission: (review: ToolPermissionReviewRequest, approved: boolean) => void;
+}) {
+  const queuedCount = fileWriteReviews.length + commandReviews.length + toolPermissionReviews.length;
+  if (queuedCount === 0) return null;
+
+  return (
+    <aside className={styles.inlineApprovalQueue} aria-label="Approvals required">
+      <div className={styles.inlineApprovalQueueHeader}>
+        <span><Icon name="activity" size={14} /> Approval required</span>
+        <strong>{queuedCount} pending</strong>
+      </div>
+      {fileWriteReviews.map(review => (
+        <FileWriteReviewCard
+          key={review.requestId}
+          review={review}
+          queuedCount={queuedCount}
+          onApprove={() => onResolveFileWrite(review, true)}
+          onReject={() => onResolveFileWrite(review, false)}
+        />
+      ))}
+      {commandReviews.map(review => (
+        <CommandReviewCard
+          key={review.requestId}
+          review={review}
+          queuedCount={queuedCount}
+          onApprove={() => onResolveCommand(review, true)}
+          onReject={() => onResolveCommand(review, false)}
+        />
+      ))}
+      {toolPermissionReviews.map(review => (
+        <ToolPermissionReviewCard
+          key={review.requestId}
+          review={review}
+          queuedCount={queuedCount}
+          onApprove={() => onResolveToolPermission(review, true)}
+          onReject={() => onResolveToolPermission(review, false)}
+        />
+      ))}
+    </aside>
   );
 }
 
@@ -12839,22 +14149,56 @@ function ToolActivityPanel({
   );
 }
 
+interface AssistantRunMessage {
+  message: UiMessage;
+  activities: ChatToolActivity[];
+}
+
+function groupMessagesByAssistantRun(messages: UiMessage[]): AssistantRunMessage[] {
+  const grouped: AssistantRunMessage[] = [];
+  let activeAssistantIndex = -1;
+
+  for (const message of messages) {
+    if (message.activity && activeAssistantIndex >= 0) {
+      grouped[activeAssistantIndex].activities.push(message.activity);
+      continue;
+    }
+
+    grouped.push({ message, activities: [] });
+
+    if (message.role === 'assistant') {
+      activeAssistantIndex = grouped.length - 1;
+    } else if (message.role === 'user' || message.role === 'error') {
+      activeAssistantIndex = -1;
+    }
+  }
+
+  return grouped;
+}
+
 function MessageItem({
   message,
+  activities = [],
   copied,
   onCopy,
 }: {
   message: UiMessage;
+  activities?: ChatToolActivity[];
   copied: boolean;
   onCopy: () => void;
 }) {
+  if (message.activity) {
+    return <ChatToolActivityItem activity={message.activity} />;
+  }
+
   const roleClass = styles[`message_${message.role}` as keyof typeof styles] || '';
+  const senderLabel = message.title || (message.role === 'assistant' ? 'CodeAgent' : message.role);
 
   return (
     <article className={`${styles.message} ${roleClass}`}>
       <div className={styles.messageHeader}>
         <div>
-          <span className={styles.messageRole}>{message.title || message.role}</span>
+          <span className={styles.messageRole}>{senderLabel}</span>
           <time>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
         </div>
         <button className={styles.textButton} type="button" onClick={onCopy}>
@@ -12866,13 +14210,206 @@ function MessageItem({
         {message.role === 'tool' ? renderToolMessageContent(message) : renderMessageContent(message.content)}
         {(message.imageAttachments?.length ?? 0) > 0 && renderMessageImages(message.imageAttachments ?? [])}
       </div>
-      {message.usage && (
+      {message.usage && !message.performance && activities.length === 0 && (
         <div className={styles.messageMeta}>
           {message.usage.inputTokens} input tokens / {message.usage.outputTokens} output tokens
         </div>
       )}
+      {(message.performance || activities.length > 0) && (
+        <AssistantActivityDetails
+          activities={activities}
+          performance={message.performance}
+          usage={message.usage}
+        />
+      )}
     </article>
   );
+}
+
+function AssistantActivityDetails({
+  activities,
+  performance,
+  usage,
+}: {
+  activities: ChatToolActivity[];
+  performance?: UiMessage['performance'];
+  usage?: UiMessage['usage'];
+}) {
+  const hasPendingActivity = activities.some(activity => activity.status === 'waiting-approval' || activity.status === 'running');
+  const hasFailedActivity = activities.some(activity => activity.status === 'failed' || activity.status === 'rejected');
+  const needsAttention = hasPendingActivity || hasFailedActivity;
+  const previousNeedsAttention = useRef(needsAttention);
+  const [open, setOpen] = useState(needsAttention);
+  const totalMs = performance?.endToEndMs
+    ?? performance?.backendMs
+    ?? activities.reduce((sum, activity) => sum + (activity.duration ?? 0), 0);
+  const statusLabel = activities.some(activity => activity.status === 'waiting-approval')
+    ? 'Approval needed'
+    : activities.some(activity => activity.status === 'running')
+      ? 'Running'
+      : hasFailedActivity
+        ? 'Needs attention'
+        : 'Completed';
+  const activitySummary = [
+    activities.length > 0 ? `${activities.length} ${activities.length === 1 ? 'tool' : 'tools'}` : null,
+    totalMs > 0 ? formatActivityDuration(totalMs) : null,
+    statusLabel,
+  ].filter(Boolean).join(' · ');
+
+  useEffect(() => {
+    if (needsAttention) {
+      setOpen(true);
+    } else if (previousNeedsAttention.current) {
+      setOpen(false);
+    }
+    previousNeedsAttention.current = needsAttention;
+  }, [needsAttention]);
+
+  return (
+    <details
+      className={`${styles.assistantActivity} ${hasFailedActivity ? styles.assistantActivityAttention : ''}`}
+      open={open}
+      onToggle={event => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span className={styles.assistantActivityTitle}>
+          <Icon name={hasFailedActivity ? 'x' : hasPendingActivity ? 'activity' : 'check'} size={13} />
+          Activity
+        </span>
+        <span>{activitySummary}</span>
+      </summary>
+      <div className={styles.assistantActivityBody}>
+        {performance && <ChatPerformanceDetails performance={performance} />}
+        {usage && (
+          <div className={styles.assistantActivityUsage}>
+            <span>Tokens</span>
+            <strong>{usage.inputTokens} in / {usage.outputTokens} out</strong>
+          </div>
+        )}
+        {activities.length > 0 && (
+          <div className={styles.assistantActivityTools}>
+            {activities.map(activity => (
+              <ChatToolActivityItem activity={activity} key={activity.toolId} />
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function ChatPerformanceDetails({ performance }: { performance: NonNullable<UiMessage['performance']> }) {
+  const totalMs = performance.endToEndMs ?? performance.backendMs;
+  const phases = [
+    ...performance.phases,
+    ...(performance.uiDeliveryMs !== undefined && performance.uiDeliveryMs > 0
+      ? [{ phase: 'ui-delivery' as const, durationMs: performance.uiDeliveryMs, count: undefined }]
+      : []),
+  ];
+
+  return (
+    <section className={styles.messagePerformance} aria-label="Performance">
+      <h4>Performance</h4>
+      <div className={styles.messagePerformanceGrid}>
+        <div>
+          <span>End to end</span>
+          <strong>{formatActivityDuration(totalMs)}</strong>
+        </div>
+        {performance.firstTokenMs !== undefined && (
+          <div>
+            <span>First answer content</span>
+            <strong>{formatActivityDuration(performance.firstTokenMs)}</strong>
+          </div>
+        )}
+        {phases.map((phase, index) => (
+          <div key={`${phase.phase}-${index}`}>
+            <span>
+              {formatChatPerformancePhase(phase.phase)}
+              {phase.count ? ` · ${phase.count} ${phase.count === 1 ? 'step' : 'steps'}` : ''}
+            </span>
+            <strong>{formatActivityDuration(phase.durationMs)}</strong>
+          </div>
+        ))}
+      </div>
+      {performance.toolCalls > 0 && (
+        <p className={styles.messagePerformanceNote}>
+          Tool execution includes any time spent waiting for approval. {performance.toolCalls} tool {performance.toolCalls === 1 ? 'call' : 'calls'} across {performance.toolRounds} model {performance.toolRounds === 1 ? 'round' : 'rounds'}.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function formatChatPerformancePhase(phase: ChatPerformanceMetrics['phases'][number]['phase'] | 'ui-delivery'): string {
+  return {
+    preparation: 'Request preparation',
+    'tool-selection': 'Model tool selection',
+    'tool-execution': 'Tool execution / approval',
+    'answer-generation': 'Answer generation',
+    'ui-delivery': 'IPC and UI delivery',
+  }[phase];
+}
+
+function ChatToolActivityItem({ activity }: { activity: ChatToolActivity }) {
+  const action = getChatToolActivityAction(activity.toolName);
+  const target = getChatToolActivityTarget(activity);
+  const statusLabel = getChatToolActivityStatusLabel(activity.status);
+  const resultSummary = activity.result !== undefined ? summarizeToolResult(activity.result) : '';
+  const isPending = activity.status === 'waiting-approval' || activity.status === 'running';
+  const isFailure = activity.status === 'failed' || activity.status === 'rejected';
+
+  return (
+    <article className={`${styles.chatToolActivity} ${styles[`chatToolActivity_${activity.status}` as keyof typeof styles] || ''}`}>
+      <div className={styles.chatToolActivityRow}>
+        <span className={styles.chatToolActivityIcon} aria-hidden="true">
+          <Icon name={isPending ? 'activity' : isFailure ? 'x' : 'check'} size={14} />
+        </span>
+        <div className={styles.chatToolActivitySummary}>
+          <strong>{action}</strong>
+          {target && <span title={target}>{target}</span>}
+        </div>
+        <span className={styles.chatToolActivityStatus}>{statusLabel}</span>
+        {activity.duration !== undefined && (
+          <span className={styles.chatToolActivityDuration}>{formatActivityDuration(activity.duration)}</span>
+        )}
+      </div>
+      {(resultSummary || activity.error) && (
+        <p className={`${styles.chatToolActivityOutcome} ${isFailure ? styles.chatToolActivityOutcomeError : ''}`}>
+          {activity.error || resultSummary}
+        </p>
+      )}
+      <details className={styles.chatToolActivityDetails}>
+        <summary>Details</summary>
+        <dl>
+          <div><dt>Tool</dt><dd>{activity.toolName}</dd></div>
+          <div><dt>Tool ID</dt><dd>{activity.toolId}</dd></div>
+          {activity.approval?.required && (
+            <div>
+              <dt>Approval</dt>
+              <dd>
+                {activity.approval.decision === 'approved'
+                  ? `Approved${activity.approval.resolvedBy ? ` by ${activity.approval.resolvedBy}` : ''}`
+                  : activity.approval.decision === 'rejected'
+                    ? `Rejected${activity.approval.resolvedBy ? ` by ${activity.approval.resolvedBy}` : ''}`
+                    : 'Required'}
+              </dd>
+            </div>
+          )}
+          <div><dt>Started</dt><dd>{new Date(activity.startedAt).toLocaleTimeString()}</dd></div>
+          {activity.completedAt && <div><dt>Finished</dt><dd>{new Date(activity.completedAt).toLocaleTimeString()}</dd></div>}
+        </dl>
+        <h4>Arguments</h4>
+        <pre>{formatJson(activity.args)}</pre>
+        {activity.result !== undefined && <><h4>Result</h4><pre>{formatJson(activity.result)}</pre></>}
+        {activity.error && <><h4>Error</h4><pre>{activity.error}</pre></>}
+      </details>
+    </article>
+  );
+}
+
+function formatActivityDuration(duration: number): string {
+  if (duration < 1000) return `${duration} ms`;
+  return `${(duration / 1000).toFixed(duration < 10000 ? 1 : 0)} s`;
 }
 
 function renderMessageImages(images: UiImageAttachment[]): React.ReactNode {
@@ -12966,10 +14503,10 @@ function renderCodeBlock(code: string, language: string | undefined, key: string
   );
 }
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsSection({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
     <section className={styles.settingsSection}>
-      <h3>{title}</h3>
+      {title && <h3>{title}</h3>}
       {children}
     </section>
   );
@@ -13122,6 +14659,12 @@ function AccountSettingsSection({
   onSync,
   canSync,
   syncing,
+  message,
+  onDeveloperModeChange,
+  onAddPaymentMethod,
+  onSetDefaultPaymentMethod,
+  onRemovePaymentMethod,
+  paymentBusy,
 }: {
   resolution: FeaturePackageResolution;
   draft: SettingsDraft;
@@ -13134,195 +14677,263 @@ function AccountSettingsSection({
   onSync: () => void;
   canSync: boolean;
   syncing: boolean;
+  message: string;
+  onDeveloperModeChange: (checked: boolean) => void;
+  onAddPaymentMethod: () => void;
+  onSetDefaultPaymentMethod: (methodId: string) => void;
+  onRemovePaymentMethod: (methodId: string) => void;
+  paymentBusy: boolean;
 }) {
   const profile = resolution.profile;
   const isSignedIn = profile.accountStatus === 'signed-in';
-  const latestPurchase = profile.purchases[profile.purchases.length - 1];
-  const ownedPackages = getOwnedPackageEntries(resolution);
-  const ownedPackageNames = ownedPackages.map(entry => entry.manifest.displayName).join(', ');
+  const [authMode, setAuthMode] = useState<'sign-in' | 'register' | 'recover'>('sign-in');
+  const accountName = profile.displayName || profile.email || 'CodeAgent user';
+  const accountInitials = accountName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase())
+    .join('') || 'CA';
+
   return (
-    <SettingsSection title="Account">
-      <div className={styles.accountOverviewGrid}>
-        <article className={styles.accountSummaryCard}>
-          <span>Current session</span>
-          <strong>{formatAccountTier(profile)}</strong>
-          <p>
-            {isSignedIn
-              ? `${profile.displayName || profile.email} is signed in.`
-              : 'You are using CodeAgent as a guest with the free base package.'}
-          </p>
-        </article>
-        <article className={styles.accountSummaryCard}>
-          <span>Feature packages</span>
-          <strong>{ownedPackages.length > 0 ? formatPackageCount(ownedPackages.length) : 'No paid packages'}</strong>
-          <p>
-            {isSignedIn
-              ? ownedPackageNames || 'No purchased packages are attached to this account yet.'
-              : 'Sign in to purchase paid packages.'}
-          </p>
-        </article>
-        <article className={styles.accountSummaryCard}>
-          <span>Payment</span>
-          <strong>{profile.paymentMethods.length > 0 ? `${profile.paymentMethods.length} card${profile.paymentMethods.length === 1 ? '' : 's'}` : 'No card'}</strong>
-          <p>
-            {latestPurchase
-              ? `Last purchase: ${getPackageDisplayName(resolution, latestPurchase.packageId, latestPurchase.productSku)}`
-              : 'Credit card checkout is available from package cards.'}
-          </p>
-        </article>
-      </div>
-
-      <div className={styles.accountPackageShelf}>
-        <div className={styles.accountShelfHeader}>
-          <div>
-            <strong>Purchased packages</strong>
-            <span>{isSignedIn ? 'Packages and subscriptions attached to this account.' : 'Sign in to view purchases for this account.'}</span>
-          </div>
-          <span>{isSignedIn ? profile.subscriptionStatus : 'guest'}</span>
+    <SettingsSection>
+      <article className={styles.accountHero}>
+        <div className={styles.accountAvatar} aria-hidden="true">
+          {isSignedIn ? accountInitials : <Icon name="user" size={24} />}
         </div>
-        {ownedPackages.length > 0 ? (
-          <div className={styles.accountPackageList}>
-            {ownedPackages.map(entry => {
-              const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
-              const paymentMethod = profile.paymentMethods.find(method => method.id === purchase?.paymentMethodId);
-              return (
-                <article className={styles.accountPackageItem} key={entry.manifest.id}>
-                  <div className={styles.packageStoreIcon} aria-hidden="true">
-                    {getPackageInitials(entry.manifest.displayName)}
-                  </div>
-                  <div className={styles.accountPackageBody}>
-                    <strong>{entry.manifest.displayName}</strong>
-                    <span>{entry.manifest.productSku}</span>
-                    <p>{entry.manifest.description}</p>
-                  </div>
-                  <dl className={styles.accountPackageMeta}>
-                    <div>
-                      <dt>Status</dt>
-                      <dd>{getPackageOwnershipLabel(profile, entry, purchase)}</dd>
-                    </div>
-                    <div>
-                      <dt>Price</dt>
-                      <dd>{getPackagePriceLabel(entry.manifest)}</dd>
-                    </div>
-                    <div>
-                      <dt>Runtime</dt>
-                      <dd>{getPackageInstallStateLabel(entry.installState)}</dd>
-                    </div>
-                    <div>
-                      <dt>Purchased</dt>
-                      <dd>{formatPackageDate(purchase?.purchasedAt)}</dd>
-                    </div>
-                    {paymentMethod && (
-                      <div>
-                        <dt>Payment</dt>
-                        <dd>{paymentMethod.brand} ending {paymentMethod.last4}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className={styles.accountEmptyState}>
+        <div className={styles.accountHeroBody}>
+          <span>{isSignedIn ? 'Signed-in account' : 'Guest account'}</span>
+          <strong>{isSignedIn ? accountName : 'You’re using CodeAgent as a guest'}</strong>
+          <p>
             {isSignedIn
-              ? 'No paid packages have been purchased for this account yet.'
-              : 'Guest sessions include only the free base package.'}
+              ? profile.email
+              : 'Sign in to sync your chats, manage purchases, and use your account across devices.'}
+          </p>
+        </div>
+        <span className={styles.accountPlanBadge}>{formatAccountTier(profile)}</span>
+        {isSignedIn && (
+          <div className={styles.accountHeroActions}>
+            <button className={styles.secondaryButton} type="button" onClick={onSync} disabled={!canSync || syncing}>
+              <Icon name="refresh" size={14} />
+              {syncing ? 'Syncing' : 'Sync account'}
+            </button>
+            <button className={styles.textButton} type="button" onClick={onLogout}>Sign out</button>
           </div>
         )}
-      </div>
+      </article>
 
-      <div className={styles.settingsGrid}>
-        <TextSetting
-          label="Platform URL"
-          value={draft.platformBaseUrl}
-          onChange={value => onChange({ platformBaseUrl: value })}
-        />
-        <TextSetting
-          label="Workspace or org ID"
-          value={draft.platformOrgId}
-          placeholder="optional"
-          onChange={value => onChange({ platformOrgId: value })}
-        />
-        <TextSetting
-          label="Email"
-          type="email"
-          value={draft.accountEmail}
-          onChange={value => onChange({ accountEmail: value })}
-        />
-        <TextSetting
-          label="Display name"
-          value={draft.accountDisplayName}
-          onChange={value => onChange({ accountDisplayName: value })}
-        />
-        <TextSetting
-          label="Platform password"
-          type="password"
-          value={draft.accountPassword}
-          placeholder="required for platform login or reset"
-          onChange={value => onChange({ accountPassword: value })}
-          className={styles.fieldWide}
-        />
-        {!isSignedIn && (
-          <TextSetting
-            label="Reset token"
-            value={draft.accountResetToken}
-            placeholder="from reset email"
-            onChange={value => onChange({ accountResetToken: value })}
-            className={styles.fieldWide}
-          />
-        )}
-      </div>
-
-      <div className={styles.dialogActions}>
-        {isSignedIn ? (
-          <button className={styles.dangerButton} type="button" onClick={onLogout}>
-            <Icon name="key" size={14} />
-            Sign out
-          </button>
-        ) : (
-          <>
-            <button className={styles.primaryButton} type="button" onClick={onLogin}>
-              <Icon name="user" size={14} />
-              Sign in
-            </button>
-            <button className={styles.secondaryButton} type="button" onClick={onRegister}>
-              <Icon name="plus" size={14} />
-              Create account
-            </button>
-            <button className={styles.secondaryButton} type="button" onClick={onForgotPassword}>
-              <Icon name="key" size={14} />
-              Send reset
-            </button>
-            <button className={styles.secondaryButton} type="button" onClick={onResetPassword}>
-              <Icon name="refresh" size={14} />
-              Reset password
-            </button>
-          </>
-        )}
-        {isSignedIn && (
-          <button className={styles.secondaryButton} type="button" onClick={onSync} disabled={!canSync || syncing}>
-            <Icon name="refresh" size={14} />
-            {syncing ? 'Syncing' : 'Sync'}
-          </button>
-        )}
-        <button className={styles.secondaryButton} type="button" onClick={() => onChange({ accountEmail: '', accountDisplayName: '' })}>
-          <Icon name="x" size={14} />
-          Clear
-        </button>
-      </div>
-
-      {profile.paymentMethods.length > 0 && (
-        <div className={styles.paymentSummaryList}>
-          {profile.paymentMethods.map(method => (
-            <div key={method.id}>
-              <Icon name="credit-card" size={14} />
-              <span>{method.brand} ending {method.last4}</span>
-              <strong>{method.expMonth.toString().padStart(2, '0')}/{String(method.expYear).slice(-2)}</strong>
-            </div>
-          ))}
+      {message && (
+        <div className={styles.accountInlineMessage} role="status" aria-live="polite">
+          <span>{message}</span>
         </div>
       )}
+
+      {!isSignedIn && (
+        <div className={styles.accountGuestGrid}>
+          <section className={styles.accountAuthCard} aria-labelledby="account-auth-title">
+            <div className={styles.accountAuthHeader}>
+              <strong id="account-auth-title">
+                {authMode === 'sign-in' ? 'Welcome back' : authMode === 'register' ? 'Create your account' : 'Reset your password'}
+              </strong>
+              <span>
+                {authMode === 'sign-in'
+                  ? 'Use your CodeAgent account to continue.'
+                  : authMode === 'register'
+                    ? 'Create an account to sync your workspace and purchases.'
+                    : 'Request a reset token, then choose a new password.'}
+              </span>
+            </div>
+
+            <div className={styles.accountAuthFields} role="tabpanel">
+              {authMode === 'register' && (
+                <TextSetting
+                  label="Display name"
+                  value={draft.accountDisplayName}
+                  placeholder="How you’ll appear in CodeAgent"
+                  onChange={value => onChange({ accountDisplayName: value })}
+                />
+              )}
+              <TextSetting
+                label="Email"
+                type="email"
+                value={draft.accountEmail}
+                placeholder="you@example.com"
+                onChange={value => onChange({ accountEmail: value })}
+              />
+              {authMode !== 'recover' && (
+                <TextSetting
+                  label="Password"
+                  type="password"
+                  value={draft.accountPassword}
+                  placeholder={authMode === 'register' ? 'At least 8 characters' : 'Enter your password'}
+                  onChange={value => onChange({ accountPassword: value })}
+                />
+              )}
+              {authMode === 'recover' && (
+                <>
+                  <TextSetting
+                    label="Reset token"
+                    value={draft.accountResetToken}
+                    placeholder="Paste the token from your reset email"
+                    onChange={value => onChange({ accountResetToken: value })}
+                  />
+                  <TextSetting
+                    label="New password"
+                    type="password"
+                    value={draft.accountPassword}
+                    placeholder="At least 8 characters"
+                    onChange={value => onChange({ accountPassword: value })}
+                  />
+                </>
+              )}
+            </div>
+
+            <div className={styles.accountAuthActions}>
+              {authMode === 'sign-in' && (
+                <>
+                  <button className={styles.primaryButton} type="button" onClick={onLogin}>
+                    <Icon name="user" size={14} />
+                    Sign in
+                  </button>
+                  <button className={styles.textButton} type="button" onClick={() => setAuthMode('recover')}>
+                    Forgot password?
+                  </button>
+                  <button className={styles.textButton} type="button" onClick={() => setAuthMode('register')}>
+                    Sign up
+                  </button>
+                </>
+              )}
+              {authMode === 'register' && (
+                <>
+                  <button className={styles.primaryButton} type="button" onClick={onRegister}>
+                    <Icon name="plus" size={14} />
+                    Create account
+                  </button>
+                  <button className={styles.textButton} type="button" onClick={() => setAuthMode('sign-in')}>
+                    Back to sign in
+                  </button>
+                </>
+              )}
+              {authMode === 'recover' && (
+                <>
+                  {draft.accountResetToken.trim() ? (
+                    <>
+                      <button className={styles.primaryButton} type="button" onClick={onResetPassword}>
+                        <Icon name="refresh" size={14} />
+                        Reset password
+                      </button>
+                      <button className={styles.secondaryButton} type="button" onClick={onForgotPassword}>
+                        Resend email
+                      </button>
+                    </>
+                  ) : (
+                    <button className={styles.primaryButton} type="button" onClick={onForgotPassword}>
+                      <Icon name="send" size={14} />
+                      Send reset email
+                    </button>
+                  )}
+                  <button className={styles.textButton} type="button" onClick={() => setAuthMode('sign-in')}>
+                    Back to sign in
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+
+          <aside className={styles.accountBenefitsCard} aria-label="Free account benefits">
+            <span>Included with a free account</span>
+            <strong>Keep your work connected</strong>
+            <ul>
+              <li><Icon name="check" size={15} />Sync account settings and purchases</li>
+              <li><Icon name="check" size={15} />Access CodeAgent from multiple devices</li>
+              <li><Icon name="check" size={15} />Add feature packages when you need them</li>
+            </ul>
+            <p>No credit card required.</p>
+          </aside>
+        </div>
+      )}
+
+      {isSignedIn && (
+        <section className={styles.accountBillingSection} aria-labelledby="payment-methods-title">
+          <div className={styles.accountShelfHeader}>
+            <div>
+              <strong id="payment-methods-title">Payment methods</strong>
+              <span>Payment details used for Store purchases and subscriptions.</span>
+            </div>
+            <button className={styles.secondaryButton} type="button" onClick={onAddPaymentMethod} disabled={paymentBusy}>
+              <Icon name="plus" size={14} />
+              Add payment method
+            </button>
+          </div>
+          {profile.paymentMethods.length > 0 ? (
+            <div className={styles.paymentSummaryList}>
+              {profile.paymentMethods.map((method, index) => (
+                <div key={method.id}>
+                  <Icon name="credit-card" size={14} />
+                  <span>
+                    <strong>{method.brand} ending {method.last4} {index === 0 && <em>Default</em>}</strong>
+                    <small>Expires {method.expMonth.toString().padStart(2, '0')}/{String(method.expYear).slice(-2)}</small>
+                  </span>
+                  <span className={styles.paymentMethodActions}>
+                    {index > 0 && (
+                      <button className={styles.textButton} type="button" onClick={() => onSetDefaultPaymentMethod(method.id)} disabled={paymentBusy}>
+                        Make default
+                      </button>
+                    )}
+                    <button className={styles.textButton} type="button" onClick={() => onRemovePaymentMethod(method.id)} disabled={paymentBusy}>
+                      Remove
+                    </button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.accountEmptyState}>
+              No payment methods are saved. A payment method can be added during checkout in the Store.
+            </div>
+          )}
+        </section>
+      )}
+
+      <details className={styles.accountAdvanced}>
+        <summary>
+          <span>
+            <Icon name="settings" size={15} />
+            Advanced connection
+          </span>
+          <small>Developer and workspace settings</small>
+        </summary>
+        <div className={styles.accountAdvancedBody}>
+          <div className={styles.accountDeveloperMode}>
+            <ToggleSetting
+              label="Developer mode"
+              checked={draft.platformDeveloperMode}
+              onChange={onDeveloperModeChange}
+            />
+            <span>
+              {draft.platformDeveloperMode
+                ? 'Authentication is using a temporary backend for this window.'
+                : 'Authentication uses the managed CodeAgent platform.'}
+            </span>
+          </div>
+          <div className={styles.settingsGrid}>
+            {draft.platformDeveloperMode && (
+              <TextSetting
+                label="Development platform URL"
+                value={draft.platformBaseUrl}
+                placeholder={DEVELOPMENT_PLATFORM_BASE_URL}
+                onChange={value => onChange({ platformBaseUrl: value })}
+              />
+            )}
+            <TextSetting
+              label="Workspace or organization ID"
+              value={draft.platformOrgId}
+              placeholder="Optional"
+              onChange={value => onChange({ platformOrgId: value })}
+            />
+          </div>
+        </div>
+      </details>
     </SettingsSection>
   );
 }
@@ -13330,12 +14941,16 @@ function AccountSettingsSection({
 function FeaturePackagesSection({
   resolution,
   onPackageAction,
+  operationError,
+  onDismissOperationError,
   onSync,
   canSync,
   syncing,
 }: {
   resolution: FeaturePackageResolution;
   onPackageAction: (packageId: string) => void;
+  operationError: PackageOperationError | null;
+  onDismissOperationError: () => void;
   onSync: () => void;
   canSync: boolean;
   syncing: boolean;
@@ -13343,12 +14958,57 @@ function FeaturePackagesSection({
   const profile = resolution.profile;
   const ownedPackages = getOwnedPackageEntries(resolution);
   const isSignedIn = profile.accountStatus === 'signed-in';
+  const [catalogQuery, setCatalogQuery] = useState('');
+  const [catalogFilter, setCatalogFilter] = useState<'all' | 'free' | 'paid'>('all');
+  const [catalogView, setCatalogView] = useState<'icon' | 'card' | 'table'>('icon');
+  const normalizedQuery = catalogQuery.trim().toLowerCase();
+  const visiblePackages = resolution.packages.filter(entry => {
+    const isPaid = entry.manifest.pricing.amountCents > 0;
+    if (catalogFilter === 'free' && isPaid) return false;
+    if (catalogFilter === 'paid' && !isPaid) return false;
+    if (!normalizedQuery) return true;
+    return [
+      entry.manifest.displayName,
+      entry.manifest.description,
+      entry.manifest.domain,
+      ...entry.manifest.features.map(feature => feature.title),
+    ].some(value => value.toLowerCase().includes(normalizedQuery));
+  });
+  const catalogItems = visiblePackages.map(entry => {
+    const isEntitled = entry.state === 'available' || entry.state === 'trial';
+    const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
+    const isOwned = ownedPackages.some(owned => owned.manifest.id === entry.manifest.id);
+    return {
+      entry,
+      isEntitled,
+      isUsable,
+      isOwned,
+      actionLabel: isUsable ? 'Manage' : isEntitled ? 'Install' : 'Purchase',
+      statusLabel: isOwned
+        ? `Owned · ${getPackageInstallStateLabel(entry.installState)}`
+        : isEntitled && !isUsable
+          ? getPackageInstallStateLabel(entry.installState)
+          : getPackageStateLabel(entry.state),
+      purchase: getLatestPurchaseForPackage(profile, entry.manifest.id),
+    };
+  });
+  const operationDiagnostics = operationError
+    ? [
+        `Package: ${operationError.packageName}`,
+        `Package ID: ${operationError.packageId}`,
+        `SKU: ${operationError.productSku}`,
+        `Version: ${operationError.version}`,
+        `Phase: ${operationError.phase}`,
+        `Time: ${operationError.occurredAt}`,
+        '',
+        operationError.message,
+      ].join('\n')
+    : '';
   return (
-    <SettingsSection title="Feature Packages">
+    <SettingsSection>
       <div className={styles.packageStoreHeader}>
         <div>
-          <span>CodeAgent Store</span>
-          <strong>Feature packages for every shell</strong>
+          <strong>Discover capabilities for CodeAgent</strong>
           <p>
             {isSignedIn
               ? `${profile.email || profile.displayName} · ${ownedPackages.length > 0 ? `${formatPackageCount(ownedPackages.length)} purchased` : 'No paid packages purchased'}`
@@ -13377,13 +15037,39 @@ function FeaturePackagesSection({
         )}
       </div>
 
+      {operationError && (
+        <section className={styles.packageInstallError} role="alert" aria-labelledby="package-install-error-title">
+          <div className={styles.packageInstallErrorHeader}>
+            <span className={styles.packageInstallErrorIcon}><Icon name="x" size={16} /></span>
+            <div>
+              <strong id="package-install-error-title">Couldn’t install {operationError.packageName}</strong>
+              <span>{operationError.phase}</span>
+            </div>
+            <div className={styles.packageInstallErrorActions}>
+              <button className={styles.secondaryButton} type="button" onClick={() => onPackageAction(operationError.packageId)}>
+                <Icon name="refresh" size={14} />Retry
+              </button>
+              <button className={styles.textButton} type="button" onClick={onDismissOperationError}>Dismiss</button>
+            </div>
+          </div>
+          <details open>
+            <summary>Technical details</summary>
+            <pre>{operationDiagnostics}</pre>
+            <button className={styles.secondaryButton} type="button" onClick={() => void navigator.clipboard.writeText(operationDiagnostics)}>
+              <Icon name="file" size={14} />Copy details
+            </button>
+          </details>
+        </section>
+      )}
+
       {ownedPackages.length > 0 && (
         <div className={styles.packageStoreOwnedShelf}>
           <div className={styles.accountShelfHeader}>
             <div>
-              <strong>Purchased</strong>
-              <span>Available to this signed-in account after runtime installation.</span>
+              <strong>Your packages</strong>
+              <span>These purchases belong to your account. Install their runtime on each device where you want to use them.</span>
             </div>
+            <span>{formatPackageCount(ownedPackages.length)} owned</span>
           </div>
           <div className={styles.packageStoreOwnedList}>
             {ownedPackages.map(entry => {
@@ -13393,31 +15079,113 @@ function FeaturePackagesSection({
                   <div className={styles.packageStoreIcon} aria-hidden="true">
                     {getPackageInitials(entry.manifest.displayName)}
                   </div>
-                  <div>
+                  <div className={styles.packageStoreOwnedBody}>
                     <strong>{entry.manifest.displayName}</strong>
-                    <span>{getPackageOwnershipLabel(profile, entry, purchase)} · {getPackageInstallStateLabel(entry.installState)}</span>
+                    <span>{getPackagePriceLabel(entry.manifest)} · Purchased {formatPackageDate(purchase?.purchasedAt)}</span>
                   </div>
+                  <span className={isPackageRuntimeAvailable(entry.installState) ? styles.packageStateAvailable : styles.packageStatePending}>
+                    {getPackageInstallStateLabel(entry.installState)}
+                  </span>
+                  <button
+                    className={isPackageRuntimeAvailable(entry.installState) ? styles.secondaryButton : styles.primaryButton}
+                    type="button"
+                    onClick={() => onPackageAction(entry.manifest.id)}
+                  >
+                    {!isPackageRuntimeAvailable(entry.installState) && <Icon name="download" size={14} />}
+                    {isPackageRuntimeAvailable(entry.installState) ? 'Manage' : 'Install'}
+                  </button>
                 </div>
               );
             })}
           </div>
+          <p className={styles.packageBillingNote}>
+            Need billing help? Self-service subscription changes and refunds aren’t available in this desktop build.
+          </p>
         </div>
       )}
 
-      <div className={styles.packageStoreGrid}>
-        {resolution.packages.map(entry => {
-          const isEntitled = entry.state === 'available' || entry.state === 'trial';
-          const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
-          const actionLabel = isUsable
-            ? 'Manage'
-            : isEntitled
-              ? 'Install'
-            : profile.accountStatus === 'signed-in'
-              ? 'Purchase'
-              : 'Sign in';
-          const statusLabel = isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state);
-          const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
-          return (
+      <div className={styles.packageStoreCatalogHeader}>
+        <div>
+          <strong>Catalog</strong>
+          <span>{formatPackageCount(visiblePackages.length)} shown</span>
+        </div>
+        <div className={styles.packageStoreToolbar}>
+          <label className={styles.packageStoreSearch}>
+            <Icon name="search" size={14} />
+            <input
+              type="search"
+              value={catalogQuery}
+              placeholder="Search packages and features"
+              aria-label="Search store packages"
+              onChange={event => setCatalogQuery(event.target.value)}
+            />
+          </label>
+          <div className={styles.segmentedControl} aria-label="Filter store catalog">
+            {(['all', 'free', 'paid'] as const).map(filter => (
+              <button
+                className={catalogFilter === filter ? `${styles.segmentedControlButton} ${styles.segmentedControlButtonActive}` : styles.segmentedControlButton}
+                type="button"
+                aria-pressed={catalogFilter === filter}
+                onClick={() => setCatalogFilter(filter)}
+                key={filter}
+              >
+                {filter[0].toUpperCase() + filter.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className={styles.segmentedControl} aria-label="Choose catalog view">
+            {([
+              { id: 'icon', label: 'Icon view', icon: 'list' },
+              { id: 'card', label: 'Card view', icon: 'grid' },
+              { id: 'table', label: 'Table view', icon: 'table' },
+            ] as const).map(view => (
+              <button
+                className={catalogView === view.id ? `${styles.segmentedControlButton} ${styles.segmentedControlButtonActive}` : styles.segmentedControlButton}
+                type="button"
+                title={view.label}
+                aria-label={view.label}
+                aria-pressed={catalogView === view.id}
+                onClick={() => setCatalogView(view.id)}
+                key={view.id}
+              >
+                <Icon name={view.icon} size={14} />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {catalogView === 'icon' && (
+        <div className={styles.packageStoreIconList}>
+          {catalogItems.map(({ entry, isUsable, actionLabel, statusLabel }) => (
+            <article className={styles.packageStoreIconRow} key={entry.manifest.id}>
+              <div className={styles.packageStoreIcon} aria-hidden="true">
+                {getPackageInitials(entry.manifest.displayName)}
+              </div>
+              <div className={styles.packageStoreIconBody}>
+                <strong>{entry.manifest.displayName}</strong>
+                <span title={entry.manifest.description}>{entry.manifest.description}</span>
+              </div>
+              <div className={styles.packageStoreIconAction}>
+                <button
+                  className={styles.packageStorePillAction}
+                  type="button"
+                  onClick={() => onPackageAction(entry.manifest.id)}
+                >
+                  {actionLabel}
+                </button>
+                <small title={statusLabel}>
+                  {actionLabel === 'Purchase' ? getPackagePriceLabel(entry.manifest) : statusLabel}
+                </small>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {catalogView === 'card' && (
+        <div className={styles.packageStoreGrid}>
+        {catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel, purchase }) => (
             <article className={styles.packageStoreCard} key={entry.manifest.id}>
               <div className={styles.packageStoreTopline}>
                 <div className={styles.packageStoreIdentity}>
@@ -13429,7 +15197,7 @@ function FeaturePackagesSection({
                     <span>{entry.manifest.domain}</span>
                   </div>
                 </div>
-                <span className={isUsable ? styles.packageStateAvailable : styles.packageStateLocked}>
+                <span className={isUsable ? styles.packageStateAvailable : isOwned ? styles.packageStatePending : styles.packageStateLocked}>
                   {statusLabel}
                 </span>
               </div>
@@ -13484,9 +15252,66 @@ function FeaturePackagesSection({
                 </button>
               </div>
             </article>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {catalogView === 'table' && (
+        <div className={styles.packageStoreTableWrap}>
+          <table className={styles.packageStoreTable}>
+            <caption className={styles.visuallyHidden}>Store package catalog</caption>
+            <thead>
+              <tr>
+                <th scope="col">Package</th>
+                <th scope="col">Tier</th>
+                <th scope="col">Price</th>
+                <th scope="col">Runtime</th>
+                <th scope="col">Status</th>
+                <th scope="col"><span className={styles.visuallyHidden}>Action</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              {catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel }) => (
+                <tr key={entry.manifest.id}>
+                  <td>
+                    <div className={styles.packageStoreTableIdentity}>
+                      <div className={styles.packageStoreIcon} aria-hidden="true">
+                        {getPackageInitials(entry.manifest.displayName)}
+                      </div>
+                      <div>
+                        <strong>{entry.manifest.displayName}</strong>
+                        <span>{entry.manifest.domain}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{entry.manifest.tier}</td>
+                  <td>{getPackagePriceLabel(entry.manifest)}</td>
+                  <td>{getPackageInstallStateLabel(entry.installState)}</td>
+                  <td>
+                    <span className={isUsable ? styles.packageStateAvailable : isOwned ? styles.packageStatePending : styles.packageStateLocked}>
+                      {statusLabel}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      className={isUsable ? styles.secondaryButton : styles.primaryButton}
+                      type="button"
+                      onClick={() => onPackageAction(entry.manifest.id)}
+                    >
+                      {actionLabel}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {visiblePackages.length === 0 && (
+        <div className={styles.accountEmptyState}>
+          No packages match this search and filter. Try a different term or select All.
+        </div>
+      )}
     </SettingsSection>
   );
 }
@@ -13587,6 +15412,54 @@ function PackagePurchaseDialog({
             <button className={styles.primaryButton} type="submit">
               <Icon name="credit-card" size={14} />
               Pay {getPackagePriceLabel(manifest)}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function PaymentMethodDialog({
+  draft,
+  message,
+  busy,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  draft: PurchaseDraft;
+  message: string;
+  busy: boolean;
+  onChange: (update: Partial<PurchaseDraft>) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className={styles.dialogBackdrop} role="presentation">
+      <form className={`${styles.reviewDialog} ${styles.purchaseDialog}`} role="dialog" aria-modal="true" aria-labelledby="payment-method-title" onSubmit={onSubmit}>
+        <div className={styles.dialogHeader}>
+          <div>
+            <h2 id="payment-method-title">Add payment method</h2>
+            <p className={styles.reviewSubtitle}>This card will become the default for future Store purchases.</p>
+          </div>
+          <span className={styles.reviewBadge}>Credit card</span>
+        </div>
+        <div className={styles.paymentFormGrid}>
+          <TextSetting label="Name on card" value={draft.nameOnCard} onChange={value => onChange({ nameOnCard: value })} />
+          <TextSetting label="Card number" value={draft.cardNumber} onChange={value => onChange({ cardNumber: value })} />
+          <TextSetting label="Expiration" value={draft.expiry} placeholder="MM/YY" onChange={value => onChange({ expiry: value })} />
+          <TextSetting label="CVC" type="password" value={draft.cvc} onChange={value => onChange({ cvc: value })} />
+          <TextSetting label="ZIP or postal code" value={draft.postalCode} onChange={value => onChange({ postalCode: value })} className={styles.fieldWide} />
+        </div>
+        <p className={styles.mutedText}>Only the card brand, last four digits, and expiration are retained by this development flow. Full card numbers and security codes are not stored.</p>
+        <div className={styles.dialogFooter}>
+          <span className={styles.settingsMessage}>{message}</span>
+          <div className={styles.dialogActions}>
+            <button className={styles.secondaryButton} type="button" onClick={onCancel} disabled={busy}>Cancel</button>
+            <button className={styles.primaryButton} type="submit" disabled={busy}>
+              <Icon name="plus" size={14} />
+              {busy ? 'Adding' : 'Add card'}
             </button>
           </div>
         </div>
@@ -14001,11 +15874,17 @@ function LocalModelPreparationPanel({
 function SettingsView({
   activeSection,
   draft,
+  tools,
+  sessions,
+  currentSessionId,
+  appConfig,
   message,
   saving,
   localModelPreparation,
   featureResolution,
   onChange,
+  onSetToolPermission,
+  onApplyToolPermissionPreset,
   onClearToken,
   onAccountLogin,
   onAccountRegister,
@@ -14015,18 +15894,33 @@ function SettingsView({
   onPlatformSync,
   canSyncPlatform,
   platformSyncing,
+  onDeveloperModeChange,
   onPackageAction,
+  packageOperationError,
+  onDismissPackageOperationError,
+  onAddPaymentMethod,
+  onSetDefaultPaymentMethod,
+  onRemovePaymentMethod,
+  onOpenChat,
+  onDeleteChat,
+  onDeleteAllChats,
   onSubmit,
   onRetryLocalModel,
   onOpenLocalModelLog,
 }: {
   activeSection: SettingsSectionId;
   draft: SettingsDraft;
+  tools: Tool[];
+  sessions: PersistedChatSession[];
+  currentSessionId: string;
+  appConfig: AppConfig | null;
   message: string;
   saving: boolean;
   localModelPreparation: LocalModelPreparation;
   featureResolution: FeaturePackageResolution;
   onChange: (update: Partial<SettingsDraft>) => void;
+  onSetToolPermission: (toolName: string, permission: ToolPermissionMode) => void;
+  onApplyToolPermissionPreset: (preset: 'allow-all' | 'ask-mutating' | 'deny-mutating') => void;
   onClearToken: () => void;
   onAccountLogin: () => void;
   onAccountRegister: () => void;
@@ -14036,11 +15930,29 @@ function SettingsView({
   onPlatformSync: () => void;
   canSyncPlatform: boolean;
   platformSyncing: boolean;
+  onDeveloperModeChange: (checked: boolean) => void;
   onPackageAction: (packageId: string) => void;
+  packageOperationError: PackageOperationError | null;
+  onDismissPackageOperationError: () => void;
+  onAddPaymentMethod: () => void;
+  onSetDefaultPaymentMethod: (methodId: string) => void;
+  onRemovePaymentMethod: (methodId: string) => void;
+  onOpenChat: (sessionId: string) => void;
+  onDeleteChat: (sessionId: string) => void;
+  onDeleteAllChats: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onRetryLocalModel: () => void;
   onOpenLocalModelLog: () => void;
 }) {
+  const coreTools = tools.filter(isCoreTool);
+  const coreToolGroups = groupToolsByCategory(coreTools);
+  const corePolicyCounts = coreTools.reduce<Record<ToolPermissionMode, number>>(
+    (counts, tool) => {
+      counts[getToolPermissionPolicy(tool, appConfig)] += 1;
+      return counts;
+    },
+    { allow: 0, ask: 0, deny: 0 },
+  );
   const selectedSources = new Set(draft.settingSources.split(',').map(source => source.trim()).filter(Boolean));
   const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
     value: value as LlmProviderType,
@@ -14076,11 +15988,17 @@ function SettingsView({
             onSync={onPlatformSync}
             canSync={canSyncPlatform}
             syncing={platformSyncing}
+            message={message}
+            onDeveloperModeChange={onDeveloperModeChange}
+            onAddPaymentMethod={onAddPaymentMethod}
+            onSetDefaultPaymentMethod={onSetDefaultPaymentMethod}
+            onRemovePaymentMethod={onRemovePaymentMethod}
+            paymentBusy={saving}
           />
         )}
 
         {activeSection === 'general' && (
-        <SettingsSection title="General">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <SelectSetting
               label="Theme"
@@ -14110,11 +16028,112 @@ function SettingsView({
             <ToggleSetting label="Auto-update" checked={draft.autoUpdate} onChange={checked => onChange({ autoUpdate: checked })} />
             <ToggleSetting label="Proactive" checked={draft.proactive} onChange={checked => onChange({ proactive: checked })} />
           </div>
+          <section className={styles.permissionProfileSection} aria-labelledby="permission-profile-title">
+            <div className={styles.permissionProfileHeader}>
+              <div>
+                <h3 id="permission-profile-title">Permissions</h3>
+                <p>Choose how broadly CodeAgent can access files and run tools.</p>
+              </div>
+            </div>
+            <fieldset className={styles.permissionProfileList}>
+              <legend className={styles.visuallyHidden}>Desktop permission level</legend>
+              {DESKTOP_PERMISSION_PROFILES.map(profile => {
+                const selected = draft.desktopPermissionProfile === profile.value;
+                return (
+                  <label
+                    className={`${styles.permissionProfileOption} ${selected ? styles.permissionProfileOptionSelected : ''} ${profile.danger ? styles.permissionProfileOptionDanger : ''}`}
+                    key={profile.value}
+                  >
+                    <input
+                      type="radio"
+                      name="desktop-permission-profile"
+                      value={profile.value}
+                      checked={selected}
+                      onChange={() => onChange({ desktopPermissionProfile: profile.value })}
+                    />
+                    <span className={styles.permissionProfileBody}>
+                      <span className={styles.permissionProfileTitle}>
+                        <strong>{profile.title}</strong>
+                        {profile.badge && <small>{profile.badge}</small>}
+                      </span>
+                      <span>{profile.description}</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </fieldset>
+            {draft.desktopPermissionProfile === 'full-access' && (
+              <div className={styles.permissionProfileWarning} role="alert">
+                Full access increases the risk of unintended changes or data exposure. Operating-system protections still apply.
+              </div>
+            )}
+            <div className={styles.coreToolPermissions}>
+              <div className={styles.coreToolPermissionsHeader}>
+                <div>
+                  <h4>Built-in tools</h4>
+                  <p>Fine-tune CodeAgent's own tools. Package-provided tools are managed separately by their app.</p>
+                </div>
+                <span className={styles.coreToolCount}>{coreTools.length} tools</span>
+              </div>
+              <div className={styles.coreToolPolicySummary} aria-label="Built-in tool permission summary">
+                <span><strong>{corePolicyCounts.allow}</strong> allowed</span>
+                <span><strong>{corePolicyCounts.ask}</strong> ask</span>
+                <span><strong>{corePolicyCounts.deny}</strong> denied</span>
+              </div>
+              <div className={styles.coreToolPresetActions}>
+                <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPermissionPreset('allow-all')}>Allow all</button>
+                <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPermissionPreset('ask-mutating')}>Ask before changes</button>
+                <button className={styles.secondaryButton} type="button" onClick={() => onApplyToolPermissionPreset('deny-mutating')}>Deny changes</button>
+              </div>
+              <details className={styles.coreToolDetails}>
+                <summary>Configure individual tools</summary>
+                <div className={styles.coreToolGroups}>
+                  {coreToolGroups.map(group => (
+                    <section className={styles.coreToolGroup} key={group.id}>
+                      <h5>{group.label}</h5>
+                      {group.tools.map(tool => (
+                        <div className={styles.coreToolRow} key={tool.name}>
+                          <div className={styles.coreToolIdentity}>
+                            <strong>{tool.name}</strong>
+                            <span>{tool.readOnly ? 'Read-only' : 'Can make changes'}</span>
+                            <p>{tool.description}</p>
+                          </div>
+                          <label>
+                            <span className={styles.visuallyHidden}>Permission for {tool.name}</span>
+                            <select
+                              value={getToolPermissionPolicy(tool, appConfig)}
+                              onChange={event => onSetToolPermission(tool.name, event.target.value as ToolPermissionMode)}
+                            >
+                              {TOOL_PERMISSION_OPTIONS.map(option => (
+                                <option value={option.value} key={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      ))}
+                    </section>
+                  ))}
+                  {coreTools.length === 0 && <p className={styles.mutedText}>No built-in tools are currently available.</p>}
+                </div>
+              </details>
+            </div>
+          </section>
         </SettingsSection>
         )}
 
+        {activeSection === 'chat-history' && (
+          <ChatHistorySettingsSection
+            sessions={sessions}
+            currentSessionId={currentSessionId}
+            message={message}
+            onOpenChat={onOpenChat}
+            onDeleteChat={onDeleteChat}
+            onDeleteAllChats={onDeleteAllChats}
+          />
+        )}
+
         {activeSection === 'model' && (
-        <SettingsSection title="Model">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <SelectSetting
               label="LLM backend"
@@ -14197,6 +16216,8 @@ function SettingsView({
           <FeaturePackagesSection
             resolution={featureResolution}
             onPackageAction={onPackageAction}
+            operationError={packageOperationError}
+            onDismissOperationError={onDismissPackageOperationError}
             onSync={onPlatformSync}
             canSync={canSyncPlatform}
             syncing={platformSyncing}
@@ -14204,7 +16225,7 @@ function SettingsView({
         )}
 
         {activeSection === 'io-debug' && (
-        <SettingsSection title="Output And Debug">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <SelectSetting
               label="Output format"
@@ -14244,7 +16265,7 @@ function SettingsView({
         )}
 
         {activeSection === 'tools-permissions' && (
-        <SettingsSection title="Tools And Permissions">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <SelectSetting
               label="Startup mode"
@@ -14284,7 +16305,7 @@ function SettingsView({
         )}
 
         {activeSection === 'workspace' && (
-        <SettingsSection title="Prompts & Directories">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <TextAreaSetting label="System prompt" value={draft.systemPrompt} onChange={value => onChange({ systemPrompt: value })} />
             <TextAreaSetting label="Append system prompt" value={draft.appendSystemPrompt} onChange={value => onChange({ appendSystemPrompt: value })} />
@@ -14311,7 +16332,7 @@ function SettingsView({
         )}
 
         {activeSection === 'sessions' && (
-        <SettingsSection title="Sessions And Integrations">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <TextSetting label="Resume session" value={draft.resumeSession} onChange={value => onChange({ resumeSession: value })} />
             <TextSetting label="From PR" value={draft.fromPr} onChange={value => onChange({ fromPr: value })} />
@@ -14357,7 +16378,7 @@ function SettingsView({
         )}
 
         {activeSection === 'advanced' && (
-        <SettingsSection title="Advanced Compatibility">
+        <SettingsSection>
           <div className={styles.settingsGrid}>
             <TextSetting label="Messaging socket path" value={draft.messagingSocketPath} onChange={value => onChange({ messagingSocketPath: value })} />
             <TextAreaSetting label="Channel servers" value={draft.channelServers} onChange={value => onChange({ channelServers: value })} />
@@ -14393,20 +16414,149 @@ function SettingsView({
         )}
         </div>
 
-        <div className={styles.dialogFooter}>
+        {activeSection !== 'account' && activeSection !== 'packages' && activeSection !== 'chat-history' && <div className={styles.dialogFooter}>
           <span className={styles.settingsMessage}>{message}</span>
           <div className={styles.dialogActions}>
-            <button className={styles.dangerButton} type="button" onClick={onClearToken}>
-              <Icon name="key" size={14} />
-              Clear LLM API keys
-            </button>
+            {activeSection === 'model' && (
+              <button className={styles.dangerButton} type="button" onClick={onClearToken}>
+                <Icon name="key" size={14} />
+                Clear LLM API keys
+              </button>
+            )}
             <button className={styles.primaryButton} type="submit" disabled={saving}>
               <Icon name="save" size={14} />
               {saving ? 'Saving' : 'Save'}
             </button>
           </div>
-        </div>
+        </div>}
       </form>
     </section>
+  );
+}
+
+function ChatHistorySettingsSection({
+  sessions,
+  currentSessionId,
+  message,
+  onOpenChat,
+  onDeleteChat,
+  onDeleteAllChats,
+}: {
+  sessions: PersistedChatSession[];
+  currentSessionId: string;
+  message: string;
+  onOpenChat: (sessionId: string) => void;
+  onDeleteChat: (sessionId: string) => void;
+  onDeleteAllChats: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const savedSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
+  const visibleSessions = savedSessions.filter(session => matchesSessionSearch(session, query));
+
+  function confirmSingleDelete(sessionId: string) {
+    onDeleteChat(sessionId);
+    setDeleteSessionId(null);
+  }
+
+  function confirmAllDeletes() {
+    onDeleteAllChats();
+    setConfirmDeleteAll(false);
+    setDeleteSessionId(null);
+  }
+
+  return (
+    <SettingsSection>
+      <div className={styles.chatHistorySummary}>
+        <div>
+          <strong>{savedSessions.length} saved {savedSessions.length === 1 ? 'chat' : 'chats'}</strong>
+          <span>Stored locally on this device. Deleting chats does not delete workspace files.</span>
+        </div>
+        <button
+          className={styles.dangerButton}
+          type="button"
+          disabled={savedSessions.length === 0}
+          onClick={() => setConfirmDeleteAll(true)}
+        >
+          <Icon name="trash" size={14} />
+          Delete all chats
+        </button>
+      </div>
+
+      {confirmDeleteAll && (
+        <div className={styles.chatHistoryDeleteAll} role="alert">
+          <div>
+            <strong>Delete all {savedSessions.length} saved chats?</strong>
+            <span>This cannot be undone. Attached workspace files and account data will remain unchanged.</span>
+          </div>
+          <div className={styles.toolRouterActions}>
+            <button className={styles.dangerButton} type="button" onClick={confirmAllDeletes}>Delete all</button>
+            <button className={styles.secondaryButton} type="button" onClick={() => setConfirmDeleteAll(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {message && <p className={styles.inlineSuccess}>{message}</p>}
+
+      <div className={styles.chatHistoryControls}>
+        <label>
+          <Icon name="search" size={14} />
+          <input
+            type="search"
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder="Search saved chats"
+            aria-label="Search saved chats"
+          />
+        </label>
+        <span>{visibleSessions.length} shown</span>
+      </div>
+
+      <div className={styles.chatHistoryList}>
+        {visibleSessions.map(session => {
+          const deleting = deleteSessionId === session.id;
+          return (
+            <article
+              className={`${styles.chatHistoryRow} ${session.id === currentSessionId ? styles.chatHistoryRowActive : ''}`}
+              key={session.id}
+            >
+              <div className={styles.chatHistoryIdentity}>
+                <strong>{session.title}</strong>
+                <span>
+                  {session.messages.length} messages · Updated {formatRelativeTime(session.updatedAt)}
+                  {session.toolWorkspacePath ? ` · ${session.toolWorkspacePath}` : ''}
+                </span>
+              </div>
+              {deleting ? (
+                <div className={styles.chatHistoryDeleteConfirm}>
+                  <span>Delete this chat?</span>
+                  <button className={styles.dangerButton} type="button" onClick={() => confirmSingleDelete(session.id)}>Delete</button>
+                  <button className={styles.secondaryButton} type="button" onClick={() => setDeleteSessionId(null)}>Cancel</button>
+                </div>
+              ) : (
+                <div className={styles.toolRouterActions}>
+                  <button className={styles.secondaryButton} type="button" onClick={() => onOpenChat(session.id)}>
+                    <Icon name="chat" size={14} />
+                    Open
+                  </button>
+                  <button className={styles.dangerButton} type="button" onClick={() => setDeleteSessionId(session.id)}>
+                    <Icon name="trash" size={14} />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </article>
+          );
+        })}
+        {visibleSessions.length === 0 && (
+          <div className={styles.chatHistoryEmpty}>
+            <Icon name="chat" size={20} />
+            <strong>{query.trim() ? 'No matching chats' : 'No saved chats'}</strong>
+            <span>{query.trim() ? 'Try a different search.' : 'New conversations will appear here after you send a message.'}</span>
+          </div>
+        )}
+      </div>
+    </SettingsSection>
   );
 }

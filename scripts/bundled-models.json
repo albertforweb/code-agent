@@ -12,6 +12,18 @@
       "quantization": "Q4_0",
       "license": "Apache-2.0",
       "contextTokens": 32768
+    },
+    {
+      "id": "codeagent-offline-agent",
+      "displayName": "Offline agent — Qwen3 4B",
+      "repository": "Qwen/Qwen3-4B-GGUF",
+      "revision": "bc640142c66e1fdd12af0bd68f40445458f3869b",
+      "file": "Qwen3-4B-Q4_K_M.gguf",
+      "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+      "size": 2497280256,
+      "quantization": "Q4_K_M",
+      "license": "Apache-2.0",
+      "contextTokens": 32768
     }
   ]
 }

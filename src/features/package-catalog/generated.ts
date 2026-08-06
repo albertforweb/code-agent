@@ -11,7 +11,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
     "tier": "paid",
     "version": "1.0.0",
     "owner": "codeagent",
-    "description": "Coding, workspace, Project Studio, automation, tool, MCP, and developer history workflows.",
+    "description": "Project Studio, autonomous software delivery, virtual teams, boards, and project activity workflows.",
     "pricing": {
       "amountCents": 1900,
       "currency": "USD",
@@ -46,7 +46,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
       },
       "installRequired": true,
       "securityBoundary": "signed-local-bundle",
-      "notes": "This package builds as a separate signed artifact with SDK-defined extension metadata. The remaining work is to move all desktop and CLI implementation modules behind the installed package boundary."
+      "notes": "This package builds as a separate signed artifact and owns its feature, navigation, command, and runtime metadata through the SDK extension contract."
     },
     "entitlement": {
       "state": "available",
@@ -66,66 +66,48 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
       {
         "id": "developer-tools",
         "capabilityIds": [
-          "tools.bridge",
           "tools.command-runner",
-          "tools.permissions",
-          "tools.activity"
+          "tools.activity",
+          "extensions.plugins",
+          "extensions.skills"
         ],
         "title": "Developer Tools",
-        "description": "Bridge tools, command runner, tool-router controls, permissions, and activity audit views.",
+        "description": "Command execution, tool diagnostics, plugins, and skills for software work.",
         "adapters": [
           {
             "shell": "desktop",
             "routes": [
-              "tools"
+              "tools:command",
+              "tools:activity",
+              "tools:plugins"
             ],
             "commands": [
-              "/tools",
-              "/run <tool> <json>"
+              "/tools"
             ]
           },
           {
             "shell": "cli",
             "commands": [
-              "tools"
+              "tools",
+              "plugin",
+              "plugins"
             ]
           },
           {
             "shell": "mobile",
             "views": [
-              "tool-approvals"
+              "tool-activity"
             ]
           }
         ],
         "requiredServices": [
           "tool-service",
-          "filesystem",
           "command",
-          "web",
-          "finance"
+          "local-history"
         ],
         "storageNamespaces": [
           "toolPermissionPolicies",
           "disabledLlmTools"
-        ],
-        "toolSchemas": [
-          "time.now",
-          "web.search",
-          "web.research",
-          "web.fetch",
-          "finance.quote",
-          "bash.run",
-          "fs.read",
-          "fs.write",
-          "fs.undoLastWrite",
-          "fs.list",
-          "api.chat",
-          "app.getConfig"
-        ],
-        "permissionPolicies": [
-          "bash.run",
-          "fs.write",
-          "fs.undoLastWrite"
         ],
         "historyEventTypes": [
           "tool-event"
@@ -139,7 +121,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           "mcp.call-tool"
         ],
         "title": "MCP Integration",
-        "description": "Configured MCP servers, executable tool discovery, and MCP tool execution.",
+        "description": "Discover, inspect, and use Model Context Protocol servers and tools.",
         "adapters": [
           {
             "shell": "desktop",
@@ -164,7 +146,8 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           }
         ],
         "requiredServices": [
-          "mcp"
+          "mcp",
+          "tool-service"
         ],
         "toolSchemas": [
           "mcp.listServers",
@@ -173,6 +156,55 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         ],
         "permissionPolicies": [
           "mcp.callTool"
+        ],
+        "historyEventTypes": [
+          "tool-event"
+        ]
+      },
+      {
+        "id": "developer-settings",
+        "capabilityIds": [
+          "settings.prompts",
+          "settings.sessions",
+          "settings.integrations",
+          "settings.debug",
+          "settings.advanced"
+        ],
+        "title": "Developer Settings",
+        "description": "Debugging, prompts, integrations, sessions, and compatibility controls for development workflows.",
+        "adapters": [
+          {
+            "shell": "desktop",
+            "routes": [
+              "settings:io-debug",
+              "settings:workspace",
+              "settings:sessions",
+              "settings:advanced"
+            ]
+          },
+          {
+            "shell": "cli",
+            "commands": [
+              "agents",
+              "plugin",
+              "plugins"
+            ]
+          },
+          {
+            "shell": "mobile",
+            "views": [
+              "developer-settings"
+            ]
+          }
+        ],
+        "requiredServices": [
+          "app-state",
+          "auth",
+          "mcp"
+        ],
+        "storageNamespaces": [
+          "config",
+          "settings"
         ]
       },
       {
@@ -306,21 +338,22 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         ]
       },
       {
-        "id": "developer-history",
+        "id": "project-history",
         "capabilityIds": [
-          "history.chats",
-          "history.tools",
           "history.automation",
           "history.projects",
           "history.export"
         ],
-        "title": "Developer History",
-        "description": "Local history for chats, tool events, automation runs, project events, restores, and exports.",
+        "title": "Project Activity",
+        "description": "Automation runs, project events, audit records, and exports for software delivery workflows.",
         "adapters": [
           {
             "shell": "desktop",
             "routes": [
-              "history"
+              "history:overview",
+              "history:automation",
+              "history:events",
+              "history:export"
             ],
             "commands": [
               "/history"
@@ -335,7 +368,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           {
             "shell": "mobile",
             "views": [
-              "activity"
+              "project-activity"
             ]
           }
         ],
@@ -346,109 +379,92 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           "history"
         ],
         "historyEventTypes": [
-          "chat-session",
-          "tool-event",
           "automation-run",
           "project-event"
-        ]
-      },
-      {
-        "id": "developer-settings",
-        "capabilityIds": [
-          "settings.tools",
-          "settings.prompts",
-          "settings.sessions",
-          "settings.integrations",
-          "settings.advanced"
-        ],
-        "title": "Developer Settings",
-        "description": "Developer-focused model, tool, prompt, session, integration, and compatibility controls.",
-        "adapters": [
-          {
-            "shell": "desktop",
-            "routes": [
-              "settings:io-debug",
-              "settings:tools-permissions",
-              "settings:workspace",
-              "settings:sessions",
-              "settings:advanced"
-            ]
-          },
-          {
-            "shell": "cli",
-            "commands": [
-              "config",
-              "agents",
-              "plugin",
-              "plugins"
-            ]
-          },
-          {
-            "shell": "mobile",
-            "views": [
-              "developer-settings"
-            ]
-          }
-        ],
-        "requiredServices": [
-          "app-state",
-          "auth",
-          "mcp"
-        ],
-        "storageNamespaces": [
-          "config",
-          "settings"
         ]
       }
     ],
     "extensions": [
       {
-        "id": "software-developer.desktop.primary-nav.projects",
+        "id": "software-developer.desktop.primary-nav.developer",
         "point": "desktop.primary-nav",
         "shell": "desktop",
-        "featureId": "project-studio",
-        "title": "Projects",
-        "description": "Ideas, guided builds, and autonomous teams",
-        "icon": "briefcase",
-        "route": "projects",
+        "title": "Developer",
+        "description": "Projects, autonomous delivery, automation, and project activity",
+        "icon": "code",
+        "route": "developer",
         "entrypoint": "dist/index.js",
         "order": 100
       },
       {
-        "id": "software-developer.desktop.primary-nav.tools",
-        "point": "desktop.primary-nav",
+        "id": "software-developer.desktop.child-route.developer-projects",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "project-studio",
+        "title": "Projects",
+        "description": "Projects with optional fully autonomous execution",
+        "icon": "briefcase",
+        "route": "projects",
+        "parentRoute": "developer",
+        "childRoute": "projects",
+        "entrypoint": "dist/index.js",
+        "order": 100
+      },
+      {
+        "id": "software-developer.desktop.child-route.developer-tools",
+        "point": "desktop.child-route",
         "shell": "desktop",
         "featureId": "developer-tools",
         "title": "Tools",
-        "description": "Bridge tools, MCP, and activity",
+        "description": "MCP, commands, diagnostics, plugins, and skills",
         "icon": "wrench",
         "route": "tools",
+        "parentRoute": "developer",
+        "childRoute": "tools",
         "entrypoint": "dist/index.js",
         "order": 110
       },
       {
-        "id": "software-developer.desktop.primary-nav.automation",
-        "point": "desktop.primary-nav",
+        "id": "software-developer.desktop.child-route.developer-automation",
+        "point": "desktop.child-route",
         "shell": "desktop",
         "featureId": "automation",
         "title": "Automation",
         "description": "Skills, tasks, remote control, and permissions",
         "icon": "bot",
         "route": "automation",
+        "parentRoute": "developer",
+        "childRoute": "automation",
         "entrypoint": "dist/index.js",
         "order": 120
       },
       {
-        "id": "software-developer.desktop.primary-nav.history",
-        "point": "desktop.primary-nav",
+        "id": "software-developer.desktop.child-route.developer-settings",
+        "point": "desktop.child-route",
         "shell": "desktop",
-        "featureId": "developer-history",
-        "title": "History",
-        "description": "Chats, tool activity, exports, and audit",
-        "icon": "history",
-        "route": "history",
+        "featureId": "developer-settings",
+        "title": "Developer Settings",
+        "description": "Debug, prompts, sessions, integrations, and compatibility",
+        "icon": "sliders",
+        "route": "settings",
+        "parentRoute": "developer",
+        "childRoute": "settings",
         "entrypoint": "dist/index.js",
         "order": 130
+      },
+      {
+        "id": "software-developer.desktop.child-route.developer-history",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "project-history",
+        "title": "Project Activity",
+        "description": "Automation runs, project events, and exports",
+        "icon": "history",
+        "route": "history",
+        "parentRoute": "developer",
+        "childRoute": "history",
+        "entrypoint": "dist/index.js",
+        "order": 140
       },
       {
         "id": "software-developer.desktop.child-route.project-studio",
@@ -456,7 +472,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "shell": "desktop",
         "featureId": "project-studio",
         "title": "Project Studio",
-        "description": "Create software from ideas or autonomous teams",
+        "description": "Create projects with optional autonomous delivery",
         "icon": "board",
         "parentRoute": "projects",
         "childRoute": "studio",
@@ -503,30 +519,69 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "order": 130
       },
       {
-        "id": "software-developer.desktop.child-route.tools-bridge",
-        "point": "desktop.child-route",
-        "shell": "desktop",
-        "featureId": "developer-tools",
-        "title": "Bridge Tools",
-        "description": "Exposure and permissions",
-        "icon": "plug",
-        "parentRoute": "tools",
-        "childRoute": "bridge",
-        "entrypoint": "dist/index.js",
-        "order": 100
-      },
-      {
         "id": "software-developer.desktop.child-route.tools-mcp",
         "point": "desktop.child-route",
         "shell": "desktop",
         "featureId": "mcp",
         "title": "MCP Registry",
-        "description": "Servers and executable tools",
+        "description": "Connected servers and discovered tools",
         "icon": "database",
         "parentRoute": "tools",
         "childRoute": "mcp",
         "entrypoint": "dist/index.js",
+        "order": 100
+      },
+      {
+        "id": "software-developer.desktop.child-route.tools-command",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-tools",
+        "title": "Command Runner",
+        "description": "Run approved development commands",
+        "icon": "terminal",
+        "parentRoute": "tools",
+        "childRoute": "command",
+        "entrypoint": "dist/index.js",
         "order": 110
+      },
+      {
+        "id": "software-developer.desktop.child-route.tools-activity",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-tools",
+        "title": "Activity",
+        "description": "Tool calls, results, and diagnostics",
+        "icon": "activity",
+        "parentRoute": "tools",
+        "childRoute": "activity",
+        "entrypoint": "dist/index.js",
+        "order": 120
+      },
+      {
+        "id": "software-developer.desktop.child-route.tools-plugins",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-tools",
+        "title": "Plugins & Skills",
+        "description": "Development extensions and reusable skills",
+        "icon": "puzzle",
+        "parentRoute": "tools",
+        "childRoute": "plugins",
+        "entrypoint": "dist/index.js",
+        "order": 130
+      },
+      {
+        "id": "software-developer.desktop.child-route.automation-skills",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "automation",
+        "title": "Skills",
+        "description": "Workspace extensions",
+        "icon": "sparkles",
+        "parentRoute": "automation",
+        "childRoute": "skills",
+        "entrypoint": "dist/index.js",
+        "order": 100
       },
       {
         "id": "software-developer.desktop.child-route.automation-tasks",
@@ -539,15 +594,93 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "parentRoute": "automation",
         "childRoute": "tasks",
         "entrypoint": "dist/index.js",
+        "order": 110
+      },
+      {
+        "id": "software-developer.desktop.child-route.automation-remote",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "automation",
+        "title": "Remote Control",
+        "description": "Phone pairing and approvals",
+        "icon": "phone",
+        "parentRoute": "automation",
+        "childRoute": "remote",
+        "entrypoint": "dist/index.js",
+        "order": 120
+      },
+      {
+        "id": "software-developer.desktop.child-route.automation-permissions",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "automation",
+        "title": "Permissions",
+        "description": "Unattended execution policy",
+        "icon": "shield",
+        "parentRoute": "automation",
+        "childRoute": "permissions",
+        "entrypoint": "dist/index.js",
+        "order": 130
+      },
+      {
+        "id": "software-developer.desktop.child-route.settings-io-debug",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-settings",
+        "title": "Output & Debug",
+        "description": "Formats, traces, and logs",
+        "icon": "code",
+        "parentRoute": "settings",
+        "childRoute": "io-debug",
+        "entrypoint": "dist/index.js",
         "order": 100
+      },
+      {
+        "id": "software-developer.desktop.child-route.settings-workspace",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-settings",
+        "title": "Prompts & Directories",
+        "description": "System prompts and workspace directories",
+        "icon": "folder",
+        "parentRoute": "settings",
+        "childRoute": "workspace",
+        "entrypoint": "dist/index.js",
+        "order": 110
+      },
+      {
+        "id": "software-developer.desktop.child-route.settings-sessions",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-settings",
+        "title": "Sessions & Integrations",
+        "description": "Resume, IDE, and browser integrations",
+        "icon": "rotate",
+        "parentRoute": "settings",
+        "childRoute": "sessions",
+        "entrypoint": "dist/index.js",
+        "order": 120
+      },
+      {
+        "id": "software-developer.desktop.child-route.settings-advanced",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "developer-settings",
+        "title": "Advanced Compatibility",
+        "description": "Channels and agent metadata",
+        "icon": "sliders",
+        "parentRoute": "settings",
+        "childRoute": "advanced",
+        "entrypoint": "dist/index.js",
+        "order": 130
       },
       {
         "id": "software-developer.desktop.child-route.history-overview",
         "point": "desktop.child-route",
         "shell": "desktop",
-        "featureId": "developer-history",
+        "featureId": "project-history",
         "title": "Overview",
-        "description": "Storage and record counts",
+        "description": "Project and automation record counts",
         "icon": "bar-chart",
         "parentRoute": "history",
         "childRoute": "overview",
@@ -555,11 +688,50 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "order": 100
       },
       {
+        "id": "software-developer.desktop.child-route.history-automation",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "project-history",
+        "title": "Automation Runs",
+        "description": "Scheduled and autonomous execution history",
+        "icon": "bot",
+        "parentRoute": "history",
+        "childRoute": "automation",
+        "entrypoint": "dist/index.js",
+        "order": 110
+      },
+      {
+        "id": "software-developer.desktop.child-route.history-events",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "project-history",
+        "title": "Project Events",
+        "description": "Project lifecycle and delivery audit",
+        "icon": "activity",
+        "parentRoute": "history",
+        "childRoute": "events",
+        "entrypoint": "dist/index.js",
+        "order": 120
+      },
+      {
+        "id": "software-developer.desktop.child-route.history-export",
+        "point": "desktop.child-route",
+        "shell": "desktop",
+        "featureId": "project-history",
+        "title": "Export",
+        "description": "Export project and automation records",
+        "icon": "download",
+        "parentRoute": "history",
+        "childRoute": "export",
+        "entrypoint": "dist/index.js",
+        "order": 130
+      },
+      {
         "id": "software-developer.desktop.slash-command.tools",
         "point": "desktop.slash-command",
         "shell": "desktop",
         "featureId": "developer-tools",
-        "title": "List bridge and MCP tools",
+        "title": "Open developer tools",
         "command": "/tools",
         "entrypoint": "dist/index.js",
         "order": 100
@@ -569,7 +741,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "point": "desktop.slash-command",
         "shell": "desktop",
         "featureId": "mcp",
-        "title": "Refresh and list MCP servers/tools",
+        "title": "Open MCP registry",
         "command": "/mcp",
         "entrypoint": "dist/index.js",
         "order": 110
@@ -603,8 +775,8 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "id": "software-developer.desktop.slash-command.history",
         "point": "desktop.slash-command",
         "shell": "desktop",
-        "featureId": "developer-history",
-        "title": "Open local history",
+        "featureId": "project-history",
+        "title": "Open project activity",
         "command": "/history",
         "entrypoint": "dist/index.js",
         "order": 140
@@ -623,6 +795,21 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "route": "projects",
         "entrypoint": "dist/index.js",
         "order": 100
+      },
+      {
+        "id": "software-developer.electron.menu.tools",
+        "point": "electron.menu",
+        "shell": "desktop",
+        "featureId": "developer-tools",
+        "title": "Developer Tools",
+        "menuPath": [
+          "Packages",
+          "Software Developer",
+          "Tools"
+        ],
+        "route": "tools",
+        "entrypoint": "dist/index.js",
+        "order": 105
       },
       {
         "id": "software-developer.electron.menu.automation",
@@ -676,6 +863,30 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "order": 100
       },
       {
+        "id": "software-developer.cli.command.tools",
+        "point": "cli.command",
+        "shell": "cli",
+        "featureId": "developer-tools",
+        "title": "Developer tool commands",
+        "command": "tools",
+        "commandAliases": [
+          "plugin",
+          "plugins"
+        ],
+        "entrypoint": "dist/index.js",
+        "order": 105
+      },
+      {
+        "id": "software-developer.cli.command.mcp",
+        "point": "cli.command",
+        "shell": "cli",
+        "featureId": "mcp",
+        "title": "MCP integration commands",
+        "command": "mcp",
+        "entrypoint": "dist/index.js",
+        "order": 108
+      },
+      {
         "id": "software-developer.cli.command.automation",
         "point": "cli.command",
         "shell": "cli",
@@ -687,38 +898,6 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         ],
         "entrypoint": "dist/index.js",
         "order": 110
-      },
-      {
-        "id": "software-developer.cli.command.tools",
-        "point": "cli.command",
-        "shell": "cli",
-        "featureId": "developer-tools",
-        "title": "Developer tool commands",
-        "command": "tools",
-        "entrypoint": "dist/index.js",
-        "order": 120
-      },
-      {
-        "id": "software-developer.cli.command.history",
-        "point": "cli.command",
-        "shell": "cli",
-        "featureId": "developer-history",
-        "title": "Developer history commands",
-        "command": "history",
-        "entrypoint": "dist/index.js",
-        "order": 130
-      },
-      {
-        "id": "software-developer.settings.developer",
-        "point": "settings.section",
-        "shell": "desktop",
-        "featureId": "developer-settings",
-        "title": "Developer Settings",
-        "description": "Tools, prompts, sessions, integrations, and compatibility controls",
-        "route": "settings",
-        "parentRoute": "settings",
-        "entrypoint": "dist/index.js",
-        "order": 500
       },
       {
         "id": "software-developer.mobile.view.project-status",

@@ -34,6 +34,7 @@ import type {
   FileContextReadResult,
   FileEntry,
   AuthToken,
+  PlatformAuthSession,
   AppConfig,
   AppInfo,
   FeaturePackageInstallRequest,
@@ -146,6 +147,9 @@ const IPC_CHANNELS = {
   'auth:getToken': 'auth:getToken',
   'auth:logout': 'auth:logout',
   'auth:setToken': 'auth:setToken',
+  'auth:getPlatformSession': 'auth:getPlatformSession',
+  'auth:setPlatformSession': 'auth:setPlatformSession',
+  'auth:clearPlatformSession': 'auth:clearPlatformSession',
   'app:info': 'app:info',
   'app:getConfig': 'app:getConfig',
   'app:setConfig': 'app:setConfig',
@@ -446,6 +450,18 @@ const api = {
 
     setToken: (token: AuthToken): Promise<void> => {
       return ipcRenderer.invoke(IPC_CHANNELS['auth:setToken'], token);
+    },
+
+    getPlatformSession: (): Promise<PlatformAuthSession | null> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['auth:getPlatformSession']);
+    },
+
+    setPlatformSession: (session: PlatformAuthSession): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['auth:setPlatformSession'], session);
+    },
+
+    clearPlatformSession: (): Promise<void> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['auth:clearPlatformSession']);
     },
   },
 

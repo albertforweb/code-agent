@@ -63,7 +63,7 @@ The CLI and desktop distributions bundle [llama.cpp](https://github.com/ggml-org
 CLI example:
 
 ```bash
-code-agent --llm-provider codeagent --model Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF
+code-agent --llm-provider codeagent --model Qwen/Qwen3-4B-GGUF
 ```
 
 The managed server binds only to loopback and stops when its owning CodeAgent process exits. Set `HF_TOKEN` when downloading a repository that requires authentication. Downloads and CLI inference state are stored under `~/.code-agent/local-models`. The `code-agent models ...` commands remain available for catalog inspection and diagnostics.

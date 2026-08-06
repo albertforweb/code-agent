@@ -38569,12 +38569,14 @@
     }
   });
 
+  // src/renderer/index.tsx
+  var import_client = __toESM(require_client(), 1);
+
   // node_modules/react/esm-wrapper.mjs
   var import_index = __toESM(require_react(), 1);
   var unsupported = (name) => () => {
     throw new Error(`${name} is unavailable in the installed React runtime`);
   };
-  var esm_wrapper_default = import_index.default;
   var Children = import_index.default.Children;
   var Component = import_index.default.Component;
   var Fragment = import_index.default.Fragment;
@@ -38613,9 +38615,6 @@
   var useSyncExternalStore = import_index.default.useSyncExternalStore;
   var useTransition = import_index.default.useTransition;
   var version = import_index.default.version;
-
-  // src/renderer/index.tsx
-  var import_client = __toESM(require_client(), 1);
 
   // node_modules/highlight.js/es/common.js
   var import_common = __toESM(require_common(), 1);
@@ -38680,6 +38679,7 @@
     containerCollapsed: "App_containerCollapsed",
     navSidebar: "App_navSidebar",
     navSidebarCollapsed: "App_navSidebarCollapsed",
+    mobileNavBackdrop: "App_mobileNavBackdrop",
     brandBlock: "App_brandBlock",
     sidebarFooter: "App_sidebarFooter",
     brandMark: "App_brandMark",
@@ -38700,6 +38700,11 @@
     recentList: "App_recentList",
     navGroup: "App_navGroup",
     navSubList: "App_navSubList",
+    navNestedGroup: "App_navNestedGroup",
+    navGrandchildList: "App_navGrandchildList",
+    navGrandchildItem: "App_navGrandchildItem",
+    navGrandchildItemActive: "App_navGrandchildItemActive",
+    navGrandchildGlyph: "App_navGrandchildGlyph",
     recentSection: "App_recentSection",
     sessionSearchInput: "App_sessionSearchInput",
     recentTitle: "App_recentTitle",
@@ -38707,22 +38712,89 @@
     sidebarBottom: "App_sidebarBottom",
     sidebarSettingsButton: "App_sidebarSettingsButton",
     sidebarSettingsButtonActive: "App_sidebarSettingsButtonActive",
+    sidebarAccountButton: "App_sidebarAccountButton",
+    sidebarAccountButtonActive: "App_sidebarAccountButtonActive",
+    sidebarAccountAvatar: "App_sidebarAccountAvatar",
+    sidebarUtilitySubList: "App_sidebarUtilitySubList",
     appShell: "App_appShell",
+    workspaceFrame: "App_workspaceFrame",
+    workspaceColumn: "App_workspaceColumn",
+    contextSidebar: "App_contextSidebar",
+    contextSidebarHeader: "App_contextSidebarHeader",
+    contextNavItem: "App_contextNavItem",
+    contextNavItemActive: "App_contextNavItemActive",
+    contextSidebarMark: "App_contextSidebarMark",
+    contextNavGlyph: "App_contextNavGlyph",
+    contextNavList: "App_contextNavList",
+    developerPageNavigation: "App_developerPageNavigation",
+    pageTabs: "App_pageTabs",
+    pageTab: "App_pageTab",
+    pageTabActive: "App_pageTabActive",
+    developerContextSelect: "App_developerContextSelect",
     headerTitle: "App_headerTitle",
     headerLeading: "App_headerLeading",
     headerNavButton: "App_headerNavButton",
+    assistantActivity: "App_assistantActivity",
+    assistantActivityTitle: "App_assistantActivityTitle",
+    assistantActivityAttention: "App_assistantActivityAttention",
+    assistantActivityBody: "App_assistantActivityBody",
+    messagePerformance: "App_messagePerformance",
+    messagePerformanceGrid: "App_messagePerformanceGrid",
+    messagePerformanceNote: "App_messagePerformanceNote",
+    assistantActivityUsage: "App_assistantActivityUsage",
+    assistantActivityTools: "App_assistantActivityTools",
+    chatToolActivity: "App_chatToolActivity",
     messageImageGrid: "App_messageImageGrid",
     messageImageItem: "App_messageImageItem",
     messageImagePlaceholder: "App_messageImagePlaceholder",
     toolTrace: "App_toolTrace",
     toolTraceSummary: "App_toolTraceSummary",
     toolTraceDetails: "App_toolTraceDetails",
+    chatToolActivityRow: "App_chatToolActivityRow",
+    chatToolActivityIcon: "App_chatToolActivityIcon",
+    chatToolActivity_running: "App_chatToolActivity_running",
+    "chatToolActivity_waiting-approval": "App_chatToolActivity_waiting-approval",
+    chatToolActivity_failed: "App_chatToolActivity_failed",
+    chatToolActivity_rejected: "App_chatToolActivity_rejected",
+    chatToolActivitySummary: "App_chatToolActivitySummary",
+    chatToolActivityStatus: "App_chatToolActivityStatus",
+    chatToolActivityDuration: "App_chatToolActivityDuration",
+    chatToolActivityOutcome: "App_chatToolActivityOutcome",
+    chatToolActivityOutcomeError: "App_chatToolActivityOutcomeError",
+    chatToolActivityDetails: "App_chatToolActivityDetails",
+    chatHistorySummary: "App_chatHistorySummary",
+    chatHistoryDeleteAll: "App_chatHistoryDeleteAll",
+    chatHistoryControls: "App_chatHistoryControls",
+    chatHistoryRow: "App_chatHistoryRow",
+    chatHistoryIdentity: "App_chatHistoryIdentity",
+    chatHistoryEmpty: "App_chatHistoryEmpty",
+    chatHistoryList: "App_chatHistoryList",
+    chatHistoryRowActive: "App_chatHistoryRowActive",
+    chatHistoryDeleteConfirm: "App_chatHistoryDeleteConfirm",
     commandPalette: "App_commandPalette",
     commandPaletteItem: "App_commandPaletteItem",
     composerContextPanel: "App_composerContextPanel",
     composerContextBar: "App_composerContextBar",
     composerContextStatus: "App_composerContextStatus",
     composerContextActions: "App_composerContextActions",
+    composerContextChip: "App_composerContextChip",
+    composerFolderMenu: "App_composerFolderMenu",
+    composerFolderChevron: "App_composerFolderChevron",
+    composerFolderMenuPopover: "App_composerFolderMenuPopover",
+    composerToolbar: "App_composerToolbar",
+    composerMeta: "App_composerMeta",
+    composerSettingMenu: "App_composerSettingMenu",
+    composerSettingTrigger: "App_composerSettingTrigger",
+    composerSettingTriggerDanger: "App_composerSettingTriggerDanger",
+    composerSettingPopover: "App_composerSettingPopover",
+    composerPermissionPopover: "App_composerPermissionPopover",
+    composerSettingWorkspace: "App_composerSettingWorkspace",
+    composerSettingDangerOption: "App_composerSettingDangerOption",
+    composerPermissionConfirm: "App_composerPermissionConfirm",
+    composerSettingFooter: "App_composerSettingFooter",
+    projectComposerIdentity: "App_projectComposerIdentity",
+    projectComposerPermission: "App_projectComposerPermission",
+    composerClearButton: "App_composerClearButton",
     composerAttachmentList: "App_composerAttachmentList",
     composerAttachmentChip: "App_composerAttachmentChip",
     composerImageList: "App_composerImageList",
@@ -38730,6 +38802,8 @@
     statusPane: "App_statusPane",
     statusPaneStatic: "App_statusPaneStatic",
     workspaceDetail: "App_workspaceDetail",
+    workspaceSettings: "App_workspaceSettings",
+    settingsView: "App_settingsView",
     detailView: "App_detailView",
     detailViewWithRail: "App_detailViewWithRail",
     detailViewWithWideRail: "App_detailViewWithWideRail",
@@ -38843,6 +38917,7 @@
     projectTimelineContentHeader: "App_projectTimelineContentHeader",
     projectChatMessage: "App_projectChatMessage",
     projectChatSurface: "App_projectChatSurface",
+    projectChatPanelBody: "App_projectChatPanelBody",
     projectRailChatBody: "App_projectRailChatBody",
     projectChatTranscript: "App_projectChatTranscript",
     projectChatComposer: "App_projectChatComposer",
@@ -38889,7 +38964,6 @@
     toolActivityActions: "App_toolActivityActions",
     pairingCode: "App_pairingCode",
     dialogBackdrop: "App_dialogBackdrop",
-    settingsView: "App_settingsView",
     settingsPageForm: "App_settingsPageForm",
     settingsPageSubtitle: "App_settingsPageSubtitle",
     dialogHeader: "App_dialogHeader",
@@ -38901,26 +38975,46 @@
     settingsContent: "App_settingsContent",
     settingsContentHeader: "App_settingsContentHeader",
     reviewDialog: "App_reviewDialog",
-    reviewSubtitle: "App_reviewSubtitle",
-    reviewBadge: "App_reviewBadge",
-    reviewMeta: "App_reviewMeta",
+    inlineApprovalQueue: "App_inlineApprovalQueue",
+    inlineApprovalQueueHeader: "App_inlineApprovalQueueHeader",
+    inlineReviewCard: "App_inlineReviewCard",
     diffBlock: "App_diffBlock",
     commandBlock: "App_commandBlock",
+    dialogFooter: "App_dialogFooter",
+    dialogActions: "App_dialogActions",
+    reviewMeta: "App_reviewMeta",
+    reviewSubtitle: "App_reviewSubtitle",
+    reviewBadge: "App_reviewBadge",
     diffHeaderLine: "App_diffHeaderLine",
     diffAdded: "App_diffAdded",
     diffRemoved: "App_diffRemoved",
     diffMeta: "App_diffMeta",
-    dialogFooter: "App_dialogFooter",
-    dialogActions: "App_dialogActions",
     settingsGrid: "App_settingsGrid",
     settingsSection: "App_settingsSection",
     fieldWide: "App_fieldWide",
+    accountHero: "App_accountHero",
+    accountAvatar: "App_accountAvatar",
+    accountHeroBody: "App_accountHeroBody",
+    accountPlanBadge: "App_accountPlanBadge",
+    accountHeroActions: "App_accountHeroActions",
+    accountInlineMessage: "App_accountInlineMessage",
+    accountGuestGrid: "App_accountGuestGrid",
+    accountAuthCard: "App_accountAuthCard",
+    accountBenefitsCard: "App_accountBenefitsCard",
+    accountAuthHeader: "App_accountAuthHeader",
+    accountAuthFields: "App_accountAuthFields",
+    accountAuthActions: "App_accountAuthActions",
+    accountAdvanced: "App_accountAdvanced",
+    accountAdvancedBody: "App_accountAdvancedBody",
+    accountDeveloperMode: "App_accountDeveloperMode",
     accountOverviewGrid: "App_accountOverviewGrid",
     accountSummaryCard: "App_accountSummaryCard",
     accountNotice: "App_accountNotice",
     paymentSummaryList: "App_paymentSummaryList",
+    paymentMethodActions: "App_paymentMethodActions",
     accountPackageShelf: "App_accountPackageShelf",
     packageStoreOwnedShelf: "App_packageStoreOwnedShelf",
+    accountBillingSection: "App_accountBillingSection",
     accountShelfHeader: "App_accountShelfHeader",
     accountPackageList: "App_accountPackageList",
     accountPackageItem: "App_accountPackageItem",
@@ -38929,14 +39023,34 @@
     packageStoreMeta: "App_packageStoreMeta",
     accountEmptyState: "App_accountEmptyState",
     packageStoreHeader: "App_packageStoreHeader",
+    packageInstallError: "App_packageInstallError",
+    packageInstallErrorHeader: "App_packageInstallErrorHeader",
+    packageInstallErrorIcon: "App_packageInstallErrorIcon",
+    packageInstallErrorActions: "App_packageInstallErrorActions",
     packageStoreSummary: "App_packageStoreSummary",
     packageStoreOwnedList: "App_packageStoreOwnedList",
     packageStoreOwnedItem: "App_packageStoreOwnedItem",
+    packageStoreOwnedBody: "App_packageStoreOwnedBody",
     packageStoreIdentity: "App_packageStoreIdentity",
+    packageBillingNote: "App_packageBillingNote",
+    packageStateAvailable: "App_packageStateAvailable",
+    packageStatePending: "App_packageStatePending",
+    packageStoreCatalogHeader: "App_packageStoreCatalogHeader",
+    packageStoreToolbar: "App_packageStoreToolbar",
+    packageStoreSearch: "App_packageStoreSearch",
+    visuallyHidden: "App_visuallyHidden",
+    packageStoreIconList: "App_packageStoreIconList",
+    packageStoreIconRow: "App_packageStoreIconRow",
+    packageStoreIcon: "App_packageStoreIcon",
+    packageStoreIconBody: "App_packageStoreIconBody",
+    packageStoreTableIdentity: "App_packageStoreTableIdentity",
+    packageStoreIconAction: "App_packageStoreIconAction",
+    packageStorePillAction: "App_packageStorePillAction",
+    packageStoreTableWrap: "App_packageStoreTableWrap",
+    packageStoreTable: "App_packageStoreTable",
     packageStoreGrid: "App_packageStoreGrid",
     packageStoreCard: "App_packageStoreCard",
     packageStoreTopline: "App_packageStoreTopline",
-    packageStoreIcon: "App_packageStoreIcon",
     packageStoreDescription: "App_packageStoreDescription",
     packageStoreFeatures: "App_packageStoreFeatures",
     packageStoreFooter: "App_packageStoreFooter",
@@ -38944,7 +39058,6 @@
     packageCatalogGrid: "App_packageCatalogGrid",
     packageCatalogCard: "App_packageCatalogCard",
     packageCatalogHeader: "App_packageCatalogHeader",
-    packageStateAvailable: "App_packageStateAvailable",
     packageStateLocked: "App_packageStateLocked",
     packageCatalogMeta: "App_packageCatalogMeta",
     packageFeatureList: "App_packageFeatureList",
@@ -38981,7 +39094,27 @@
     modelLogDetails: "App_modelLogDetails",
     modelPreparationActions: "App_modelPreparationActions",
     localModelList: "App_localModelList",
-    localModelRow: "App_localModelRow"
+    localModelRow: "App_localModelRow",
+    containerNarrow: "App_containerNarrow",
+    permissionProfileSection: "App_permissionProfileSection",
+    permissionProfileHeader: "App_permissionProfileHeader",
+    permissionProfileList: "App_permissionProfileList",
+    permissionProfileOption: "App_permissionProfileOption",
+    permissionProfileOptionSelected: "App_permissionProfileOptionSelected",
+    permissionProfileOptionDanger: "App_permissionProfileOptionDanger",
+    permissionProfileBody: "App_permissionProfileBody",
+    permissionProfileTitle: "App_permissionProfileTitle",
+    permissionProfileWarning: "App_permissionProfileWarning",
+    coreToolPermissions: "App_coreToolPermissions",
+    coreToolPermissionsHeader: "App_coreToolPermissionsHeader",
+    coreToolGroup: "App_coreToolGroup",
+    coreToolCount: "App_coreToolCount",
+    coreToolPolicySummary: "App_coreToolPolicySummary",
+    coreToolPresetActions: "App_coreToolPresetActions",
+    coreToolDetails: "App_coreToolDetails",
+    coreToolGroups: "App_coreToolGroups",
+    coreToolRow: "App_coreToolRow",
+    coreToolIdentity: "App_coreToolIdentity"
   };
 
   // src/renderer/ipc-client.ts
@@ -39070,7 +39203,10 @@
     auth: {
       getToken: () => getApi().auth.getToken(),
       logout: () => getApi().auth.logout(),
-      setToken: (token) => getApi().auth.setToken(token)
+      setToken: (token) => getApi().auth.setToken(token),
+      getPlatformSession: () => getApi().auth.getPlatformSession(),
+      setPlatformSession: (session) => getApi().auth.setPlatformSession(session),
+      clearPlatformSession: () => getApi().auth.clearPlatformSession()
     },
     app: {
       info: () => getApi().app.info(),
@@ -39112,7 +39248,7 @@
       "tier": "paid",
       "version": "1.0.0",
       "owner": "codeagent",
-      "description": "Coding, workspace, Project Studio, automation, tool, MCP, and developer history workflows.",
+      "description": "Project Studio, autonomous software delivery, virtual teams, boards, and project activity workflows.",
       "pricing": {
         "amountCents": 1900,
         "currency": "USD",
@@ -39147,7 +39283,7 @@
         },
         "installRequired": true,
         "securityBoundary": "signed-local-bundle",
-        "notes": "This package builds as a separate signed artifact with SDK-defined extension metadata. The remaining work is to move all desktop and CLI implementation modules behind the installed package boundary."
+        "notes": "This package builds as a separate signed artifact and owns its feature, navigation, command, and runtime metadata through the SDK extension contract."
       },
       "entitlement": {
         "state": "available",
@@ -39167,66 +39303,48 @@
         {
           "id": "developer-tools",
           "capabilityIds": [
-            "tools.bridge",
             "tools.command-runner",
-            "tools.permissions",
-            "tools.activity"
+            "tools.activity",
+            "extensions.plugins",
+            "extensions.skills"
           ],
           "title": "Developer Tools",
-          "description": "Bridge tools, command runner, tool-router controls, permissions, and activity audit views.",
+          "description": "Command execution, tool diagnostics, plugins, and skills for software work.",
           "adapters": [
             {
               "shell": "desktop",
               "routes": [
-                "tools"
+                "tools:command",
+                "tools:activity",
+                "tools:plugins"
               ],
               "commands": [
-                "/tools",
-                "/run <tool> <json>"
+                "/tools"
               ]
             },
             {
               "shell": "cli",
               "commands": [
-                "tools"
+                "tools",
+                "plugin",
+                "plugins"
               ]
             },
             {
               "shell": "mobile",
               "views": [
-                "tool-approvals"
+                "tool-activity"
               ]
             }
           ],
           "requiredServices": [
             "tool-service",
-            "filesystem",
             "command",
-            "web",
-            "finance"
+            "local-history"
           ],
           "storageNamespaces": [
             "toolPermissionPolicies",
             "disabledLlmTools"
-          ],
-          "toolSchemas": [
-            "time.now",
-            "web.search",
-            "web.research",
-            "web.fetch",
-            "finance.quote",
-            "bash.run",
-            "fs.read",
-            "fs.write",
-            "fs.undoLastWrite",
-            "fs.list",
-            "api.chat",
-            "app.getConfig"
-          ],
-          "permissionPolicies": [
-            "bash.run",
-            "fs.write",
-            "fs.undoLastWrite"
           ],
           "historyEventTypes": [
             "tool-event"
@@ -39240,7 +39358,7 @@
             "mcp.call-tool"
           ],
           "title": "MCP Integration",
-          "description": "Configured MCP servers, executable tool discovery, and MCP tool execution.",
+          "description": "Discover, inspect, and use Model Context Protocol servers and tools.",
           "adapters": [
             {
               "shell": "desktop",
@@ -39265,7 +39383,8 @@
             }
           ],
           "requiredServices": [
-            "mcp"
+            "mcp",
+            "tool-service"
           ],
           "toolSchemas": [
             "mcp.listServers",
@@ -39274,6 +39393,55 @@
           ],
           "permissionPolicies": [
             "mcp.callTool"
+          ],
+          "historyEventTypes": [
+            "tool-event"
+          ]
+        },
+        {
+          "id": "developer-settings",
+          "capabilityIds": [
+            "settings.prompts",
+            "settings.sessions",
+            "settings.integrations",
+            "settings.debug",
+            "settings.advanced"
+          ],
+          "title": "Developer Settings",
+          "description": "Debugging, prompts, integrations, sessions, and compatibility controls for development workflows.",
+          "adapters": [
+            {
+              "shell": "desktop",
+              "routes": [
+                "settings:io-debug",
+                "settings:workspace",
+                "settings:sessions",
+                "settings:advanced"
+              ]
+            },
+            {
+              "shell": "cli",
+              "commands": [
+                "agents",
+                "plugin",
+                "plugins"
+              ]
+            },
+            {
+              "shell": "mobile",
+              "views": [
+                "developer-settings"
+              ]
+            }
+          ],
+          "requiredServices": [
+            "app-state",
+            "auth",
+            "mcp"
+          ],
+          "storageNamespaces": [
+            "config",
+            "settings"
           ]
         },
         {
@@ -39407,21 +39575,22 @@
           ]
         },
         {
-          "id": "developer-history",
+          "id": "project-history",
           "capabilityIds": [
-            "history.chats",
-            "history.tools",
             "history.automation",
             "history.projects",
             "history.export"
           ],
-          "title": "Developer History",
-          "description": "Local history for chats, tool events, automation runs, project events, restores, and exports.",
+          "title": "Project Activity",
+          "description": "Automation runs, project events, audit records, and exports for software delivery workflows.",
           "adapters": [
             {
               "shell": "desktop",
               "routes": [
-                "history"
+                "history:overview",
+                "history:automation",
+                "history:events",
+                "history:export"
               ],
               "commands": [
                 "/history"
@@ -39436,7 +39605,7 @@
             {
               "shell": "mobile",
               "views": [
-                "activity"
+                "project-activity"
               ]
             }
           ],
@@ -39447,109 +39616,92 @@
             "history"
           ],
           "historyEventTypes": [
-            "chat-session",
-            "tool-event",
             "automation-run",
             "project-event"
-          ]
-        },
-        {
-          "id": "developer-settings",
-          "capabilityIds": [
-            "settings.tools",
-            "settings.prompts",
-            "settings.sessions",
-            "settings.integrations",
-            "settings.advanced"
-          ],
-          "title": "Developer Settings",
-          "description": "Developer-focused model, tool, prompt, session, integration, and compatibility controls.",
-          "adapters": [
-            {
-              "shell": "desktop",
-              "routes": [
-                "settings:io-debug",
-                "settings:tools-permissions",
-                "settings:workspace",
-                "settings:sessions",
-                "settings:advanced"
-              ]
-            },
-            {
-              "shell": "cli",
-              "commands": [
-                "config",
-                "agents",
-                "plugin",
-                "plugins"
-              ]
-            },
-            {
-              "shell": "mobile",
-              "views": [
-                "developer-settings"
-              ]
-            }
-          ],
-          "requiredServices": [
-            "app-state",
-            "auth",
-            "mcp"
-          ],
-          "storageNamespaces": [
-            "config",
-            "settings"
           ]
         }
       ],
       "extensions": [
         {
-          "id": "software-developer.desktop.primary-nav.projects",
+          "id": "software-developer.desktop.primary-nav.developer",
           "point": "desktop.primary-nav",
           "shell": "desktop",
-          "featureId": "project-studio",
-          "title": "Projects",
-          "description": "Ideas, guided builds, and autonomous teams",
-          "icon": "briefcase",
-          "route": "projects",
+          "title": "Developer",
+          "description": "Projects, autonomous delivery, automation, and project activity",
+          "icon": "code",
+          "route": "developer",
           "entrypoint": "dist/index.js",
           "order": 100
         },
         {
-          "id": "software-developer.desktop.primary-nav.tools",
-          "point": "desktop.primary-nav",
+          "id": "software-developer.desktop.child-route.developer-projects",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-studio",
+          "title": "Projects",
+          "description": "Projects with optional fully autonomous execution",
+          "icon": "briefcase",
+          "route": "projects",
+          "parentRoute": "developer",
+          "childRoute": "projects",
+          "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.developer-tools",
+          "point": "desktop.child-route",
           "shell": "desktop",
           "featureId": "developer-tools",
           "title": "Tools",
-          "description": "Bridge tools, MCP, and activity",
+          "description": "MCP, commands, diagnostics, plugins, and skills",
           "icon": "wrench",
           "route": "tools",
+          "parentRoute": "developer",
+          "childRoute": "tools",
           "entrypoint": "dist/index.js",
           "order": 110
         },
         {
-          "id": "software-developer.desktop.primary-nav.automation",
-          "point": "desktop.primary-nav",
+          "id": "software-developer.desktop.child-route.developer-automation",
+          "point": "desktop.child-route",
           "shell": "desktop",
           "featureId": "automation",
           "title": "Automation",
           "description": "Skills, tasks, remote control, and permissions",
           "icon": "bot",
           "route": "automation",
+          "parentRoute": "developer",
+          "childRoute": "automation",
           "entrypoint": "dist/index.js",
           "order": 120
         },
         {
-          "id": "software-developer.desktop.primary-nav.history",
-          "point": "desktop.primary-nav",
+          "id": "software-developer.desktop.child-route.developer-settings",
+          "point": "desktop.child-route",
           "shell": "desktop",
-          "featureId": "developer-history",
-          "title": "History",
-          "description": "Chats, tool activity, exports, and audit",
-          "icon": "history",
-          "route": "history",
+          "featureId": "developer-settings",
+          "title": "Developer Settings",
+          "description": "Debug, prompts, sessions, integrations, and compatibility",
+          "icon": "sliders",
+          "route": "settings",
+          "parentRoute": "developer",
+          "childRoute": "settings",
           "entrypoint": "dist/index.js",
           "order": 130
+        },
+        {
+          "id": "software-developer.desktop.child-route.developer-history",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-history",
+          "title": "Project Activity",
+          "description": "Automation runs, project events, and exports",
+          "icon": "history",
+          "route": "history",
+          "parentRoute": "developer",
+          "childRoute": "history",
+          "entrypoint": "dist/index.js",
+          "order": 140
         },
         {
           "id": "software-developer.desktop.child-route.project-studio",
@@ -39557,7 +39709,7 @@
           "shell": "desktop",
           "featureId": "project-studio",
           "title": "Project Studio",
-          "description": "Create software from ideas or autonomous teams",
+          "description": "Create projects with optional autonomous delivery",
           "icon": "board",
           "parentRoute": "projects",
           "childRoute": "studio",
@@ -39604,30 +39756,69 @@
           "order": 130
         },
         {
-          "id": "software-developer.desktop.child-route.tools-bridge",
-          "point": "desktop.child-route",
-          "shell": "desktop",
-          "featureId": "developer-tools",
-          "title": "Bridge Tools",
-          "description": "Exposure and permissions",
-          "icon": "plug",
-          "parentRoute": "tools",
-          "childRoute": "bridge",
-          "entrypoint": "dist/index.js",
-          "order": 100
-        },
-        {
           "id": "software-developer.desktop.child-route.tools-mcp",
           "point": "desktop.child-route",
           "shell": "desktop",
           "featureId": "mcp",
           "title": "MCP Registry",
-          "description": "Servers and executable tools",
+          "description": "Connected servers and discovered tools",
           "icon": "database",
           "parentRoute": "tools",
           "childRoute": "mcp",
           "entrypoint": "dist/index.js",
+          "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.tools-command",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Command Runner",
+          "description": "Run approved development commands",
+          "icon": "terminal",
+          "parentRoute": "tools",
+          "childRoute": "command",
+          "entrypoint": "dist/index.js",
           "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.tools-activity",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Activity",
+          "description": "Tool calls, results, and diagnostics",
+          "icon": "activity",
+          "parentRoute": "tools",
+          "childRoute": "activity",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.child-route.tools-plugins",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Plugins & Skills",
+          "description": "Development extensions and reusable skills",
+          "icon": "puzzle",
+          "parentRoute": "tools",
+          "childRoute": "plugins",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.desktop.child-route.automation-skills",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Skills",
+          "description": "Workspace extensions",
+          "icon": "sparkles",
+          "parentRoute": "automation",
+          "childRoute": "skills",
+          "entrypoint": "dist/index.js",
+          "order": 100
         },
         {
           "id": "software-developer.desktop.child-route.automation-tasks",
@@ -39640,15 +39831,93 @@
           "parentRoute": "automation",
           "childRoute": "tasks",
           "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.automation-remote",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Remote Control",
+          "description": "Phone pairing and approvals",
+          "icon": "phone",
+          "parentRoute": "automation",
+          "childRoute": "remote",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.child-route.automation-permissions",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "automation",
+          "title": "Permissions",
+          "description": "Unattended execution policy",
+          "icon": "shield",
+          "parentRoute": "automation",
+          "childRoute": "permissions",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
+          "id": "software-developer.desktop.child-route.settings-io-debug",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-settings",
+          "title": "Output & Debug",
+          "description": "Formats, traces, and logs",
+          "icon": "code",
+          "parentRoute": "settings",
+          "childRoute": "io-debug",
+          "entrypoint": "dist/index.js",
           "order": 100
+        },
+        {
+          "id": "software-developer.desktop.child-route.settings-workspace",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-settings",
+          "title": "Prompts & Directories",
+          "description": "System prompts and workspace directories",
+          "icon": "folder",
+          "parentRoute": "settings",
+          "childRoute": "workspace",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.settings-sessions",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-settings",
+          "title": "Sessions & Integrations",
+          "description": "Resume, IDE, and browser integrations",
+          "icon": "rotate",
+          "parentRoute": "settings",
+          "childRoute": "sessions",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.child-route.settings-advanced",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "developer-settings",
+          "title": "Advanced Compatibility",
+          "description": "Channels and agent metadata",
+          "icon": "sliders",
+          "parentRoute": "settings",
+          "childRoute": "advanced",
+          "entrypoint": "dist/index.js",
+          "order": 130
         },
         {
           "id": "software-developer.desktop.child-route.history-overview",
           "point": "desktop.child-route",
           "shell": "desktop",
-          "featureId": "developer-history",
+          "featureId": "project-history",
           "title": "Overview",
-          "description": "Storage and record counts",
+          "description": "Project and automation record counts",
           "icon": "bar-chart",
           "parentRoute": "history",
           "childRoute": "overview",
@@ -39656,11 +39925,50 @@
           "order": 100
         },
         {
+          "id": "software-developer.desktop.child-route.history-automation",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-history",
+          "title": "Automation Runs",
+          "description": "Scheduled and autonomous execution history",
+          "icon": "bot",
+          "parentRoute": "history",
+          "childRoute": "automation",
+          "entrypoint": "dist/index.js",
+          "order": 110
+        },
+        {
+          "id": "software-developer.desktop.child-route.history-events",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-history",
+          "title": "Project Events",
+          "description": "Project lifecycle and delivery audit",
+          "icon": "activity",
+          "parentRoute": "history",
+          "childRoute": "events",
+          "entrypoint": "dist/index.js",
+          "order": 120
+        },
+        {
+          "id": "software-developer.desktop.child-route.history-export",
+          "point": "desktop.child-route",
+          "shell": "desktop",
+          "featureId": "project-history",
+          "title": "Export",
+          "description": "Export project and automation records",
+          "icon": "download",
+          "parentRoute": "history",
+          "childRoute": "export",
+          "entrypoint": "dist/index.js",
+          "order": 130
+        },
+        {
           "id": "software-developer.desktop.slash-command.tools",
           "point": "desktop.slash-command",
           "shell": "desktop",
           "featureId": "developer-tools",
-          "title": "List bridge and MCP tools",
+          "title": "Open developer tools",
           "command": "/tools",
           "entrypoint": "dist/index.js",
           "order": 100
@@ -39670,7 +39978,7 @@
           "point": "desktop.slash-command",
           "shell": "desktop",
           "featureId": "mcp",
-          "title": "Refresh and list MCP servers/tools",
+          "title": "Open MCP registry",
           "command": "/mcp",
           "entrypoint": "dist/index.js",
           "order": 110
@@ -39704,8 +40012,8 @@
           "id": "software-developer.desktop.slash-command.history",
           "point": "desktop.slash-command",
           "shell": "desktop",
-          "featureId": "developer-history",
-          "title": "Open local history",
+          "featureId": "project-history",
+          "title": "Open project activity",
           "command": "/history",
           "entrypoint": "dist/index.js",
           "order": 140
@@ -39724,6 +40032,21 @@
           "route": "projects",
           "entrypoint": "dist/index.js",
           "order": 100
+        },
+        {
+          "id": "software-developer.electron.menu.tools",
+          "point": "electron.menu",
+          "shell": "desktop",
+          "featureId": "developer-tools",
+          "title": "Developer Tools",
+          "menuPath": [
+            "Packages",
+            "Software Developer",
+            "Tools"
+          ],
+          "route": "tools",
+          "entrypoint": "dist/index.js",
+          "order": 105
         },
         {
           "id": "software-developer.electron.menu.automation",
@@ -39777,6 +40100,30 @@
           "order": 100
         },
         {
+          "id": "software-developer.cli.command.tools",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "developer-tools",
+          "title": "Developer tool commands",
+          "command": "tools",
+          "commandAliases": [
+            "plugin",
+            "plugins"
+          ],
+          "entrypoint": "dist/index.js",
+          "order": 105
+        },
+        {
+          "id": "software-developer.cli.command.mcp",
+          "point": "cli.command",
+          "shell": "cli",
+          "featureId": "mcp",
+          "title": "MCP integration commands",
+          "command": "mcp",
+          "entrypoint": "dist/index.js",
+          "order": 108
+        },
+        {
           "id": "software-developer.cli.command.automation",
           "point": "cli.command",
           "shell": "cli",
@@ -39788,38 +40135,6 @@
           ],
           "entrypoint": "dist/index.js",
           "order": 110
-        },
-        {
-          "id": "software-developer.cli.command.tools",
-          "point": "cli.command",
-          "shell": "cli",
-          "featureId": "developer-tools",
-          "title": "Developer tool commands",
-          "command": "tools",
-          "entrypoint": "dist/index.js",
-          "order": 120
-        },
-        {
-          "id": "software-developer.cli.command.history",
-          "point": "cli.command",
-          "shell": "cli",
-          "featureId": "developer-history",
-          "title": "Developer history commands",
-          "command": "history",
-          "entrypoint": "dist/index.js",
-          "order": 130
-        },
-        {
-          "id": "software-developer.settings.developer",
-          "point": "settings.section",
-          "shell": "desktop",
-          "featureId": "developer-settings",
-          "title": "Developer Settings",
-          "description": "Tools, prompts, sessions, integrations, and compatibility controls",
-          "route": "settings",
-          "parentRoute": "settings",
-          "entrypoint": "dist/index.js",
-          "order": 500
         },
         {
           "id": "software-developer.mobile.view.project-status",
@@ -39877,7 +40192,7 @@
       tier: "free",
       version: "1.0.0",
       owner: "codeagent",
-      description: "General chat and the minimal account, provider, and settings flows required to use it.",
+      description: "General assistant chat and the common operating environment required by every installed package.",
       pricing: {
         amountCents: 0,
         currency: "USD",
@@ -39922,16 +40237,36 @@
         },
         {
           id: "basic-settings",
-          capabilityIds: ["settings.provider", "settings.account", "settings.basic"],
+          capabilityIds: ["settings.provider", "settings.account", "settings.basic", "settings.permissions", "history.chats"],
           title: "Basic Settings",
           description: "Provider, account, model, and minimal runtime settings required by chat.",
           adapters: [
-            { shell: "desktop", routes: ["settings:account", "settings:model", "settings:packages"], commands: ["/login", "/login local", "/account", "/settings", "/config"] },
+            { shell: "desktop", routes: ["settings:general", "settings:account", "settings:chat-history", "settings:model", "settings:packages"], commands: ["/login", "/login local", "/account", "/settings", "/config"] },
             { shell: "cli", commands: ["auth", "login", "logout", "config", "status"] },
             { shell: "mobile", views: ["settings"] }
           ],
           requiredServices: ["auth", "app-state"],
           storageNamespaces: ["config"]
+        },
+        {
+          id: "agent-runtime",
+          capabilityIds: [
+            "runtime.tools",
+            "runtime.permissions",
+            "runtime.package-extensions"
+          ],
+          title: "Agent Runtime",
+          description: "Built-in execution APIs and safety enforcement used by chat and installed professional packages.",
+          adapters: [
+            { shell: "desktop" },
+            { shell: "cli" },
+            { shell: "mobile" }
+          ],
+          requiredServices: ["tool-service", "filesystem", "command", "web", "finance", "mcp"],
+          storageNamespaces: ["toolPermissionPolicies", "disabledLlmTools"],
+          toolSchemas: ["time.now", "web.search", "web.research", "web.fetch", "finance.quote", "bash.run", "fs.read", "fs.write", "fs.undoLastWrite", "fs.list", "api.chat", "app.getConfig", "mcp.listServers", "mcp.listTools", "mcp.callTool"],
+          permissionPolicies: ["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"],
+          historyEventTypes: ["tool-event"]
         }
       ],
       extensions: [
@@ -40025,7 +40360,21 @@
   }
   function resolveFeaturePackages(shell, profile, manifests = FEATURE_PACKAGE_MANIFESTS) {
     const normalizedProfile = normalizeFeatureProfile(profile);
-    const packages = manifests.map((manifest) => {
+    const runtimeManifests = manifests.map((manifest) => {
+      const localManifest = FEATURE_PACKAGE_MANIFESTS.find((candidate) => candidate.id === manifest.id && candidate.version === manifest.version);
+      if (!localManifest || localManifest === manifest) {
+        return manifest;
+      }
+      return {
+        ...manifest,
+        supportedShells: localManifest.supportedShells,
+        sdk: localManifest.sdk,
+        entrypoints: localManifest.entrypoints,
+        features: localManifest.features,
+        extensions: localManifest.extensions
+      };
+    });
+    const packages = runtimeManifests.map((manifest) => {
       const packageState = resolvePackageState(manifest, shell, normalizedProfile);
       const packageInstall = resolvePackageInstallState(manifest, normalizedProfile, packageState.state);
       return {
@@ -40299,9 +40648,12 @@
 
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
-  var DEFAULT_PROVIDER = "openai-compatible";
+  var DEFAULT_PROVIDER = "codeagent";
   var MAX_TOOL_ACTIVITIES = 20;
   var MAX_PERSISTED_MESSAGES = 80;
+  var MAX_PROJECT_CHAT_CONTEXT_MESSAGES = 10;
+  var MAX_PROJECT_CHAT_CONTEXT_CHARACTERS = 1e4;
+  var MAX_PROJECT_CHAT_MESSAGE_CHARACTERS = 4e3;
   var MAX_RECENT_SESSIONS = 12;
   var CHAT_CONTEXT_MAX_FILES = 16;
   var CHAT_CONTEXT_MAX_BYTES = 12e4;
@@ -40373,6 +40725,31 @@
     { value: "ask", label: "Ask" },
     { value: "deny", label: "Deny" }
   ];
+  var DESKTOP_PERMISSION_PROFILES = [
+    {
+      value: "workspace-only",
+      title: "Workspace only",
+      description: "Read and edit files only inside the selected workspace. Commands and writes require review."
+    },
+    {
+      value: "ask",
+      title: "Ask when needed",
+      description: "Use the workspace by default and request approval before accessing an external path.",
+      badge: "Recommended"
+    },
+    {
+      value: "trusted-workspace",
+      title: "Trusted workspace",
+      description: "Read, edit, and run approved commands inside the workspace without repeated reviews. External paths remain blocked."
+    },
+    {
+      value: "full-access",
+      title: "Full computer access",
+      description: "Access any path allowed to your OS account and run supported commands without CodeAgent approval prompts.",
+      badge: "High risk",
+      danger: true
+    }
+  ];
   var TOOL_CATEGORY_ORDER = ["core", "research", "connectors", "mcp", "api", "other"];
   var TOOL_CATEGORY_LABELS = {
     core: "Core workspace",
@@ -40403,7 +40780,7 @@
   var PROVIDER_DEFAULTS = {
     codeagent: {
       label: "CodeAgent",
-      model: "Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF",
+      model: "Qwen/Qwen3-4B-GGUF",
       baseUrl: "http://127.0.0.1:14321/v1",
       maxTokens: 2048,
       contextTokens: 8192,
@@ -40711,6 +41088,13 @@
         ] });
       case "stop":
         return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("svg", { ...common, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { x: "6", y: "6", width: "12", height: "12", rx: "2" }) });
+      case "table":
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 9h18" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M3 14h18" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M9 4v16" })
+        ] });
       case "terminal":
         return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { ...common, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "m4 7 5 5-5 5" }),
@@ -40812,65 +41196,29 @@
     { command: "/login local", description: "Open Settings with OpenAI-compatible defaults" },
     { command: "/account", description: "Open account and subscription settings" },
     { command: "/settings", description: "Open Settings" },
-    { command: "/tools", description: "List bridge and MCP tools", featureId: "developer-tools" },
-    { command: "/mcp", description: "Refresh and list MCP servers/tools", featureId: "mcp" },
-    { command: "/automation", description: "Open skills, scheduled tasks, remote control, and automation permissions", featureId: "automation" },
-    { command: "/skills", description: "Open local skills and automation extensions", featureId: "automation" },
-    { command: "/tasks", description: "Open scheduled automation tasks", featureId: "automation" },
-    { command: "/remote", description: "Open remote-control setup", featureId: "automation" },
-    { command: "/team", description: "Open project teams", featureId: "project-studio" },
-    { command: "/history", description: "Open local history and export records", featureId: "developer-history" },
     { command: "/sessions", description: "List saved desktop sessions" },
     { command: "/config", description: "Show persisted desktop configuration" },
-    { command: "/run <tool> <json>", description: "Run a bridge tool manually", featureId: "developer-tools" },
+    { command: "/tools", description: "List built-in and discovered tools", featureId: "developer-tools" },
+    { command: "/mcp", description: "Refresh and list MCP servers and tools", featureId: "mcp" },
     { command: "/clear", description: "Clear the visible chat" }
-  ];
-  var PRIMARY_NAV = [
-    { id: "chat", label: "Chats", description: "Conversation workspace", icon: "chat" },
-    { id: "projects", label: "Projects", description: "Ideas, guided builds, and autonomous teams", icon: "briefcase", featureId: "project-studio" },
-    { id: "tools", label: "Tools", description: "Bridge tools, MCP, and activity", icon: "wrench", featureId: "developer-tools" },
-    { id: "automation", label: "Automation", description: "Skills, tasks, remote control, and permissions", icon: "bot", featureId: "automation" },
-    { id: "history", label: "History", description: "Chats, tool activity, exports, audit", icon: "history", featureId: "developer-history" },
-    { id: "settings", label: "Settings", description: "Model, tools, workspace, sessions", icon: "settings" }
-  ];
-  var PROJECTS_MENU = [
-    { id: "studio", title: "Project Studio", description: "Create software from ideas or autonomous teams", icon: "board", featureId: "project-studio" },
-    { id: "roles", title: "Roles", description: "Responsibilities, default goals, and tool scope", icon: "shield", featureId: "project-studio" },
-    { id: "employees", title: "Employees", description: "Create employees, roles, models, and permission scope", icon: "users", featureId: "project-studio" },
-    { id: "teams", title: "Teams", description: "Scoped missions, supervisors, and members", icon: "network", featureId: "project-studio" }
-  ];
-  var TOOLS_MENU = [
-    { id: "bridge", title: "Bridge Tools", description: "Exposure and permissions", icon: "plug", featureId: "developer-tools" },
-    { id: "mcp", title: "MCP Registry", description: "Servers and executable tools", icon: "database", featureId: "mcp" },
-    { id: "command", title: "Command Runner", description: "Approved workspace commands", icon: "terminal", featureId: "developer-tools" },
-    { id: "activity", title: "Activity", description: "Tool-call timeline", icon: "activity", featureId: "developer-tools" },
-    { id: "plugins", title: "Plugins & Skills", description: "Configured extension paths", icon: "puzzle", featureId: "developer-settings" }
   ];
   var SETTINGS_MENU = [
     { id: "account", title: "Account", description: "Login, subscription, billing", icon: "user" },
     { id: "general", title: "General", description: "Appearance and run defaults", icon: "settings" },
+    { id: "chat-history", title: "Chat history", description: "Manage saved conversations", icon: "history" },
     { id: "model", title: "Model", description: "Provider, inference, and tokens", icon: "sparkles" },
-    { id: "packages", title: "Packages", description: "Feature packages and entitlements", icon: "puzzle" },
-    { id: "io-debug", title: "Output & Debug", description: "Formats, traces, logs", icon: "code", featureId: "developer-settings" },
-    { id: "tools-permissions", title: "Tools & Permissions", description: "Agent tools and safety", icon: "lock", featureId: "developer-settings" },
-    { id: "workspace", title: "Prompts & Directories", description: "System prompts, MCP, directories", icon: "folder", featureId: "developer-settings" },
-    { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, browser", icon: "rotate", featureId: "developer-settings" },
+    { id: "packages", title: "Store", description: "Browse, purchase, and manage packages", icon: "puzzle" },
+    { id: "io-debug", title: "Output & Debug", description: "Formats, traces, and logs", icon: "code", featureId: "developer-settings" },
+    { id: "workspace", title: "Prompts & Directories", description: "System prompts, MCP, and directories", icon: "folder", featureId: "developer-settings" },
+    { id: "sessions", title: "Sessions & Integrations", description: "Resume, IDE, and browser", icon: "rotate", featureId: "developer-settings" },
     { id: "advanced", title: "Advanced Compatibility", description: "Channels and agent metadata", icon: "sliders", featureId: "developer-settings" }
   ];
-  var AUTOMATION_MENU = [
-    { id: "skills", title: "Skills", description: "Workspace extensions", icon: "sparkles", featureId: "automation" },
-    { id: "tasks", title: "Scheduled Tasks", description: "Recurring runs and history", icon: "calendar", featureId: "automation" },
-    { id: "remote", title: "Remote Control", description: "Phone pairing and approvals", icon: "phone", featureId: "automation" },
-    { id: "permissions", title: "Permissions", description: "Unattended execution policy", icon: "shield", featureId: "automation" }
-  ];
-  var HISTORY_MENU = [
-    { id: "overview", title: "Overview", description: "Storage and record counts", icon: "bar-chart", featureId: "developer-history" },
-    { id: "chats", title: "Chats", description: "Saved conversations", icon: "chat", featureId: "developer-history" },
-    { id: "tools", title: "Tool Events", description: "Tool-call audit records", icon: "wrench", featureId: "developer-history" },
-    { id: "automation", title: "Automation Runs", description: "Task and team run history", icon: "bot", featureId: "developer-history" },
-    { id: "events", title: "Project Events", description: "Imports, exports, and audit events", icon: "activity", featureId: "developer-history" },
-    { id: "export", title: "Export", description: "Download or copy local history", icon: "download", featureId: "developer-history" }
-  ];
+  var SYSTEM_SETTINGS_SECTION_IDS = /* @__PURE__ */ new Set([
+    "general",
+    "chat-history",
+    "model",
+    "packages"
+  ]);
   var AUTOMATION_PERMISSION_TOOLS = [
     "bash.run",
     "fs.write",
@@ -40954,6 +41302,13 @@
       return attachment;
     }).filter((item) => Boolean(item)).slice(0, CHAT_IMAGE_MAX_COUNT);
   }
+  function normalizeMessageSenderTitle(role, value) {
+    const title = typeof value === "string" ? value.trim() : "";
+    if (role !== "assistant") return title || void 0;
+    if (!title) return "CodeAgent";
+    const looksLikeLegacyModelIdentity = title.includes(" / ") || title.includes("/") || /^(?:gpt|claude|gemini|llama|mistral|qwen|deepseek|codellama|phi)[-_.\d]/i.test(title);
+    return looksLikeLegacyModelIdentity ? "CodeAgent" : title;
+  }
   function sanitizeMessage(value) {
     if (!value || typeof value !== "object") {
       return null;
@@ -40969,12 +41324,65 @@
       content: typeof message.content === "string" ? message.content : "",
       createdAt: Number.isFinite(Number(message.createdAt)) ? Number(message.createdAt) : Date.now(),
       status: message.status === "sending" || message.status === "failed" || message.status === "sent" ? message.status : void 0,
-      title: typeof message.title === "string" ? message.title : void 0,
+      title: normalizeMessageSenderTitle(role, message.title),
       usage: message.usage && typeof message.usage === "object" ? {
         inputTokens: Number(message.usage?.inputTokens ?? 0),
         outputTokens: Number(message.usage?.outputTokens ?? 0)
       } : void 0,
-      imageAttachments: sanitizeImageAttachments(message.imageAttachments)
+      imageAttachments: sanitizeImageAttachments(message.imageAttachments),
+      activity: sanitizeChatToolActivity(message.activity),
+      performance: sanitizeChatPerformance(message.performance)
+    };
+  }
+  function sanitizeChatPerformance(value) {
+    if (!value || typeof value !== "object") return void 0;
+    const metric = value;
+    const validPhases = /* @__PURE__ */ new Set(["preparation", "tool-selection", "tool-execution", "answer-generation"]);
+    const phases = Array.isArray(metric.phases) ? metric.phases.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const phase = item;
+      if (!validPhases.has(phase.phase) || !Number.isFinite(Number(phase.durationMs))) return [];
+      return [{
+        phase: phase.phase,
+        durationMs: Math.max(0, Number(phase.durationMs)),
+        count: Number.isFinite(Number(phase.count)) ? Math.max(0, Number(phase.count)) : void 0
+      }];
+    }) : [];
+    const backendMs = Number(metric.backendMs);
+    if (!Number.isFinite(backendMs)) return void 0;
+    return {
+      backendMs: Math.max(0, backendMs),
+      firstTokenMs: Number.isFinite(Number(metric.firstTokenMs)) ? Math.max(0, Number(metric.firstTokenMs)) : void 0,
+      toolRounds: Math.max(0, Number(metric.toolRounds) || 0),
+      toolCalls: Math.max(0, Number(metric.toolCalls) || 0),
+      phases,
+      endToEndMs: Number.isFinite(Number(metric.endToEndMs)) ? Math.max(0, Number(metric.endToEndMs)) : void 0,
+      uiDeliveryMs: Number.isFinite(Number(metric.uiDeliveryMs)) ? Math.max(0, Number(metric.uiDeliveryMs)) : void 0
+    };
+  }
+  function sanitizeChatToolActivity(value) {
+    if (!value || typeof value !== "object") return void 0;
+    const activity = value;
+    const validStatuses = ["waiting-approval", "running", "succeeded", "failed", "rejected"];
+    if (typeof activity.toolId !== "string" || typeof activity.toolName !== "string" || !validStatuses.includes(activity.status)) {
+      return void 0;
+    }
+    return {
+      toolId: activity.toolId,
+      toolName: activity.toolName,
+      args: activity.args && typeof activity.args === "object" ? activity.args : {},
+      status: activity.status,
+      startedAt: Number.isFinite(Number(activity.startedAt)) ? Number(activity.startedAt) : Date.now(),
+      completedAt: Number.isFinite(Number(activity.completedAt)) ? Number(activity.completedAt) : void 0,
+      duration: Number.isFinite(Number(activity.duration)) ? Number(activity.duration) : void 0,
+      result: activity.result,
+      error: typeof activity.error === "string" ? activity.error : void 0,
+      approval: activity.approval && typeof activity.approval === "object" ? {
+        required: Boolean(activity.approval.required),
+        decision: activity.approval.decision === "approved" || activity.approval.decision === "rejected" ? activity.approval.decision : void 0,
+        resolvedAt: Number.isFinite(Number(activity.approval.resolvedAt)) ? Number(activity.approval.resolvedAt) : void 0,
+        resolvedBy: typeof activity.approval.resolvedBy === "string" ? activity.approval.resolvedBy : void 0
+      } : void 0
     };
   }
   function sanitizeMessages(messages) {
@@ -41061,7 +41469,7 @@
       ...sections
     ].join("\n\n");
   }
-  function createSessionSnapshot(id, messages, workspacePath, previous, toolWorkspacePath, contextAttachments = []) {
+  function createSessionSnapshot(id, messages, workspacePath, previous, toolWorkspacePath, contextAttachments = [], executionMode, permissionProfile) {
     const sanitizedMessages = sanitizeMessages(messages);
     const normalizedToolWorkspacePath = typeof toolWorkspacePath === "string" && toolWorkspacePath.trim() ? toolWorkspacePath.trim() : void 0;
     const normalizedContextAttachments = sanitizeContextAttachments(contextAttachments);
@@ -41073,6 +41481,8 @@
       workspacePath,
       toolWorkspacePath: normalizedToolWorkspacePath,
       contextAttachments: normalizedContextAttachments.length > 0 ? normalizedContextAttachments : void 0,
+      executionMode: executionMode ?? void 0,
+      permissionProfile: permissionProfile ?? void 0,
       messages: sanitizedMessages
     };
   }
@@ -41124,6 +41534,8 @@
       workspacePath: typeof raw.workspacePath === "string" ? raw.workspacePath : workspacePath,
       toolWorkspacePath: typeof raw.toolWorkspacePath === "string" && raw.toolWorkspacePath.trim() ? raw.toolWorkspacePath.trim() : void 0,
       contextAttachments: sanitizeContextAttachments(raw.contextAttachments),
+      executionMode: raw.executionMode === "chat" || raw.executionMode === "agent" ? raw.executionMode : void 0,
+      permissionProfile: DESKTOP_PERMISSION_PROFILES.some((profile) => profile.value === raw.permissionProfile) ? raw.permissionProfile : void 0,
       messages
     };
   }
@@ -41160,6 +41572,14 @@
   }
   function getProjectChatKey(projectId, channel) {
     return `${projectId}:${channel}`;
+  }
+  function isReviewForProjectChat(review, projectId, channel) {
+    if (review.scope?.source !== "project-chat") return false;
+    const projectChatKey = getProjectChatKey(projectId, channel);
+    return review.scope.projectChatKey === projectChatKey || review.scope.projectId === projectId && (review.scope.channel ?? "guided") === channel;
+  }
+  function isMainChatReview(review) {
+    return review.scope?.source !== "project-chat";
   }
   function getProjectAutomationTeamId(projectId) {
     return `project-auto-${projectId}`;
@@ -41744,13 +42164,16 @@
     const llmProvider = config?.llmProvider || DEFAULT_PROVIDER;
     const providerDefault = getProviderDefault(llmProvider);
     const featureProfile = normalizeFeatureProfile(config?.featureProfile);
+    const configuredPlatformBaseUrl = typeof config?.platformBaseUrl === "string" ? normalizePlatformBaseUrl(config.platformBaseUrl) : "";
+    const platformDeveloperMode = typeof config?.platformDeveloperMode === "boolean" ? config.platformDeveloperMode : isLocalPlatformUrl(configuredPlatformBaseUrl);
     return {
       apiKey: "",
       accountEmail: featureProfile.email,
       accountDisplayName: featureProfile.accountStatus === "signed-in" ? featureProfile.displayName : "",
       accountPassword: "",
       accountResetToken: "",
-      platformBaseUrl: typeof config?.platformBaseUrl === "string" ? config.platformBaseUrl : "http://127.0.0.1:8000",
+      platformDeveloperMode,
+      platformBaseUrl: platformDeveloperMode ? configuredPlatformBaseUrl || DEVELOPMENT_PLATFORM_BASE_URL : PRODUCTION_PLATFORM_BASE_URL,
       platformOrgId: typeof config?.platformOrgId === "string" ? config.platformOrgId : "",
       llmProvider,
       baseUrl: llmProvider === "codeagent" ? providerDefault.baseUrl : config?.baseUrl || providerDefault.baseUrl,
@@ -41762,6 +42185,7 @@
       localEnginePath: typeof config?.localEnginePath === "string" ? config.localEnginePath : "",
       localGpuLayers: typeof config?.localGpuLayers === "number" ? String(config.localGpuLayers) : "",
       enableLlmTools: Boolean(config?.enableLlmTools ?? providerDefault.enableLlmTools),
+      desktopPermissionProfile: config?.desktopPermissionProfile ?? "workspace-only",
       theme: config?.theme || "system",
       accentColor: getSkinAccent(config?.accentColor),
       memoryEnabled: Boolean(config?.memoryEnabled ?? true),
@@ -42000,6 +42424,19 @@
   function normalizePlatformBaseUrl(value) {
     return value.trim().replace(/\/+$/, "");
   }
+  var PRODUCTION_PLATFORM_BASE_URL = "https://app.crovyn.com";
+  var DEVELOPMENT_PLATFORM_BASE_URL = "http://127.0.0.1:18080";
+  function isLocalPlatformUrl(value) {
+    try {
+      const hostname = new URL(value).hostname.toLowerCase();
+      return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    } catch {
+      return false;
+    }
+  }
+  function getEffectivePlatformBaseUrl(draft) {
+    return draft.platformDeveloperMode ? normalizePlatformBaseUrl(draft.platformBaseUrl) : PRODUCTION_PLATFORM_BASE_URL;
+  }
   function platformOrgQuery(orgId) {
     const trimmed = orgId.trim();
     return trimmed ? `?org_id=${encodeURIComponent(trimmed)}` : "";
@@ -42022,7 +42459,7 @@
     return payload;
   }
   async function loginToPlatform(draft) {
-    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    const baseUrl = getEffectivePlatformBaseUrl(draft);
     if (!baseUrl) {
       throw new Error("Enter the agent-platform base URL.");
     }
@@ -42048,7 +42485,7 @@
     return emailPrefix ? `${emailPrefix} Workspace` : "CodeAgent Workspace";
   }
   async function registerWithPlatform(draft) {
-    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    const baseUrl = getEffectivePlatformBaseUrl(draft);
     if (!baseUrl) {
       throw new Error("Enter the agent-platform base URL.");
     }
@@ -42065,7 +42502,7 @@
     });
   }
   async function requestPlatformPasswordReset(draft) {
-    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    const baseUrl = getEffectivePlatformBaseUrl(draft);
     if (!baseUrl) {
       throw new Error("Enter the agent-platform base URL.");
     }
@@ -42078,7 +42515,7 @@
     });
   }
   async function resetPlatformPassword(draft) {
-    const baseUrl = normalizePlatformBaseUrl(draft.platformBaseUrl);
+    const baseUrl = getEffectivePlatformBaseUrl(draft);
     if (!baseUrl) {
       throw new Error("Enter the agent-platform base URL.");
     }
@@ -42118,20 +42555,20 @@
     }
     return normalizePlatformFeatureCatalog(config.platformFeaturePackageCatalog);
   }
-  async function createPlatformPaymentMethod(baseUrl, token, orgId, manifest, draft) {
+  async function createPlatformPaymentMethod(baseUrl, token, orgId, holderFallback, draft) {
     const expiry = parseCardExpiry(draft.expiry);
     if (!expiry) {
       throw new Error("Enter a valid future expiration date as MM/YY or MM/YYYY.");
     }
     const digits = draft.cardNumber.replace(/\D/g, "");
-    await readPlatformJson(baseUrl, "/billing/payment-methods", token, {
+    return readPlatformJson(baseUrl, "/billing/payment-methods", token, {
       method: "POST",
       body: JSON.stringify({
         ...orgId.trim() ? { org_id: orgId.trim() } : {},
         method_type: "card",
         brand: getCardBrand(digits),
         last4: digits.slice(-4),
-        holder_name: draft.nameOnCard.trim() || manifest.displayName,
+        holder_name: draft.nameOnCard.trim() || holderFallback,
         exp_month: expiry.expMonth,
         exp_year: expiry.expYear,
         make_default: true
@@ -42289,40 +42726,6 @@
     }
     return resolution.packages.filter((entry) => entry.manifest.tier !== "free" && ownedPackageIds.has(entry.manifest.id));
   }
-  function getPackageOwnershipLabel(profile, entry, purchase) {
-    const packageId = entry.manifest.id;
-    if (profile.disabledPackageIds.includes(packageId)) {
-      return "Disabled";
-    }
-    if (profile.expiredPackageIds.includes(packageId)) {
-      return "Expired";
-    }
-    if (purchase?.status === "refunded") {
-      return "Refunded";
-    }
-    if (purchase?.status === "failed") {
-      return "Payment failed";
-    }
-    if (profile.enterprisePackageIds.includes(packageId)) {
-      return "Enterprise entitlement";
-    }
-    if (profile.trialPackageIds.includes(packageId) || purchase?.status === "trial") {
-      return "Trial";
-    }
-    if (profile.purchasedPackageIds.includes(packageId) || purchase?.status === "paid") {
-      if (profile.subscriptionStatus === "past-due") {
-        return "Past due";
-      }
-      if (profile.subscriptionStatus === "canceled") {
-        return "Canceled";
-      }
-      return "Active subscription";
-    }
-    return getPackageStateLabel(entry.state);
-  }
-  function getPackageDisplayName(resolution, packageId, fallback) {
-    return resolution.packages.find((entry) => entry.manifest.id === packageId)?.manifest.displayName ?? fallback;
-  }
   function getCardBrand(cardNumber) {
     const digits = cardNumber.replace(/\D/g, "");
     if (/^4/.test(digits)) return "Visa";
@@ -42477,6 +42880,40 @@
     }
     const compact = typeof data === "string" ? data.replace(/\s+/g, " ").trim() : formatJson(data).replace(/\s+/g, " ").trim();
     return truncateText(compact || "ok", 220);
+  }
+  function getChatToolActivityAction(toolName) {
+    const normalized = toolName.toLowerCase();
+    if (normalized === "fs.list" || normalized === "fs_list") return "List directory";
+    if (normalized === "fs.read" || normalized === "fs_read") return "Read file";
+    if (normalized === "fs.write" || normalized === "fs_write") return "Write file";
+    if (normalized === "bash.run" || normalized === "bash_run") return "Run command";
+    if (normalized.includes("search")) return "Search";
+    return toolName.replace(/[._-]+/g, " ").replace(/^\w/, (character) => character.toUpperCase());
+  }
+  function getChatToolActivityTarget(activity) {
+    const args = activity.args || {};
+    const value = args.path ?? args.command ?? args.cwd ?? args.query ?? args.pattern ?? args.url;
+    if (typeof value === "string" && value.trim()) return truncateText(value.trim(), 120);
+    return "";
+  }
+  function getChatToolActivityStatusLabel(status) {
+    if (status === "waiting-approval") return "Waiting for approval";
+    if (status === "running") return "Running";
+    if (status === "succeeded") return "Completed";
+    if (status === "rejected") return "Not approved";
+    return "Failed";
+  }
+  function formatChatToolActivityCopy(activity) {
+    const target = getChatToolActivityTarget(activity);
+    const lines = [
+      `${getChatToolActivityAction(activity.toolName)}${target ? `: ${target}` : ""}`,
+      `Status: ${getChatToolActivityStatusLabel(activity.status)}`,
+      `Tool: ${activity.toolName}`,
+      `Arguments: ${formatJson(activity.args)}`
+    ];
+    if (activity.result !== void 0) lines.push(`Result: ${formatJson(activity.result)}`);
+    if (activity.error) lines.push(`Error: ${activity.error}`);
+    return lines.join("\n");
   }
   function formatSidebarLabel(content, maxLength = 42) {
     const normalized = content.replace(/\s+/g, " ").trim();
@@ -42710,6 +43147,9 @@
     const configured = config?.toolPermissionPolicies?.[tool.name];
     return configured === "allow" || configured === "ask" || configured === "deny" ? configured : "allow";
   }
+  function isCoreTool(tool) {
+    return tool.owner?.kind === "core" || !tool.owner && tool.source === "bridge";
+  }
   function getToolCategory(tool) {
     if (tool.name.startsWith("fs.") || tool.name.startsWith("bash.") || tool.name.startsWith("time.")) {
       return "core";
@@ -42755,10 +43195,10 @@
     if (source === "tool") {
       return "Tool output";
     }
-    return "Guided chat output";
+    return "Project chat output";
   }
   function isAutomationScopedToolEvent(data) {
-    return data.scope?.source === "scheduled-task" || data.scope?.source === "virtual-team" || data.scope?.source === "project-chat";
+    return data.scope?.source === "scheduled-task" || data.scope?.source === "virtual-team";
   }
   function isProjectToolActivity(activity, projectId, automationTeamId) {
     return activity.scope?.projectId === projectId || activity.scope?.teamId === automationTeamId;
@@ -42780,6 +43220,29 @@
   }
   function filterNavigationItems(items, resolution) {
     return items.filter((item) => hasShellFeature(resolution, item.featureId));
+  }
+  function toDesktopNavigationItem(entry) {
+    const extension = entry.extension;
+    const route = extension.childRoute || extension.route;
+    if (!route) {
+      return null;
+    }
+    return {
+      id: route,
+      packageId: entry.packageId,
+      route,
+      parentRoute: extension.parentRoute,
+      title: extension.title,
+      description: extension.description || "",
+      icon: extension.icon || "puzzle",
+      featureId: extension.featureId
+    };
+  }
+  function getDesktopPrimaryNavigation(resolution) {
+    return getFeaturePackageExtensions(resolution, "desktop.primary-nav").map(toDesktopNavigationItem).filter((item) => Boolean(item));
+  }
+  function getDesktopChildNavigation(resolution, parentRoute) {
+    return getFeaturePackageExtensions(resolution, "desktop.child-route").filter((entry) => entry.extension.parentRoute === parentRoute).map(toDesktopNavigationItem).filter((item) => Boolean(item));
   }
   function getAvailableDesktopCommands(resolution) {
     const commandsByName = /* @__PURE__ */ new Map();
@@ -42889,17 +43352,38 @@
   }
   function getProjectChatRequestMessages(messages, project, channel, nextUserMessage, employees, roles, projectTeams) {
     const projectContext = [
-      channel === "team" ? "You are supporting an autonomous project team chat. Treat the human message as direction to the supervisor/team." : "You are supporting a guided project chat. Treat the human message as project-scoped product/software direction.",
+      channel === "team" ? "You are supporting an autonomous project team chat. Treat the human message as direction to the supervisor/team." : "You are supporting a standard project chat. Treat the human message as project-scoped product/software direction.",
       formatProjectPrompt(project, employees, roles, projectTeams),
-      channel === "guided" ? "Use the project details above to infer intent and continue work. Avoid generic intake questions unless they are strictly necessary to unblock the next step." : "Use the project details above as the team operating context.",
-      `Human message:
-${nextUserMessage}`
+      channel === "guided" ? "Use the project details above to infer intent and continue work. Avoid generic intake questions unless they are strictly necessary to unblock the next step." : "Use the project details above as the team operating context."
     ].join("\n\n");
-    const history = messages.filter((message) => message.role === "user" || message.role === "assistant").map((message) => ({
-      role: message.role,
-      content: message.content
-    }));
-    return [...history, { role: "user", content: projectContext }];
+    const eligibleHistory = messages.filter((message) => message.role === "user" || message.role === "assistant").filter((message) => message.content.trim() && !message.content.startsWith("Project chat is ready for"));
+    const history = [];
+    let remainingCharacters = MAX_PROJECT_CHAT_CONTEXT_CHARACTERS;
+    for (const message of eligibleHistory.slice(-MAX_PROJECT_CHAT_CONTEXT_MESSAGES).reverse()) {
+      if (remainingCharacters <= 0) break;
+      const compactedContent = compactProjectChatHistoryContent(
+        message.content,
+        Math.min(MAX_PROJECT_CHAT_MESSAGE_CHARACTERS, remainingCharacters)
+      );
+      history.unshift({
+        role: message.role,
+        content: compactedContent
+      });
+      remainingCharacters -= compactedContent.length;
+    }
+    return [
+      { role: "system", content: projectContext },
+      ...history,
+      { role: "user", content: nextUserMessage }
+    ];
+  }
+  function compactProjectChatHistoryContent(content, limit) {
+    if (content.length <= limit) return content;
+    const marker = "\n\n[Earlier response shortened for context]\n\n";
+    const usable = Math.max(0, limit - marker.length);
+    const leadingLength = Math.ceil(usable * 0.7);
+    const trailingLength = usable - leadingLength;
+    return `${content.slice(0, leadingLength)}${marker}${content.slice(-trailingLength)}`;
   }
   function parseAnsiText(text) {
     const segments = [];
@@ -43000,6 +43484,10 @@ ${nextUserMessage}`
     const [chatToolWorkspacePath, setChatToolWorkspacePath] = useState("");
     const [chatContextAttachments, setChatContextAttachments] = useState([]);
     const [chatImageAttachments, setChatImageAttachments] = useState([]);
+    const [chatExecutionModeOverride, setChatExecutionModeOverride] = useState(null);
+    const [chatPermissionProfileOverride, setChatPermissionProfileOverride] = useState(null);
+    const [composerMenu, setComposerMenu] = useState(null);
+    const [pendingChatPermissionProfile, setPendingChatPermissionProfile] = useState(null);
     const [sessionSearch, setSessionSearch] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [copiedMessageId, setCopiedMessageId] = useState(null);
@@ -43011,17 +43499,26 @@ ${nextUserMessage}`
     const [isSyncingPlatform, setIsSyncingPlatform] = useState(false);
     const [purchasePackageId, setPurchasePackageId] = useState(null);
     const [purchaseDraft, setPurchaseDraft] = useState(() => ({ ...EMPTY_PURCHASE_DRAFT }));
+    const [paymentMethodDialogOpen, setPaymentMethodDialogOpen] = useState(false);
+    const [packageOperationError, setPackageOperationError] = useState(null);
     const [activeView, setActiveView] = useState("chat");
     const [activeProjectsSection, setActiveProjectsSection] = useState("studio");
-    const [activeToolsSection, setActiveToolsSection] = useState("bridge");
+    const [activeToolsSection, setActiveToolsSection] = useState("mcp");
     const [activeAutomationSection, setActiveAutomationSection] = useState("tasks");
     const [activeHistorySection, setActiveHistorySection] = useState("overview");
     const [activeSettingsSection, setActiveSettingsSection] = useState("account");
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
+    const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+    const developmentPlatformSessionRef = useRef(null);
+    const effectiveChatExecutionMode = chatExecutionModeOverride ?? (appConfig?.enableLlmTools === false ? "chat" : "agent");
+    const effectiveChatPermissionProfile = chatPermissionProfileOverride ?? appConfig?.desktopPermissionProfile ?? "workspace-only";
     const messageListRef = useRef(null);
     const inputRef = useRef(null);
     const streamMessageIds = useRef(/* @__PURE__ */ new Map());
+    const chatRequestStartedAtRef = useRef(/* @__PURE__ */ new Map());
     const toolActivityNamesRef = useRef(/* @__PURE__ */ new Map());
+    const approvalRequestToolIdsRef = useRef(/* @__PURE__ */ new Map());
+    const currentSessionIdRef = useRef(currentSessionId);
     const hasHydratedSessionsRef = useRef(false);
     const hasHydratedProjectsRef = useRef(false);
     const hasHydratedRolesRef = useRef(false);
@@ -43029,6 +43526,67 @@ ${nextUserMessage}`
     const hasHydratedProjectTeamsRef = useRef(false);
     const hasHydratedProjectChatsRef = useRef(false);
     const hasHydratedProjectOutputsRef = useRef(false);
+    const chatToolWorkspacePathRef = useRef("");
+    currentSessionIdRef.current = currentSessionId;
+    function applyChatToolWorkspacePath(nextPath) {
+      const normalizedPath = nextPath.trim();
+      chatToolWorkspacePathRef.current = normalizedPath;
+      setChatToolWorkspacePath(normalizedPath);
+    }
+    function applyChatExecutionSettings(session) {
+      setChatExecutionModeOverride(session?.executionMode ?? null);
+      setChatPermissionProfileOverride(session?.permissionProfile ?? null);
+      setPendingChatPermissionProfile(null);
+      setComposerMenu(null);
+    }
+    function withDevelopmentPlatformSession(config) {
+      return developmentPlatformSessionRef.current ? { ...config, ...developmentPlatformSessionRef.current } : config;
+    }
+    function updateDevelopmentPlatformSession(update, baseConfig = appConfig ?? {}) {
+      developmentPlatformSessionRef.current = {
+        ...developmentPlatformSessionRef.current ?? {},
+        ...update
+      };
+      const merged = withDevelopmentPlatformSession(baseConfig);
+      setAppConfig(merged);
+      return merged;
+    }
+    function platformSessionFromConfig(config) {
+      const accessToken = typeof config?.platformAccessToken === "string" ? config.platformAccessToken.trim() : "";
+      const baseUrl = normalizePlatformBaseUrl(String(config?.platformBaseUrl || ""));
+      if (!accessToken || !baseUrl) return null;
+      return {
+        accessToken,
+        baseUrl,
+        orgId: String(config?.platformOrgId || "").trim() || void 0,
+        developerMode: config?.platformDeveloperMode === true
+      };
+    }
+    async function commitAuthenticatedPlatformConfig(nextConfig, session, persistSession = true) {
+      if (persistSession) await ipcClient.auth.setPlatformSession(session);
+      const inMemoryConfig = {
+        ...nextConfig,
+        platformBaseUrl: session.baseUrl,
+        platformDeveloperMode: session.developerMode === true,
+        platformAccessToken: session.accessToken,
+        platformOrgId: session.orgId || nextConfig.platformOrgId
+      };
+      if (session.developerMode) {
+        const persistedConfig = await ipcClient.app.getConfig();
+        return updateDevelopmentPlatformSession(inMemoryConfig, persistedConfig);
+      }
+      await ipcClient.app.setConfig({
+        ...nextConfig,
+        platformBaseUrl: session.baseUrl,
+        platformDeveloperMode: false,
+        platformAccessToken: "",
+        platformOrgId: session.orgId || nextConfig.platformOrgId
+      });
+      return {
+        ...await ipcClient.app.getConfig(),
+        platformAccessToken: session.accessToken
+      };
+    }
     const tokenUsage = useMemo(() => {
       return messages.reduce(
         (totals, message) => ({
@@ -43054,23 +43612,31 @@ ${nextUserMessage}`
       return getAvailableDesktopCommands(featureResolution);
     }, [featureResolution]);
     const availablePrimaryNav = useMemo(() => {
-      return PRIMARY_NAV.filter((item) => hasShellFeature(featureResolution, item.featureId));
+      return getDesktopPrimaryNavigation(featureResolution);
     }, [featureResolution]);
     useEffect(() => {
-      initializeApp();
+      void initializeApp();
     }, []);
     useEffect(() => {
-      const activeNavItem = PRIMARY_NAV.find((item) => item.id === activeView);
-      if (activeNavItem && !hasShellFeature(featureResolution, activeNavItem.featureId)) {
+      const activeRouteIsAvailable = availablePrimaryNav.some((item) => item.route === activeView) || getFeaturePackageExtensions(featureResolution, "desktop.child-route").some((entry) => entry.extension.route === activeView || entry.extension.parentRoute === activeView);
+      if (!activeRouteIsAvailable) {
         setActiveView("chat");
       }
-    }, [activeView, featureResolution]);
+    }, [activeView, availablePrimaryNav, featureResolution]);
     useEffect(() => {
       try {
         window.localStorage?.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
       } catch {
       }
     }, [sidebarCollapsed]);
+    useEffect(() => {
+      if (!mobileNavigationOpen) return void 0;
+      const closeOnEscape = (event) => {
+        if (event.key === "Escape") setMobileNavigationOpen(false);
+      };
+      window.addEventListener("keydown", closeOnEscape);
+      return () => window.removeEventListener("keydown", closeOnEscape);
+    }, [mobileNavigationOpen]);
     useEffect(() => {
       softwareProjectsRef.current = softwareProjects;
     }, [softwareProjects]);
@@ -43126,11 +43692,20 @@ ${nextUserMessage}`
             ));
             return;
           }
-          setMessages((current) => current.map((message) => message.id === target.messageId ? { ...message, content: `${message.content}${data.delta}` } : message));
+          updateMainChatSessionMessages(target.sessionId, (current) => current.map((message) => message.id === target.messageId ? { ...message, content: `${message.content}${data.delta}` } : message));
         }));
         removers.push(ipcClient.onChatComplete((data) => {
           const target = streamMessageIds.current.get(data.requestId);
           streamMessageIds.current.delete(data.requestId);
+          const requestStartedAt = chatRequestStartedAtRef.current.get(data.requestId);
+          chatRequestStartedAtRef.current.delete(data.requestId);
+          const endToEndMs = requestStartedAt === void 0 ? data.duration : Date.now() - requestStartedAt;
+          const backendPerformance = data.response.performance;
+          const performance2 = backendPerformance ? {
+            ...backendPerformance,
+            endToEndMs,
+            uiDeliveryMs: Math.max(0, endToEndMs - backendPerformance.backendMs)
+          } : void 0;
           if (target?.scope === "project") {
             setProjectChatMessages((current) => updateProjectChatMessage(
               current,
@@ -43140,8 +43715,8 @@ ${nextUserMessage}`
                 ...message,
                 content: data.response.content || message.content || "No response content.",
                 status: "sent",
-                title: data.response.model,
-                usage: data.response.usage
+                usage: data.response.usage,
+                performance: performance2
               })
             ));
             setProjectChatSendingKeys((current) => {
@@ -43150,12 +43725,12 @@ ${nextUserMessage}`
               return next;
             });
           } else if (target?.scope === "main") {
-            setMessages((current) => current.map((message) => message.id === target.messageId ? {
+            updateMainChatSessionMessages(target.sessionId, (current) => current.map((message) => message.id === target.messageId ? {
               ...message,
               content: data.response.content || message.content || "No response content.",
               status: "sent",
-              title: data.response.model,
-              usage: data.response.usage
+              usage: data.response.usage,
+              performance: performance2
             } : message));
             setIsSending(false);
           }
@@ -43167,6 +43742,7 @@ ${nextUserMessage}`
         removers.push(ipcClient.onChatError((data) => {
           const target = streamMessageIds.current.get(data.requestId);
           streamMessageIds.current.delete(data.requestId);
+          chatRequestStartedAtRef.current.delete(data.requestId);
           if (target?.scope === "project") {
             setProjectChatMessages((current) => updateProjectChatMessage(
               current,
@@ -43180,7 +43756,7 @@ ${nextUserMessage}`
               return next;
             });
           } else if (target?.scope === "main") {
-            setMessages((current) => current.map((message) => message.id === target.messageId ? { ...message, content: formatDesktopError(data.error), status: "failed", title: "Request failed", role: "error" } : message));
+            updateMainChatSessionMessages(target.sessionId, (current) => current.map((message) => message.id === target.messageId ? { ...message, content: formatDesktopError(data.error), status: "failed", title: "Request failed", role: "error" } : message));
           } else {
             appendMessage(createMessage("error", formatDesktopError(data.error), {
               title: "Request failed",
@@ -43197,32 +43773,39 @@ ${nextUserMessage}`
         }));
         removers.push(ipcClient.onToolStart((data) => {
           recordToolStart(data);
+          if (!isAutomationScopedToolEvent(data)) {
+            upsertChatToolActivity(data.toolId, {
+              toolName: data.toolName,
+              args: data.args || {},
+              status: "running",
+              startedAt: data.timestamp
+            }, data.scope);
+          }
         }));
         removers.push(ipcClient.onToolResult((data) => {
           recordToolResult(data);
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("tool", `\`\`\`json
-${formatJson(data.data)}
-\`\`\``, {
-              title: `Tool result ${data.toolId}`
-            }));
+            upsertChatToolActivity(data.toolId, { result: data.data }, data.scope);
           }
         }));
         removers.push(ipcClient.onToolComplete((data) => {
           recordToolComplete(data);
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("tool", `${data.success ? "Completed" : "Failed"} in ${data.duration} ms`, {
-              title: `Tool ${data.toolId}`
-            }));
+            upsertChatToolActivity(data.toolId, {
+              status: data.success ? "succeeded" : "failed",
+              duration: data.duration,
+              completedAt: Date.now()
+            }, data.scope);
           }
         }));
         removers.push(ipcClient.onToolError((data) => {
           recordToolError(data);
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("error", formatDesktopError(data.error), {
-              title: `Tool error ${data.toolId}`,
-              status: "failed"
-            }));
+            upsertChatToolActivity(data.toolId, {
+              status: "failed",
+              error: formatDesktopError(data.error),
+              completedAt: Date.now()
+            }, data.scope);
           } else if ((data.scope?.source === "virtual-team" || data.scope?.source === "project-chat") && data.scope.projectId) {
             const project = softwareProjectsRef.current.find((candidate) => candidate.id === data.scope?.projectId);
             if (project) {
@@ -43236,57 +43819,79 @@ ${formatJson(data.data)}
           }
         }));
         removers.push(ipcClient.onFileWriteReview((data) => {
+          approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
           setFileWriteReviews((current) => [
             ...current.filter((review) => review.requestId !== data.requestId),
             data
           ]);
           setStatus("Approval needed");
+          if (data.scope?.source !== "project-chat") setActiveView("chat");
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("system", `Review requested for ${data.path}`, {
-              title: "File write approval"
-            }));
+            upsertChatToolActivity(data.toolId, {
+              status: "waiting-approval",
+              approval: { required: true }
+            }, data.scope);
           }
         }));
         removers.push(ipcClient.onCommandReview((data) => {
+          approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
           setCommandReviews((current) => [
             ...current.filter((review) => review.requestId !== data.requestId),
             data
           ]);
           setStatus("Approval needed");
+          if (data.scope?.source !== "project-chat") setActiveView("chat");
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("system", `Review requested for command: ${data.command}`, {
-              title: "Command approval"
-            }));
+            upsertChatToolActivity(data.toolId, {
+              status: "waiting-approval",
+              approval: { required: true }
+            }, data.scope);
           }
         }));
         removers.push(ipcClient.onToolPermissionReview((data) => {
+          approvalRequestToolIdsRef.current.set(data.requestId, data.toolId);
           setToolPermissionReviews((current) => [
             ...current.filter((review) => review.requestId !== data.requestId),
             data
           ]);
           setStatus("Approval needed");
+          if (data.scope?.source !== "project-chat") setActiveView("chat");
           if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("system", `Review requested for tool: ${data.toolName}`, {
-              title: "Tool permission"
-            }));
+            upsertChatToolActivity(data.toolId, {
+              toolName: data.toolName,
+              args: data.args || {},
+              status: "waiting-approval",
+              startedAt: data.createdAt,
+              approval: { required: true }
+            }, data.scope);
           }
         }));
         removers.push(ipcClient.onToolApprovalResolved((data) => {
+          const toolId = approvalRequestToolIdsRef.current.get(data.requestId);
+          approvalRequestToolIdsRef.current.delete(data.requestId);
+          if (toolId && !isAutomationScopedToolEvent(data)) {
+            upsertChatToolActivity(toolId, {
+              status: data.approved ? "running" : "rejected",
+              completedAt: data.approved ? void 0 : Date.now(),
+              approval: {
+                required: true,
+                decision: data.approved ? "approved" : "rejected",
+                resolvedAt: Date.now(),
+                resolvedBy: data.resolvedBy
+              }
+            }, data.scope);
+          }
           setFileWriteReviews((current) => current.filter((review) => review.requestId !== data.requestId));
           setCommandReviews((current) => current.filter((review) => review.requestId !== data.requestId));
           setToolPermissionReviews((current) => current.filter((review) => review.requestId !== data.requestId));
           setStatus("Ready");
-          if (!isAutomationScopedToolEvent(data)) {
-            appendMessage(createMessage("system", `${data.approved ? "Approved" : "Rejected"} by ${data.resolvedBy}: ${data.title ?? data.requestId}`, {
-              title: "Remote approval resolved"
-            }));
-          }
           inputRef.current?.focus();
         }));
         removers.push(ipcClient.onConfigChanged((data) => {
-          setAppConfig(data.config);
+          const config = withDevelopmentPlatformSession(data.config);
+          setAppConfig(config);
           setSettingsDraft((current) => ({
-            ...createSettingsDraft(data.config),
+            ...createSettingsDraft(config),
             apiKey: current.apiKey
           }));
         }));
@@ -43330,11 +43935,13 @@ ${formatJson(data.data)}
             appInfo?.workspacePath,
             previous,
             chatToolWorkspacePath || null,
-            chatContextAttachments
+            chatContextAttachments,
+            chatExecutionModeOverride,
+            chatPermissionProfileOverride
           )
         );
       });
-    }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments]);
+    }, [messages, currentSessionId, appInfo?.workspacePath, chatToolWorkspacePath, chatContextAttachments, chatExecutionModeOverride, chatPermissionProfileOverride]);
     useEffect(() => {
       if (!hasHydratedSessionsRef.current || sessions.length === 0 || !currentSessionId) {
         return;
@@ -43415,9 +44022,44 @@ ${formatJson(data.data)}
     }, [activeView]);
     async function initializeApp() {
       try {
+        async function optionalStartupValue(label, request, fallback) {
+          try {
+            return await request;
+          } catch (error) {
+            console.warn(`Failed to load optional startup resource (${label}):`, error);
+            return fallback;
+          }
+        }
+        const config = await ipcClient.app.getConfig();
+        setAppConfig(config);
+        setSettingsDraft(createSettingsDraft(config));
+        const [info, storedPlatformSession] = await Promise.all([
+          ipcClient.app.info(),
+          optionalStartupValue("platform session", ipcClient.auth.getPlatformSession(), null)
+        ]);
+        const legacySession = !storedPlatformSession ? platformSessionFromConfig(config) : null;
+        const restoredPlatformSession = storedPlatformSession ?? legacySession;
+        if (legacySession) await ipcClient.auth.setPlatformSession(legacySession);
+        const effectiveConfig = restoredPlatformSession ? {
+          ...config,
+          platformDeveloperMode: restoredPlatformSession.developerMode === true,
+          platformBaseUrl: restoredPlatformSession.baseUrl,
+          platformOrgId: restoredPlatformSession.orgId || config.platformOrgId || "",
+          platformAccessToken: restoredPlatformSession.accessToken
+        } : {
+          ...config,
+          platformDeveloperMode: false,
+          platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+          platformOrgId: "",
+          platformAccessToken: "",
+          platformCatalogSource: "local",
+          platformFeaturePackageCatalog: [],
+          featureProfile: normalizeFeatureProfile(null)
+        };
+        setAppInfo(info);
+        setAppConfig(effectiveConfig);
+        setSettingsDraft(createSettingsDraft(effectiveConfig));
         const [
-          info,
-          config,
           state,
           bridgeTools,
           servers,
@@ -43433,27 +44075,35 @@ ${formatJson(data.data)}
           allHistoryRecords,
           storageInfo
         ] = await Promise.all([
-          ipcClient.app.info(),
-          ipcClient.app.getConfig(),
-          ipcClient.app.getState(),
-          ipcClient.tools.list(),
-          ipcClient.mcp.listServers(),
-          ipcClient.mcp.listTools(),
-          ipcClient.automation.listSkills(),
-          ipcClient.automation.listTasks(),
-          ipcClient.automation.listTaskRuns(),
-          ipcClient.automation.getRemoteControl(),
-          ipcClient.automation.listTeams(),
-          ipcClient.automation.listTeamRuns(),
-          ipcClient.automation.getSchedulerStatus(),
-          ipcClient.history.listRecords({ type: "chat-session", limit: MAX_RECENT_SESSIONS }),
-          ipcClient.history.listRecords({ limit: 500 }),
-          ipcClient.history.getStorageInfo()
+          optionalStartupValue("application state", ipcClient.app.getState(), {}),
+          optionalStartupValue("tools", ipcClient.tools.list(), []),
+          optionalStartupValue("MCP servers", ipcClient.mcp.listServers(), []),
+          optionalStartupValue("MCP tools", ipcClient.mcp.listTools(), []),
+          optionalStartupValue("skills", ipcClient.automation.listSkills(), []),
+          optionalStartupValue("scheduled tasks", ipcClient.automation.listTasks(), []),
+          optionalStartupValue("task runs", ipcClient.automation.listTaskRuns(), []),
+          optionalStartupValue("remote control", ipcClient.automation.getRemoteControl(), EMPTY_REMOTE_CONTROL),
+          optionalStartupValue("virtual teams", ipcClient.automation.listTeams(), []),
+          optionalStartupValue("team runs", ipcClient.automation.listTeamRuns(), []),
+          optionalStartupValue("scheduler", ipcClient.automation.getSchedulerStatus(), EMPTY_SCHEDULER_STATUS),
+          optionalStartupValue("chat history", ipcClient.history.listRecords({ type: "chat-session", limit: MAX_RECENT_SESSIONS }), []),
+          optionalStartupValue("history records", ipcClient.history.listRecords({ limit: 500 }), []),
+          optionalStartupValue("history storage", ipcClient.history.getStorageInfo(), EMPTY_HISTORY_STORAGE)
         ]);
-        setAppInfo(info);
-        setAppConfig(config);
+        if (config.platformAccessToken || config.platformDeveloperMode) {
+          void ipcClient.app.setConfig({
+            platformDeveloperMode: false,
+            platformBaseUrl: restoredPlatformSession?.developerMode ? PRODUCTION_PLATFORM_BASE_URL : restoredPlatformSession?.baseUrl || PRODUCTION_PLATFORM_BASE_URL,
+            platformOrgId: restoredPlatformSession?.developerMode ? "" : restoredPlatformSession?.orgId || "",
+            platformAccessToken: "",
+            ...!restoredPlatformSession ? {
+              platformCatalogSource: "local",
+              platformFeaturePackageCatalog: [],
+              featureProfile: normalizeFeatureProfile(null)
+            } : {}
+          });
+        }
         setAppState(state);
-        setSettingsDraft(createSettingsDraft(config));
         setTools(bridgeTools);
         setMcpServers(servers);
         setMcpTools(discoveredMcpTools);
@@ -43485,8 +44135,9 @@ ${formatJson(data.data)}
         setSessions(restoredSessions.sessions);
         setCurrentSessionId(restoredSessions.currentSessionId);
         setMessages(activeSession2?.messages ?? createReadyMessages());
-        setChatToolWorkspacePath(activeSession2?.toolWorkspacePath ?? "");
+        applyChatToolWorkspacePath(activeSession2?.toolWorkspacePath ?? "");
         setChatContextAttachments(activeSession2?.contextAttachments ?? []);
+        applyChatExecutionSettings(activeSession2);
         hasHydratedSessionsRef.current = true;
         hasHydratedProjectsRef.current = true;
         hasHydratedRolesRef.current = true;
@@ -43495,7 +44146,7 @@ ${formatJson(data.data)}
         hasHydratedProjectChatsRef.current = true;
         hasHydratedProjectOutputsRef.current = true;
         setStatus("Ready");
-        void syncPlatformStateFromConfig(config, { reason: "startup", silent: true });
+        void syncPlatformStateFromConfig(effectiveConfig, { reason: "startup", silent: true });
       } catch (error) {
         console.error("Failed to initialize app:", error);
         hasHydratedSessionsRef.current = true;
@@ -43515,6 +44166,24 @@ ${formatJson(data.data)}
     function appendMessage(message) {
       setMessages((current) => [...current, message]);
     }
+    function updateMainChatSessionMessages(sessionId, update) {
+      if (currentSessionIdRef.current === sessionId) {
+        setMessages(update);
+        return;
+      }
+      setSessions((current) => current.map((session) => {
+        if (session.id !== sessionId) {
+          return session;
+        }
+        const nextMessages = update(session.messages).slice(-MAX_PERSISTED_MESSAGES);
+        return {
+          ...session,
+          messages: nextMessages,
+          title: getSessionTitle(nextMessages),
+          updatedAt: Date.now()
+        };
+      }));
+    }
     function startNewChat() {
       const nextSession = createEmptySession(appInfo?.workspacePath);
       setSessions((current) => {
@@ -43527,19 +44196,23 @@ ${formatJson(data.data)}
             appInfo?.workspacePath,
             previous,
             chatToolWorkspacePath || null,
-            chatContextAttachments
+            chatContextAttachments,
+            chatExecutionModeOverride,
+            chatPermissionProfileOverride
           )
         ) : current;
         return upsertSession(withCurrent, nextSession);
       });
       setCurrentSessionId(nextSession.id);
       setMessages(nextSession.messages);
-      setChatToolWorkspacePath(nextSession.toolWorkspacePath ?? "");
+      applyChatToolWorkspacePath(nextSession.toolWorkspacePath ?? "");
       setChatContextAttachments(nextSession.contextAttachments ?? []);
+      applyChatExecutionSettings(nextSession);
       setChatImageAttachments([]);
       setInput("");
       setStatus("Ready");
       setActiveView("chat");
+      setMobileNavigationOpen(false);
       inputRef.current?.focus();
     }
     function loadSession(sessionId) {
@@ -43549,8 +44222,9 @@ ${formatJson(data.data)}
       }
       setCurrentSessionId(session.id);
       setMessages(sanitizeMessages(session.messages));
-      setChatToolWorkspacePath(session.toolWorkspacePath ?? "");
+      applyChatToolWorkspacePath(session.toolWorkspacePath ?? "");
       setChatContextAttachments(session.contextAttachments ?? []);
+      applyChatExecutionSettings(session);
       setChatImageAttachments([]);
       setInput("");
       setStatus("Ready");
@@ -44064,6 +44738,50 @@ ${formatJson(data.data)}
         ...current.filter((activity2) => activity2.id !== data.toolId)
       ].slice(0, MAX_TOOL_ACTIVITIES));
     }
+    function upsertChatToolActivity(toolId, update, scope) {
+      const updateMessages = (current) => {
+        const existingIndex = current.findIndex((message) => message.activity?.toolId === toolId);
+        const existing = existingIndex >= 0 ? current[existingIndex].activity : void 0;
+        const activity = {
+          toolId,
+          toolName: update.toolName || existing?.toolName || toolActivityNamesRef.current.get(toolId) || "Tool",
+          args: update.args || existing?.args || {},
+          status: update.status || existing?.status || "running",
+          startedAt: update.startedAt || existing?.startedAt || Date.now(),
+          ...existing,
+          ...update
+        };
+        if (existingIndex >= 0) {
+          return current.map((message, index) => index === existingIndex ? {
+            ...message,
+            activity,
+            content: formatChatToolActivityCopy(activity),
+            status: activity.status === "failed" || activity.status === "rejected" ? "failed" : "sent"
+          } : message);
+        }
+        return [...current, createMessage("tool", formatChatToolActivityCopy(activity), {
+          id: `tool-activity-${toolId}`,
+          title: "Activity",
+          activity,
+          status: activity.status === "failed" || activity.status === "rejected" ? "failed" : "sent"
+        })];
+      };
+      const scopedProjectChatKey = scope?.projectChatKey ?? (scope?.projectId ? getProjectChatKey(scope.projectId, scope.channel ?? "guided") : void 0);
+      const mainSessionId = scopedProjectChatKey?.startsWith("main:") ? scopedProjectChatKey.slice("main:".length) : void 0;
+      if (mainSessionId) {
+        updateMainChatSessionMessages(mainSessionId, updateMessages);
+        return;
+      }
+      const projectChatKey = scope?.source === "project-chat" ? scopedProjectChatKey : void 0;
+      if (projectChatKey) {
+        setProjectChatMessages((current) => ({
+          ...current,
+          [projectChatKey]: updateMessages(current[projectChatKey] ?? [])
+        }));
+        return;
+      }
+      setMessages(updateMessages);
+    }
     function updateToolActivity(toolId, update, fallbackName = "Tool") {
       setToolActivities((current) => {
         const existing = current.find((activity) => activity.id === toolId);
@@ -44110,6 +44828,32 @@ ${formatJson(data.data)}
     }
     function updateSettingsDraft(update) {
       setSettingsDraft((current) => ({ ...current, ...update }));
+      const appearanceUpdate = {};
+      if (Object.prototype.hasOwnProperty.call(update, "theme") && update.theme) {
+        appearanceUpdate.theme = update.theme;
+      }
+      if (Object.prototype.hasOwnProperty.call(update, "accentColor") && update.accentColor) {
+        appearanceUpdate.accentColor = update.accentColor;
+      }
+      if (Object.keys(appearanceUpdate).length === 0) return;
+      setAppConfig((current) => ({ ...current ?? {}, ...appearanceUpdate }));
+      ipcClient.app.setConfig(appearanceUpdate).then(() => {
+        setSettingsMessage("Appearance saved");
+        setStatus("Ready");
+      }).catch(async (error) => {
+        const persistedConfig = await ipcClient.app.getConfig().catch(() => null);
+        if (persistedConfig) {
+          const config = withDevelopmentPlatformSession(persistedConfig);
+          setAppConfig(config);
+          setSettingsDraft((current) => ({
+            ...current,
+            theme: config.theme || "system",
+            accentColor: getSkinAccent(config.accentColor)
+          }));
+        }
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+        setStatus("Appearance settings error");
+      });
     }
     async function refreshBridgeData() {
       const [bridgeTools, servers, discoveredMcpTools] = await Promise.all([
@@ -44162,6 +44906,43 @@ ${formatJson(data.data)}
         setHistoryMessage(formatDesktopError(error));
       }
     }
+    async function deleteChatSession(sessionId) {
+      setSettingsMessage("");
+      try {
+        const recordId = `${CHAT_SESSION_HISTORY_ID_PREFIX}${sessionId}`;
+        const deletedRecord = historyRecords.find((record) => record.id === recordId);
+        await ipcClient.history.deleteRecord(recordId);
+        const removed = removeDeletedChatSession(recordId, deletedRecord);
+        setHistoryRecords((current) => current.filter((record) => record.id !== recordId));
+        setSettingsMessage(removed ? "Chat deleted." : "The chat was already removed.");
+      } catch (error) {
+        setSettingsMessage(formatDesktopError(error));
+      }
+    }
+    async function deleteAllChatSessions() {
+      setSettingsMessage("");
+      try {
+        const recordIds = /* @__PURE__ */ new Set([
+          ...sessions.map((session) => `${CHAT_SESSION_HISTORY_ID_PREFIX}${session.id}`),
+          ...historyRecords.filter((record) => record.type === "chat-session").map((record) => record.id)
+        ]);
+        await Promise.all(Array.from(recordIds, (recordId) => ipcClient.history.deleteRecord(recordId)));
+        const nextSession = createEmptySession(appInfo?.workspacePath);
+        setSessions([nextSession]);
+        setCurrentSessionId(nextSession.id);
+        setMessages(nextSession.messages);
+        applyChatToolWorkspacePath("");
+        setChatContextAttachments([]);
+        applyChatExecutionSettings(nextSession);
+        setChatImageAttachments([]);
+        setInput("");
+        setHistoryRecords((current) => current.filter((record) => record.type !== "chat-session"));
+        setSettingsMessage("All saved chats were deleted. Workspace files were not changed.");
+        setStatus("Ready");
+      } catch (error) {
+        setSettingsMessage(formatDesktopError(error));
+      }
+    }
     function removeDeletedChatSession(recordId, record) {
       const deletedSessionId = getChatSessionIdFromHistoryRecord(recordId, record);
       if (!deletedSessionId || !sessions.some((session) => session.id === deletedSessionId)) {
@@ -44175,8 +44956,9 @@ ${formatJson(data.data)}
       if (shouldSwitchActiveSession && nextActiveSession) {
         setCurrentSessionId(nextActiveSession.id);
         setMessages(nextActiveSession.messages);
-        setChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? "");
+        applyChatToolWorkspacePath(nextActiveSession.toolWorkspacePath ?? "");
         setChatContextAttachments(nextActiveSession.contextAttachments ?? []);
+        applyChatExecutionSettings(nextActiveSession);
         setChatImageAttachments([]);
         setInput("");
         setStatus("Ready");
@@ -44193,8 +44975,9 @@ ${formatJson(data.data)}
       setSessions((current) => upsertSession(current, session));
       setCurrentSessionId(session.id);
       setMessages(session.messages);
-      setChatToolWorkspacePath(session.toolWorkspacePath ?? "");
+      applyChatToolWorkspacePath(session.toolWorkspacePath ?? "");
       setChatContextAttachments(session.contextAttachments ?? []);
+      applyChatExecutionSettings(session);
       setChatImageAttachments([]);
       setActiveView("chat");
       setHistoryMessage(`Restored chat "${session.title}".`);
@@ -44415,8 +45198,8 @@ ${formatJson(data.data)}
         if (result.canceled || !result.path) {
           return;
         }
-        setChatToolWorkspacePath(normalizeWorkspacePath(result.path));
-        setStatus("Guided project folder set");
+        applyChatToolWorkspacePath(normalizeWorkspacePath(result.path));
+        setStatus("Working folder set");
         inputRef.current?.focus();
       } catch (error) {
         appendMessage(createMessage("error", formatDesktopError(error), {
@@ -44427,7 +45210,7 @@ ${formatJson(data.data)}
       }
     }
     function clearChatToolWorkspaceFolder() {
-      setChatToolWorkspacePath("");
+      applyChatToolWorkspacePath("");
       setStatus("Chat only");
       inputRef.current?.focus();
     }
@@ -44568,9 +45351,11 @@ ${formatJson(data.data)}
         setStatus("Permission policy error");
       }
     }
-    function applyToolPermissionPreset(preset) {
-      const toolPermissionPolicies = {};
-      for (const tool of tools) {
+    function applyToolPermissionPreset(preset, targetTools = tools) {
+      const toolPermissionPolicies = {
+        ...appConfig?.toolPermissionPolicies ?? {}
+      };
+      for (const tool of targetTools) {
         if (preset === "allow-all") {
           toolPermissionPolicies[tool.name] = "allow";
         } else if (tool.readOnly) {
@@ -44649,36 +45434,46 @@ ${displayPrompt}` : displayPrompt;
         const activeProvider2 = appConfig?.llmProvider || DEFAULT_PROVIDER;
         const activeProviderDefault2 = getProviderDefault(activeProvider2);
         const assistantMessage = createMessage("assistant", "", {
-          title: `${activeProviderDefault2.label} / ${appConfig?.model || activeProviderDefault2.model}`,
+          title: "CodeAgent",
           status: "sending"
         });
-        streamMessageIds.current.set(requestId, { scope: "main", messageId: assistantMessage.id });
+        streamMessageIds.current.set(requestId, {
+          scope: "main",
+          sessionId: currentSessionId,
+          messageId: assistantMessage.id
+        });
+        chatRequestStartedAtRef.current.set(requestId, Date.now());
         appendMessage(assistantMessage);
-        const scopedWorkspacePath = chatToolWorkspacePath.trim();
-        const chatToolScope = scopedWorkspacePath ? {
-          source: "project-chat",
-          workspacePath: scopedWorkspacePath,
+        const persistedWorkspacePath = sessions.find((session) => session.id === currentSessionId)?.toolWorkspacePath ?? "";
+        const scopedWorkspacePath = (chatToolWorkspacePathRef.current || chatToolWorkspacePath || persistedWorkspacePath).trim();
+        const chatToolScope = {
+          source: "chat",
+          workspacePath: scopedWorkspacePath || void 0,
           projectId: `ad-hoc-${currentSessionId}`,
-          projectName: getPathBasename(scopedWorkspacePath),
+          projectName: scopedWorkspacePath ? getPathBasename(scopedWorkspacePath) : "Chat",
           projectChatKey: `main:${currentSessionId}`,
           channel: "guided"
-        } : void 0;
+        };
+        const chatToolsEnabled = effectiveChatExecutionMode === "agent";
         await ipcClient.api.chatStream({
           requestId,
+          authorizedWorkspacePath: scopedWorkspacePath || void 0,
           messages: getChatMessages(messages, requestContent),
           provider: activeProvider2,
           baseUrl: appConfig?.baseUrl || activeProviderDefault2.baseUrl,
           model: appConfig?.model || activeProviderDefault2.model,
           maxTokens: Number(appConfig?.maxTokens ?? activeProviderDefault2.maxTokens),
           contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault2.contextTokens),
-          enableTools: Boolean(chatToolScope),
-          maxToolRounds: chatToolScope ? 12 : 0,
+          enableTools: chatToolsEnabled,
+          maxToolRounds: chatToolsEnabled ? 12 : 0,
+          permissionProfile: effectiveChatPermissionProfile,
           toolScope: chatToolScope,
           temperature: Number(appConfig?.temperature ?? 0.7)
         });
       } catch (error) {
         if (pendingStreamRequestId) {
           streamMessageIds.current.delete(pendingStreamRequestId);
+          chatRequestStartedAtRef.current.delete(pendingStreamRequestId);
         }
         const message = formatDesktopError(error);
         appendMessage(createMessage("error", message, {
@@ -44704,7 +45499,7 @@ ${displayPrompt}` : displayPrompt;
       const activeProvider2 = appConfig?.llmProvider || DEFAULT_PROVIDER;
       const activeProviderDefault2 = getProviderDefault(activeProvider2);
       const assistantMessage = createMessage("assistant", "", {
-        title: `${activeProviderDefault2.label} / ${appConfig?.model || activeProviderDefault2.model}`,
+        title: channel === "team" ? "Project Team" : "CodeAgent",
         status: "sending"
       });
       const requestId = `project-chat-${project.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -44723,10 +45518,14 @@ ${displayPrompt}` : displayPrompt;
         projectId: project.id,
         messageId: assistantMessage.id
       });
+      chatRequestStartedAtRef.current.set(requestId, Date.now());
       setStatus("Streaming");
       try {
+        const authorizedWorkspacePath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
         await ipcClient.api.chatStream({
           requestId,
+          structuredAgentLoop: true,
+          authorizedWorkspacePath,
           messages: getProjectChatRequestMessages(
             currentMessages,
             project,
@@ -44739,7 +45538,8 @@ ${displayPrompt}` : displayPrompt;
           provider: activeProvider2,
           toolScope: {
             source: "project-chat",
-            workspacePath: project.workspacePath ?? appInfo?.workspacePath ?? workspacePath,
+            runId: requestId,
+            workspacePath: authorizedWorkspacePath,
             projectId: project.id,
             projectName: project.name,
             projectChatKey,
@@ -44751,10 +45551,12 @@ ${displayPrompt}` : displayPrompt;
           contextTokens: Number(appConfig?.contextTokens ?? activeProviderDefault2.contextTokens),
           enableTools: true,
           maxToolRounds: 12,
+          permissionProfile: project.permissionMode === "full-access" ? "full-access" : "ask",
           temperature: Number(appConfig?.temperature ?? 0.7)
         });
       } catch (error) {
         streamMessageIds.current.delete(requestId);
+        chatRequestStartedAtRef.current.delete(requestId);
         setProjectChatMessages((current) => updateProjectChatMessage(
           current,
           projectChatKey,
@@ -45006,6 +45808,12 @@ Attached images: ${imageSummary}` : message.content);
       setStatus("Ready");
       inputRef.current?.focus();
     }
+    function clearComposerInput() {
+      setInput("");
+      setChatImageAttachments([]);
+      setStatus("Ready");
+      inputRef.current?.focus();
+    }
     async function resolveFileWriteReview(review, approved) {
       try {
         await ipcClient.tools.respondToFileWriteReview({
@@ -45014,9 +45822,11 @@ Attached images: ${imageSummary}` : message.content);
           reason: approved ? void 0 : "Rejected in desktop review"
         });
         setFileWriteReviews((current) => current.filter((item) => item.requestId !== review.requestId));
-        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} write to ${review.path}.`, {
-          title: "File write review"
-        }));
+        upsertChatToolActivity(review.toolId, {
+          status: approved ? "running" : "rejected",
+          completedAt: approved ? void 0 : Date.now(),
+          error: approved ? void 0 : "Permission was not granted."
+        });
         setStatus("Ready");
         inputRef.current?.focus();
       } catch (error) {
@@ -45035,9 +45845,11 @@ Attached images: ${imageSummary}` : message.content);
           reason: approved ? void 0 : "Rejected in desktop review"
         });
         setCommandReviews((current) => current.filter((item) => item.requestId !== review.requestId));
-        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} command: ${review.command}`, {
-          title: "Command review"
-        }));
+        upsertChatToolActivity(review.toolId, {
+          status: approved ? "running" : "rejected",
+          completedAt: approved ? void 0 : Date.now(),
+          error: approved ? void 0 : "Permission was not granted."
+        });
         setStatus("Ready");
         inputRef.current?.focus();
       } catch (error) {
@@ -45056,9 +45868,13 @@ Attached images: ${imageSummary}` : message.content);
           reason: approved ? void 0 : "Rejected in desktop permission review"
         });
         setToolPermissionReviews((current) => current.filter((item) => item.requestId !== review.requestId));
-        appendMessage(createMessage("system", `${approved ? "Approved" : "Rejected"} tool call: ${review.toolName}.`, {
-          title: "Tool permission"
-        }));
+        upsertChatToolActivity(review.toolId, {
+          toolName: review.toolName,
+          args: review.args || {},
+          status: approved ? "running" : "rejected",
+          completedAt: approved ? void 0 : Date.now(),
+          error: approved ? void 0 : "Permission was not granted."
+        });
         setStatus("Ready");
         inputRef.current?.focus();
       } catch (error) {
@@ -45071,8 +45887,18 @@ Attached images: ${imageSummary}` : message.content);
     }
     async function saveSettings(event) {
       event?.preventDefault();
+      if (settingsDraft.desktopPermissionProfile === "full-access" && appConfig?.desktopPermissionProfile !== "full-access") {
+        const confirmed = window.confirm(
+          "Enable full computer access? CodeAgent will be able to access any file allowed to your OS account and run supported commands without CodeAgent approval prompts."
+        );
+        if (!confirmed) {
+          setSettingsMessage("Full access was not enabled.");
+          return;
+        }
+      }
+      const shouldPrepareLocalModel = activeSettingsSection === "model" && settingsDraft.llmProvider === "codeagent";
       setIsSavingSettings(true);
-      setSettingsMessage(settingsDraft.llmProvider === "codeagent" ? "Preparing the selected model and starting CodeAgent inference\u2026" : "");
+      setSettingsMessage(shouldPrepareLocalModel ? "Preparing the selected model and starting CodeAgent inference\u2026" : "");
       try {
         const currentFeatureProfile = getFeatureProfileFromConfig(appConfig);
         const nextFeatureProfile = buildSettingsFeatureProfile(currentFeatureProfile, settingsDraft);
@@ -45086,18 +45912,19 @@ Attached images: ${imageSummary}` : message.content);
           localEnginePath: settingsDraft.llmProvider === "codeagent" ? "" : settingsDraft.localEnginePath.trim(),
           localGpuLayers: settingsDraft.localGpuLayers.trim() ? Number(settingsDraft.localGpuLayers) : void 0,
           enableLlmTools: settingsDraft.enableLlmTools,
+          desktopPermissionProfile: settingsDraft.desktopPermissionProfile,
           theme: settingsDraft.theme,
           accentColor: settingsDraft.accentColor,
           memoryEnabled: settingsDraft.memoryEnabled,
           pluginsEnabled: settingsDraft.pluginsEnabled,
           autoUpdate: settingsDraft.autoUpdate,
           cliOptions: buildCliOptions(settingsDraft),
-          platformBaseUrl: normalizePlatformBaseUrl(settingsDraft.platformBaseUrl),
-          platformOrgId: settingsDraft.platformOrgId.trim(),
-          featureProfile: nextFeatureProfile,
-          featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile)
+          ...developmentPlatformSessionRef.current ? {} : {
+            featureProfile: nextFeatureProfile,
+            featureAccounts: writeProfileToAccountStore(appConfig, nextFeatureProfile)
+          }
         };
-        if (settingsDraft.llmProvider === "codeagent") {
+        if (shouldPrepareLocalModel) {
           if (!settingsDraft.model) throw new Error("Select a CodeAgent model before saving.");
           setLocalModelPreparation({ phase: "resolving", model: settingsDraft.model, detail: "Checking whether the selected model is available locally\u2026" });
           const downloaded = await ipcClient.localModels.listDownloaded();
@@ -45118,7 +45945,7 @@ Attached images: ${imageSummary}` : message.content);
             detail: `Ready at ${localStatus.baseUrl}`,
             logPath: localStatus.logPath
           });
-        } else {
+        } else if (settingsDraft.llmProvider !== "codeagent") {
           setLocalModelPreparation({ phase: "idle" });
         }
         await ipcClient.app.setConfig(nextConfig);
@@ -45128,14 +45955,14 @@ Attached images: ${imageSummary}` : message.content);
             provider: settingsDraft.llmProvider
           });
         }
-        const config = await ipcClient.app.getConfig();
+        const config = withDevelopmentPlatformSession(await ipcClient.app.getConfig());
         setAppConfig(config);
         setSettingsDraft({ ...createSettingsDraft(config), apiKey: "" });
         setSettingsMessage("Saved");
         setStatus("Ready");
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (settingsDraft.llmProvider === "codeagent") {
+        if (shouldPrepareLocalModel) {
           const log = await ipcClient.localModels.readLog(100).catch(() => ({ path: "", content: "" }));
           setLocalModelPreparation({
             phase: "error",
@@ -45204,17 +46031,21 @@ Attached images: ${imageSummary}` : message.content);
         const profile = normalizeFeatureProfile(platformProfile.profile);
         const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
         const syncedAt = (/* @__PURE__ */ new Date()).toISOString();
-        await ipcClient.app.setConfig({
+        const nextConfig = {
           platformBaseUrl,
-          platformAccessToken: platformToken,
           platformOrgId: syncedOrgId,
           platformCatalogSource: "platform",
           platformCatalogLastSyncedAt: syncedAt,
           platformFeaturePackageCatalog: platformCatalog.packages,
           featureProfile: profile,
           featureAccounts: writeProfileToAccountStore(configSnapshot, profile)
+        };
+        const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+          accessToken: platformToken,
+          baseUrl: platformBaseUrl,
+          orgId: syncedOrgId,
+          developerMode: configSnapshot?.platformDeveloperMode === true
         });
-        const config = await ipcClient.app.getConfig();
         setAppConfig(config);
         setSettingsDraft((current) => ({
           ...createSettingsDraft(config),
@@ -45228,12 +46059,36 @@ Attached images: ${imageSummary}` : message.content);
         return true;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        const invalidSession = /Platform API 401\b/.test(message);
+        if (invalidSession) {
+          await ipcClient.auth.clearPlatformSession();
+          developmentPlatformSessionRef.current = null;
+          const guestProfile = normalizeFeatureProfile(null);
+          await ipcClient.app.setConfig({
+            platformAccessToken: "",
+            platformDeveloperMode: false,
+            platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+            platformOrgId: "",
+            platformCatalogSource: "local",
+            platformFeaturePackageCatalog: [],
+            featureProfile: guestProfile
+          });
+          const guestConfig = await ipcClient.app.getConfig();
+          setAppConfig(guestConfig);
+          setSettingsDraft((current) => ({
+            ...createSettingsDraft(guestConfig),
+            apiKey: current.apiKey
+          }));
+          if (!options.silent) setSettingsMessage("Your platform session expired or was revoked. Sign in again.");
+        }
         if (options.silent) {
           console.warn("Platform startup sync failed:", error);
           setStatus("Ready");
-        } else {
+        } else if (!invalidSession) {
           setSettingsMessage(message);
           setStatus("Platform sync error");
+        } else {
+          setStatus("Platform session expired");
         }
         return false;
       } finally {
@@ -45242,6 +46097,40 @@ Attached images: ${imageSummary}` : message.content);
     }
     async function handlePlatformSync() {
       await syncPlatformStateFromConfig(appConfig, { reason: "manual" });
+    }
+    async function handlePlatformDeveloperModeChange(checked) {
+      if (checked) {
+        updateSettingsDraft({
+          platformDeveloperMode: true,
+          platformBaseUrl: DEVELOPMENT_PLATFORM_BASE_URL,
+          platformOrgId: ""
+        });
+        setSettingsMessage("Developer connection settings apply only to this window. If you sign in, that authenticated session is restored securely until it expires or you sign out.");
+        return;
+      }
+      await ipcClient.auth.clearPlatformSession();
+      developmentPlatformSessionRef.current = null;
+      const persistedConfig = await ipcClient.app.getConfig();
+      const config = {
+        ...persistedConfig,
+        platformDeveloperMode: false,
+        platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+        platformOrgId: "",
+        platformAccessToken: "",
+        platformCatalogSource: "local",
+        platformFeaturePackageCatalog: [],
+        featureProfile: normalizeFeatureProfile(null)
+      };
+      setAppConfig(config);
+      setSettingsDraft((current) => ({
+        ...current,
+        platformDeveloperMode: false,
+        platformBaseUrl: PRODUCTION_PLATFORM_BASE_URL,
+        platformOrgId: "",
+        accountPassword: "",
+        accountResetToken: ""
+      }));
+      setSettingsMessage("Developer mode disabled. Authentication now uses the managed platform.");
     }
     async function handleAccountLogin() {
       const email = settingsDraft.accountEmail.trim();
@@ -45252,23 +46141,28 @@ Attached images: ${imageSummary}` : message.content);
       if (settingsDraft.accountPassword.trim()) {
         try {
           const login = await loginToPlatform(settingsDraft);
-          const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+          const platformBaseUrl = getEffectivePlatformBaseUrl(settingsDraft);
           const platformOrgId = settingsDraft.platformOrgId.trim() || login.session?.org_id || login.workspace?.organization?.org_id || "";
           const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, login.access_token, platformOrgId);
           const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, login.access_token, platformOrgId);
           const profile = normalizeFeatureProfile(platformProfile.profile);
+          const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
           const nextConfig = {
             platformBaseUrl,
-            platformAccessToken: login.access_token,
-            platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+            platformDeveloperMode: settingsDraft.platformDeveloperMode,
+            platformOrgId: syncedOrgId,
             platformCatalogSource: "platform",
             platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
             platformFeaturePackageCatalog: platformCatalog.packages,
             featureProfile: profile,
             featureAccounts: writeProfileToAccountStore(appConfig, profile)
           };
-          await ipcClient.app.setConfig(nextConfig);
-          const config = await ipcClient.app.getConfig();
+          const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+            accessToken: login.access_token,
+            baseUrl: platformBaseUrl,
+            orgId: syncedOrgId,
+            developerMode: settingsDraft.platformDeveloperMode
+          });
           setAppConfig(config);
           setSettingsDraft((current) => ({
             ...createSettingsDraft(config),
@@ -45320,22 +46214,28 @@ Attached images: ${imageSummary}` : message.content);
         setSettingsMessage("Creating account in agent-platform...");
         setStatus("Creating account");
         const registration = await registerWithPlatform(settingsDraft);
-        const platformBaseUrl = normalizePlatformBaseUrl(settingsDraft.platformBaseUrl);
+        const platformBaseUrl = getEffectivePlatformBaseUrl(settingsDraft);
         const platformOrgId = registration.session?.org_id || registration.workspace?.organization?.org_id || settingsDraft.platformOrgId.trim() || "";
         const platformCatalog = await fetchPlatformFeatureCatalog(platformBaseUrl, registration.access_token, platformOrgId);
         const platformProfile = await fetchPlatformFeatureProfile(platformBaseUrl, registration.access_token, platformOrgId);
         const profile = normalizeFeatureProfile(platformProfile.profile);
-        await ipcClient.app.setConfig({
+        const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
+        const nextConfig = {
           platformBaseUrl,
-          platformAccessToken: registration.access_token,
-          platformOrgId: platformProfile.org_id || platformCatalog.org_id || platformOrgId,
+          platformDeveloperMode: settingsDraft.platformDeveloperMode,
+          platformOrgId: syncedOrgId,
           platformCatalogSource: "platform",
           platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString(),
           platformFeaturePackageCatalog: platformCatalog.packages,
           featureProfile: profile,
           featureAccounts: writeProfileToAccountStore(appConfig, profile)
+        };
+        const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+          accessToken: registration.access_token,
+          baseUrl: platformBaseUrl,
+          orgId: syncedOrgId,
+          developerMode: settingsDraft.platformDeveloperMode
         });
-        const config = await ipcClient.app.getConfig();
         setAppConfig(config);
         setSettingsDraft((current) => ({
           ...createSettingsDraft(config),
@@ -45402,8 +46302,24 @@ Attached images: ${imageSummary}` : message.content);
     }
     async function handleAccountLogout() {
       const nextProfile = normalizeFeatureProfile(null);
-      await ipcClient.auth.logout();
+      await ipcClient.auth.clearPlatformSession();
       setPurchasePackageId(null);
+      if (appConfig?.platformDeveloperMode) {
+        const config2 = updateDevelopmentPlatformSession({
+          platformAccessToken: "",
+          platformCatalogSource: "local",
+          platformFeaturePackageCatalog: [],
+          featureProfile: nextProfile
+        });
+        setSettingsDraft((current) => ({
+          ...createSettingsDraft(config2),
+          apiKey: current.apiKey,
+          accountPassword: ""
+        }));
+        setSettingsMessage("Signed out. Developer connection settings remain active for this window.");
+        setStatus("Ready");
+        return;
+      }
       await ipcClient.app.setConfig({
         featureProfile: nextProfile,
         featureAccounts: getFeatureAccountStore(appConfig),
@@ -45429,6 +46345,7 @@ Attached images: ${imageSummary}` : message.content);
       }
       const isEntitled = packageEntry.state === "available" || packageEntry.state === "trial";
       if (isEntitled && !isPackageRuntimeAvailable(packageEntry.installState)) {
+        setPackageOperationError(null);
         const profile = getFeatureProfileFromConfig(appConfig);
         const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
         const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
@@ -45448,14 +46365,19 @@ Attached images: ${imageSummary}` : message.content);
               packageEntry.manifest,
               localInstall
             );
-            await ipcClient.app.setConfig({
+            const nextConfig = {
               featureProfile: result.profile,
               featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
               platformOrgId: result.org_id || appConfig?.platformOrgId,
               platformCatalogSource: "platform",
               platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString()
-            });
-            const config = await ipcClient.app.getConfig();
+            };
+            const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+              accessToken: platformToken,
+              baseUrl: platformBaseUrl,
+              orgId: result.org_id || platformOrgId,
+              developerMode: appConfig?.platformDeveloperMode === true
+            }, false);
             setAppConfig(config);
             setSettingsDraft((current) => ({
               ...createSettingsDraft(config),
@@ -45465,10 +46387,21 @@ Attached images: ${imageSummary}` : message.content);
             setSettingsMessage(
               localInstall ? `${packageEntry.manifest.displayName} verified and installed through agent-platform.` : `${packageEntry.manifest.displayName} installed through agent-platform.`
             );
+            setPackageOperationError(null);
             setStatus("Ready");
             return;
           } catch (error) {
-            setSettingsMessage(error instanceof Error ? error.message : String(error));
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            setSettingsMessage(`Couldn\u2019t install ${packageEntry.manifest.displayName}. Open the error details in Store.`);
+            setPackageOperationError({
+              packageId: packageEntry.manifest.id,
+              packageName: packageEntry.manifest.displayName,
+              productSku: packageEntry.manifest.productSku,
+              version: packageEntry.manifest.version,
+              phase: "Platform download, verification, and installation",
+              message: errorMessage,
+              occurredAt: (/* @__PURE__ */ new Date()).toISOString()
+            });
             setStatus("Platform install error");
             return;
           }
@@ -45482,8 +46415,19 @@ Attached images: ${imageSummary}` : message.content);
             nextProfile,
             localInstall ? `${packageEntry.manifest.displayName} verified and installed locally. ${packageEntry.manifest.distribution.notes}` : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`
           );
+          setPackageOperationError(null);
         } catch (error) {
-          setSettingsMessage(error instanceof Error ? error.message : String(error));
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          setSettingsMessage(`Couldn\u2019t install ${packageEntry.manifest.displayName}. Open the error details in Store.`);
+          setPackageOperationError({
+            packageId: packageEntry.manifest.id,
+            packageName: packageEntry.manifest.displayName,
+            productSku: packageEntry.manifest.productSku,
+            version: packageEntry.manifest.version,
+            phase: "Local verification and installation",
+            message: errorMessage,
+            occurredAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
           setStatus("Package install error");
         }
         return;
@@ -45527,18 +46471,29 @@ Attached images: ${imageSummary}` : message.content);
       if (platformBaseUrl && platformToken) {
         try {
           const orgId = String(appConfig?.platformOrgId || profile.platform?.orgId || "");
-          await createPlatformPaymentMethod(platformBaseUrl, platformToken, orgId, selectedPurchasePackage, purchaseDraft);
+          await createPlatformPaymentMethod(
+            platformBaseUrl,
+            platformToken,
+            orgId,
+            featureResolution.profile.displayName || selectedPurchasePackage.displayName,
+            purchaseDraft
+          );
           const result = await purchasePlatformPackage(platformBaseUrl, platformToken, orgId, selectedPurchasePackage.id);
           setPurchasePackageId(null);
           setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
-          await ipcClient.app.setConfig({
+          const nextConfig = {
             featureProfile: result.profile,
             featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
             platformOrgId: result.org_id || appConfig?.platformOrgId,
             platformCatalogSource: "platform",
             platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString()
-          });
-          const config = await ipcClient.app.getConfig();
+          };
+          const config = await commitAuthenticatedPlatformConfig(nextConfig, {
+            accessToken: platformToken,
+            baseUrl: platformBaseUrl,
+            orgId: result.org_id || orgId,
+            developerMode: appConfig?.platformDeveloperMode === true
+          }, false);
           setAppConfig(config);
           setSettingsDraft((current) => ({
             ...createSettingsDraft(config),
@@ -45565,6 +46520,124 @@ Attached images: ${imageSummary}` : message.content);
         selectedPurchasePackage.distribution.installRequired ? `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}. Install the package to enable its features.` : `${selectedPurchasePackage.displayName} purchased with ${getCardBrand(purchaseDraft.cardNumber)} ending ${last4}.`
       );
     }
+    function openPaymentMethodDialog() {
+      setPurchaseDraft({
+        ...EMPTY_PURCHASE_DRAFT,
+        nameOnCard: featureResolution.profile.displayName || ""
+      });
+      setSettingsMessage("");
+      setPaymentMethodDialogOpen(true);
+    }
+    async function addAccountPaymentMethod(event) {
+      event.preventDefault();
+      const validationError = validatePurchaseDraft(purchaseDraft);
+      if (validationError) {
+        setSettingsMessage(validationError);
+        return;
+      }
+      const profile = getFeatureProfileFromConfig(appConfig);
+      if (profile.accountStatus !== "signed-in") {
+        setPaymentMethodDialogOpen(false);
+        setSettingsMessage("Sign in before adding a payment method.");
+        return;
+      }
+      const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
+      const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+      try {
+        setIsSavingSettings(true);
+        if (platformBaseUrl && platformToken) {
+          const orgId = String(appConfig?.platformOrgId || profile.platform?.orgId || "");
+          await createPlatformPaymentMethod(
+            platformBaseUrl,
+            platformToken,
+            orgId,
+            profile.displayName || profile.email || "CodeAgent User",
+            purchaseDraft
+          );
+          await syncPlatformStateFromConfig(appConfig, { reason: "manual", silent: true });
+          setSettingsMessage("Payment method added and set as the default.");
+        } else {
+          const digits = purchaseDraft.cardNumber.replace(/\D/g, "");
+          const expiry = parseCardExpiry(purchaseDraft.expiry);
+          const paymentMethod = {
+            id: createLocalRecordId("pm"),
+            type: "card",
+            brand: getCardBrand(digits),
+            last4: digits.slice(-4),
+            expMonth: expiry.expMonth,
+            expYear: expiry.expYear,
+            createdAt: (/* @__PURE__ */ new Date()).toISOString()
+          };
+          await persistFeatureProfile(
+            { ...profile, paymentMethods: [...profile.paymentMethods, paymentMethod], updatedAt: (/* @__PURE__ */ new Date()).toISOString() },
+            "Payment method added for this local account."
+          );
+        }
+        setPaymentMethodDialogOpen(false);
+        setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        setIsSavingSettings(false);
+      }
+    }
+    async function removeAccountPaymentMethod(methodId) {
+      const profile = getFeatureProfileFromConfig(appConfig);
+      const method = profile.paymentMethods.find((item) => item.id === methodId);
+      if (!method || !window.confirm(`Remove ${method.brand} ending ${method.last4}?`)) return;
+      const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
+      const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+      try {
+        setIsSavingSettings(true);
+        if (platformBaseUrl && platformToken) {
+          await readPlatformJson(platformBaseUrl, `/billing/payment-methods/${encodeURIComponent(methodId)}`, platformToken, { method: "DELETE" });
+          await syncPlatformStateFromConfig(appConfig, { reason: "manual", silent: true });
+          setSettingsMessage("Payment method removed.");
+        } else {
+          if (profile.purchases.some((purchase) => purchase.paymentMethodId === methodId)) {
+            throw new Error("This payment method is attached to purchase history and cannot be removed.");
+          }
+          await persistFeatureProfile(
+            { ...profile, paymentMethods: profile.paymentMethods.filter((item) => item.id !== methodId), updatedAt: (/* @__PURE__ */ new Date()).toISOString() },
+            "Payment method removed from this local account."
+          );
+        }
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        setIsSavingSettings(false);
+      }
+    }
+    async function setDefaultAccountPaymentMethod(methodId) {
+      const profile = getFeatureProfileFromConfig(appConfig);
+      const method = profile.paymentMethods.find((item) => item.id === methodId);
+      if (!method) return;
+      const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
+      const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+      try {
+        setIsSavingSettings(true);
+        if (platformBaseUrl && platformToken) {
+          await readPlatformJson(
+            platformBaseUrl,
+            `/billing/payment-methods/${encodeURIComponent(methodId)}/default`,
+            platformToken,
+            { method: "POST" }
+          );
+          await syncPlatformStateFromConfig(appConfig, { reason: "manual", silent: true });
+          setSettingsMessage(`${method.brand} ending ${method.last4} is now the default payment method.`);
+        } else {
+          const reordered = [method, ...profile.paymentMethods.filter((item) => item.id !== methodId)];
+          await persistFeatureProfile(
+            { ...profile, paymentMethods: reordered, updatedAt: (/* @__PURE__ */ new Date()).toISOString() },
+            `${method.brand} ending ${method.last4} is now the default payment method.`
+          );
+        }
+      } catch (error) {
+        setSettingsMessage(error instanceof Error ? error.message : String(error));
+      } finally {
+        setIsSavingSettings(false);
+      }
+    }
     function openPrimaryView(view) {
       if (view === "settings") {
         setSettingsMessage("");
@@ -45572,24 +46645,47 @@ Attached images: ${imageSummary}` : message.content);
         setHistoryMessage("");
       }
       setActiveView(view);
+      setMobileNavigationOpen(false);
+    }
+    function openPrimaryNavigationItem(item) {
+      if (item.route === "settings") {
+        openChildRoute("settings", "general");
+        return;
+      }
+      if (item.route === "chat") {
+        openPrimaryView("chat");
+        return;
+      }
+      if (item.packageId === BASE_FEATURE_PACKAGE_ID) {
+        openChildRoute(item.route, item.route);
+        return;
+      }
+      const firstGroup = getDesktopChildNavigation(featureResolution, item.route)[0];
+      if (firstGroup) {
+        openPackageNavigationGroup(firstGroup);
+      }
+    }
+    function isPrimaryNavigationItemActive(item) {
+      if (item.route === "settings") {
+        return activeView === "settings" && SYSTEM_SETTINGS_SECTION_IDS.has(activeSettingsSection);
+      }
+      if (item.route === "chat") {
+        return activeView === "chat";
+      }
+      if (item.packageId === BASE_FEATURE_PACKAGE_ID) {
+        return activeView === item.route;
+      }
+      return activePackageWorkspace?.id === item.id;
     }
     function getActiveChildMenu() {
-      if (activeView === "projects") {
-        return filterNavigationItems(PROJECTS_MENU, featureResolution);
-      }
-      if (activeView === "tools") {
-        return filterNavigationItems(TOOLS_MENU, featureResolution);
-      }
-      if (activeView === "automation") {
-        return filterNavigationItems(AUTOMATION_MENU, featureResolution);
-      }
-      if (activeView === "history") {
-        return filterNavigationItems(HISTORY_MENU, featureResolution);
-      }
       if (activeView === "settings") {
-        return filterNavigationItems(SETTINGS_MENU, featureResolution);
+        return filterNavigationItems(SETTINGS_MENU, featureResolution).filter((item) => SYSTEM_SETTINGS_SECTION_IDS.has(item.id));
       }
       return [];
+    }
+    function openPackageNavigationGroup(group) {
+      const firstPage = getDesktopChildNavigation(featureResolution, group.route)[0];
+      openChildRoute(group.route, firstPage?.id || group.id);
     }
     function getActiveChildId() {
       if (activeView === "projects") {
@@ -45624,36 +46720,51 @@ Attached images: ${imageSummary}` : message.content);
         setSettingsMessage("");
       }
       setActiveView(view);
+      setMobileNavigationOpen(false);
     }
     const statusLabel = isSending ? "Working" : status;
     const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
     const activeProviderDefault = getProviderDefault(activeProvider);
     const activeProviderLabel = activeProviderDefault.label;
-    const activeFileWriteReview = fileWriteReviews[0] ?? null;
-    const activeCommandReview = commandReviews[0] ?? null;
-    const activeToolPermissionReview = toolPermissionReviews[0] ?? null;
+    const mainFileWriteReviews = fileWriteReviews.filter(isMainChatReview);
+    const mainCommandReviews = commandReviews.filter(isMainChatReview);
+    const mainToolPermissionReviews = toolPermissionReviews.filter(isMainChatReview);
     const activeSession = sessions.find((session) => session.id === currentSessionId);
     const conversationTitle = activeSession?.title || getSessionTitle(messages);
     const recentSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
     const visibleRecentSessions = recentSessions.filter((session) => matchesSessionSearch(session, sessionSearch));
     const exposedBridgeToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
+    const sidebarAccountProfile = featureResolution.profile;
+    const sidebarAccountSignedIn = sidebarAccountProfile.accountStatus === "signed-in";
+    const sidebarAccountName = sidebarAccountSignedIn ? sidebarAccountProfile.displayName || sidebarAccountProfile.email || "CodeAgent account" : "Guest account";
+    const sidebarAccountInitials = sidebarAccountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "CA";
+    const packageWorkspaceNavigation = availablePrimaryNav.filter((item) => item.packageId !== BASE_FEATURE_PACKAGE_ID);
+    const packageWorkspaceGroups = packageWorkspaceNavigation.flatMap((workspace) => getDesktopChildNavigation(featureResolution, workspace.route));
+    const activePackageGroup = packageWorkspaceGroups.find((group) => {
+      if (group.route !== activeView) {
+        return false;
+      }
+      if (group.route !== "settings") {
+        return true;
+      }
+      return getDesktopChildNavigation(featureResolution, group.route).some((page) => page.id === activeSettingsSection);
+    }) ?? null;
+    const activePackageWorkspace = activePackageGroup ? packageWorkspaceNavigation.find((workspace) => workspace.route === activePackageGroup.parentRoute) ?? null : null;
+    const activePackagePageMenu = activePackageGroup ? getDesktopChildNavigation(featureResolution, activePackageGroup.route) : [];
     const commandSuggestions = filterDesktopCommands(input, availableDesktopCommands);
     const showCommandPalette = activeView === "chat" && commandSuggestions.length > 0 && !isSending;
     const selectedPurchasePackage = purchasePackageId ? featureResolution.packages.find((entry) => entry.manifest.id === purchasePackageId)?.manifest ?? null : null;
-    const activeProjectsMenuItem = PROJECTS_MENU.find((item) => item.id === activeProjectsSection) ?? PROJECTS_MENU[0];
-    const activeToolsMenuItem = TOOLS_MENU.find((item) => item.id === activeToolsSection) ?? TOOLS_MENU[0];
-    const activeAutomationMenuItem = AUTOMATION_MENU.find((item) => item.id === activeAutomationSection) ?? AUTOMATION_MENU[1];
-    const activeHistoryMenuItem = HISTORY_MENU.find((item) => item.id === activeHistorySection) ?? HISTORY_MENU[0];
     const activeSettingsMenuItem = SETTINGS_MENU.find((item) => item.id === activeSettingsSection) ?? SETTINGS_MENU[0];
     const activeChildMenu = getActiveChildMenu();
     const activeChildId = getActiveChildId();
-    const viewTitle = activeView === "chat" ? conversationTitle : activeView === "projects" ? activeProjectsMenuItem.title : activeView === "tools" ? activeToolsMenuItem.title : activeView === "automation" ? activeAutomationMenuItem.title : activeView === "history" ? activeHistoryMenuItem.title : activeSettingsMenuItem.title;
-    const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activeView === "projects" ? activeProjectsMenuItem.description : activeView === "tools" ? activeToolsMenuItem.description : activeView === "automation" ? activeAutomationMenuItem.description : activeView === "history" ? activeHistoryMenuItem.description : activeSettingsMenuItem.description;
+    const activePackagePage = activePackagePageMenu.find((item) => item.id === activeChildId) ?? activePackageGroup;
+    const viewTitle = activeView === "chat" ? conversationTitle : activePackagePage?.title || activeSettingsMenuItem.title;
+    const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activePackagePage?.description || activeSettingsMenuItem.description;
     const skinStyle = getSkinStyle(appConfig?.accentColor);
     const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
     const narrowNavigation = viewportSize.width <= 820;
-    const navigationCollapsed = sidebarCollapsed || narrowNavigation;
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${navigationCollapsed ? App_default.containerCollapsed : ""}`, style: skinStyle, children: [
+    const navigationCollapsed = narrowNavigation ? !mobileNavigationOpen : sidebarCollapsed;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${navigationCollapsed ? App_default.containerCollapsed : ""} ${narrowNavigation ? App_default.containerNarrow : ""}`, style: skinStyle, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: `${App_default.navSidebar} ${navigationCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 17 }) }),
@@ -45666,39 +46777,62 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: "New chat" })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: availablePrimaryNav.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: activeView === item.id ? App_default.navItemActive : App_default.navItem,
-              type: "button",
-              title: item.description,
-              onClick: () => openPrimaryView(item.id),
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: item.icon, size: 14 }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: item.label })
-              ]
-            }
-          ),
-          activeView === item.id && activeChildMenu.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.label} sections`, children: activeChildMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: child.id === activeChildId ? App_default.navChildItemActive : App_default.navChildItem,
-              type: "button",
-              title: `${child.title}: ${child.description}`,
-              onClick: () => openChildRoute(item.id, child.id),
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }) }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: child.title }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.description })
-                ] })
-              ]
-            },
-            child.id
-          )) })
-        ] }, item.id)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: availablePrimaryNav.map((item) => {
+          const workspaceGroups = getDesktopChildNavigation(featureResolution, item.route);
+          const isPackageWorkspace = item.packageId !== BASE_FEATURE_PACKAGE_ID;
+          const itemIsActive = isPrimaryNavigationItemActive(item);
+          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: itemIsActive ? App_default.navItemActive : App_default.navItem,
+                type: "button",
+                title: item.description,
+                "aria-expanded": isPackageWorkspace ? itemIsActive : void 0,
+                onClick: () => openPrimaryNavigationItem(item),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: item.icon, size: 14 }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: item.title })
+                ]
+              }
+            ),
+            isPackageWorkspace && itemIsActive && workspaceGroups.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} areas`, children: workspaceGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: activePackageGroup?.id === group.id ? App_default.navChildItemActive : App_default.navChildItem,
+                type: "button",
+                title: `${group.title}: ${group.description}`,
+                onClick: () => openPackageNavigationGroup(group),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: group.icon, size: 13 }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: group.title }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: group.description })
+                  ] })
+                ]
+              },
+              group.id
+            )) }),
+            !isPackageWorkspace && itemIsActive && activeChildMenu.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} sections`, children: activeChildMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: child.id === activeChildId ? App_default.navChildItemActive : App_default.navChildItem,
+                type: "button",
+                title: `${child.title}: ${child.description}`,
+                onClick: () => openChildRoute(item.route, child.id),
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: child.title }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.description })
+                  ] })
+                ]
+              },
+              child.id
+            )) })
+          ] }, item.id);
+        }) }),
+        !activePackageWorkspace && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Recents" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "input",
@@ -45733,14 +46867,32 @@ Attached images: ${imageSummary}` : message.content);
             ))
           ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.sidebarBottom, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.sidebarFooter, title: statusLabel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.statusDot} ${isSending ? App_default.statusDotBusy : ""}` }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: appConfig?.enableLlmTools ? `${exposedBridgeToolCount} tools exposed` : "Chat mode" })
-          ] })
-        ] }) })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.sidebarBottom, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          "button",
+          {
+            className: activeView === "settings" && activeSettingsSection === "account" ? App_default.sidebarAccountButtonActive : App_default.sidebarAccountButton,
+            type: "button",
+            title: sidebarAccountSignedIn ? sidebarAccountName : "Open account settings",
+            onClick: () => openChildRoute("settings", "account"),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.sidebarAccountAvatar, "aria-hidden": "true", children: sidebarAccountSignedIn ? sidebarAccountInitials : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }) }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: sidebarAccountName }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: sidebarAccountSignedIn ? formatAccountTier(sidebarAccountProfile) : "Sign in or create an account" })
+              ] })
+            ]
+          }
+        ) })
       ] }),
+      narrowNavigation && mobileNavigationOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        "button",
+        {
+          className: App_default.mobileNavBackdrop,
+          type: "button",
+          "aria-label": "Close navigation",
+          onClick: () => setMobileNavigationOpen(false)
+        }
+      ),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.appShell, children: [
         projectActionMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: projectNotificationClassName, role: "status", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectNoticeContent, children: [
@@ -45765,11 +46917,16 @@ Attached images: ${imageSummary}` : message.content);
             {
               className: App_default.headerNavButton,
               type: "button",
-              title: narrowNavigation ? "Navigation is compact at this window size" : navigationCollapsed ? "Expand navigation" : "Collapse navigation",
-              "aria-label": narrowNavigation ? "Navigation is compact at this window size" : navigationCollapsed ? "Expand navigation" : "Collapse navigation",
+              title: navigationCollapsed ? "Open navigation" : "Close navigation",
+              "aria-label": navigationCollapsed ? "Open navigation" : "Close navigation",
               "aria-pressed": navigationCollapsed,
-              disabled: narrowNavigation,
-              onClick: () => setSidebarCollapsed((value) => !value),
+              onClick: () => {
+                if (narrowNavigation) {
+                  setMobileNavigationOpen((value) => !value);
+                } else {
+                  setSidebarCollapsed((value) => !value);
+                }
+              },
               children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "sidebar", size: 17 })
             }
           ),
@@ -45778,56 +46935,108 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
           ] })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""}`, children: [
-          activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
-              messages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                MessageItem,
-                {
-                  message,
-                  copied: copiedMessageId === message.id,
-                  onCopy: () => copyMessage(message)
-                },
-                message.id
-              )),
-              isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
-              event.preventDefault();
-              submitPrompt();
-            }, children: [
-              showCommandPalette && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.commandPalette, role: "listbox", "aria-label": "Desktop commands", children: commandSuggestions.map((command) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "button",
-                {
-                  className: App_default.commandPaletteItem,
-                  type: "button",
-                  onClick: () => {
-                    setInput(command.command.includes("<") ? command.command.split(" ")[0] : command.command);
-                    inputRef.current?.focus();
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workspaceFrame, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workspaceColumn, children: [
+          activePackageWorkspace && activePackageGroup && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.developerPageNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.pageTabs, "aria-label": `${activePackageGroup.title} pages`, children: activePackagePageMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: child.id === activeChildId ? App_default.pageTabActive : App_default.pageTab,
+              type: "button",
+              title: child.description,
+              onClick: () => openChildRoute(activePackageGroup.route, child.id),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.title })
+              ]
+            },
+            child.id
+          )) }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""} ${activeView === "settings" ? App_default.workspaceSettings : ""}`, children: [
+            activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
+                groupMessagesByAssistantRun(messages).map(({ message, activities }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  MessageItem,
+                  {
+                    message,
+                    activities,
+                    copied: copiedMessageId === message.id,
+                    onCopy: () => copyMessage(message)
                   },
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: command.command }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: command.description })
-                  ]
-                },
-                command.command
-              )) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextPanel, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextBar, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextStatus, title: chatToolWorkspacePath || "No folder selected", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: chatToolWorkspacePath ? "folder-open" : "message", size: 14 }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: chatToolWorkspacePath ? "Guided project folder" : "Chat only" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: chatToolWorkspacePath ? chatToolWorkspacePath : "No local folder selected" })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextActions, children: [
+                  message.id
+                )),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  InlineApprovalQueue,
+                  {
+                    fileWriteReviews: mainFileWriteReviews,
+                    commandReviews: mainCommandReviews,
+                    toolPermissionReviews: mainToolPermissionReviews,
+                    onResolveFileWrite: resolveFileWriteReview,
+                    onResolveCommand: resolveCommandReview,
+                    onResolveToolPermission: resolveToolPermissionReview
+                  }
+                ),
+                isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
+                event.preventDefault();
+                submitPrompt();
+              }, children: [
+                showCommandPalette && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.commandPalette, role: "listbox", "aria-label": "Desktop commands", children: commandSuggestions.map((command) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "button",
+                  {
+                    className: App_default.commandPaletteItem,
+                    type: "button",
+                    onClick: () => {
+                      setInput(command.command.includes("<") ? command.command.split(" ")[0] : command.command);
+                      inputRef.current?.focus();
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: command.command }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: command.description })
+                    ]
+                  },
+                  command.command
+                )) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextPanel, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.composerContextBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextActions, children: [
+                    chatToolWorkspacePath ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.composerFolderMenu, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { title: chatToolWorkspacePath, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: getPathBasename(chatToolWorkspacePath) }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.composerFolderChevron, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 12 }) })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerFolderMenuPopover, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: chatToolWorkspacePath, children: chatToolWorkspacePath }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: chooseChatToolWorkspaceFolder, disabled: isSending, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                          "Change folder"
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: clearChatToolWorkspaceFolder, disabled: isSending, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 13 }),
+                          "Clear folder"
+                        ] })
+                      ] })
+                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.composerContextChip,
+                        type: "button",
+                        onClick: chooseChatToolWorkspaceFolder,
+                        disabled: isSending,
+                        title: "Choose a working folder",
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                          "Set folder"
+                        ]
+                      }
+                    ),
                     /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                       "button",
                       {
-                        className: App_default.textButton,
+                        className: App_default.composerContextChip,
                         type: "button",
                         onClick: chooseChatContextAttachments,
                         disabled: isSending,
@@ -45837,282 +47046,437 @@ Attached images: ${imageSummary}` : message.content);
                           "Add context"
                         ]
                       }
-                    ),
-                    chatToolWorkspacePath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    )
+                  ] }) }),
+                  chatContextAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerAttachmentList, "aria-label": "Attached chat context", children: [
+                    chatContextAttachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.composerAttachmentChip,
+                        type: "button",
+                        onClick: () => removeChatContextAttachment(attachment.path),
+                        disabled: isSending,
+                        title: `Remove ${attachment.path}`,
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: attachment.type === "directory" ? "folder" : "file", size: 13 }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: attachment.name }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: attachment.type === "directory" ? "Folder" : formatFileSize(attachment.size) }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                        ]
+                      },
+                      attachment.path
+                    )),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "button",
                       {
                         className: App_default.textButton,
                         type: "button",
-                        onClick: clearChatToolWorkspaceFolder,
+                        onClick: clearChatContextAttachments,
                         disabled: isSending,
-                        title: "Return this chat to chat-only mode",
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 13 }),
-                          "Clear folder"
-                        ]
+                        title: "Remove all attached context",
+                        children: "Clear context"
                       }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    )
+                  ] }),
+                  chatImageAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerImageList, "aria-label": "Pasted images", children: [
+                    chatImageAttachments.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                      "button",
+                      {
+                        className: App_default.composerImageChip,
+                        type: "button",
+                        onClick: () => removeChatImageAttachment(image.id),
+                        disabled: isSending,
+                        title: `Remove ${image.name}`,
+                        children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: "" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: image.name }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: [image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                        ]
+                      },
+                      image.id
+                    )),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                       "button",
                       {
                         className: App_default.textButton,
                         type: "button",
-                        onClick: chooseChatToolWorkspaceFolder,
+                        onClick: clearChatImageAttachments,
                         disabled: isSending,
-                        title: chatToolWorkspacePath ? "Change working folder" : "Choose a working folder",
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                          chatToolWorkspacePath ? "Change folder" : "Set folder"
-                        ]
+                        title: "Remove all pasted images",
+                        children: "Clear images"
                       }
                     )
                   ] })
                 ] }),
-                chatContextAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerAttachmentList, "aria-label": "Attached chat context", children: [
-                  chatContextAttachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      className: App_default.composerAttachmentChip,
-                      type: "button",
-                      onClick: () => removeChatContextAttachment(attachment.path),
-                      disabled: isSending,
-                      title: `Remove ${attachment.path}`,
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: attachment.type === "directory" ? "folder" : "file", size: 13 }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: attachment.name }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: attachment.type === "directory" ? "Folder" : formatFileSize(attachment.size) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
-                      ]
-                    },
-                    attachment.path
-                  )),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "button",
-                    {
-                      className: App_default.textButton,
-                      type: "button",
-                      onClick: clearChatContextAttachments,
-                      disabled: isSending,
-                      title: "Remove all attached context",
-                      children: "Clear context"
-                    }
-                  )
-                ] }),
-                chatImageAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerImageList, "aria-label": "Pasted images", children: [
-                  chatImageAttachments.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      className: App_default.composerImageChip,
-                      type: "button",
-                      onClick: () => removeChatImageAttachment(image.id),
-                      disabled: isSending,
-                      title: `Remove ${image.name}`,
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: "" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: image.name }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: [image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
-                      ]
-                    },
-                    image.id
-                  )),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "button",
-                    {
-                      className: App_default.textButton,
-                      type: "button",
-                      onClick: clearChatImageAttachments,
-                      disabled: isSending,
-                      title: "Remove all pasted images",
-                      children: "Clear images"
-                    }
-                  )
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "textarea",
-                {
-                  ref: inputRef,
-                  value: input,
-                  onChange: (event) => setInput(event.target.value),
-                  onKeyDown: handleInputKeyDown,
-                  onPaste: handleComposerPaste,
-                  placeholder: "Reply to CodeAgent or paste an image...",
-                  rows: 1,
-                  disabled: isSending,
-                  "aria-label": "Message"
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: clearChat, title: "Clear chat", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-                  "Clear"
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim() && chatImageAttachments.length === 0, title: "Send message", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
-                  "Send"
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                  "textarea",
+                  {
+                    ref: inputRef,
+                    value: input,
+                    onChange: (event) => setInput(event.target.value),
+                    onKeyDown: handleInputKeyDown,
+                    onPaste: handleComposerPaste,
+                    placeholder: "Ask CodeAgent\u2026",
+                    rows: 1,
+                    disabled: isSending,
+                    "aria-label": "Message"
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerToolbar, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerMeta, "aria-label": "Chat execution settings", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          className: App_default.composerSettingTrigger,
+                          type: "button",
+                          "aria-haspopup": "menu",
+                          "aria-expanded": composerMenu === "mode",
+                          onClick: () => {
+                            setPendingChatPermissionProfile(null);
+                            setComposerMenu((current) => current === "mode" ? null : "mode");
+                          },
+                          disabled: isSending,
+                          title: `Mode: ${effectiveChatExecutionMode === "agent" ? "Agent can use tools and the working folder" : "Chat answers without tools"}`,
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: effectiveChatExecutionMode === "agent" ? "bot" : "chat", size: 13 }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: effectiveChatExecutionMode === "agent" ? "Agent" : "Chat" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
+                          ]
+                        }
+                      ),
+                      composerMenu === "mode" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingPopover, role: "menu", "aria-label": "Choose chat mode", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Mode for this chat" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitemradio",
+                            "aria-checked": effectiveChatExecutionMode === "chat",
+                            onClick: () => {
+                              setChatExecutionModeOverride("chat");
+                              setComposerMenu(null);
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 15 }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Chat" }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Answer without running tools." })
+                              ] }),
+                              effectiveChatExecutionMode === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                            ]
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitemradio",
+                            "aria-checked": effectiveChatExecutionMode === "agent",
+                            onClick: () => {
+                              setChatExecutionModeOverride("agent");
+                              setComposerMenu(null);
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 15 }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Agent" }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Use tools and work in the selected folder." })
+                              ] }),
+                              effectiveChatExecutionMode === "agent" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                            ]
+                          }
+                        ),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                            setChatExecutionModeOverride(null);
+                            setComposerMenu(null);
+                          }, children: "Use default" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                            setComposerMenu(null);
+                            openChildRoute("settings", "model");
+                          }, children: "Manage default" })
+                        ] })
+                      ] })
+                    ] }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          className: `${App_default.composerSettingTrigger} ${effectiveChatPermissionProfile === "full-access" ? App_default.composerSettingTriggerDanger : ""}`,
+                          type: "button",
+                          "aria-haspopup": "menu",
+                          "aria-expanded": composerMenu === "permission",
+                          onClick: () => {
+                            setPendingChatPermissionProfile(null);
+                            setComposerMenu((current) => current === "permission" ? null : "permission");
+                          },
+                          disabled: isSending || effectiveChatExecutionMode === "chat",
+                          title: effectiveChatExecutionMode === "chat" ? "Permissions are inactive in Chat mode because tools are disabled" : `Permissions: ${DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.description}`,
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 13 }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.title }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
+                          ]
+                        }
+                      ),
+                      composerMenu === "permission" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.composerSettingPopover} ${App_default.composerPermissionPopover}`, role: "menu", "aria-label": "Choose permission level", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Permissions for this chat" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: App_default.composerSettingWorkspace, title: chatToolWorkspacePath || "No working folder selected", children: chatToolWorkspacePath ? `Working folder: ${chatToolWorkspacePath}` : "No working folder selected" }),
+                        DESKTOP_PERMISSION_PROFILES.map((profile) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                          "button",
+                          {
+                            type: "button",
+                            role: "menuitemradio",
+                            "aria-checked": effectiveChatPermissionProfile === profile.value,
+                            className: profile.danger ? App_default.composerSettingDangerOption : void 0,
+                            onClick: () => {
+                              if (profile.danger) {
+                                setPendingChatPermissionProfile(profile.value);
+                                return;
+                              }
+                              setChatPermissionProfileOverride(profile.value);
+                              setComposerMenu(null);
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: profile.danger ? "lock" : "check", size: 15 }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: profile.title }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: profile.description })
+                              ] }),
+                              effectiveChatPermissionProfile === profile.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                            ]
+                          },
+                          profile.value
+                        )),
+                        pendingChatPermissionProfile === "full-access" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerPermissionConfirm, role: "alert", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Allow full computer access?" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "CodeAgent may access any path available to your OS account and run supported commands without approval." }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => setPendingChatPermissionProfile(null), children: "Cancel" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                              setChatPermissionProfileOverride("full-access");
+                              setPendingChatPermissionProfile(null);
+                              setComposerMenu(null);
+                            }, children: "Use full access" })
+                          ] })
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                            setChatPermissionProfileOverride(null);
+                            setPendingChatPermissionProfile(null);
+                            setComposerMenu(null);
+                          }, children: "Use default" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                            setComposerMenu(null);
+                            openChildRoute("settings", "general");
+                          }, children: "Manage default" })
+                        ] })
+                      ] })
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
+                    (input || chatImageAttachments.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                      "button",
+                      {
+                        className: App_default.composerClearButton,
+                        type: "button",
+                        onClick: clearComposerInput,
+                        disabled: isSending,
+                        title: "Clear the draft message and pasted images",
+                        children: "Clear input"
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim() && chatImageAttachments.length === 0, title: "Send message (Command+Enter)", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
+                      "Send",
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", { children: "\u2318\u21B5" })
+                    ] })
+                  ] })
                 ] })
               ] })
-            ] })
-          ] }),
-          activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            ProjectsView,
-            {
-              activeSection: activeProjectsSection,
-              appInfo,
-              appConfig,
-              appState,
-              activeProviderLabel,
-              activeProviderDefault,
-              viewportSize,
-              tokenUsage,
-              toolActivities,
-              teamRuns,
-              runningProjectIds,
-              currentSessionTitle: conversationTitle,
-              sessionCount: sessions.length,
-              projects: softwareProjects,
-              activeProjectId: activeSoftwareProjectId,
-              roles: virtualRoles,
-              employees: virtualEmployees,
-              projectTeams,
-              projectChatMessages,
-              projectGeneratedOutputs,
-              projectChatSendingKeys,
-              workspacePath,
-              workspaceEntries,
-              workspaceBrowserError,
-              workspaceActionMessage,
-              isLoadingWorkspaceEntries,
-              onOpenWorkspaceEntry: openWorkspaceEntry,
-              onOpenWorkspacePath: openWorkspacePath,
-              onRevealWorkspacePath: revealWorkspacePath,
-              onGoToWorkspaceParent: goToWorkspaceParent,
-              onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
-              mcpServers,
-              mcpTools,
-              onSaveProject: saveSoftwareProjectPlan,
-              onSaveRole: saveVirtualRoleDefinition,
-              onDeleteRole: deleteVirtualRoleDefinition,
-              onSaveEmployee: saveVirtualEmployeeProfile,
-              onDeleteEmployee: deleteVirtualEmployeeProfile,
-              onSaveTeam: saveProjectTeamDefinition,
-              onDeleteTeam: deleteProjectTeamDefinition,
-              onSelectProject: setActiveSoftwareProjectId,
-              onSetProjectStatus: markSoftwareProjectStatus,
-              onDeleteProject: deleteSoftwareProjectPlan,
-              onSendProjectChat: submitProjectPrompt,
-              onChangeSection: setActiveProjectsSection
-            }
-          ),
-          activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            ToolsView,
-            {
-              activeSection: activeToolsSection,
-              tools,
-              mcpTools,
-              mcpServers,
-              appConfig,
-              routerMessage: toolRouterMessage,
-              toolActivities,
-              onToggleModelTool: setModelToolExposure,
-              onApplyToolPreset: applyToolRouterPreset,
-              onSetToolPermission: updateToolPermissionPolicy,
-              onApplyPermissionPreset: applyToolPermissionPreset,
-              onRunCommand: runWorkspaceCommand,
-              onOpenWorkspacePath: openWorkspacePath,
-              onRevealWorkspacePath: revealWorkspacePath,
-              onRefresh: refreshBridgeData,
-              onClearActivities: () => setToolActivities([])
-            }
-          ),
-          activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            AutomationView,
-            {
-              activeSection: activeAutomationSection,
-              skills,
-              tasks: scheduledTasks,
-              taskRuns,
-              schedulerStatus,
-              remoteControl,
-              teams: virtualTeams,
-              teamRuns,
-              runningTeamIds,
-              roles: virtualRoles,
-              employees: virtualEmployees,
-              appConfig,
-              workspacePath: appInfo?.workspacePath ?? workspacePath,
-              message: automationMessage,
-              exportText: automationExportText,
-              importText: automationImportText,
-              onRefresh: refreshAutomationData,
-              onSetSkillEnabled: setSkillEnabled,
-              onExportProject: exportAutomationProject,
-              onImportTextChange: setAutomationImportText,
-              onImportProject: importAutomationProject,
-              onSaveTask: saveScheduledTask,
-              onRunTask: runScheduledTask,
-              onSetTaskEnabled: setScheduledTaskEnabled,
-              onDeleteTask: deleteScheduledTask,
-              onUpdateRemoteControl: updateRemoteControl,
-              onCreatePairingCode: createRemotePairingCode,
-              onRevokeRemoteDevice: revokeRemoteDevice,
-              onCreateDefaultTeam: createDefaultVirtualTeam,
-              onSaveTeam: saveVirtualTeam,
-              onRunTeam: runVirtualTeam,
-              onDeleteTeam: deleteVirtualTeam,
-              onSetToolPermission: (toolName, mode) => {
-                void updateToolPermissionPolicy(toolName, mode);
-                setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
-              },
-              onApplyPermissionPreset: (preset) => {
-                applyToolPermissionPreset(preset);
-                setAutomationMessage(
-                  preset === "allow-all" ? "All bridge tools are allowed for unattended automation." : preset === "ask-mutating" ? "Read-only tools are allowed and mutating tools require approval." : "Read-only tools are allowed and mutating tools are denied."
-                );
+            ] }),
+            activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              ProjectsView,
+              {
+                activeSection: activeProjectsSection,
+                appInfo,
+                appConfig,
+                appState,
+                activeProviderLabel,
+                activeProviderDefault,
+                viewportSize,
+                tokenUsage,
+                toolActivities,
+                teamRuns,
+                runningProjectIds,
+                currentSessionTitle: conversationTitle,
+                sessionCount: sessions.length,
+                projects: softwareProjects,
+                activeProjectId: activeSoftwareProjectId,
+                roles: virtualRoles,
+                employees: virtualEmployees,
+                projectTeams,
+                projectChatMessages,
+                fileWriteReviews,
+                commandReviews,
+                toolPermissionReviews,
+                projectGeneratedOutputs,
+                projectChatSendingKeys,
+                workspacePath,
+                workspaceEntries,
+                workspaceBrowserError,
+                workspaceActionMessage,
+                isLoadingWorkspaceEntries,
+                onOpenWorkspaceEntry: openWorkspaceEntry,
+                onOpenWorkspacePath: openWorkspacePath,
+                onRevealWorkspacePath: revealWorkspacePath,
+                onGoToWorkspaceParent: goToWorkspaceParent,
+                onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
+                mcpServers,
+                mcpTools,
+                onSaveProject: saveSoftwareProjectPlan,
+                onSaveRole: saveVirtualRoleDefinition,
+                onDeleteRole: deleteVirtualRoleDefinition,
+                onSaveEmployee: saveVirtualEmployeeProfile,
+                onDeleteEmployee: deleteVirtualEmployeeProfile,
+                onSaveTeam: saveProjectTeamDefinition,
+                onDeleteTeam: deleteProjectTeamDefinition,
+                onSelectProject: setActiveSoftwareProjectId,
+                onSetProjectStatus: markSoftwareProjectStatus,
+                onDeleteProject: deleteSoftwareProjectPlan,
+                onSendProjectChat: submitProjectPrompt,
+                onResolveFileWrite: resolveFileWriteReview,
+                onResolveCommand: resolveCommandReview,
+                onResolveToolPermission: resolveToolPermissionReview,
+                onChangeSection: setActiveProjectsSection
               }
-            }
-          ),
-          activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            HistoryView,
-            {
-              activeSection: activeHistorySection,
-              records: historyRecords,
-              storageInfo: historyStorageInfo,
-              message: historyMessage,
-              exportText: historyExportText,
-              onRefresh: refreshHistoryData,
-              onDeleteRecord: deleteHistoryRecord,
-              onRestoreChat: restoreChatFromHistory,
-              onExportRecords: exportHistoryRecords
-            }
-          ),
-          activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            SettingsView,
-            {
-              activeSection: activeSettingsSection,
-              draft: settingsDraft,
-              message: settingsMessage,
-              saving: isSavingSettings,
-              localModelPreparation,
-              featureResolution,
-              onChange: updateSettingsDraft,
-              onClearToken: clearToken,
-              onAccountLogin: handleAccountLogin,
-              onAccountRegister: handleAccountRegister,
-              onAccountForgotPassword: handleAccountForgotPassword,
-              onAccountResetPassword: handleAccountResetPassword,
-              onAccountLogout: handleAccountLogout,
-              onPlatformSync: handlePlatformSync,
-              canSyncPlatform,
-              platformSyncing: isSyncingPlatform,
-              onPackageAction: handleFeaturePackageAction,
-              onSubmit: saveSettings,
-              onRetryLocalModel: () => void saveSettings(),
-              onOpenLocalModelLog: () => void openLocalModelLog()
-            }
-          )
-        ] }),
+            ),
+            activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              ToolsView,
+              {
+                activeSection: activeToolsSection,
+                tools,
+                mcpTools,
+                mcpServers,
+                appConfig,
+                routerMessage: toolRouterMessage,
+                toolActivities,
+                onToggleModelTool: setModelToolExposure,
+                onApplyToolPreset: applyToolRouterPreset,
+                onSetToolPermission: updateToolPermissionPolicy,
+                onApplyPermissionPreset: applyToolPermissionPreset,
+                onRunCommand: runWorkspaceCommand,
+                onOpenWorkspacePath: openWorkspacePath,
+                onRevealWorkspacePath: revealWorkspacePath,
+                onRefresh: refreshBridgeData,
+                onClearActivities: () => setToolActivities([])
+              }
+            ),
+            activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              AutomationView,
+              {
+                activeSection: activeAutomationSection,
+                skills,
+                tasks: scheduledTasks,
+                taskRuns,
+                schedulerStatus,
+                remoteControl,
+                teams: virtualTeams,
+                teamRuns,
+                runningTeamIds,
+                roles: virtualRoles,
+                employees: virtualEmployees,
+                appConfig,
+                workspacePath: appInfo?.workspacePath ?? workspacePath,
+                message: automationMessage,
+                exportText: automationExportText,
+                importText: automationImportText,
+                onRefresh: refreshAutomationData,
+                onSetSkillEnabled: setSkillEnabled,
+                onExportProject: exportAutomationProject,
+                onImportTextChange: setAutomationImportText,
+                onImportProject: importAutomationProject,
+                onSaveTask: saveScheduledTask,
+                onRunTask: runScheduledTask,
+                onSetTaskEnabled: setScheduledTaskEnabled,
+                onDeleteTask: deleteScheduledTask,
+                onUpdateRemoteControl: updateRemoteControl,
+                onCreatePairingCode: createRemotePairingCode,
+                onRevokeRemoteDevice: revokeRemoteDevice,
+                onCreateDefaultTeam: createDefaultVirtualTeam,
+                onSaveTeam: saveVirtualTeam,
+                onRunTeam: runVirtualTeam,
+                onDeleteTeam: deleteVirtualTeam,
+                onSetToolPermission: (toolName, mode) => {
+                  void updateToolPermissionPolicy(toolName, mode);
+                  setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
+                },
+                onApplyPermissionPreset: (preset) => {
+                  applyToolPermissionPreset(preset);
+                  setAutomationMessage(
+                    preset === "allow-all" ? "All bridge tools are allowed for unattended automation." : preset === "ask-mutating" ? "Read-only tools are allowed and mutating tools require approval." : "Read-only tools are allowed and mutating tools are denied."
+                  );
+                }
+              }
+            ),
+            activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              HistoryView,
+              {
+                activeSection: activeHistorySection,
+                records: historyRecords,
+                storageInfo: historyStorageInfo,
+                message: historyMessage,
+                exportText: historyExportText,
+                onRefresh: refreshHistoryData,
+                onDeleteRecord: deleteHistoryRecord,
+                onRestoreChat: restoreChatFromHistory,
+                onExportRecords: exportHistoryRecords
+              }
+            ),
+            activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              SettingsView,
+              {
+                activeSection: activeSettingsSection,
+                draft: settingsDraft,
+                tools,
+                sessions,
+                currentSessionId,
+                appConfig,
+                message: settingsMessage,
+                saving: isSavingSettings,
+                localModelPreparation,
+                featureResolution,
+                onChange: updateSettingsDraft,
+                onSetToolPermission: updateToolPermissionPolicy,
+                onApplyToolPermissionPreset: (preset) => applyToolPermissionPreset(preset, tools.filter(isCoreTool)),
+                onClearToken: clearToken,
+                onAccountLogin: handleAccountLogin,
+                onAccountRegister: handleAccountRegister,
+                onAccountForgotPassword: handleAccountForgotPassword,
+                onAccountResetPassword: handleAccountResetPassword,
+                onAccountLogout: handleAccountLogout,
+                onPlatformSync: handlePlatformSync,
+                canSyncPlatform,
+                platformSyncing: isSyncingPlatform,
+                onDeveloperModeChange: (checked) => void handlePlatformDeveloperModeChange(checked),
+                onPackageAction: handleFeaturePackageAction,
+                packageOperationError,
+                onDismissPackageOperationError: () => setPackageOperationError(null),
+                onAddPaymentMethod: openPaymentMethodDialog,
+                onSetDefaultPaymentMethod: (methodId) => void setDefaultAccountPaymentMethod(methodId),
+                onRemovePaymentMethod: (methodId) => void removeAccountPaymentMethod(methodId),
+                onOpenChat: loadSession,
+                onDeleteChat: (sessionId) => void deleteChatSession(sessionId),
+                onDeleteAllChats: () => void deleteAllChatSessions(),
+                onSubmit: saveSettings,
+                onRetryLocalModel: () => void saveSettings(),
+                onOpenLocalModelLog: () => void openLocalModelLog()
+              }
+            )
+          ] })
+        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: App_default.footer, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("chat"), children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
@@ -46139,7 +47503,7 @@ Attached images: ${imageSummary}` : message.content);
               className: App_default.statusPane,
               type: "button",
               onClick: () => {
-                setActiveToolsSection("bridge");
+                setActiveToolsSection("mcp");
                 setActiveView("tools");
               },
               children: [
@@ -46175,7 +47539,7 @@ Attached images: ${imageSummary}` : message.content);
               ]
             }
           ),
-          hasShellFeature(featureResolution, "developer-history") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          hasShellFeature(featureResolution, "project-history") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
             "button",
             {
               className: App_default.statusPane,
@@ -46208,33 +47572,6 @@ Attached images: ${imageSummary}` : message.content);
           ] })
         ] })
       ] }),
-      activeFileWriteReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        FileWriteReviewDialog,
-        {
-          review: activeFileWriteReview,
-          queuedCount: fileWriteReviews.length,
-          onApprove: () => resolveFileWriteReview(activeFileWriteReview, true),
-          onReject: () => resolveFileWriteReview(activeFileWriteReview, false)
-        }
-      ),
-      activeCommandReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        CommandReviewDialog,
-        {
-          review: activeCommandReview,
-          queuedCount: commandReviews.length,
-          onApprove: () => resolveCommandReview(activeCommandReview, true),
-          onReject: () => resolveCommandReview(activeCommandReview, false)
-        }
-      ),
-      activeToolPermissionReview && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        ToolPermissionReviewDialog,
-        {
-          review: activeToolPermissionReview,
-          queuedCount: toolPermissionReviews.length,
-          onApprove: () => resolveToolPermissionReview(activeToolPermissionReview, true),
-          onReject: () => resolveToolPermissionReview(activeToolPermissionReview, false)
-        }
-      ),
       selectedPurchasePackage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
         PackagePurchaseDialog,
         {
@@ -46250,6 +47587,21 @@ Attached images: ${imageSummary}` : message.content);
             setSettingsMessage("");
           }
         }
+      ),
+      paymentMethodDialogOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        PaymentMethodDialog,
+        {
+          draft: purchaseDraft,
+          message: settingsMessage,
+          busy: isSavingSettings,
+          onChange: (update) => setPurchaseDraft((current) => ({ ...current, ...update })),
+          onSubmit: addAccountPaymentMethod,
+          onCancel: () => {
+            setPaymentMethodDialogOpen(false);
+            setPurchaseDraft({ ...EMPTY_PURCHASE_DRAFT });
+            setSettingsMessage("");
+          }
+        }
       )
     ] });
   }
@@ -46259,7 +47611,8 @@ Attached images: ${imageSummary}` : message.content);
     children,
     footer,
     onClose,
-    wide = false
+    wide = false,
+    bodyClassName
   }) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: wide ? `${App_default.workbenchEditorPanel} ${App_default.workbenchEditorPanelWide}` : App_default.workbenchEditorPanel, "aria-label": title, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchEditorHeader, children: [
@@ -46272,7 +47625,7 @@ Attached images: ${imageSummary}` : message.content);
           "Close"
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workbenchEditorBody, children }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: bodyClassName ? `${App_default.workbenchEditorBody} ${bodyClassName}` : App_default.workbenchEditorBody, children }),
       footer && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workbenchEditorFooter, children: footer })
     ] });
   }
@@ -46296,6 +47649,9 @@ Attached images: ${imageSummary}` : message.content);
     employees,
     projectTeams,
     projectChatMessages,
+    fileWriteReviews,
+    commandReviews,
+    toolPermissionReviews,
     projectGeneratedOutputs,
     projectChatSendingKeys,
     workspacePath,
@@ -46321,9 +47677,12 @@ Attached images: ${imageSummary}` : message.content);
     onSetProjectStatus,
     onDeleteProject,
     onSendProjectChat,
+    onResolveFileWrite,
+    onResolveCommand,
+    onResolveToolPermission,
     onChangeSection
   }) {
-    const visibleActiveSection = PROJECTS_MENU.some((item) => item.id === activeSection) ? activeSection : "studio";
+    const visibleActiveSection = ["studio", "roles", "employees", "teams"].includes(activeSection) ? activeSection : "studio";
     const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
     const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
     const guidedProjects = projects.filter((project) => project.mode === "guided");
@@ -46360,8 +47719,8 @@ Attached images: ${imageSummary}` : message.content);
     const staffedProjectCount = projects.filter((project) => project.mode === "guided" ? project.assignedEmployeeIds.length > 0 : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)).length;
     const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
     const projectModeMetrics = [
-      { label: "Guided", value: guidedProjects.length, className: App_default.projectMetricGuided },
-      { label: "Autonomous", value: autonomousProjects.length, className: App_default.projectMetricAutonomous }
+      { label: "Standard", value: guidedProjects.length, className: App_default.projectMetricGuided },
+      { label: "Fully autonomous", value: autonomousProjects.length, className: App_default.projectMetricAutonomous }
     ];
     const projectStatusMetrics = [
       ["Active", "active", App_default.projectMetricActive],
@@ -46426,17 +47785,17 @@ Attached images: ${imageSummary}` : message.content);
         transcript.scrollTop = transcript.scrollHeight;
       }
     }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
-    function startDraft(mode) {
+    function startDraft() {
       const supervisor = employees.find((employee) => isSupervisorEmployee(employee, roles)) ?? employees[0];
       setDraft({
         ...createSoftwareProjectDraft(appInfo?.workspacePath),
-        mode,
-        permissionMode: mode === "autonomous" ? "full-access" : "supervised",
+        mode: "guided",
+        permissionMode: "supervised",
         supervisorEmployeeId: supervisor?.id ?? "",
         supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
-        assignedEmployeeIds: mode === "autonomous" ? [] : employees.filter((employee) => employee.id !== supervisor?.id).slice(0, 4).map((employee) => employee.id),
-        assignedTeamIds: mode === "autonomous" ? projectTeams.slice(0, 2).map((team) => team.id) : [],
-        teamRoles: mode === "autonomous" ? projectTeams.slice(0, 2).map((team) => team.name) : employees.filter((employee) => employee.id !== supervisor?.id).slice(0, 4).map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
+        assignedEmployeeIds: [],
+        assignedTeamIds: [],
+        teamRoles: []
       });
       setProfileEmployeeId("");
       setProjectDeleteTarget(null);
@@ -47340,17 +48699,32 @@ Attached images: ${imageSummary}` : message.content);
       const panelMessages = getProjectPanelMessages(project, channel);
       const draftValue = projectChatDrafts[projectChatKey] ?? "";
       const isProjectSending = projectChatSendingKeys.has(projectChatKey);
+      const scopedFileWriteReviews = fileWriteReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
+      const scopedCommandReviews = commandReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
+      const scopedToolPermissionReviews = toolPermissionReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
       return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.projectChatSurface, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChatTranscript, ref: projectChatTranscriptRef, children: [
-          panelMessages.map((message) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          groupMessagesByAssistantRun(panelMessages).map(({ message, activities }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             MessageItem,
             {
               message,
+              activities,
               copied: copiedProjectMessageId === message.id,
               onCopy: () => copyProjectMessage(message)
             },
             message.id
           )),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            InlineApprovalQueue,
+            {
+              fileWriteReviews: scopedFileWriteReviews,
+              commandReviews: scopedCommandReviews,
+              toolPermissionReviews: scopedToolPermissionReviews,
+              onResolveFileWrite,
+              onResolveCommand,
+              onResolveToolPermission
+            }
+          ),
           isProjectSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
@@ -47367,30 +48741,58 @@ Attached images: ${imageSummary}` : message.content);
               value: draftValue,
               onChange: (event) => updateProjectChatDraft(project, channel, event.target.value),
               onKeyDown: (event) => handleProjectChatKeyDown(event, project, channel),
-              placeholder: channel === "team" ? "Send direction to the supervisor or team..." : "Reply in this project...",
-              rows: 3,
+              placeholder: channel === "team" ? "Direct the supervisor or team\u2026" : "Ask about this project\u2026",
+              rows: 2,
               disabled: isProjectSending,
               "aria-label": channel === "team" ? "Team chat message" : "Project chat message"
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "button",
-              {
-                className: App_default.secondaryButton,
-                type: "button",
-                onClick: () => updateProjectChatDraft(project, channel, ""),
-                disabled: !draftValue || isProjectSending,
-                title: "Clear the draft message",
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-                  "Clear"
-                ]
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
-              "Send"
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerToolbar, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerMeta, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectComposerIdentity, title: channel === "team" ? "Instructions are handled by this autonomous project\u2019s supervisor and team" : "This agent can use tools within the project working folder", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: channel === "team" ? "network" : "bot", size: 13 }),
+                channel === "team" ? "Project supervisor" : "Project agent"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.projectComposerPermission, title: "Permission level for this project", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 12 }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.visuallyHidden, children: "Project permissions" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "select",
+                  {
+                    value: project.permissionMode,
+                    onChange: (event) => onSaveProject({
+                      ...project,
+                      permissionMode: event.target.value,
+                      updatedAt: Date.now()
+                    }),
+                    disabled: isProjectSending,
+                    "aria-label": "Project permissions",
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Ask for risky actions" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full project access" })
+                    ]
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: project.workspacePath, children: getPathBasename(project.workspacePath) })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
+              draftValue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  className: App_default.composerClearButton,
+                  type: "button",
+                  onClick: () => updateProjectChatDraft(project, channel, ""),
+                  disabled: isProjectSending,
+                  title: "Clear the draft message",
+                  children: "Clear input"
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message (Command+Enter)", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
+                "Send",
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", { children: "\u2318\u21B5" })
+              ] })
             ] })
           ] })
         ] })
@@ -47485,7 +48887,7 @@ Attached images: ${imageSummary}` : message.content);
           timestamp: project.updatedAt,
           employee: "Project Studio",
           title: "Project ready",
-          summary: `${project.mode === "autonomous" ? "Autonomous" : "Guided"} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
+          summary: `${project.mode === "autonomous" ? "Fully autonomous" : "Standard"} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
           status: effectiveStatus
         });
       }
@@ -47709,26 +49111,6 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project type" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "select",
-            {
-              value: draft.mode,
-              onChange: (event) => {
-                const mode = event.target.value;
-                updateDraft({
-                  mode,
-                  permissionMode: mode === "autonomous" ? "full-access" : "supervised"
-                });
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "guided", children: "Guided human/app project" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "autonomous", children: "Autonomous project" })
-              ]
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }), children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idea", children: "Idea" }),
@@ -47761,6 +49143,24 @@ Attached images: ${imageSummary}` : message.content);
               rows: 6
             }
           )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.employeeAssignOption} ${App_default.fieldWide}`, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "input",
+            {
+              type: "checkbox",
+              checked: draft.mode === "autonomous",
+              onChange: (event) => updateDraft({
+                mode: event.target.checked ? "autonomous" : "guided",
+                permissionMode: event.target.checked ? "full-access" : "supervised",
+                assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+                assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+                teamRoles: event.target.checked ? draft.teamRoles : []
+              })
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Fully autonomous" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project." })
         ] }),
         draft.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
@@ -47830,7 +49230,7 @@ Attached images: ${imageSummary}` : message.content);
         WorkbenchEditorPanel,
         {
           title: projects.some((project) => project.id === draft.id) ? "Edit Project" : "New Project",
-          subtitle: draft.mode === "autonomous" ? "Autonomous staffing, permissions, and deliverables" : "Guided idea, goals, and deliverables",
+          subtitle: draft.mode === "autonomous" ? "Project details with autonomous staffing and execution" : "Project details, workspace, goals, and deliverables",
           onClose: closeProjectEditorPanel,
           footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveProjectDraftAndClose, title: "Save this project and close the panel", children: [
@@ -47925,7 +49325,17 @@ Attached images: ${imageSummary}` : message.content);
         return null;
       }
       if (projectEditorPanel === "project-chat") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Project Chat", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderGuidedProjectChat(project) });
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          WorkbenchEditorPanel,
+          {
+            title: "Project Chat",
+            subtitle: project.name,
+            onClose: closeProjectEditorPanel,
+            wide: true,
+            bodyClassName: App_default.projectChatPanelBody,
+            children: renderGuidedProjectChat(project)
+          }
+        );
       }
       if (projectEditorPanel === "project-org") {
         return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Team Organization", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderProjectOrganization(project) });
@@ -47989,7 +49399,7 @@ Attached images: ${imageSummary}` : message.content);
       ] });
       return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: actionsClassName, children: [
         project.mode === "guided" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          renderActionButton("project-chat", "chat", "Chat", "Open this guided project chat"),
+          renderActionButton("project-chat", "chat", "Chat", "Open this project chat"),
           renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")
         ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
           getLifecycleButton(project, showLabel),
@@ -48017,7 +49427,7 @@ Attached images: ${imageSummary}` : message.content);
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            project.mode === "autonomous" ? "Autonomous" : "Guided",
+            project.mode === "autonomous" ? "Fully autonomous" : "Standard",
             " / ",
             formatProjectStatus(effectiveStatus)
           ] })
@@ -48040,7 +49450,7 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              project.mode === "autonomous" ? "Autonomous project" : "Guided build",
+              project.mode === "autonomous" ? "Fully autonomous" : "Standard project",
               " / ",
               formatProjectStatus(effectiveStatus)
             ] })
@@ -48110,7 +49520,7 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              project.mode === "autonomous" ? "Autonomous project" : "Guided project",
+              project.mode === "autonomous" ? "Fully autonomous" : "Standard project",
               " / ",
               formatProjectStatus(effectiveStatus)
             ] })
@@ -48294,7 +49704,7 @@ Attached images: ${imageSummary}` : message.content);
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Active project(s)" })
             ] }),
             renderProjectMetricBar(projectStatusMetrics, projects.length),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Multiple autonomous projects can run at once; the table below is the source of project navigation." })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Fully autonomous projects can run in the background; the table below is the source of project navigation." })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Staffing" }),
@@ -48330,13 +49740,9 @@ Attached images: ${imageSummary}` : message.content);
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: projectPortfolioView, onChange: setProjectPortfolioView, label: "Project list view" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: () => startDraft("guided"), title: "Create a human-guided project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 14 }),
-                "New Guided"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => startDraft("autonomous"), title: "Create an autonomous project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 14 }),
-                "New Autonomous"
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: startDraft, title: "Create a software project", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
+                "New Project"
               ] })
             ] })
           ] }),
@@ -48650,32 +50056,12 @@ Attached images: ${imageSummary}` : message.content);
       visibleActiveSection === "new" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Definition" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: draft.mode === "autonomous" ? "Autonomous project" : "Guided project chat" })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: draft.mode === "autonomous" ? "Fully autonomous execution enabled" : "Standard project" })
         ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project name" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project type" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "select",
-              {
-                value: draft.mode,
-                onChange: (event) => {
-                  const mode = event.target.value;
-                  updateDraft({
-                    mode,
-                    permissionMode: mode === "autonomous" ? "full-access" : "supervised"
-                  });
-                },
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "guided", children: "Guided human/app project" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "autonomous", children: "Autonomous project" })
-                ]
-              }
-            )
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
@@ -48710,6 +50096,24 @@ Attached images: ${imageSummary}` : message.content);
                 rows: 6
               }
             )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.employeeAssignOption} ${App_default.fieldWide}`, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: draft.mode === "autonomous",
+                onChange: (event) => updateDraft({
+                  mode: event.target.checked ? "autonomous" : "guided",
+                  permissionMode: event.target.checked ? "full-access" : "supervised",
+                  assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+                  assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+                  teamRoles: event.target.checked ? draft.teamRoles : []
+                })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Fully autonomous" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "A supervisor and virtual team manage this project on your behalf." })
           ] }),
           draft.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
@@ -48770,17 +50174,17 @@ Attached images: ${imageSummary}` : message.content);
           draft.mode === "autonomous" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, title: "Save this autonomous project and view its team organization", children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "network", size: 14 }),
             "Save And View Team"
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this guided project and open chat", children: [
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this project and open chat", children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 14 }),
             "Save And Open Chat"
           ] })
         ] })
       ] }),
       visibleActiveSection === "guided" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Guided Builds" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Standard Projects" }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
           guidedProjects.map((project) => renderProjectCard(project, "chat")),
-          guidedProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No guided projects yet." })
+          guidedProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No standard projects yet." })
         ] })
       ] }),
       visibleActiveSection === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
@@ -49439,11 +50843,10 @@ Attached images: ${imageSummary}` : message.content);
     onRestoreChat,
     onExportRecords
   }) {
-    const chatRecords = records.filter((record) => record.type === "chat-session");
-    const toolRecords = records.filter((record) => record.type === "tool-event");
     const automationRecords = records.filter((record) => record.type === "automation-run");
     const projectEventRecords = records.filter((record) => record.type === "project-event");
-    const visibleRecords = activeSection === "chats" ? chatRecords : activeSection === "tools" ? toolRecords : activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : records;
+    const projectActivityRecords = records.filter((record) => record.type === "automation-run" || record.type === "project-event");
+    const visibleRecords = activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : projectActivityRecords;
     const [historyDeleteTarget, setHistoryDeleteTarget] = useState(null);
     function openHistoryDeleteConfirmation(record) {
       setHistoryDeleteTarget({
@@ -49512,7 +50915,7 @@ Attached images: ${imageSummary}` : message.content);
       link.click();
       URL.revokeObjectURL(url);
     }
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-label": "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: historyDeleteTarget ? `${App_default.settingsContent} ${App_default.workbenchSplitWithRail}` : App_default.settingsContent, children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Project activity", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-label": "Project activity", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: historyDeleteTarget ? `${App_default.settingsContent} ${App_default.workbenchSplitWithRail}` : App_default.settingsContent, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.pageActionBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
         "Refresh"
@@ -49524,15 +50927,7 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Records" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: storageInfo.recordCount })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Chats" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: chatRecords.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool events" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: toolRecords.length })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectActivityRecords.length })
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Automation" }),
@@ -49551,13 +50946,13 @@ Attached images: ${imageSummary}` : message.content);
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           HistoryRecordList,
           {
-            records: records.slice(0, 12),
+            records: projectActivityRecords.slice(0, 12),
             onRequestDeleteRecord: openHistoryDeleteConfirmation,
             onRestoreChat
           }
         )
       ] }),
-      (activeSection === "chats" || activeSection === "tools" || activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+      (activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
         HistoryRecordList,
         {
           records: visibleRecords,
@@ -49569,18 +50964,6 @@ Attached images: ${imageSummary}` : message.content);
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Export History", children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Exports are local JSON snapshots. They do not include provider API keys." }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords(), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
-              "Export All"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("chat-session"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 14 }),
-              "Export Chats"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("tool-event"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "wrench", size: 14 }),
-              "Export Tool Events"
-            ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run"), children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 14 }),
               "Export Automation"
@@ -50623,16 +52006,16 @@ Attached images: ${imageSummary}` : message.content);
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above." })
     ] });
   }
-  function FileWriteReviewDialog({
+  function FileWriteReviewCard({
     review,
     queuedCount,
     onApprove,
     onReject
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "file-write-review-title", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.inlineReviewCard, role: "group", "aria-labelledby": `file-write-review-title-${review.requestId}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "file-write-review-title", children: "Review File Write" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { id: `file-write-review-title-${review.requestId}`, children: "Review File Write" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
             review.exists ? "Update existing file" : "Create new file",
             queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
@@ -50675,18 +52058,18 @@ Attached images: ${imageSummary}` : message.content);
           ] })
         ] })
       ] })
-    ] }) });
+    ] });
   }
-  function CommandReviewDialog({
+  function CommandReviewCard({
     review,
     queuedCount,
     onApprove,
     onReject
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "command-review-title", children: [
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.inlineReviewCard, role: "group", "aria-labelledby": `command-review-title-${review.requestId}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "command-review-title", children: "Review Command" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { id: `command-review-title-${review.requestId}`, children: "Review Command" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
             "Non-interactive workspace command",
             queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
@@ -50728,20 +52111,21 @@ Attached images: ${imageSummary}` : message.content);
           ] })
         ] })
       ] })
-    ] }) });
+    ] });
   }
-  function ToolPermissionReviewDialog({
+  function ToolPermissionReviewCard({
     review,
     queuedCount,
     onApprove,
     onReject
   }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.reviewDialog, role: "dialog", "aria-modal": "true", "aria-labelledby": "tool-permission-review-title", children: [
+    const isWorkspaceCreation = review.toolName === "workspace.create";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.inlineReviewCard, role: "group", "aria-labelledby": `tool-permission-review-title-${review.requestId}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "tool-permission-review-title", children: "Review Tool Call" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { id: `tool-permission-review-title-${review.requestId}`, children: isWorkspaceCreation ? "Recreate Project Folder" : "Review Tool Call" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.reviewSubtitle, children: [
-            "Desktop permission policy requires approval",
+            isWorkspaceCreation ? "The saved project folder is missing and is required to continue." : "Desktop permission policy requires approval",
             queuedCount > 1 ? ` \xB7 ${queuedCount - 1} more pending` : ""
           ] })
         ] }),
@@ -50749,8 +52133,8 @@ Attached images: ${imageSummary}` : message.content);
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.reviewMeta, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.toolName, children: review.toolName })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: isWorkspaceCreation ? "Action" : "Tool" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: review.toolName, children: isWorkspaceCreation ? "Create project workspace" : review.toolName })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Requested" }),
@@ -50759,19 +52143,72 @@ Attached images: ${imageSummary}` : message.content);
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.commandBlock, "aria-label": "Tool arguments", children: formatJson(review.args) }),
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: "The tool call is blocked until you approve it." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: isWorkspaceCreation ? "No project files will be created until you approve this folder." : "The tool call is blocked until you approve it." }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onReject, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-            "Reject"
+            isWorkspaceCreation ? "Cancel" : "Reject"
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onApprove, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 }),
-            "Approve Tool"
+            isWorkspaceCreation ? "Recreate Folder" : "Approve Tool"
           ] })
         ] })
       ] })
-    ] }) });
+    ] });
+  }
+  function InlineApprovalQueue({
+    fileWriteReviews,
+    commandReviews,
+    toolPermissionReviews,
+    onResolveFileWrite,
+    onResolveCommand,
+    onResolveToolPermission
+  }) {
+    const queuedCount = fileWriteReviews.length + commandReviews.length + toolPermissionReviews.length;
+    if (queuedCount === 0) return null;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.inlineApprovalQueue, "aria-label": "Approvals required", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.inlineApprovalQueueHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "activity", size: 14 }),
+          " Approval required"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+          queuedCount,
+          " pending"
+        ] })
+      ] }),
+      fileWriteReviews.map((review) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        FileWriteReviewCard,
+        {
+          review,
+          queuedCount,
+          onApprove: () => onResolveFileWrite(review, true),
+          onReject: () => onResolveFileWrite(review, false)
+        },
+        review.requestId
+      )),
+      commandReviews.map((review) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        CommandReviewCard,
+        {
+          review,
+          queuedCount,
+          onApprove: () => onResolveCommand(review, true),
+          onReject: () => onResolveCommand(review, false)
+        },
+        review.requestId
+      )),
+      toolPermissionReviews.map((review) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        ToolPermissionReviewCard,
+        {
+          review,
+          queuedCount,
+          onApprove: () => onResolveToolPermission(review, true),
+          onReject: () => onResolveToolPermission(review, false)
+        },
+        review.requestId
+      ))
+    ] });
   }
   function renderDiff(diff) {
     if (!diff.trim()) {
@@ -50841,16 +52278,38 @@ Attached images: ${imageSummary}` : message.content);
       ] })
     ] });
   }
+  function groupMessagesByAssistantRun(messages) {
+    const grouped = [];
+    let activeAssistantIndex = -1;
+    for (const message of messages) {
+      if (message.activity && activeAssistantIndex >= 0) {
+        grouped[activeAssistantIndex].activities.push(message.activity);
+        continue;
+      }
+      grouped.push({ message, activities: [] });
+      if (message.role === "assistant") {
+        activeAssistantIndex = grouped.length - 1;
+      } else if (message.role === "user" || message.role === "error") {
+        activeAssistantIndex = -1;
+      }
+    }
+    return grouped;
+  }
   function MessageItem({
     message,
+    activities = [],
     copied,
     onCopy
   }) {
+    if (message.activity) {
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChatToolActivityItem, { activity: message.activity });
+    }
     const roleClass = App_default[`message_${message.role}`] || "";
+    const senderLabel = message.title || (message.role === "assistant" ? "CodeAgent" : message.role);
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: `${App_default.message} ${roleClass}`, children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.messageRole, children: message.title || message.role }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.messageRole, children: senderLabel }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("time", { children: new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: onCopy, children: [
@@ -50862,13 +52321,183 @@ Attached images: ${imageSummary}` : message.content);
         message.role === "tool" ? renderToolMessageContent(message) : renderMessageContent(message.content),
         (message.imageAttachments?.length ?? 0) > 0 && renderMessageImages(message.imageAttachments ?? [])
       ] }),
-      message.usage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageMeta, children: [
+      message.usage && !message.performance && activities.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageMeta, children: [
         message.usage.inputTokens,
         " input tokens / ",
         message.usage.outputTokens,
         " output tokens"
+      ] }),
+      (message.performance || activities.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        AssistantActivityDetails,
+        {
+          activities,
+          performance: message.performance,
+          usage: message.usage
+        }
+      )
+    ] });
+  }
+  function AssistantActivityDetails({
+    activities,
+    performance: performance2,
+    usage
+  }) {
+    const hasPendingActivity = activities.some((activity) => activity.status === "waiting-approval" || activity.status === "running");
+    const hasFailedActivity = activities.some((activity) => activity.status === "failed" || activity.status === "rejected");
+    const needsAttention = hasPendingActivity || hasFailedActivity;
+    const previousNeedsAttention = useRef(needsAttention);
+    const [open, setOpen] = useState(needsAttention);
+    const totalMs = performance2?.endToEndMs ?? performance2?.backendMs ?? activities.reduce((sum, activity) => sum + (activity.duration ?? 0), 0);
+    const statusLabel = activities.some((activity) => activity.status === "waiting-approval") ? "Approval needed" : activities.some((activity) => activity.status === "running") ? "Running" : hasFailedActivity ? "Needs attention" : "Completed";
+    const activitySummary = [
+      activities.length > 0 ? `${activities.length} ${activities.length === 1 ? "tool" : "tools"}` : null,
+      totalMs > 0 ? formatActivityDuration(totalMs) : null,
+      statusLabel
+    ].filter(Boolean).join(" \xB7 ");
+    useEffect(() => {
+      if (needsAttention) {
+        setOpen(true);
+      } else if (previousNeedsAttention.current) {
+        setOpen(false);
+      }
+      previousNeedsAttention.current = needsAttention;
+    }, [needsAttention]);
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+      "details",
+      {
+        className: `${App_default.assistantActivity} ${hasFailedActivity ? App_default.assistantActivityAttention : ""}`,
+        open,
+        onToggle: (event) => setOpen(event.currentTarget.open),
+        children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.assistantActivityTitle, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: hasFailedActivity ? "x" : hasPendingActivity ? "activity" : "check", size: 13 }),
+              "Activity"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activitySummary })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.assistantActivityBody, children: [
+            performance2 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChatPerformanceDetails, { performance: performance2 }),
+            usage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.assistantActivityUsage, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                usage.inputTokens,
+                " in / ",
+                usage.outputTokens,
+                " out"
+              ] })
+            ] }),
+            activities.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.assistantActivityTools, children: activities.map((activity) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChatToolActivityItem, { activity }, activity.toolId)) })
+          ] })
+        ]
+      }
+    );
+  }
+  function ChatPerformanceDetails({ performance: performance2 }) {
+    const totalMs = performance2.endToEndMs ?? performance2.backendMs;
+    const phases = [
+      ...performance2.phases,
+      ...performance2.uiDeliveryMs !== void 0 && performance2.uiDeliveryMs > 0 ? [{ phase: "ui-delivery", durationMs: performance2.uiDeliveryMs, count: void 0 }] : []
+    ];
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.messagePerformance, "aria-label": "Performance", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Performance" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messagePerformanceGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "End to end" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: formatActivityDuration(totalMs) })
+        ] }),
+        performance2.firstTokenMs !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "First answer content" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: formatActivityDuration(performance2.firstTokenMs) })
+        ] }),
+        phases.map((phase, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            formatChatPerformancePhase(phase.phase),
+            phase.count ? ` \xB7 ${phase.count} ${phase.count === 1 ? "step" : "steps"}` : ""
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: formatActivityDuration(phase.durationMs) })
+        ] }, `${phase.phase}-${index}`))
+      ] }),
+      performance2.toolCalls > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.messagePerformanceNote, children: [
+        "Tool execution includes any time spent waiting for approval. ",
+        performance2.toolCalls,
+        " tool ",
+        performance2.toolCalls === 1 ? "call" : "calls",
+        " across ",
+        performance2.toolRounds,
+        " model ",
+        performance2.toolRounds === 1 ? "round" : "rounds",
+        "."
       ] })
     ] });
+  }
+  function formatChatPerformancePhase(phase) {
+    return {
+      preparation: "Request preparation",
+      "tool-selection": "Model tool selection",
+      "tool-execution": "Tool execution / approval",
+      "answer-generation": "Answer generation",
+      "ui-delivery": "IPC and UI delivery"
+    }[phase];
+  }
+  function ChatToolActivityItem({ activity }) {
+    const action = getChatToolActivityAction(activity.toolName);
+    const target = getChatToolActivityTarget(activity);
+    const statusLabel = getChatToolActivityStatusLabel(activity.status);
+    const resultSummary = activity.result !== void 0 ? summarizeToolResult(activity.result) : "";
+    const isPending = activity.status === "waiting-approval" || activity.status === "running";
+    const isFailure = activity.status === "failed" || activity.status === "rejected";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: `${App_default.chatToolActivity} ${App_default[`chatToolActivity_${activity.status}`] || ""}`, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatToolActivityRow, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.chatToolActivityIcon, "aria-hidden": "true", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: isPending ? "activity" : isFailure ? "x" : "check", size: 14 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatToolActivitySummary, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: action }),
+          target && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: target, children: target })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.chatToolActivityStatus, children: statusLabel }),
+        activity.duration !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.chatToolActivityDuration, children: formatActivityDuration(activity.duration) })
+      ] }),
+      (resultSummary || activity.error) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: `${App_default.chatToolActivityOutcome} ${isFailure ? App_default.chatToolActivityOutcomeError : ""}`, children: activity.error || resultSummary }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.chatToolActivityDetails, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("summary", { children: "Details" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activity.toolName })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool ID" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activity.toolId })
+          ] }),
+          activity.approval?.required && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Approval" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activity.approval.decision === "approved" ? `Approved${activity.approval.resolvedBy ? ` by ${activity.approval.resolvedBy}` : ""}` : activity.approval.decision === "rejected" ? `Rejected${activity.approval.resolvedBy ? ` by ${activity.approval.resolvedBy}` : ""}` : "Required" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Started" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: new Date(activity.startedAt).toLocaleTimeString() })
+          ] }),
+          activity.completedAt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Finished" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: new Date(activity.completedAt).toLocaleTimeString() })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Arguments" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { children: formatJson(activity.args) }),
+        activity.result !== void 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Result" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { children: formatJson(activity.result) })
+        ] }),
+        activity.error && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Error" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { children: activity.error })
+        ] })
+      ] })
+    ] });
+  }
+  function formatActivityDuration(duration) {
+    if (duration < 1e3) return `${duration} ms`;
+    return `${(duration / 1e3).toFixed(duration < 1e4 ? 1 : 0)} s`;
   }
   function renderMessageImages(images) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.messageImageGrid, children: images.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("figure", { className: App_default.messageImageItem, children: [
@@ -50926,7 +52555,7 @@ Attached images: ${imageSummary}` : message.content);
   }
   function SettingsSection({ title, children }) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.settingsSection, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: title }),
+      title && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: title }),
       children
     ] });
   }
@@ -51034,184 +52663,229 @@ Attached images: ${imageSummary}` : message.content);
     onLogout,
     onSync,
     canSync,
-    syncing
+    syncing,
+    message,
+    onDeveloperModeChange,
+    onAddPaymentMethod,
+    onSetDefaultPaymentMethod,
+    onRemovePaymentMethod,
+    paymentBusy
   }) {
     const profile = resolution.profile;
     const isSignedIn = profile.accountStatus === "signed-in";
-    const latestPurchase = profile.purchases[profile.purchases.length - 1];
-    const ownedPackages = getOwnedPackageEntries(resolution);
-    const ownedPackageNames = ownedPackages.map((entry) => entry.manifest.displayName).join(", ");
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Account", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountOverviewGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Current session" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: formatAccountTier(profile) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? `${profile.displayName || profile.email} is signed in.` : "You are using CodeAgent as a guest with the free base package." })
+    const [authMode, setAuthMode] = useState("sign-in");
+    const accountName = profile.displayName || profile.email || "CodeAgent user";
+    const accountInitials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "CA";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountHero, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountAvatar, "aria-hidden": "true", children: isSignedIn ? accountInitials : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 24 }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountHeroBody, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isSignedIn ? "Signed-in account" : "Guest account" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: isSignedIn ? accountName : "You\u2019re using CodeAgent as a guest" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? profile.email : "Sign in to sync your chats, manage purchases, and use your account across devices." })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Feature packages" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: ownedPackages.length > 0 ? formatPackageCount(ownedPackages.length) : "No paid packages" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? ownedPackageNames || "No purchased packages are attached to this account yet." : "Sign in to purchase paid packages." })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountSummaryCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Payment" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: profile.paymentMethods.length > 0 ? `${profile.paymentMethods.length} card${profile.paymentMethods.length === 1 ? "" : "s"}` : "No card" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: latestPurchase ? `Last purchase: ${getPackageDisplayName(resolution, latestPurchase.packageId, latestPurchase.productSku)}` : "Credit card checkout is available from package cards." })
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.accountPlanBadge, children: formatAccountTier(profile) }),
+        isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountHeroActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onSync, disabled: !canSync || syncing, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
+            syncing ? "Syncing" : "Sync account"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: onLogout, children: "Sign out" })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountPackageShelf, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountShelfHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Purchased packages" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isSignedIn ? "Packages and subscriptions attached to this account." : "Sign in to view purchases for this account." })
+      message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountInlineMessage, role: "status", "aria-live": "polite", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: message }) }),
+      !isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountGuestGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.accountAuthCard, "aria-labelledby": "account-auth-title", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountAuthHeader, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { id: "account-auth-title", children: authMode === "sign-in" ? "Welcome back" : authMode === "register" ? "Create your account" : "Reset your password" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: authMode === "sign-in" ? "Use your CodeAgent account to continue." : authMode === "register" ? "Create an account to sync your workspace and purchases." : "Request a reset token, then choose a new password." })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: isSignedIn ? profile.subscriptionStatus : "guest" })
-        ] }),
-        ownedPackages.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountPackageList, children: ownedPackages.map((entry) => {
-          const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
-          const paymentMethod = profile.paymentMethods.find((method) => method.id === purchase?.paymentMethodId);
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.accountPackageItem, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountPackageBody, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.productSku }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: entry.manifest.description })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.accountPackageMeta, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageOwnershipLabel(profile, entry, purchase) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Price" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackagePriceLabel(entry.manifest) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchased" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatPackageDate(purchase?.purchasedAt) })
-              ] }),
-              paymentMethod && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Payment" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-                  paymentMethod.brand,
-                  " ending ",
-                  paymentMethod.last4
-                ] })
-              ] })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountAuthFields, role: "tabpanel", children: [
+            authMode === "register" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Display name",
+                value: draft.accountDisplayName,
+                placeholder: "How you\u2019ll appear in CodeAgent",
+                onChange: (value) => onChange({ accountDisplayName: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Email",
+                type: "email",
+                value: draft.accountEmail,
+                placeholder: "you@example.com",
+                onChange: (value) => onChange({ accountEmail: value })
+              }
+            ),
+            authMode !== "recover" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Password",
+                type: "password",
+                value: draft.accountPassword,
+                placeholder: authMode === "register" ? "At least 8 characters" : "Enter your password",
+                onChange: (value) => onChange({ accountPassword: value })
+              }
+            ),
+            authMode === "recover" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "Reset token",
+                  value: draft.accountResetToken,
+                  placeholder: "Paste the token from your reset email",
+                  onChange: (value) => onChange({ accountResetToken: value })
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                TextSetting,
+                {
+                  label: "New password",
+                  type: "password",
+                  value: draft.accountPassword,
+                  placeholder: "At least 8 characters",
+                  onChange: (value) => onChange({ accountPassword: value })
+                }
+              )
             ] })
-          ] }, entry.manifest.id);
-        }) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountEmptyState, children: isSignedIn ? "No paid packages have been purchased for this account yet." : "Guest sessions include only the free base package." })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Platform URL",
-            value: draft.platformBaseUrl,
-            onChange: (value) => onChange({ platformBaseUrl: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Workspace or org ID",
-            value: draft.platformOrgId,
-            placeholder: "optional",
-            onChange: (value) => onChange({ platformOrgId: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Email",
-            type: "email",
-            value: draft.accountEmail,
-            onChange: (value) => onChange({ accountEmail: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Display name",
-            value: draft.accountDisplayName,
-            onChange: (value) => onChange({ accountDisplayName: value })
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Platform password",
-            type: "password",
-            value: draft.accountPassword,
-            placeholder: "required for platform login or reset",
-            onChange: (value) => onChange({ accountPassword: value }),
-            className: App_default.fieldWide
-          }
-        ),
-        !isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          TextSetting,
-          {
-            label: "Reset token",
-            value: draft.accountResetToken,
-            placeholder: "from reset email",
-            onChange: (value) => onChange({ accountResetToken: value }),
-            className: App_default.fieldWide
-          }
-        )
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
-        isSignedIn ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onLogout, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
-          "Sign out"
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onLogin, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }),
-            "Sign in"
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRegister, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
-            "Create account"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onForgotPassword, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
-            "Send reset"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onResetPassword, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-            "Reset password"
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountAuthActions, children: [
+            authMode === "sign-in" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onLogin, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }),
+                "Sign in"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => setAuthMode("recover"), children: "Forgot password?" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => setAuthMode("register"), children: "Sign up" })
+            ] }),
+            authMode === "register" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onRegister, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
+                "Create account"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => setAuthMode("sign-in"), children: "Back to sign in" })
+            ] }),
+            authMode === "recover" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+              draft.accountResetToken.trim() ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onResetPassword, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
+                  "Reset password"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onForgotPassword, children: "Resend email" })
+              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onForgotPassword, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
+                "Send reset email"
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => setAuthMode("sign-in"), children: "Back to sign in" })
+            ] })
           ] })
         ] }),
-        isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onSync, disabled: !canSync || syncing, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-          syncing ? "Syncing" : "Sync"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChange({ accountEmail: "", accountDisplayName: "" }), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-          "Clear"
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: App_default.accountBenefitsCard, "aria-label": "Free account benefits", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Included with a free account" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Keep your work connected" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("ul", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 15 }),
+              "Sync account settings and purchases"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 15 }),
+              "Access CodeAgent from multiple devices"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 15 }),
+              "Add feature packages when you need them"
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "No credit card required." })
         ] })
       ] }),
-      profile.paymentMethods.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.paymentSummaryList, children: profile.paymentMethods.map((method) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "credit-card", size: 14 }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-          method.brand,
-          " ending ",
-          method.last4
+      isSignedIn && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.accountBillingSection, "aria-labelledby": "payment-methods-title", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountShelfHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { id: "payment-methods-title", children: "Payment methods" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Payment details used for Store purchases and subscriptions." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onAddPaymentMethod, disabled: paymentBusy, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
+            "Add payment method"
+          ] })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-          method.expMonth.toString().padStart(2, "0"),
-          "/",
-          String(method.expYear).slice(-2)
+        profile.paymentMethods.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.paymentSummaryList, children: profile.paymentMethods.map((method, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "credit-card", size: 14 }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+              method.brand,
+              " ending ",
+              method.last4,
+              " ",
+              index === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "Default" })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("small", { children: [
+              "Expires ",
+              method.expMonth.toString().padStart(2, "0"),
+              "/",
+              String(method.expYear).slice(-2)
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.paymentMethodActions, children: [
+            index > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onSetDefaultPaymentMethod(method.id), disabled: paymentBusy, children: "Make default" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: () => onRemovePaymentMethod(method.id), disabled: paymentBusy, children: "Remove" })
+          ] })
+        ] }, method.id)) }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountEmptyState, children: "No payment methods are saved. A payment method can be added during checkout in the Store." })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.accountAdvanced, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "settings", size: 15 }),
+            "Advanced connection"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Developer and workspace settings" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountAdvancedBody, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountDeveloperMode, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              ToggleSetting,
+              {
+                label: "Developer mode",
+                checked: draft.platformDeveloperMode,
+                onChange: onDeveloperModeChange
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: draft.platformDeveloperMode ? "Authentication is using a temporary backend for this window." : "Authentication uses the managed CodeAgent platform." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
+            draft.platformDeveloperMode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Development platform URL",
+                value: draft.platformBaseUrl,
+                placeholder: DEVELOPMENT_PLATFORM_BASE_URL,
+                onChange: (value) => onChange({ platformBaseUrl: value })
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              TextSetting,
+              {
+                label: "Workspace or organization ID",
+                value: draft.platformOrgId,
+                placeholder: "Optional",
+                onChange: (value) => onChange({ platformOrgId: value })
+              }
+            )
+          ] })
         ] })
-      ] }, method.id)) })
+      ] })
     ] });
   }
   function FeaturePackagesSection({
     resolution,
     onPackageAction,
+    operationError,
+    onDismissOperationError,
     onSync,
     canSync,
     syncing
@@ -51219,11 +52893,50 @@ Attached images: ${imageSummary}` : message.content);
     const profile = resolution.profile;
     const ownedPackages = getOwnedPackageEntries(resolution);
     const isSignedIn = profile.accountStatus === "signed-in";
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Feature Packages", children: [
+    const [catalogQuery, setCatalogQuery] = useState("");
+    const [catalogFilter, setCatalogFilter] = useState("all");
+    const [catalogView, setCatalogView] = useState("icon");
+    const normalizedQuery = catalogQuery.trim().toLowerCase();
+    const visiblePackages = resolution.packages.filter((entry) => {
+      const isPaid = entry.manifest.pricing.amountCents > 0;
+      if (catalogFilter === "free" && isPaid) return false;
+      if (catalogFilter === "paid" && !isPaid) return false;
+      if (!normalizedQuery) return true;
+      return [
+        entry.manifest.displayName,
+        entry.manifest.description,
+        entry.manifest.domain,
+        ...entry.manifest.features.map((feature) => feature.title)
+      ].some((value) => value.toLowerCase().includes(normalizedQuery));
+    });
+    const catalogItems = visiblePackages.map((entry) => {
+      const isEntitled = entry.state === "available" || entry.state === "trial";
+      const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
+      const isOwned = ownedPackages.some((owned) => owned.manifest.id === entry.manifest.id);
+      return {
+        entry,
+        isEntitled,
+        isUsable,
+        isOwned,
+        actionLabel: isUsable ? "Manage" : isEntitled ? "Install" : "Purchase",
+        statusLabel: isOwned ? `Owned \xB7 ${getPackageInstallStateLabel(entry.installState)}` : isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state),
+        purchase: getLatestPurchaseForPackage(profile, entry.manifest.id)
+      };
+    });
+    const operationDiagnostics = operationError ? [
+      `Package: ${operationError.packageName}`,
+      `Package ID: ${operationError.packageId}`,
+      `SKU: ${operationError.productSku}`,
+      `Version: ${operationError.version}`,
+      `Phase: ${operationError.phase}`,
+      `Time: ${operationError.occurredAt}`,
+      "",
+      operationError.message
+    ].join("\n") : "";
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreHeader, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "CodeAgent Store" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Feature packages for every shell" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Discover capabilities for CodeAgent" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: isSignedIn ? `${profile.email || profile.displayName} \xB7 ${ownedPackages.length > 0 ? `${formatPackageCount(ownedPackages.length)} purchased` : "No paid packages purchased"}` : "Guest free tier. Sign in before purchasing paid feature packages." })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.packageStoreSummary, children: [
@@ -51245,93 +52958,238 @@ Attached images: ${imageSummary}` : message.content);
           syncing ? "Syncing" : "Sync"
         ] })
       ] }),
+      operationError && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.packageInstallError, role: "alert", "aria-labelledby": "package-install-error-title", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageInstallErrorHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.packageInstallErrorIcon, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 16 }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { id: "package-install-error-title", children: [
+              "Couldn\u2019t install ",
+              operationError.packageName
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: operationError.phase })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageInstallErrorActions, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onPackageAction(operationError.packageId), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
+              "Retry"
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.textButton, type: "button", onClick: onDismissOperationError, children: "Dismiss" })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { open: true, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("summary", { children: "Technical details" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { children: operationDiagnostics }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => void navigator.clipboard.writeText(operationDiagnostics), children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "file", size: 14 }),
+            "Copy details"
+          ] })
+        ] })
+      ] }),
       ownedPackages.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedShelf, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountShelfHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Purchased" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Available to this signed-in account after runtime installation." })
-        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.accountShelfHeader, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Your packages" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "These purchases belong to your account. Install their runtime on each device where you want to use them." })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            formatPackageCount(ownedPackages.length),
+            " owned"
+          ] })
+        ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreOwnedList, children: ownedPackages.map((entry) => {
           const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
           return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedItem, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedBody, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                getPackageOwnershipLabel(profile, entry, purchase),
-                " \xB7 ",
-                getPackageInstallStateLabel(entry.installState)
-              ] })
-            ] })
-          ] }, entry.manifest.id);
-        }) })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreGrid, children: resolution.packages.map((entry) => {
-        const isEntitled = entry.state === "available" || entry.state === "trial";
-        const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
-        const actionLabel = isUsable ? "Manage" : isEntitled ? "Install" : profile.accountStatus === "signed-in" ? "Purchase" : "Sign in";
-        const statusLabel = isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state);
-        const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTopline, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIdentity, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.domain })
+                getPackagePriceLabel(entry.manifest),
+                " \xB7 Purchased ",
+                formatPackageDate(purchase?.purchasedAt)
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isUsable ? App_default.packageStateAvailable : App_default.packageStateLocked, children: statusLabel })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.packageStoreDescription, children: entry.manifest.description }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreFeatures, children: entry.manifest.features.map((feature) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: feature.title }, feature.id)) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.packageStoreMeta, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Price" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackagePriceLabel(entry.manifest) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tier" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.tier })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchase" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: purchase ? formatPackageDate(purchase.purchasedAt) : "Not purchased" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Distribution" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageDistributionLabel(entry.manifest) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Protection" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageSecurityLabel(entry.manifest) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Shells" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.supportedShells.join(", ") })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreFooter, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              entry.reason,
-              " ",
-              entry.installReason
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isPackageRuntimeAvailable(entry.installState) ? App_default.packageStateAvailable : App_default.packageStatePending, children: getPackageInstallStateLabel(entry.installState) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
               "button",
               {
-                className: `${isUsable ? App_default.secondaryButton : App_default.primaryButton} ${App_default.packageStoreAction}`,
+                className: isPackageRuntimeAvailable(entry.installState) ? App_default.secondaryButton : App_default.primaryButton,
                 type: "button",
                 onClick: () => onPackageAction(entry.manifest.id),
-                children: actionLabel
+                children: [
+                  !isPackageRuntimeAvailable(entry.installState) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
+                  isPackageRuntimeAvailable(entry.installState) ? "Manage" : "Install"
+                ]
               }
             )
+          ] }, entry.manifest.id);
+        }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.packageBillingNote, children: "Need billing help? Self-service subscription changes and refunds aren\u2019t available in this desktop build." })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreCatalogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Catalog" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            formatPackageCount(visiblePackages.length),
+            " shown"
           ] })
-        ] }, entry.manifest.id);
-      }) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreToolbar, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.packageStoreSearch, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "search", size: 14 }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
+              {
+                type: "search",
+                value: catalogQuery,
+                placeholder: "Search packages and features",
+                "aria-label": "Search store packages",
+                onChange: (event) => setCatalogQuery(event.target.value)
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.segmentedControl, "aria-label": "Filter store catalog", children: ["all", "free", "paid"].map((filter) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: catalogFilter === filter ? `${App_default.segmentedControlButton} ${App_default.segmentedControlButtonActive}` : App_default.segmentedControlButton,
+              type: "button",
+              "aria-pressed": catalogFilter === filter,
+              onClick: () => setCatalogFilter(filter),
+              children: filter[0].toUpperCase() + filter.slice(1)
+            },
+            filter
+          )) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.segmentedControl, "aria-label": "Choose catalog view", children: [
+            { id: "icon", label: "Icon view", icon: "list" },
+            { id: "card", label: "Card view", icon: "grid" },
+            { id: "table", label: "Table view", icon: "table" }
+          ].map((view) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: catalogView === view.id ? `${App_default.segmentedControlButton} ${App_default.segmentedControlButtonActive}` : App_default.segmentedControlButton,
+              type: "button",
+              title: view.label,
+              "aria-label": view.label,
+              "aria-pressed": catalogView === view.id,
+              onClick: () => setCatalogView(view.id),
+              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: view.icon, size: 14 })
+            },
+            view.id
+          )) })
+        ] })
+      ] }),
+      catalogView === "icon" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIconList, children: catalogItems.map(({ entry, isUsable, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreIconRow, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIconBody, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: entry.manifest.description, children: entry.manifest.description })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIconAction, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: App_default.packageStorePillAction,
+              type: "button",
+              onClick: () => onPackageAction(entry.manifest.id),
+              children: actionLabel
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { title: statusLabel, children: actionLabel === "Purchase" ? getPackagePriceLabel(entry.manifest) : statusLabel })
+        ] })
+      ] }, entry.manifest.id)) }),
+      catalogView === "card" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreGrid, children: catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel, purchase }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreCard, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTopline, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIdentity, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.domain })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isUsable ? App_default.packageStateAvailable : isOwned ? App_default.packageStatePending : App_default.packageStateLocked, children: statusLabel })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.packageStoreDescription, children: entry.manifest.description }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreFeatures, children: entry.manifest.features.map((feature) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: feature.title }, feature.id)) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.packageStoreMeta, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Price" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackagePriceLabel(entry.manifest) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tier" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.tier })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Runtime" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchase" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: purchase ? formatPackageDate(purchase.purchasedAt) : "Not purchased" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Distribution" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageDistributionLabel(entry.manifest) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Protection" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageSecurityLabel(entry.manifest) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Shells" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: entry.manifest.supportedShells.join(", ") })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreFooter, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+            entry.reason,
+            " ",
+            entry.installReason
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: `${isUsable ? App_default.secondaryButton : App_default.primaryButton} ${App_default.packageStoreAction}`,
+              type: "button",
+              onClick: () => onPackageAction(entry.manifest.id),
+              children: actionLabel
+            }
+          )
+        ] })
+      ] }, entry.manifest.id)) }),
+      catalogView === "table" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreTableWrap, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("table", { className: App_default.packageStoreTable, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("caption", { className: App_default.visuallyHidden, children: "Store package catalog" }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("thead", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Package" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Tier" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Price" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Runtime" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Status" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.visuallyHidden, children: "Action" }) })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTableIdentity, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.manifest.domain })
+            ] })
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: entry.manifest.tier }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: getPackagePriceLabel(entry.manifest) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: getPackageInstallStateLabel(entry.installState) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isUsable ? App_default.packageStateAvailable : isOwned ? App_default.packageStatePending : App_default.packageStateLocked, children: statusLabel }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "button",
+            {
+              className: isUsable ? App_default.secondaryButton : App_default.primaryButton,
+              type: "button",
+              onClick: () => onPackageAction(entry.manifest.id),
+              children: actionLabel
+            }
+          ) })
+        ] }, entry.manifest.id)) })
+      ] }) }),
+      visiblePackages.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.accountEmptyState, children: "No packages match this search and filter. Try a different term or select All." })
     ] });
   }
   function PackagePurchaseDialog({
@@ -51435,6 +53293,42 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "credit-card", size: 14 }),
             "Pay ",
             getPackagePriceLabel(manifest)
+          ] })
+        ] })
+      ] })
+    ] }) });
+  }
+  function PaymentMethodDialog({
+    draft,
+    message,
+    busy,
+    onChange,
+    onSubmit,
+    onCancel
+  }) {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.dialogBackdrop, role: "presentation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: `${App_default.reviewDialog} ${App_default.purchaseDialog}`, role: "dialog", "aria-modal": "true", "aria-labelledby": "payment-method-title", onSubmit, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogHeader, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { id: "payment-method-title", children: "Add payment method" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.reviewSubtitle, children: "This card will become the default for future Store purchases." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.reviewBadge, children: "Credit card" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.paymentFormGrid, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Name on card", value: draft.nameOnCard, onChange: (value) => onChange({ nameOnCard: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Card number", value: draft.cardNumber, onChange: (value) => onChange({ cardNumber: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Expiration", value: draft.expiry, placeholder: "MM/YY", onChange: (value) => onChange({ expiry: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "CVC", type: "password", value: draft.cvc, onChange: (value) => onChange({ cvc: value }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "ZIP or postal code", value: draft.postalCode, onChange: (value) => onChange({ postalCode: value }), className: App_default.fieldWide })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Only the card brand, last four digits, and expiration are retained by this development flow. Full card numbers and security codes are not stored." }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: message }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: onCancel, disabled: busy, children: "Cancel" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: busy, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
+            busy ? "Adding" : "Add card"
           ] })
         ] })
       ] })
@@ -51719,11 +53613,17 @@ Attached images: ${imageSummary}` : message.content);
   function SettingsView({
     activeSection,
     draft,
+    tools,
+    sessions,
+    currentSessionId,
+    appConfig,
     message,
     saving,
     localModelPreparation,
     featureResolution,
     onChange,
+    onSetToolPermission,
+    onApplyToolPermissionPreset,
     onClearToken,
     onAccountLogin,
     onAccountRegister,
@@ -51733,11 +53633,29 @@ Attached images: ${imageSummary}` : message.content);
     onPlatformSync,
     canSyncPlatform,
     platformSyncing,
+    onDeveloperModeChange,
     onPackageAction,
+    packageOperationError,
+    onDismissPackageOperationError,
+    onAddPaymentMethod,
+    onSetDefaultPaymentMethod,
+    onRemovePaymentMethod,
+    onOpenChat,
+    onDeleteChat,
+    onDeleteAllChats,
     onSubmit,
     onRetryLocalModel,
     onOpenLocalModelLog
   }) {
+    const coreTools = tools.filter(isCoreTool);
+    const coreToolGroups = groupToolsByCategory(coreTools);
+    const corePolicyCounts = coreTools.reduce(
+      (counts, tool) => {
+        counts[getToolPermissionPolicy(tool, appConfig)] += 1;
+        return counts;
+      },
+      { allow: 0, ask: 0, deny: 0 }
+    );
     const selectedSources = new Set(draft.settingSources.split(",").map((source) => source.trim()).filter(Boolean));
     const providerOptions = Object.entries(PROVIDER_DEFAULTS).map(([value, option]) => ({
       value,
@@ -51770,10 +53688,16 @@ Attached images: ${imageSummary}` : message.content);
             onLogout: onAccountLogout,
             onSync: onPlatformSync,
             canSync: canSyncPlatform,
-            syncing: platformSyncing
+            syncing: platformSyncing,
+            message,
+            onDeveloperModeChange,
+            onAddPaymentMethod,
+            onSetDefaultPaymentMethod,
+            onRemovePaymentMethod,
+            paymentBusy: saving
           }
         ),
-        activeSection === "general" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "General", children: [
+        activeSection === "general" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SelectSetting,
@@ -51808,9 +53732,120 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toggleGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Auto-update", checked: draft.autoUpdate, onChange: (checked) => onChange({ autoUpdate: checked }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Proactive", checked: draft.proactive, onChange: (checked) => onChange({ proactive: checked }) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.permissionProfileSection, "aria-labelledby": "permission-profile-title", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.permissionProfileHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { id: "permission-profile-title", children: "Permissions" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Choose how broadly CodeAgent can access files and run tools." })
+            ] }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("fieldset", { className: App_default.permissionProfileList, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("legend", { className: App_default.visuallyHidden, children: "Desktop permission level" }),
+              DESKTOP_PERMISSION_PROFILES.map((profile) => {
+                const selected = draft.desktopPermissionProfile === profile.value;
+                return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                  "label",
+                  {
+                    className: `${App_default.permissionProfileOption} ${selected ? App_default.permissionProfileOptionSelected : ""} ${profile.danger ? App_default.permissionProfileOptionDanger : ""}`,
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "input",
+                        {
+                          type: "radio",
+                          name: "desktop-permission-profile",
+                          value: profile.value,
+                          checked: selected,
+                          onChange: () => onChange({ desktopPermissionProfile: profile.value })
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.permissionProfileBody, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.permissionProfileTitle, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: profile.title }),
+                          profile.badge && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: profile.badge })
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: profile.description })
+                      ] })
+                    ]
+                  },
+                  profile.value
+                );
+              })
+            ] }),
+            draft.desktopPermissionProfile === "full-access" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.permissionProfileWarning, role: "alert", children: "Full access increases the risk of unintended changes or data exposure. Operating-system protections still apply." }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolPermissions, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolPermissionsHeader, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Built-in tools" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Fine-tune CodeAgent's own tools. Package-provided tools are managed separately by their app." })
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.coreToolCount, children: [
+                  coreTools.length,
+                  " tools"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolPolicySummary, "aria-label": "Built-in tool permission summary", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: corePolicyCounts.allow }),
+                  " allowed"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: corePolicyCounts.ask }),
+                  " ask"
+                ] }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: corePolicyCounts.deny }),
+                  " denied"
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolPresetActions, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPermissionPreset("allow-all"), children: "Allow all" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPermissionPreset("ask-mutating"), children: "Ask before changes" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPermissionPreset("deny-mutating"), children: "Deny changes" })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.coreToolDetails, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("summary", { children: "Configure individual tools" }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolGroups, children: [
+                  coreToolGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.coreToolGroup, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h5", { children: group.label }),
+                    group.tools.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolRow, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.coreToolIdentity, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tool.name }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tool.readOnly ? "Read-only" : "Can make changes" }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tool.description })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.visuallyHidden, children: [
+                          "Permission for ",
+                          tool.name
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                          "select",
+                          {
+                            value: getToolPermissionPolicy(tool, appConfig),
+                            onChange: (event) => onSetToolPermission(tool.name, event.target.value),
+                            children: TOOL_PERMISSION_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
+                          }
+                        )
+                      ] })
+                    ] }, tool.name))
+                  ] }, group.id)),
+                  coreTools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "No built-in tools are currently available." })
+                ] })
+              ] })
+            ] })
           ] })
         ] }),
-        activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Model", children: [
+        activeSection === "chat-history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          ChatHistorySettingsSection,
+          {
+            sessions,
+            currentSessionId,
+            message,
+            onOpenChat,
+            onDeleteChat,
+            onDeleteAllChats
+          }
+        ),
+        activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SelectSetting,
@@ -51913,12 +53948,14 @@ Attached images: ${imageSummary}` : message.content);
           {
             resolution: featureResolution,
             onPackageAction,
+            operationError: packageOperationError,
+            onDismissOperationError: onDismissPackageOperationError,
             onSync: onPlatformSync,
             canSync: canSyncPlatform,
             syncing: platformSyncing
           }
         ),
-        activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Output And Debug", children: [
+        activeSection === "io-debug" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SelectSetting,
@@ -51961,7 +53998,7 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Bare mode", checked: draft.bareMode, onChange: (checked) => onChange({ bareMode: checked }) })
           ] })
         ] }),
-        activeSection === "tools-permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Tools And Permissions", children: [
+        activeSection === "tools-permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SelectSetting,
@@ -51995,7 +54032,7 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Allow skip permissions", checked: draft.allowDangerouslySkipPermissions, onChange: (checked) => onChange({ allowDangerouslySkipPermissions: checked }) })
           ] })
         ] }),
-        activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Prompts & Directories", children: [
+        activeSection === "workspace" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "System prompt", value: draft.systemPrompt, onChange: (value) => onChange({ systemPrompt: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Append system prompt", value: draft.appendSystemPrompt, onChange: (value) => onChange({ appendSystemPrompt: value }) }),
@@ -52020,7 +54057,7 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "Strict MCP config", checked: draft.strictMcpConfig, onChange: (checked) => onChange({ strictMcpConfig: checked }) })
           ] })
         ] }),
-        activeSection === "sessions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Sessions And Integrations", children: [
+        activeSection === "sessions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Resume session", value: draft.resumeSession, onChange: (value) => onChange({ resumeSession: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "From PR", value: draft.fromPr, onChange: (value) => onChange({ fromPr: value }) }),
@@ -52069,7 +54106,7 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ToggleSetting, { label: "IDE auto-connect", checked: draft.ideAutoConnect, onChange: (checked) => onChange({ ideAutoConnect: checked }) })
           ] })
         ] }),
-        activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Advanced Compatibility", children: [
+        activeSection === "advanced" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextSetting, { label: "Messaging socket path", value: draft.messagingSocketPath, onChange: (value) => onChange({ messagingSocketPath: value }) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TextAreaSetting, { label: "Channel servers", value: draft.channelServers, onChange: (value) => onChange({ channelServers: value }) }),
@@ -52106,10 +54143,10 @@ Attached images: ${imageSummary}` : message.content);
           ] })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
+      activeSection !== "account" && activeSection !== "packages" && activeSection !== "chat-history" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogFooter, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.settingsMessage, children: message }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.dialogActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onClearToken, children: [
+          activeSection === "model" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: onClearToken, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "key", size: 14 }),
             "Clear LLM API keys"
           ] }),
@@ -52121,15 +54158,137 @@ Attached images: ${imageSummary}` : message.content);
       ] })
     ] }) });
   }
+  function ChatHistorySettingsSection({
+    sessions,
+    currentSessionId,
+    message,
+    onOpenChat,
+    onDeleteChat,
+    onDeleteAllChats
+  }) {
+    const [query, setQuery] = useState("");
+    const [deleteSessionId, setDeleteSessionId] = useState(null);
+    const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+    const savedSessions = sortSessions(sessions.filter(isMeaningfulChatSession));
+    const visibleSessions = savedSessions.filter((session) => matchesSessionSearch(session, query));
+    function confirmSingleDelete(sessionId) {
+      onDeleteChat(sessionId);
+      setDeleteSessionId(null);
+    }
+    function confirmAllDeletes() {
+      onDeleteAllChats();
+      setConfirmDeleteAll(false);
+      setDeleteSessionId(null);
+    }
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistorySummary, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+            savedSessions.length,
+            " saved ",
+            savedSessions.length === 1 ? "chat" : "chats"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Stored locally on this device. Deleting chats does not delete workspace files." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          "button",
+          {
+            className: App_default.dangerButton,
+            type: "button",
+            disabled: savedSessions.length === 0,
+            onClick: () => setConfirmDeleteAll(true),
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
+              "Delete all chats"
+            ]
+          }
+        )
+      ] }),
+      confirmDeleteAll && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryDeleteAll, role: "alert", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+            "Delete all ",
+            savedSessions.length,
+            " saved chats?"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "This cannot be undone. Attached workspace files and account data will remain unchanged." })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: confirmAllDeletes, children: "Delete all" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setConfirmDeleteAll(false), children: "Cancel" })
+        ] })
+      ] }),
+      message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: message }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryControls, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "search", size: 14 }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            "input",
+            {
+              type: "search",
+              value: query,
+              onChange: (event) => setQuery(event.target.value),
+              placeholder: "Search saved chats",
+              "aria-label": "Search saved chats"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+          visibleSessions.length,
+          " shown"
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryList, children: [
+        visibleSessions.map((session) => {
+          const deleting = deleteSessionId === session.id;
+          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "article",
+            {
+              className: `${App_default.chatHistoryRow} ${session.id === currentSessionId ? App_default.chatHistoryRowActive : ""}`,
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryIdentity, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: session.title }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                    session.messages.length,
+                    " messages \xB7 Updated ",
+                    formatRelativeTime(session.updatedAt),
+                    session.toolWorkspacePath ? ` \xB7 ${session.toolWorkspacePath}` : ""
+                  ] })
+                ] }),
+                deleting ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryDeleteConfirm, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Delete this chat?" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.dangerButton, type: "button", onClick: () => confirmSingleDelete(session.id), children: "Delete" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => setDeleteSessionId(null), children: "Cancel" })
+                ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onOpenChat(session.id), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 14 }),
+                    "Open"
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: () => setDeleteSessionId(session.id), children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
+                    "Delete"
+                  ] })
+                ] })
+              ]
+            },
+            session.id
+          );
+        }),
+        visibleSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.chatHistoryEmpty, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 20 }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: query.trim() ? "No matching chats" : "No saved chats" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: query.trim() ? "Try a different search." : "New conversations will appear here after you send a message." })
+        ] })
+      ] })
+    ] });
+  }
 
   // src/renderer/index.tsx
   var import_jsx_runtime2 = __toESM(require_jsx_runtime(), 1);
   async function initializeRenderer() {
     try {
       const root = import_client.default.createRoot(document.getElementById("root"));
-      root.render(
-        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(esm_wrapper_default.StrictMode, { children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(App, {}) })
-      );
+      root.render(/* @__PURE__ */ (0, import_jsx_runtime2.jsx)(App, {}));
     } catch (error) {
       console.error("Failed to initialize renderer:", error);
       document.body.innerHTML = '<div style="padding: 20px; color: red;">Failed to initialize application</div>';

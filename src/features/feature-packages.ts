@@ -69,7 +69,6 @@ const DEFAULT_PROFILE: Required<FeatureEntitlementProfile> = {
 };
 
 export const BASE_FEATURE_PACKAGE_ID = 'base';
-export const SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID = 'software-developer';
 
 export const FEATURE_PACKAGE_MANIFESTS: FeaturePackageManifest[] = [
   {
@@ -80,7 +79,7 @@ export const FEATURE_PACKAGE_MANIFESTS: FeaturePackageManifest[] = [
     tier: 'free',
     version: '1.0.0',
     owner: 'codeagent',
-    description: 'General chat and the minimal account, provider, and settings flows required to use it.',
+    description: 'General assistant chat and the common operating environment required by every installed package.',
     pricing: {
       amountCents: 0,
       currency: 'USD',
@@ -125,16 +124,36 @@ export const FEATURE_PACKAGE_MANIFESTS: FeaturePackageManifest[] = [
       },
       {
         id: 'basic-settings',
-        capabilityIds: ['settings.provider', 'settings.account', 'settings.basic'],
+        capabilityIds: ['settings.provider', 'settings.account', 'settings.basic', 'settings.permissions', 'history.chats'],
         title: 'Basic Settings',
         description: 'Provider, account, model, and minimal runtime settings required by chat.',
         adapters: [
-          { shell: 'desktop', routes: ['settings:account', 'settings:model', 'settings:packages'], commands: ['/login', '/login local', '/account', '/settings', '/config'] },
+          { shell: 'desktop', routes: ['settings:general', 'settings:account', 'settings:chat-history', 'settings:model', 'settings:packages'], commands: ['/login', '/login local', '/account', '/settings', '/config'] },
           { shell: 'cli', commands: ['auth', 'login', 'logout', 'config', 'status'] },
           { shell: 'mobile', views: ['settings'] },
         ],
         requiredServices: ['auth', 'app-state'],
         storageNamespaces: ['config'],
+      },
+      {
+        id: 'agent-runtime',
+        capabilityIds: [
+          'runtime.tools',
+          'runtime.permissions',
+          'runtime.package-extensions',
+        ],
+        title: 'Agent Runtime',
+        description: 'Built-in execution APIs and safety enforcement used by chat and installed professional packages.',
+        adapters: [
+          { shell: 'desktop' },
+          { shell: 'cli' },
+          { shell: 'mobile' },
+        ],
+        requiredServices: ['tool-service', 'filesystem', 'command', 'web', 'finance', 'mcp'],
+        storageNamespaces: ['toolPermissionPolicies', 'disabledLlmTools'],
+        toolSchemas: ['time.now', 'web.search', 'web.research', 'web.fetch', 'finance.quote', 'bash.run', 'fs.read', 'fs.write', 'fs.undoLastWrite', 'fs.list', 'api.chat', 'app.getConfig', 'mcp.listServers', 'mcp.listTools', 'mcp.callTool'],
+        permissionPolicies: ['bash.run', 'fs.write', 'fs.undoLastWrite', 'mcp.callTool'],
+        historyEventTypes: ['tool-event'],
       },
     ],
     extensions: [
@@ -242,7 +261,27 @@ export function resolveFeaturePackages(
   manifests = FEATURE_PACKAGE_MANIFESTS,
 ): FeaturePackageResolution {
   const normalizedProfile = normalizeFeatureProfile(profile);
-  const packages = manifests.map(manifest => {
+  // The platform catalog owns commerce and entitlement metadata, but the
+  // installed desktop build owns the runtime contract it can actually render.
+  // Reuse the matching local contract so an older platform catalog cannot
+  // reintroduce routes or capabilities that were moved into the core app.
+  const runtimeManifests = manifests.map(manifest => {
+    const localManifest = FEATURE_PACKAGE_MANIFESTS.find(candidate => (
+      candidate.id === manifest.id && candidate.version === manifest.version
+    ));
+    if (!localManifest || localManifest === manifest) {
+      return manifest;
+    }
+    return {
+      ...manifest,
+      supportedShells: localManifest.supportedShells,
+      sdk: localManifest.sdk,
+      entrypoints: localManifest.entrypoints,
+      features: localManifest.features,
+      extensions: localManifest.extensions,
+    };
+  });
+  const packages = runtimeManifests.map(manifest => {
     const packageState = resolvePackageState(manifest, shell, normalizedProfile);
     const packageInstall = resolvePackageInstallState(manifest, normalizedProfile, packageState.state);
     return {

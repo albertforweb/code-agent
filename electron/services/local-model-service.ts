@@ -11,7 +11,7 @@ const DEFAULT_HOST = '127.0.0.1'
 const DEFAULT_PORT = 14321
 const DEFAULT_CONTEXT_TOKENS = 8192
 export const CODEAGENT_LOCAL_BASE_URL = `http://${DEFAULT_HOST}:${DEFAULT_PORT}/v1`
-export const CODEAGENT_OFFLINE_STARTER_MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF'
+export const CODEAGENT_OFFLINE_STARTER_MODEL = 'Qwen/Qwen3-4B-GGUF'
 
 export interface HuggingFaceModel {
   id: string

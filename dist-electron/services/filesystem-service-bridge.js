@@ -337,6 +337,9 @@ class FileSystemServiceBridge {
             if (error.code === 'ENOENT') {
                 return { exists: false, content: '' };
             }
+            if (error.code === 'EISDIR') {
+                throw new Error('The requested write path is a directory. fs.write requires a file path such as "main.py" or "src/app.py".');
+            }
             throw new Error(`Failed to read existing file for review: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
