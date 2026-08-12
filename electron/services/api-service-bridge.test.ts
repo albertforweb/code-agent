@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ApiServiceBridge } from './api-service-bridge';
+import type { AgentRuntimeEvent } from './agent-runtime/contracts';
 
 function projectRequest(prompt: string) {
   return {
@@ -204,13 +205,26 @@ test('streaming responses report phase-level performance metrics', async () => {
 
   try {
     const deltas: string[] = [];
+    const events: AgentRuntimeEvent[] = [];
     const response = await service.streamChat({
       ...projectRequest('Hello'),
       enableTools: false,
-    }, { onDelta: delta => deltas.push(delta) });
+    }, {
+      onDelta: delta => deltas.push(delta),
+      onEvent: event => events.push(event),
+    });
 
     assert.equal(response.content, 'Hello world');
     assert.deepEqual(deltas, ['Hello', ' world']);
+    assert.deepEqual(events.map(event => event.type), [
+      'turn-started',
+      'text-delta',
+      'text-delta',
+      'turn-completed',
+    ]);
+    assert.deepEqual(events.map(event => event.sequence), [0, 1, 2, 3]);
+    assert.equal(new Set(events.map(event => event.turnId)).size, 1);
+    assert.ok(events.every(event => !Number.isNaN(Date.parse(event.timestamp))));
     assert.ok(response.performance);
     assert.ok(response.performance.backendMs >= 0);
     assert.ok(response.performance.firstTokenMs !== undefined);

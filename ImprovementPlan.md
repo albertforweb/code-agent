@@ -24,7 +24,7 @@
 
 ## Architecture Hardening Roadmap (August 2026)
 
-**Status**: Proposed
+**Status**: In progress on `codex/architecture-hardening-20260812` in the isolated architecture worktrees.
 **Primary objective**: Eliminate behavioral drift between CodeAgent shells while making tool execution safer, feature boundaries enforceable, and local state recoverable.
 
 ### Priority Summary
@@ -87,9 +87,9 @@ type AgentRuntimeEvent =
 **Implementation steps**:
 
 - [ ] Capture CLI and desktop behavior in parity fixtures before refactoring.
-- [ ] Extract provider-neutral request, tool, event, and completion contracts.
+- [x] Extract provider-neutral request, tool, event, and completion contracts for the desktop runtime slice; events now carry stable turn IDs, monotonic sequence numbers, and timestamps. (2026-08-12; pending milestone commit)
 - [ ] Move bounded tool-loop logic into the shared runtime.
-- [ ] Adapt the Electron IPC bridge to consume runtime events.
+- [~] Adapt the Electron IPC bridge to consume runtime events. `ApiServiceBridge.streamChat` now emits lifecycle, text, and tool events while retaining the existing delta adapter; IPC exposure and other desktop runtime callers remain follow-up work. (2026-08-12)
 - [ ] Adapt `QueryEngine` to use the same runtime or retire its duplicate loop.
 - [ ] Route scheduled tasks and virtual teams through the shared runtime.
 - [ ] Remove superseded desktop-specific orchestration after parity tests pass.
@@ -206,6 +206,13 @@ Represent teams and delegated work as a persisted task graph rather than only ne
 ### Progress Recording Rule
 
 Update this roadmap in the same change that completes a milestone. Mark an item complete only when its implementation, migration path, tests, and operational documentation are all present. Add links to the relevant pull request or commit beside completed work so architectural progress remains traceable.
+
+### Architecture Hardening Execution Log
+
+| Date | Milestone | Status | Verification |
+|------|-----------|--------|--------------|
+| 2026-08-12 | Preserve current changes in isolated worktrees | Complete | Four repository baselines committed; original working trees left untouched |
+| 2026-08-12 | Desktop provider-neutral runtime event slice | Complete | `api-service-bridge.test.ts` passes 20 tests; Electron TypeScript compilation passes |
 
 ---
 

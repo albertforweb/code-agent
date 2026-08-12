@@ -15,6 +15,8 @@ import type {
   Tool,
 } from '../types';
 import * as path from 'node:path';
+import type { AgentRuntimeEvent } from './agent-runtime/contracts.js';
+import { createAgentRuntimeEventEmitter, type AgentRuntimeEventEmitter } from './agent-runtime/event-stream.js';
 
 type AuthTokenProvider = (provider?: LlmProviderType) => Promise<AuthToken | null>;
 type BootstrapProvider = () => Promise<BootstrapData>;
@@ -23,6 +25,7 @@ type ToolProvider = () => Promise<Tool[]>;
 type ToolExecutor = (toolName: string, args: Record<string, any>) => Promise<any>;
 type ChatStreamHandlers = {
   onDelta?: (delta: string) => void;
+  onEvent?: (event: AgentRuntimeEvent) => void;
 };
 
 interface LlmRuntimeConfig {
@@ -167,13 +170,40 @@ export class ApiServiceBridge {
    */
   async streamChat(request: ChatRequest, handlers: ChatStreamHandlers = {}): Promise<ChatResponse> {
     const startedAt = Date.now();
-    const config = await this.resolveRuntimeConfig(request);
-    const runtimeConfigMs = Date.now() - startedAt;
+    const events = createAgentRuntimeEventEmitter(handlers.onEvent);
+    events.emit({
+      type: 'turn-started',
+      request: {
+        messages: request.messages.map(message => ({ role: message.role, content: message.content })),
+        provider: request.provider,
+        model: request.model,
+        metadata: { structuredAgentLoop: request.structuredAgentLoop === true },
+      },
+    });
 
     try {
-      return this.streamOpenAiCompatible(request, config, handlers, startedAt, runtimeConfigMs);
+      const config = await this.resolveRuntimeConfig(request);
+      const runtimeConfigMs = Date.now() - startedAt;
+      const response = await this.streamOpenAiCompatible(request, config, {
+        onDelta: delta => {
+          handlers.onDelta?.(delta);
+          if (delta) events.emit({ type: 'text-delta', delta });
+        },
+      }, startedAt, runtimeConfigMs, events);
+      events.emit({
+        type: 'turn-completed',
+        outcome: {
+          content: response.content,
+          model: response.model,
+          usage: response.usage,
+          metadata: response.performance ? { performance: response.performance } : undefined,
+        },
+      });
+      return response;
     } catch (error) {
-      throw new Error(`API Stream Error: ${error instanceof Error ? error.message : String(error)}`);
+      const message = error instanceof Error ? error.message : String(error);
+      events.emit({ type: 'turn-failed', error: message });
+      throw new Error(`API Stream Error: ${message}`);
     }
   }
 
@@ -396,6 +426,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     handlers: ChatStreamHandlers,
     startedAt: number,
     runtimeConfigMs: number,
+    events?: AgentRuntimeEventEmitter,
   ): Promise<ChatResponse> {
     let firstTokenAt: number | undefined;
     const observedHandlers: ChatStreamHandlers = {
@@ -439,6 +470,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       toolSet,
       request.structuredAgentLoop === true,
       request.workflowPlanning === true,
+      events,
     );
     inputTokens += planning.inputTokens;
     outputTokens += planning.outputTokens;
@@ -954,6 +986,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     toolSet: OpenAiToolSet,
     structuredAgentLoop = false,
     workflowPlanning = false,
+    events?: AgentRuntimeEventEmitter,
   ): Promise<{
     inputTokens: number;
     outputTokens: number;
@@ -1178,8 +1211,18 @@ Always be helpful, thorough, and provide clear explanations.`;
         content: null,
         tool_calls: executableCalls,
       });
+      for (const candidate of executableCalls) {
+        events?.emit({
+          type: 'tool-proposed',
+          call: {
+            callId: candidate.id,
+            name: toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name,
+            arguments: candidate.function.arguments,
+          },
+        });
+      }
       const executionStartedAt = Date.now();
-      const execution = await this.appendToolResults(messages, executableCalls, toolSet);
+      const execution = await this.appendToolResults(messages, executableCalls, toolSet, events);
       this.compactCompletedToolContext(messages, executableCalls);
       executionMs += Date.now() - executionStartedAt;
       toolCalls += executableCalls.length;
@@ -1535,6 +1578,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     messages: OpenAiChatMessage[],
     toolCalls: OpenAiToolCall[],
     toolSet: OpenAiToolSet,
+    events?: AgentRuntimeEventEmitter,
   ): Promise<ToolExecutionSummary> {
     if (!this.toolExecutor) {
       throw new Error('Desktop tool executor is not configured');
@@ -1547,9 +1591,12 @@ Always be helpful, thorough, and provide clear explanations.`;
     for (const toolCall of toolCalls) {
       const requestedName = toolCall.function.name;
       const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
+      const call = { callId: toolCall.id, name: toolName, arguments: toolCall.function.arguments };
+      const toolStartedAt = Date.now();
 
       try {
         const args = this.parseToolArguments(toolCall.function.arguments);
+        events?.emit({ type: 'tool-started', call, input: args });
         if (COMPACTED_TOOL_ARGUMENT_MARKER.test(toolCall.function.arguments)) {
           throw new InvalidToolArgumentsError(
             `Tool ${toolName} arguments contain internal transcript-compaction metadata. Reconstruct the real argument value instead of copying an omitted-content marker.`,
@@ -1577,6 +1624,16 @@ Always be helpful, thorough, and provide clear explanations.`;
                 : 'No additional tools matched this capability request.',
             }),
           });
+          events?.emit({
+            type: 'tool-completed',
+            result: {
+              callId: toolCall.id,
+              name: toolName,
+              success: true,
+              output: { loadedTools: discovered.map(tool => tool.name) },
+              durationMs: Date.now() - toolStartedAt,
+            },
+          });
           continue;
         }
         const result = await this.toolExecutor(toolName, args);
@@ -1594,6 +1651,16 @@ Always be helpful, thorough, and provide clear explanations.`;
           tool_call_id: toolCall.id,
           content: this.stringifyToolResult(result),
         });
+        events?.emit({
+          type: 'tool-completed',
+          result: {
+            callId: toolCall.id,
+            name: toolName,
+            success: !commandFailed,
+            output: result,
+            durationMs: Date.now() - toolStartedAt,
+          },
+        });
       } catch (error) {
         failedCount += 1;
         if (error instanceof InvalidToolArgumentsError) {
@@ -1605,6 +1672,16 @@ Always be helpful, thorough, and provide clear explanations.`;
           content: this.stringifyToolResult({
             error: error instanceof Error ? error.message : String(error),
           }),
+        });
+        events?.emit({
+          type: 'tool-completed',
+          result: {
+            callId: toolCall.id,
+            name: toolName,
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+            durationMs: Date.now() - toolStartedAt,
+          },
         });
       }
     }
