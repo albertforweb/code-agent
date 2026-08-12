@@ -113,9 +113,9 @@ type PolicyDecision =
 
 **Implementation steps**:
 
-- [ ] Define canonical tool identities, resource scopes, mutation classes, and execution contexts.
+- [~] Define canonical tool identities, resource scopes, mutation classes, and execution contexts. Desktop now carries a structured allow/ask/deny decision, rule metadata, suggestions, and normalized input in every execution context; cross-shell identity and mutation taxonomy remain open. (2026-08-12)
 - [ ] Wrap existing CLI Bash, sandbox, path, and permission checks behind the common contract.
-- [ ] Wrap desktop `ToolServiceBridge` and path-permission checks behind the same contract.
+- [x] Wrap desktop `ToolServiceBridge` behind the structured permission-decision contract, including legacy policy adaptation, normalized inputs, review context, and policy-supplied denial messages. (2026-08-12; pending milestone commit)
 - [ ] Apply policy to MCP and feature-package tools using declared risk metadata.
 - [ ] Record the policy decision, user response, matched rule, and affected resource with every tool execution.
 - [ ] Add policy equivalence tests across CLI, desktop, automation, and subagents.
@@ -213,6 +213,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 |------|-----------|--------|--------------|
 | 2026-08-12 | Preserve current changes in isolated worktrees | Complete | Four repository baselines committed; original working trees left untouched |
 | 2026-08-12 | Desktop provider-neutral runtime event slice | Complete | `api-service-bridge.test.ts` passes 20 tests; Electron TypeScript compilation passes |
+| 2026-08-12 | Structured desktop permission decisions | Complete | New allow/ask/deny/legacy tests pass; Electron TypeScript compilation passes |
 
 ---
 

@@ -4,7 +4,7 @@
  * Handles tool discovery, execution, and result streaming
  */
 
-import type { Tool, ToolPermissionMode } from '../types';
+import type { Tool, ToolPermissionDecision, ToolPermissionMode } from '../types';
 
 export interface BridgeToolDefinition extends Tool {
   execute: (args: Record<string, any>, context: ToolExecutionContext) => Promise<any>;
@@ -21,6 +21,7 @@ export interface ToolExecutionContext {
   startTime: number;
   cancelled: boolean;
   permissionMode?: ToolPermissionMode;
+  permissionDecision?: ToolPermissionDecision<Record<string, any>>;
 }
 
 /**
@@ -34,7 +35,9 @@ export type ToolPermissionPolicyProvider = (
   tool: BridgeToolDefinition,
   args: Record<string, any>,
   context: ToolExecutionContext,
-) => Promise<ToolPermissionMode> | ToolPermissionMode;
+) => Promise<ToolPermissionDecision<Record<string, any>> | ToolPermissionMode>
+  | ToolPermissionDecision<Record<string, any>>
+  | ToolPermissionMode;
 export type ToolPermissionReviewHandler = (
   tool: BridgeToolDefinition,
   args: Record<string, any>,
@@ -146,17 +149,26 @@ export class ToolServiceBridge {
       }
 
       this.onStart(toolId, toolName, args);
-      const permissionMode = await this.permissionPolicyProvider(tool, args, context);
-      context.permissionMode = permissionMode;
-      if (permissionMode === 'deny') {
-        throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
+      const rawDecision = await this.permissionPolicyProvider(tool, args, context);
+      const permissionDecision = typeof rawDecision === 'string'
+        ? this.normalizeLegacyPermissionDecision(rawDecision, toolName)
+        : rawDecision;
+      context.permissionMode = permissionDecision.behavior;
+      context.permissionDecision = permissionDecision;
+      if (permissionDecision.behavior === 'deny') {
+        throw new Error(permissionDecision.message);
       }
 
-      if (permissionMode === 'ask' && !tool.customReview) {
-        await this.permissionReviewHandler(tool, args, context);
+      const executionArgs = permissionDecision.updatedInput
+        ? permissionDecision.updatedInput
+        : args;
+      context.args = executionArgs;
+
+      if (permissionDecision.behavior === 'ask' && !tool.customReview) {
+        await this.permissionReviewHandler(tool, executionArgs, context);
       }
 
-      const result = await this._executeToolInternal(tool, args, context);
+      const result = await this._executeToolInternal(tool, executionArgs, context);
 
       // Emit result
       this.onResult(toolId, result);
@@ -198,6 +210,27 @@ export class ToolServiceBridge {
     context: ToolExecutionContext,
   ): Promise<any> {
     return tool.execute(args, context);
+  }
+
+  private normalizeLegacyPermissionDecision(
+    behavior: ToolPermissionMode,
+    toolName: string,
+  ): ToolPermissionDecision<Record<string, any>> {
+    if (behavior === 'deny') {
+      return {
+        behavior,
+        message: `Tool ${toolName} is denied by desktop permission policy.`,
+        decisionReason: { type: 'legacy-desktop-policy' },
+      };
+    }
+    if (behavior === 'ask') {
+      return {
+        behavior,
+        message: `Tool ${toolName} requires approval.`,
+        decisionReason: { type: 'legacy-desktop-policy' },
+      };
+    }
+    return { behavior, decisionReason: { type: 'legacy-desktop-policy' } };
   }
 
   /**

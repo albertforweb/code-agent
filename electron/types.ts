@@ -105,6 +105,27 @@ export interface ToolErrorMessage {
 }
 
 export type ToolPermissionMode = 'allow' | 'ask' | 'deny';
+export type ToolPermissionDecision<Input extends Record<string, unknown> = Record<string, unknown>> =
+  | {
+      behavior: 'allow';
+      updatedInput?: Input;
+      decisionReason?: unknown;
+      ruleId?: string;
+    }
+  | {
+      behavior: 'ask';
+      message: string;
+      updatedInput?: Input;
+      decisionReason?: unknown;
+      suggestions?: unknown[];
+      ruleId?: string;
+    }
+  | {
+      behavior: 'deny';
+      message: string;
+      decisionReason?: unknown;
+      ruleId?: string;
+    };
 export type DesktopPermissionProfile = 'workspace-only' | 'ask' | 'trusted-workspace' | 'full-access';
 
 export interface ToolPermissionReviewRequest {

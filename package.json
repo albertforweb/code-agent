@@ -60,7 +60,7 @@
     "verify:remote-control-smoke": "tsx scripts/verify-remote-control-smoke.ts",
     "verify:release-workflow": "node scripts/verify-release-workflow.mjs",
     "test:local-models": "tsx --test electron/services/local-model-service.test.ts",
-    "test:agent-tools": "tsx --test src/features/feature-packages.test.ts electron/services/api-service-bridge.test.ts electron/services/app-state-service-bridge.test.ts electron/services/auth-service-bridge.test.ts electron/services/automation-service-bridge.test.ts electron/services/path-permission.test.ts electron/services/project-workspace-service.test.ts electron/services/web-service-bridge.test.ts",
+    "test:agent-tools": "tsx --test src/features/feature-packages.test.ts electron/services/api-service-bridge.test.ts electron/services/app-state-service-bridge.test.ts electron/services/auth-service-bridge.test.ts electron/services/automation-service-bridge.test.ts electron/services/path-permission.test.ts electron/services/project-workspace-service.test.ts electron/services/tool-service-bridge.test.ts electron/services/web-service-bridge.test.ts",
     "verify:phase5": "node scripts/verify-phase5.mjs",
     "pack:phase5": "npm run pack:cli && npm run pack && npm run release:notes && npm run verify:phase5",
     "release:notes": "node scripts/generate-release-notes.mjs",
