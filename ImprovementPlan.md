@@ -87,7 +87,7 @@ type AgentRuntimeEvent =
 **Implementation steps**:
 
 - [ ] Capture CLI and desktop behavior in parity fixtures before refactoring.
-- [x] Extract provider-neutral request, tool, event, and completion contracts for the desktop runtime slice; events now carry stable turn IDs, monotonic sequence numbers, and timestamps. (2026-08-12; pending milestone commit)
+- [x] Extract provider-neutral request, tool, event, and completion contracts for the desktop runtime slice; events now carry stable turn IDs, monotonic sequence numbers, and timestamps. (2026-08-12; `9aff186`)
 - [ ] Move bounded tool-loop logic into the shared runtime.
 - [~] Adapt the Electron IPC bridge to consume runtime events. `ApiServiceBridge.streamChat` now emits lifecycle, text, and tool events while retaining the existing delta adapter; IPC exposure and other desktop runtime callers remain follow-up work. (2026-08-12)
 - [ ] Adapt `QueryEngine` to use the same runtime or retire its duplicate loop.
@@ -115,7 +115,7 @@ type PolicyDecision =
 
 - [~] Define canonical tool identities, resource scopes, mutation classes, and execution contexts. Desktop now carries a structured allow/ask/deny decision, rule metadata, suggestions, and normalized input in every execution context; cross-shell identity and mutation taxonomy remain open. (2026-08-12)
 - [ ] Wrap existing CLI Bash, sandbox, path, and permission checks behind the common contract.
-- [x] Wrap desktop `ToolServiceBridge` behind the structured permission-decision contract, including legacy policy adaptation, normalized inputs, review context, and policy-supplied denial messages. (2026-08-12; pending milestone commit)
+- [x] Wrap desktop `ToolServiceBridge` behind the structured permission-decision contract, including legacy policy adaptation, normalized inputs, review context, and policy-supplied denial messages. (2026-08-12; `bb73ddc`)
 - [ ] Apply policy to MCP and feature-package tools using declared risk metadata.
 - [ ] Record the policy decision, user response, matched rule, and affected resource with every tool execution.
 - [ ] Add policy equivalence tests across CLI, desktop, automation, and subagents.
@@ -132,7 +132,7 @@ type PolicyDecision =
 - [ ] Split `electron/services-bridge.ts` into narrowly scoped service registrars with explicit dependencies.
 - [ ] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into `code-agent-packages/software-developer`.
 - [ ] Restrict the base application to package hosting, shared primitives, account/provider setup, entitlement resolution, and free features.
-- [x] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI. The strict boundary check, feature-package tests, and runtime architecture suite now gate pull requests/main pushes and CLI releases. (2026-08-12; pending milestone commit)
+- [x] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI. The strict boundary check, feature-package tests, and runtime architecture suite now gate pull requests/main pushes and CLI releases. (2026-08-12; `4a6bca8`)
 - [ ] Add update, uninstall, rollback, revoked-signature, and signing-key rotation states to the package lifecycle.
 
 **Exit criteria**:
@@ -153,7 +153,7 @@ type PolicyDecision =
 
 **Transactional tool journal**:
 
-- [x] Introduce a reusable crash-safe atomic writer and migrate local history plus automation JSON stores; writes fsync the temporary file, preserve file modes, rename in place, sync the parent directory where supported, and clean up interrupted temporaries. (2026-08-12; pending milestone commit)
+- [x] Introduce a reusable crash-safe atomic writer and migrate local history plus automation JSON stores; writes fsync the temporary file, preserve file modes, rename in place, sync the parent directory where supported, and clean up interrupted temporaries. (2026-08-12; `f25f906`)
 - [ ] Record proposed operation, normalized target, policy decision, approval, start time, outcome, and affected paths.
 - [ ] Capture reversible file mutations as patches or before/after references.
 - [ ] Implement “undo last agent mutation” only for operations with verified rollback data.
