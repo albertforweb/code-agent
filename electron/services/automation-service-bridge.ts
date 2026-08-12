@@ -14,6 +14,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { URL } from 'url';
 import type { FeaturePackageAutomationProvider } from '@codeagent/feature-package-sdk';
+import { atomicWriteJson } from './atomic-file.js';
 
 export interface SkillManifest {
   id: string;
@@ -2826,8 +2827,7 @@ export class AutomationServiceBridge {
   }
 
   private async writeJsonFile<T>(filePath: string, data: T): Promise<void> {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+    await atomicWriteJson(filePath, data);
   }
 
   private async readJsonDirectory<T>(dirPath: string): Promise<T[]> {

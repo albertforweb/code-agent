@@ -153,6 +153,7 @@ type PolicyDecision =
 
 **Transactional tool journal**:
 
+- [x] Introduce a reusable crash-safe atomic writer and migrate local history plus automation JSON stores; writes fsync the temporary file, preserve file modes, rename in place, sync the parent directory where supported, and clean up interrupted temporaries. (2026-08-12; pending milestone commit)
 - [ ] Record proposed operation, normalized target, policy decision, approval, start time, outcome, and affected paths.
 - [ ] Capture reversible file mutations as patches or before/after references.
 - [ ] Implement “undo last agent mutation” only for operations with verified rollback data.
@@ -214,6 +215,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Preserve current changes in isolated worktrees | Complete | Four repository baselines committed; original working trees left untouched |
 | 2026-08-12 | Desktop provider-neutral runtime event slice | Complete | `api-service-bridge.test.ts` passes 20 tests; Electron TypeScript compilation passes |
 | 2026-08-12 | Structured desktop permission decisions | Complete | New allow/ask/deny/legacy tests pass; Electron TypeScript compilation passes |
+| 2026-08-12 | Atomic local JSON persistence | Complete | Atomic replacement/mode/interruption tests, local-history tests, automation tests, and Electron TypeScript compilation pass |
 
 ---
 

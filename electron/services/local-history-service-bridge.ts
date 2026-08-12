@@ -11,6 +11,7 @@ import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
+import { atomicWriteJson } from './atomic-file.js';
 
 export type LocalHistoryRecordType =
   | 'chat-session'
@@ -172,8 +173,7 @@ export class LocalHistoryServiceBridge {
   }
 
   private async writeJsonFile(filePath: string, data: unknown): Promise<void> {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+    await atomicWriteJson(filePath, data);
   }
 
   private normalizeId(id: string): string {
