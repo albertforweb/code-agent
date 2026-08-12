@@ -10,6 +10,7 @@ import {
 } from 'src/utils/model/openaiCompatible.js'
 import { logForDebugging } from '../../utils/debug.js'
 import { EMPTY_USAGE } from './emptyUsage.js'
+import { getOpenAIProviderProfile } from '../../electron/shared/openai-provider-profiles.js'
 
 type OpenAICompatibleClientOptions = {
   model?: string
@@ -30,18 +31,6 @@ type OpenAIToolCall = {
     name: string
     arguments: string
   }
-}
-
-const DEFAULT_BASE_URLS: Record<OpenAIProviderKind, string> = {
-  codeagent: 'http://127.0.0.1:14321/v1',
-  openai: 'https://api.openai.com/v1',
-  'openai-compatible': 'http://127.0.0.1:1234/v1',
-}
-
-const DEFAULT_MODELS: Record<OpenAIProviderKind, string> = {
-  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
-  openai: 'gpt-4o-mini',
-  'openai-compatible': 'local-model',
 }
 
 export function createOpenAICompatibleClient({
@@ -660,7 +649,7 @@ function resolveModel(model?: string): string {
     return model
   }
 
-  return DEFAULT_MODELS[provider]
+  return getOpenAIProviderProfile(provider).defaultModel
 }
 
 function getChatCompletionsUrl(): string {
@@ -671,7 +660,7 @@ function getChatCompletionsUrl(): string {
       process.env.CODE_AGENT_LLM_BASE_URL,
       process.env.OPENAI_COMPATIBLE_BASE_URL,
       process.env.OPENAI_BASE_URL,
-    ) ?? DEFAULT_BASE_URLS[provider]
+    ) ?? getOpenAIProviderProfile(provider).defaultBaseUrl
 
   if (baseUrl.endsWith('/chat/completions')) {
     return baseUrl

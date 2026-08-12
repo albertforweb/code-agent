@@ -1,30 +1,7 @@
 import { isEnvTruthy } from '../envUtils.js'
+import { getOpenAIProviderProfile, type OpenAIProviderKind } from '../../electron/shared/openai-provider-profiles.js'
 
-export type OpenAIProviderKind = 'codeagent' | 'openai' | 'openai-compatible'
-
-const DEFAULT_BASE_URLS: Record<OpenAIProviderKind, string> = {
-  codeagent: 'http://127.0.0.1:14321/v1',
-  openai: 'https://api.openai.com/v1',
-  'openai-compatible': 'http://127.0.0.1:1234/v1',
-}
-
-const DEFAULT_MODELS: Record<OpenAIProviderKind, string> = {
-  codeagent: 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF',
-  openai: 'gpt-4o-mini',
-  'openai-compatible': 'local-model',
-}
-
-const DEFAULT_CONTEXT_TOKENS: Record<OpenAIProviderKind, number> = {
-  codeagent: 8_192,
-  openai: 128_000,
-  'openai-compatible': 8_192,
-}
-
-const DEFAULT_MAX_OUTPUT_TOKENS: Record<OpenAIProviderKind, number> = {
-  codeagent: 2_048,
-  openai: 4_096,
-  'openai-compatible': 2_048,
-}
+export type { OpenAIProviderKind } from '../../electron/shared/openai-provider-profiles.js'
 
 export function getOpenAICompatibleProviderKind(): OpenAIProviderKind | null {
   const raw = firstDefined(
@@ -59,7 +36,7 @@ export function getOpenAICompatibleBaseUrl(): string {
       process.env.CODE_AGENT_LLM_BASE_URL,
       process.env.OPENAI_COMPATIBLE_BASE_URL,
       process.env.OPENAI_BASE_URL,
-    ) ?? DEFAULT_BASE_URLS[provider]
+    ) ?? getOpenAIProviderProfile(provider).defaultBaseUrl
   )
 }
 
@@ -71,7 +48,7 @@ export function getOpenAICompatibleModel(): string {
       process.env.OPENAI_COMPATIBLE_MODEL,
       process.env.OPENAI_MODEL,
       process.env.LLM_PROVIDER_MODEL,
-    ) ?? DEFAULT_MODELS[provider]
+    ) ?? getOpenAIProviderProfile(provider).defaultModel
   )
 }
 
@@ -84,7 +61,7 @@ export function getOpenAICompatibleContextTokens(): number {
       process.env.OPENAI_COMPATIBLE_CONTEXT_TOKENS,
       process.env.OPENAI_CONTEXT_TOKENS,
     ],
-    DEFAULT_CONTEXT_TOKENS[provider],
+    getOpenAIProviderProfile(provider).contextTokens,
   )
 }
 
@@ -97,7 +74,7 @@ export function getOpenAICompatibleMaxOutputTokens(): number {
       process.env.OPENAI_COMPATIBLE_MAX_OUTPUT_TOKENS,
       process.env.OPENAI_MAX_OUTPUT_TOKENS,
     ],
-    DEFAULT_MAX_OUTPUT_TOKENS[provider],
+    getOpenAIProviderProfile(provider).maxOutputTokens,
   )
   return Math.max(1, Math.min(configured, getOpenAICompatibleContextTokens()))
 }

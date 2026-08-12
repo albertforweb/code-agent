@@ -165,7 +165,7 @@ type PolicyDecision =
 - [ ] Define explicit connect, first-byte, stream-idle, tool, and whole-turn timeouts.
 - [ ] Add retry budgets with jitter and provider-aware retry classification.
 - [ ] Add circuit breakers for repeatedly failing remote providers and MCP servers.
-- [ ] Implement provider capability discovery for streaming, tool calls, images, context limits, usage fields, and template options.
+- [~] Implement provider capability discovery for streaming, tool calls, images, context limits, usage fields, and template options. CLI and desktop now consume one explicit OpenAI/CodeAgent/OpenAI-compatible profile registry for URLs, models, context/output limits, streaming/tool capabilities, streamed usage support, and default tool enablement; live discovery, images, and template options remain open. (2026-08-12)
 - [ ] Build conformance tests for OpenAI, the managed CodeAgent backend, and representative OpenAI-compatible servers.
 - [ ] Turn existing phase timing into regression budgets for startup, first token, tool selection, tool execution, and session loading.
 - [ ] Define measurable targets only after collecting representative baseline data; do not invent SLOs without evidence.
@@ -216,6 +216,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Desktop provider-neutral runtime event slice | Complete | `api-service-bridge.test.ts` passes 20 tests; Electron TypeScript compilation passes |
 | 2026-08-12 | Structured desktop permission decisions | Complete | New allow/ask/deny/legacy tests pass; Electron TypeScript compilation passes |
 | 2026-08-12 | Atomic local JSON persistence | Complete | Atomic replacement/mode/interruption tests, local-history tests, automation tests, and Electron TypeScript compilation pass |
+| 2026-08-12 | Shared provider profiles | Complete | CLI/profile resolution tests, desktop bridge tests, Electron TypeScript compilation, and the production CLI build pass |
 
 ---
 

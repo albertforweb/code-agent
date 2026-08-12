@@ -17,6 +17,7 @@ import type {
 import * as path from 'node:path';
 import type { AgentRuntimeEvent } from './agent-runtime/contracts.js';
 import { createAgentRuntimeEventEmitter, type AgentRuntimeEventEmitter } from './agent-runtime/event-stream.js';
+import { getOpenAIProviderProfile } from '../shared/openai-provider-profiles.js';
 
 type AuthTokenProvider = (provider?: LlmProviderType) => Promise<AuthToken | null>;
 type BootstrapProvider = () => Promise<BootstrapData>;
@@ -86,30 +87,6 @@ interface OpenAiChatMessage {
   tool_call_id?: string;
   tool_calls?: OpenAiToolCall[];
 }
-
-const DEFAULT_MODELS: Record<LlmProviderType, string> = {
-  codeagent: 'Qwen/Qwen3-4B-GGUF',
-  openai: 'gpt-4o-mini',
-  'openai-compatible': 'local-model',
-};
-
-const DEFAULT_BASE_URLS: Record<LlmProviderType, string> = {
-  codeagent: 'http://127.0.0.1:14321/v1',
-  openai: 'https://api.openai.com/v1',
-  'openai-compatible': 'http://127.0.0.1:1234/v1',
-};
-
-const DEFAULT_CONTEXT_TOKENS: Record<LlmProviderType, number> = {
-  codeagent: 8_192,
-  openai: 128_000,
-  'openai-compatible': 8_192,
-};
-
-const DEFAULT_MAX_TOKENS: Record<LlmProviderType, number> = {
-  codeagent: 2_048,
-  openai: 4096,
-  'openai-compatible': 2048,
-};
 
 const DEFAULT_MAX_TOOL_ROUNDS = 4;
 const MAX_ALLOWED_TOOL_ROUNDS = 16;
@@ -665,7 +642,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     return {
       provider,
       baseUrl,
-      model: request.model || appConfig?.model || DEFAULT_MODELS[provider],
+      model: request.model || appConfig?.model || getOpenAIProviderProfile(provider).defaultModel,
       maxTokens,
       contextTokens,
       temperature: request.temperature ?? appConfig?.temperature,
@@ -1893,17 +1870,18 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private resolveContextTokens(provider: LlmProviderType, value: unknown): number {
-    const parsed = Number(value ?? DEFAULT_CONTEXT_TOKENS[provider]);
+    const fallback = getOpenAIProviderProfile(provider).contextTokens;
+    const parsed = Number(value ?? fallback);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      return DEFAULT_CONTEXT_TOKENS[provider];
+      return fallback;
     }
 
     return Math.floor(parsed);
   }
 
   private resolveMaxTokens(provider: LlmProviderType, value: unknown, contextTokens: number): number {
-    const parsed = Number(value ?? DEFAULT_MAX_TOKENS[provider]);
-    const fallback = DEFAULT_MAX_TOKENS[provider];
+    const fallback = getOpenAIProviderProfile(provider).maxOutputTokens;
+    const parsed = Number(value ?? fallback);
     const maxTokens = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
     return Math.max(1, Math.min(maxTokens, contextTokens));
   }
@@ -1917,7 +1895,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
     }
 
-    return provider !== 'openai-compatible';
+    return getOpenAIProviderProfile(provider).toolsEnabledByDefault;
   }
 
   private getProjectScopeViolation(request: ChatRequest): { requestedPath: string; workspacePath: string } | null {
@@ -2087,7 +2065,7 @@ Always be helpful, thorough, and provide clear explanations.`;
   }
 
   private getOpenAiChatCompletionsUrl(baseUrl: string): string {
-    const normalizedBaseUrl = baseUrl || DEFAULT_BASE_URLS['openai-compatible'];
+    const normalizedBaseUrl = baseUrl || getOpenAIProviderProfile('openai-compatible').defaultBaseUrl;
     if (normalizedBaseUrl.endsWith('/chat/completions')) {
       return normalizedBaseUrl;
     }
@@ -2137,10 +2115,10 @@ Always be helpful, thorough, and provide clear explanations.`;
   private getDefaultBaseUrl(provider: LlmProviderType): string {
     if (provider === 'openai-compatible') {
       return process.env.OPENAI_COMPATIBLE_BASE_URL ||
-        DEFAULT_BASE_URLS[provider];
+        getOpenAIProviderProfile(provider).defaultBaseUrl;
     }
 
-    return DEFAULT_BASE_URLS[provider];
+    return getOpenAIProviderProfile(provider).defaultBaseUrl;
   }
 
   private getEnvironmentApiKey(provider: LlmProviderType): string | undefined {
@@ -2172,10 +2150,10 @@ Always be helpful, thorough, and provide clear explanations.`;
       config: {
         llmProvider: provider,
         baseUrl: config?.baseUrl || this.getDefaultBaseUrl(provider),
-        model: config?.model || DEFAULT_MODELS[provider],
+        model: config?.model || getOpenAIProviderProfile(provider).defaultModel,
         temperature: config?.temperature ?? 0.7,
-        maxTokens: config?.maxTokens ?? DEFAULT_MAX_TOKENS[provider],
-        contextTokens: config?.contextTokens ?? DEFAULT_CONTEXT_TOKENS[provider],
+        maxTokens: config?.maxTokens ?? getOpenAIProviderProfile(provider).maxOutputTokens,
+        contextTokens: config?.contextTokens ?? getOpenAIProviderProfile(provider).contextTokens,
         enableLlmTools: Boolean(config?.enableLlmTools),
       },
       features: {

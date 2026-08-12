@@ -57,6 +57,7 @@ import { getInitialFastModeSetting, isFastModeEnabled, prefetchFastModeStatus, r
 import { applyConfigEnvironmentVariables } from './utils/managedEnv.js';
 import { createSystemMessage, createUserMessage } from './utils/messages.js';
 import { getPlatform } from './utils/platform.js';
+import { getOpenAICompatibleModel, getOpenAICompatibleProviderKind } from './utils/model/openaiCompatible.js';
 import { getBaseRenderOptions } from './utils/renderOptions.js';
 import { getSessionIngressAuthToken } from './utils/sessionIngressAuth.js';
 import { settingsChangeDetector } from './utils/settings/changeDetector.js';
@@ -88,19 +89,12 @@ function applyLlmProviderCliOptions(options: {
     process.env.CODE_AGENT_LLM_PROVIDER || process.env.CODE_AGENT_LLM_PROVIDER
   if (!activeProvider) return
 
-  const normalizedProvider = activeProvider.trim().toLowerCase().replace(/_/g, '-')
-  const defaultModel =
-    normalizedProvider === 'openai'
-      ? 'gpt-4o-mini'
-      : normalizedProvider === 'llmProvider' || normalizedProvider === 'codeAgent'
-        ? undefined
-        : 'local-model'
   const configuredModel =
     options.model ||
     process.env.CODE_AGENT_MODEL ||
     process.env.OPENAI_COMPATIBLE_MODEL ||
     process.env.OPENAI_MODEL ||
-    defaultModel
+    (getOpenAICompatibleProviderKind() ? getOpenAICompatibleModel() : undefined)
 
   if (!configuredModel) return
 
@@ -113,7 +107,7 @@ let cliLocalInference: import('./electron/services/local-model-service.js').Loca
 async function ensureCodeAgentCliInference(options: { model?: string }): Promise<void> {
   const provider = process.env.CODE_AGENT_LLM_PROVIDER?.trim().toLowerCase().replace(/_/g, '-')
   if (provider !== 'codeagent' && provider !== 'code-agent') return
-  const model = options.model || process.env.CODE_AGENT_MODEL || 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF'
+  const model = options.model || process.env.CODE_AGENT_MODEL || getOpenAICompatibleModel()
   const { CODEAGENT_LOCAL_BASE_URL, LocalModelManager } = await import('./electron/services/local-model-service.js')
   cliLocalInference = new LocalModelManager()
   await cliLocalInference.ensureConfigured({ model })
