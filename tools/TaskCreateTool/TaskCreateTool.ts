@@ -25,6 +25,17 @@ const inputSchema = lazySchema(() =>
       .describe(
         'Present continuous form shown in spinner when in_progress (e.g., "Running tests")',
       ),
+    budget: z.object({
+      tokenLimit: z.number().int().positive().optional(),
+      timeLimitMs: z.number().int().positive().optional(),
+    }).optional().describe('Optional token and elapsed-time limits for execution'),
+    resultContract: z.object({
+      requiredArtifacts: z.array(z.string().min(1)).optional(),
+      requiredEvidence: z.array(z.string().min(1)).optional(),
+    }).optional().describe('Artifacts and evidence required before completion'),
+    resourceClaims: z.array(z.string().min(1)).optional().describe(
+      'Normalized resources this task intends to mutate exclusively',
+    ),
     metadata: z
       .record(z.string(), z.unknown())
       .optional()
@@ -77,7 +88,7 @@ export const TaskCreateTool = buildTool({
   renderToolUseMessage() {
     return null
   },
-  async call({ subject, description, activeForm, metadata }, context) {
+  async call({ subject, description, activeForm, budget, resultContract, resourceClaims, metadata }, context) {
     const taskId = await createTask(getTaskListId(), {
       subject,
       description,
@@ -86,6 +97,9 @@ export const TaskCreateTool = buildTool({
       owner: undefined,
       blocks: [],
       blockedBy: [],
+      budget,
+      resultContract,
+      resourceClaims,
       metadata,
     })
 

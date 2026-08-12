@@ -13,6 +13,7 @@ import { createSignal } from './signal.js'
 import { jsonParse, jsonStringify } from './slowOperations.js'
 import { getTeamName } from './teammate.js'
 import { getTeammateContext } from './teammateContext.js'
+export { validateTaskGraph } from './taskGraph.js'
 
 // Listeners for task list updates (used for immediate UI refresh in same process)
 const tasksUpdated = createSignal()
@@ -83,6 +84,15 @@ export const TaskSchema = lazySchema(() =>
     status: TaskStatusSchema(),
     blocks: z.array(z.string()), // task IDs this task blocks
     blockedBy: z.array(z.string()), // task IDs that block this task
+    budget: z.object({
+      tokenLimit: z.number().int().positive().optional(),
+      timeLimitMs: z.number().int().positive().optional(),
+    }).optional(),
+    resultContract: z.object({
+      requiredArtifacts: z.array(z.string().min(1)).optional(),
+      requiredEvidence: z.array(z.string().min(1)).optional(),
+    }).optional(),
+    resourceClaims: z.array(z.string().min(1)).optional(),
     metadata: z.record(z.string(), z.unknown()).optional(), // arbitrary metadata
   }),
 )
@@ -295,7 +305,7 @@ export async function createTask(
     // Read highest ID from disk while holding the lock
     const highestId = await findHighestTaskId(taskListId)
     const id = String(highestId + 1)
-    const task: Task = { id, ...taskData }
+    const task = TaskSchema().parse({ id, ...taskData })
     const path = getTaskPath(taskListId, id)
     await writeFile(path, jsonStringify(task, null, 2))
     notifyTasksUpdated()
@@ -360,7 +370,7 @@ async function updateTaskUnsafe(
   if (!existing) {
     return null
   }
-  const updated: Task = { ...existing, ...updates, id: taskId }
+  const updated = TaskSchema().parse({ ...existing, ...updates, id: taskId })
   const path = getTaskPath(taskListId, taskId)
   await writeFile(path, jsonStringify(updated, null, 2))
   notifyTasksUpdated()

@@ -56,6 +56,17 @@ const inputSchema = lazySchema(() => {
       .optional()
       .describe('Task IDs that block this task'),
     owner: z.string().optional().describe('New owner for the task'),
+    budget: z.object({
+      tokenLimit: z.number().int().positive().optional(),
+      timeLimitMs: z.number().int().positive().optional(),
+    }).optional().describe('Replace the task execution budget'),
+    resultContract: z.object({
+      requiredArtifacts: z.array(z.string().min(1)).optional(),
+      requiredEvidence: z.array(z.string().min(1)).optional(),
+    }).optional().describe('Replace the required result artifacts and evidence'),
+    resourceClaims: z.array(z.string().min(1)).optional().describe(
+      'Replace the resources this task intends to mutate exclusively',
+    ),
     metadata: z
       .record(z.string(), z.unknown())
       .optional()
@@ -130,6 +141,9 @@ export const TaskUpdateTool = buildTool({
       owner,
       addBlocks,
       addBlockedBy,
+      budget,
+      resultContract,
+      resourceClaims,
       metadata,
     },
     context,
@@ -164,6 +178,9 @@ export const TaskUpdateTool = buildTool({
       activeForm?: string
       status?: TaskStatus
       owner?: string
+      budget?: typeof budget
+      resultContract?: typeof resultContract
+      resourceClaims?: typeof resourceClaims
       metadata?: Record<string, unknown>
     } = {}
     if (subject !== undefined && subject !== existingTask.subject) {
@@ -181,6 +198,18 @@ export const TaskUpdateTool = buildTool({
     if (owner !== undefined && owner !== existingTask.owner) {
       updates.owner = owner
       updatedFields.push('owner')
+    }
+    if (budget !== undefined) {
+      updates.budget = budget
+      updatedFields.push('budget')
+    }
+    if (resultContract !== undefined) {
+      updates.resultContract = resultContract
+      updatedFields.push('resultContract')
+    }
+    if (resourceClaims !== undefined) {
+      updates.resourceClaims = resourceClaims
+      updatedFields.push('resourceClaims')
     }
     // Auto-set owner when a teammate marks a task as in_progress without
     // explicitly providing an owner. This ensures the task list can match

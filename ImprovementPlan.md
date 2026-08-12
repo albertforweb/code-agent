@@ -174,12 +174,12 @@ type PolicyDecision =
 
 Represent teams and delegated work as a persisted task graph rather than only nested agent calls.
 
-- [ ] Give every task an owner, dependencies, input contract, output contract, token/time budget, and lifecycle state.
+- [~] Give every task an owner, dependencies, input contract, output contract, token/time budget, and lifecycle state. Durable tasks now support optional token/time budgets, result artifact/evidence contracts, and resource claims through create/update tools while remaining compatible with legacy records; explicit input contracts and required-field migration remain open. (2026-08-12)
 - [ ] Persist parent/child relationships and checkpoints so work can resume after process restart.
 - [ ] Propagate cancellation and policy context through the task graph.
 - [ ] Validate child results before satisfying dependent tasks.
 - [ ] Surface per-agent tool activity, cost, failures, and final evidence in CLI and desktop.
-- [ ] Prevent concurrent agents from mutating the same resource without coordination or conflict detection.
+- [~] Prevent concurrent agents from mutating the same resource without coordination or conflict detection. The task graph validator now detects duplicate IDs, missing/asymmetric/self dependencies, cycles, invalid budgets, and conflicting resources among active tasks; claim-time enforcement remains open. (2026-08-12)
 
 ### Cross-Cutting Verification Matrix
 
@@ -217,6 +217,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Structured desktop permission decisions | Complete | New allow/ask/deny/legacy tests pass; Electron TypeScript compilation passes |
 | 2026-08-12 | Atomic local JSON persistence | Complete | Atomic replacement/mode/interruption tests, local-history tests, automation tests, and Electron TypeScript compilation pass |
 | 2026-08-12 | Shared provider profiles | Complete | CLI/profile resolution tests, desktop bridge tests, Electron TypeScript compilation, and the production CLI build pass |
+| 2026-08-12 | Durable task graph contract and validation | Complete | Legacy compatibility, dependency/cycle, budget, and active-resource conflict tests pass |
 
 ---
 
