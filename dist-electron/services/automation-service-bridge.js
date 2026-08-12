@@ -47,6 +47,7 @@ const http = __importStar(require("http"));
 const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const url_1 = require("url");
+const atomic_file_js_1 = require("./atomic-file.js");
 const DEFAULT_INTERVAL_MINUTES = 60;
 const DEFAULT_RETRY_DELAY_MINUTES = 15;
 const DEFAULT_REMOTE_PORT = 32888;
@@ -2107,8 +2108,7 @@ class AutomationServiceBridge {
         }
     }
     async writeJsonFile(filePath, data) {
-        await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+        await (0, atomic_file_js_1.atomicWriteJson)(filePath, data);
     }
     async readJsonDirectory(dirPath) {
         try {

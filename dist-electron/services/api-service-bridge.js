@@ -39,31 +39,13 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApiServiceBridge = void 0;
 const path = __importStar(require("node:path"));
+const event_stream_js_1 = require("./agent-runtime/event-stream.js");
+const openai_provider_profiles_js_1 = require("../shared/openai-provider-profiles.js");
 const FINISH_PROJECT_TURN = 'codeagent.finish_project_turn';
 const SUBMIT_WORKFLOW_PLAN = 'codeagent.submit_workflow_plan';
 const MAX_COMPLETED_TOOL_ARGUMENT_STRING_CHARS = 600;
 const MAX_COMPLETED_TOOL_RESULT_CHARS = 4000;
 const COMPACTED_TOOL_ARGUMENT_MARKER = /\[(?:content omitted after successful tool execution|tool arguments omitted after execution);\s*\d+\s+characters\]/i;
-const DEFAULT_MODELS = {
-    codeagent: 'Qwen/Qwen3-4B-GGUF',
-    openai: 'gpt-4o-mini',
-    'openai-compatible': 'local-model',
-};
-const DEFAULT_BASE_URLS = {
-    codeagent: 'http://127.0.0.1:14321/v1',
-    openai: 'https://api.openai.com/v1',
-    'openai-compatible': 'http://127.0.0.1:1234/v1',
-};
-const DEFAULT_CONTEXT_TOKENS = {
-    codeagent: 8192,
-    openai: 128000,
-    'openai-compatible': 8192,
-};
-const DEFAULT_MAX_TOKENS = {
-    codeagent: 2048,
-    openai: 4096,
-    'openai-compatible': 2048,
-};
 const DEFAULT_MAX_TOOL_ROUNDS = 4;
 const MAX_ALLOWED_TOOL_ROUNDS = 16;
 const LEGACY_LIGHTWEIGHT_MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF';
@@ -116,13 +98,41 @@ class ApiServiceBridge {
      */
     async streamChat(request, handlers = {}) {
         const startedAt = Date.now();
-        const config = await this.resolveRuntimeConfig(request);
-        const runtimeConfigMs = Date.now() - startedAt;
+        const events = (0, event_stream_js_1.createAgentRuntimeEventEmitter)(handlers.onEvent);
+        events.emit({
+            type: 'turn-started',
+            request: {
+                messages: request.messages.map(message => ({ role: message.role, content: message.content })),
+                provider: request.provider,
+                model: request.model,
+                metadata: { structuredAgentLoop: request.structuredAgentLoop === true },
+            },
+        });
         try {
-            return this.streamOpenAiCompatible(request, config, handlers, startedAt, runtimeConfigMs);
+            const config = await this.resolveRuntimeConfig(request);
+            const runtimeConfigMs = Date.now() - startedAt;
+            const response = await this.streamOpenAiCompatible(request, config, {
+                onDelta: delta => {
+                    handlers.onDelta?.(delta);
+                    if (delta)
+                        events.emit({ type: 'text-delta', delta });
+                },
+            }, startedAt, runtimeConfigMs, events);
+            events.emit({
+                type: 'turn-completed',
+                outcome: {
+                    content: response.content,
+                    model: response.model,
+                    usage: response.usage,
+                    metadata: response.performance ? { performance: response.performance } : undefined,
+                },
+            });
+            return response;
         }
         catch (error) {
-            throw new Error(`API Stream Error: ${error instanceof Error ? error.message : String(error)}`);
+            const message = error instanceof Error ? error.message : String(error);
+            events.emit({ type: 'turn-failed', error: message });
+            throw new Error(`API Stream Error: ${message}`);
         }
     }
     /**
@@ -306,7 +316,7 @@ Always be helpful, thorough, and provide clear explanations.`;
             usage: { inputTokens, outputTokens },
         };
     }
-    async streamOpenAiCompatible(request, config, handlers, startedAt, runtimeConfigMs) {
+    async streamOpenAiCompatible(request, config, handlers, startedAt, runtimeConfigMs, events) {
         let firstTokenAt;
         const observedHandlers = {
             onDelta: delta => {
@@ -343,7 +353,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         let inputTokens = 0;
         let outputTokens = 0;
         let lastModel = config.model;
-        const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true, request.workflowPlanning === true);
+        const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true, request.workflowPlanning === true, events);
         inputTokens += planning.inputTokens;
         outputTokens += planning.outputTokens;
         lastModel = planning.model || lastModel;
@@ -487,7 +497,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         return {
             provider,
             baseUrl,
-            model: request.model || appConfig?.model || DEFAULT_MODELS[provider],
+            model: request.model || appConfig?.model || (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).defaultModel,
             maxTokens,
             contextTokens,
             temperature: request.temperature ?? appConfig?.temperature,
@@ -749,7 +759,7 @@ Always be helpful, thorough, and provide clear explanations.`;
             model: data.model || config.model,
         };
     }
-    async runModelToolLoop(config, messages, toolSet, structuredAgentLoop = false, workflowPlanning = false) {
+    async runModelToolLoop(config, messages, toolSet, structuredAgentLoop = false, workflowPlanning = false, events) {
         if (workflowPlanning) {
             this.addWorkflowPlanTool(toolSet);
             messages.push({
@@ -943,8 +953,18 @@ Always be helpful, thorough, and provide clear explanations.`;
                 content: null,
                 tool_calls: executableCalls,
             });
+            for (const candidate of executableCalls) {
+                events?.emit({
+                    type: 'tool-proposed',
+                    call: {
+                        callId: candidate.id,
+                        name: toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name,
+                        arguments: candidate.function.arguments,
+                    },
+                });
+            }
             const executionStartedAt = Date.now();
-            const execution = await this.appendToolResults(messages, executableCalls, toolSet);
+            const execution = await this.appendToolResults(messages, executableCalls, toolSet, events);
             this.compactCompletedToolContext(messages, executableCalls);
             executionMs += Date.now() - executionStartedAt;
             toolCalls += executableCalls.length;
@@ -1273,7 +1293,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         }
         return null;
     }
-    async appendToolResults(messages, toolCalls, toolSet) {
+    async appendToolResults(messages, toolCalls, toolSet, events) {
         if (!this.toolExecutor) {
             throw new Error('Desktop tool executor is not configured');
         }
@@ -1284,8 +1304,11 @@ Always be helpful, thorough, and provide clear explanations.`;
         for (const toolCall of toolCalls) {
             const requestedName = toolCall.function.name;
             const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
+            const call = { callId: toolCall.id, name: toolName, arguments: toolCall.function.arguments };
+            const toolStartedAt = Date.now();
             try {
                 const args = this.parseToolArguments(toolCall.function.arguments);
+                events?.emit({ type: 'tool-started', call, input: args });
                 if (COMPACTED_TOOL_ARGUMENT_MARKER.test(toolCall.function.arguments)) {
                     throw new InvalidToolArgumentsError(`Tool ${toolName} arguments contain internal transcript-compaction metadata. Reconstruct the real argument value instead of copying an omitted-content marker.`);
                 }
@@ -1311,6 +1334,16 @@ Always be helpful, thorough, and provide clear explanations.`;
                                 : 'No additional tools matched this capability request.',
                         }),
                     });
+                    events?.emit({
+                        type: 'tool-completed',
+                        result: {
+                            callId: toolCall.id,
+                            name: toolName,
+                            success: true,
+                            output: { loadedTools: discovered.map(tool => tool.name) },
+                            durationMs: Date.now() - toolStartedAt,
+                        },
+                    });
                     continue;
                 }
                 const result = await this.toolExecutor(toolName, args);
@@ -1327,6 +1360,16 @@ Always be helpful, thorough, and provide clear explanations.`;
                     tool_call_id: toolCall.id,
                     content: this.stringifyToolResult(result),
                 });
+                events?.emit({
+                    type: 'tool-completed',
+                    result: {
+                        callId: toolCall.id,
+                        name: toolName,
+                        success: !commandFailed,
+                        output: result,
+                        durationMs: Date.now() - toolStartedAt,
+                    },
+                });
             }
             catch (error) {
                 failedCount += 1;
@@ -1339,6 +1382,16 @@ Always be helpful, thorough, and provide clear explanations.`;
                     content: this.stringifyToolResult({
                         error: error instanceof Error ? error.message : String(error),
                     }),
+                });
+                events?.emit({
+                    type: 'tool-completed',
+                    result: {
+                        callId: toolCall.id,
+                        name: toolName,
+                        success: false,
+                        error: error instanceof Error ? error.message : String(error),
+                        durationMs: Date.now() - toolStartedAt,
+                    },
                 });
             }
         }
@@ -1515,15 +1568,16 @@ Always be helpful, thorough, and provide clear explanations.`;
         return new Set();
     }
     resolveContextTokens(provider, value) {
-        const parsed = Number(value ?? DEFAULT_CONTEXT_TOKENS[provider]);
+        const fallback = (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).contextTokens;
+        const parsed = Number(value ?? fallback);
         if (!Number.isFinite(parsed) || parsed <= 0) {
-            return DEFAULT_CONTEXT_TOKENS[provider];
+            return fallback;
         }
         return Math.floor(parsed);
     }
     resolveMaxTokens(provider, value, contextTokens) {
-        const parsed = Number(value ?? DEFAULT_MAX_TOKENS[provider]);
-        const fallback = DEFAULT_MAX_TOKENS[provider];
+        const fallback = (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).maxOutputTokens;
+        const parsed = Number(value ?? fallback);
         const maxTokens = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
         return Math.max(1, Math.min(maxTokens, contextTokens));
     }
@@ -1534,7 +1588,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         if (typeof value === 'string') {
             return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
         }
-        return provider !== 'openai-compatible';
+        return (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).toolsEnabledByDefault;
     }
     getProjectScopeViolation(request) {
         if (request.permissionProfile === 'ask' || request.permissionProfile === 'full-access') {
@@ -1684,7 +1738,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         return headers;
     }
     getOpenAiChatCompletionsUrl(baseUrl) {
-        const normalizedBaseUrl = baseUrl || DEFAULT_BASE_URLS['openai-compatible'];
+        const normalizedBaseUrl = baseUrl || (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)('openai-compatible').defaultBaseUrl;
         if (normalizedBaseUrl.endsWith('/chat/completions')) {
             return normalizedBaseUrl;
         }
@@ -1727,9 +1781,9 @@ Always be helpful, thorough, and provide clear explanations.`;
     getDefaultBaseUrl(provider) {
         if (provider === 'openai-compatible') {
             return process.env.OPENAI_COMPATIBLE_BASE_URL ||
-                DEFAULT_BASE_URLS[provider];
+                (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).defaultBaseUrl;
         }
-        return DEFAULT_BASE_URLS[provider];
+        return (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).defaultBaseUrl;
     }
     getEnvironmentApiKey(provider) {
         if (provider === 'openai') {
@@ -1756,10 +1810,10 @@ Always be helpful, thorough, and provide clear explanations.`;
             config: {
                 llmProvider: provider,
                 baseUrl: config?.baseUrl || this.getDefaultBaseUrl(provider),
-                model: config?.model || DEFAULT_MODELS[provider],
+                model: config?.model || (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).defaultModel,
                 temperature: config?.temperature ?? 0.7,
-                maxTokens: config?.maxTokens ?? DEFAULT_MAX_TOKENS[provider],
-                contextTokens: config?.contextTokens ?? DEFAULT_CONTEXT_TOKENS[provider],
+                maxTokens: config?.maxTokens ?? (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).maxOutputTokens,
+                contextTokens: config?.contextTokens ?? (0, openai_provider_profiles_js_1.getOpenAIProviderProfile)(provider).contextTokens,
                 enableLlmTools: Boolean(config?.enableLlmTools),
             },
             features: {

@@ -96,15 +96,23 @@ class ToolServiceBridge {
                 throw new Error(`Tool not found: ${toolName}`);
             }
             this.onStart(toolId, toolName, args);
-            const permissionMode = await this.permissionPolicyProvider(tool, args, context);
-            context.permissionMode = permissionMode;
-            if (permissionMode === 'deny') {
-                throw new Error(`Tool ${toolName} is denied by desktop permission policy.`);
+            const rawDecision = await this.permissionPolicyProvider(tool, args, context);
+            const permissionDecision = typeof rawDecision === 'string'
+                ? this.normalizeLegacyPermissionDecision(rawDecision, toolName)
+                : rawDecision;
+            context.permissionMode = permissionDecision.behavior;
+            context.permissionDecision = permissionDecision;
+            if (permissionDecision.behavior === 'deny') {
+                throw new Error(permissionDecision.message);
             }
-            if (permissionMode === 'ask' && !tool.customReview) {
-                await this.permissionReviewHandler(tool, args, context);
+            const executionArgs = permissionDecision.updatedInput
+                ? permissionDecision.updatedInput
+                : args;
+            context.args = executionArgs;
+            if (permissionDecision.behavior === 'ask' && !tool.customReview) {
+                await this.permissionReviewHandler(tool, executionArgs, context);
             }
-            const result = await this._executeToolInternal(tool, args, context);
+            const result = await this._executeToolInternal(tool, executionArgs, context);
             // Emit result
             this.onResult(toolId, result);
             // Emit completion
@@ -136,6 +144,23 @@ class ToolServiceBridge {
      */
     async _executeToolInternal(tool, args, context) {
         return tool.execute(args, context);
+    }
+    normalizeLegacyPermissionDecision(behavior, toolName) {
+        if (behavior === 'deny') {
+            return {
+                behavior,
+                message: `Tool ${toolName} is denied by desktop permission policy.`,
+                decisionReason: { type: 'legacy-desktop-policy' },
+            };
+        }
+        if (behavior === 'ask') {
+            return {
+                behavior,
+                message: `Tool ${toolName} requires approval.`,
+                decisionReason: { type: 'legacy-desktop-policy' },
+            };
+        }
+        return { behavior, decisionReason: { type: 'legacy-desktop-policy' } };
     }
     /**
      * Register a tool manually

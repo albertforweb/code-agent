@@ -46,6 +46,7 @@ const crypto = __importStar(require("crypto"));
 const fs = __importStar(require("fs/promises"));
 const os = __importStar(require("os"));
 const path = __importStar(require("path"));
+const atomic_file_js_1 = require("./atomic-file.js");
 class LocalHistoryServiceBridge {
     constructor(storageDir = path.join(os.homedir(), '.code-agent', 'history')) {
         this.storageDir = storageDir;
@@ -146,8 +147,7 @@ class LocalHistoryServiceBridge {
         return JSON.parse(await fs.readFile(filePath, 'utf-8'));
     }
     async writeJsonFile(filePath, data) {
-        await fs.mkdir(path.dirname(filePath), { recursive: true });
-        await fs.writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`, 'utf-8');
+        await (0, atomic_file_js_1.atomicWriteJson)(filePath, data);
     }
     normalizeId(id) {
         const trimmed = String(id ?? '').trim();
