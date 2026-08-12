@@ -79,6 +79,13 @@ jobs:
         working-directory: code-agent
         run: npm ci
 
+      - name: Verify architecture and feature package contracts
+        working-directory: code-agent
+        run: |
+          npm --prefix ../code-agent-packages test
+          npm run verify:feature-package-boundaries:strict
+          npm run test:agent-tools
+
       - name: Build and verify CLI package
         working-directory: code-agent
         run: npm run pack:cli:check

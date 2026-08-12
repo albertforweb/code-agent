@@ -1,0 +1,65 @@
+name: Architecture gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  contracts:
+    name: Runtime, package, and architecture contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code-agent
+        uses: actions/checkout@v4
+        with:
+          path: code-agent
+
+      - name: Checkout feature package SDK
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-sdk
+          path: code-agent-sdk
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
+
+      - name: Checkout feature packages
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/code-agent-packages
+          path: code-agent-packages
+          token: ${{ secrets.CODEAGENT_RELEASE_TOKEN || github.token }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            code-agent/package-lock.json
+            code-agent-packages/package-lock.json
+
+      - name: Build and test feature packages
+        working-directory: code-agent-packages
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      - name: Install CodeAgent dependencies
+        working-directory: code-agent
+        run: npm ci
+
+      - name: Verify strict feature boundaries
+        working-directory: code-agent
+        run: npm run verify:feature-package-boundaries:strict
+
+      - name: Verify runtime architecture contracts
+        working-directory: code-agent
+        run: npm run test:agent-tools

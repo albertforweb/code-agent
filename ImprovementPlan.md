@@ -132,7 +132,7 @@ type PolicyDecision =
 - [ ] Split `electron/services-bridge.ts` into narrowly scoped service registrars with explicit dependencies.
 - [ ] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into `code-agent-packages/software-developer`.
 - [ ] Restrict the base application to package hosting, shared primitives, account/provider setup, entitlement resolution, and free features.
-- [ ] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI.
+- [x] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI. The strict boundary check, feature-package tests, and runtime architecture suite now gate pull requests/main pushes and CLI releases. (2026-08-12; pending milestone commit)
 - [ ] Add update, uninstall, rollback, revoked-signature, and signing-key rotation states to the package lifecycle.
 
 **Exit criteria**:
@@ -218,6 +218,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Atomic local JSON persistence | Complete | Atomic replacement/mode/interruption tests, local-history tests, automation tests, and Electron TypeScript compilation pass |
 | 2026-08-12 | Shared provider profiles | Complete | CLI/profile resolution tests, desktop bridge tests, Electron TypeScript compilation, and the production CLI build pass |
 | 2026-08-12 | Durable task graph contract and validation | Complete | Legacy compatibility, dependency/cycle, budget, and active-resource conflict tests pass |
+| 2026-08-12 | Architecture CI gates | Complete | Local strict package-boundary check, 61 runtime tests, and 2 feature-package tests pass; equivalent commands added to PR/main and release workflows |
 
 ---
 
