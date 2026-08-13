@@ -5,8 +5,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import semver from 'semver';
-import { createSoftwareDeveloperRendererViews } from '../../../code-agent-packages/software-developer/src/renderer';
-import { getDefaultTeamGoal, getDefaultTeamTools } from '../../../code-agent-packages/software-developer/src/project-defaults';
 import hljs from 'highlight.js/lib/common';
 import styles from './App.module.css';
 import {
@@ -60,6 +58,7 @@ import {
   FEATURE_PACKAGE_MANIFESTS,
   getFeaturePackageExtensions,
   getFeatureOwnerPackageId,
+  getDeclaredFeatureOwnerPackageId,
   getFeaturePackageSummary,
   isFeatureAvailable,
   isPackageRuntimeAvailable,
@@ -73,6 +72,10 @@ import {
   type FeaturePackageManifest,
   type FeaturePackageResolution,
 } from '../features/feature-packages';
+import {
+  createFeaturePackageRendererContribution,
+  getFeaturePackageRendererView,
+} from '../features/feature-package-renderers';
 
 type MessageRole = 'assistant' | 'user' | 'system' | 'tool' | 'error';
 type MessageStatus = 'sent' | 'sending' | 'failed';
@@ -703,6 +706,16 @@ const PROVIDER_DEFAULTS: Record<LlmProviderType, {
 
 function getProviderDefault(provider: LlmProviderType) {
   return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
+}
+
+function getDefaultTeamGoal(role: string): string {
+  return activeFeatureRendererContribution?.workflowDefaults?.getDefaultGoal(role)
+    ?? `Carry out the responsibilities of the ${role || 'assigned'} role and report concrete results.`;
+}
+
+function getDefaultTeamTools(role: string): string[] {
+  return activeFeatureRendererContribution?.workflowDefaults?.getDefaultTools(role)
+    ?? ['fs.read'];
 }
 
 function getSkinAccent(value: unknown): AppSkinAccent {
@@ -4028,7 +4041,8 @@ function renderAnsiText(text: string): React.ReactNode {
   ));
 }
 
-const { ProjectsView, ToolsView, AutomationView, HistoryView } = createSoftwareDeveloperRendererViews({
+const activeFeatureRendererPackageId = getDeclaredFeatureOwnerPackageId('project-studio');
+const activeFeatureRendererContribution = createFeaturePackageRendererContribution(activeFeatureRendererPackageId, {
   AUTOMATION_PERMISSION_TOOLS,
   DEFAULT_AUTONOMOUS_ROLES,
   DEFAULT_EMPLOYEE_PERMISSIONS,
@@ -4083,6 +4097,27 @@ const { ProjectsView, ToolsView, AutomationView, HistoryView } = createSoftwareD
   summarizeToolResult,
 });
 
+function MissingFeaturePackageView() {
+  return (
+    <section className={styles.detailView} aria-label="Feature view unavailable">
+      <section className={styles.detailPanel}>
+        <h3>Feature view unavailable</h3>
+        <p className={styles.mutedText}>The active feature package does not provide this renderer view.</p>
+      </section>
+    </section>
+  );
+}
+
+function rendererView(viewId: string): React.ComponentType<any> {
+  return (getFeaturePackageRendererView(activeFeatureRendererContribution, viewId)
+    ?? MissingFeaturePackageView) as React.ComponentType<any>;
+}
+
+const ProjectsView = rendererView('projects');
+const ToolsView = rendererView('tools');
+const AutomationView = rendererView('automation');
+const HistoryView = rendererView('history');
+
 class FeatureViewErrorBoundary extends React.Component<
   { children: React.ReactNode; viewKey: string; viewLabel: string },
   { error: Error | null }
@@ -4115,7 +4150,7 @@ class FeatureViewErrorBoundary extends React.Component<
         <section className={styles.detailPanel}>
           <h3>{this.props.viewLabel} could not be displayed</h3>
           <p className={styles.mutedText}>
-            The Software Developer package encountered a renderer error. You can switch to another section and try again.
+            The feature package encountered a renderer error. You can switch to another section and try again.
           </p>
           <pre className={styles.codeBlock}><code>{this.state.error.message}</code></pre>
         </section>

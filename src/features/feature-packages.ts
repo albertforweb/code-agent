@@ -372,6 +372,12 @@ export function getFeatureOwnerPackageId(
   return resolution.features.find(feature => feature.featureId === featureId)?.packageId;
 }
 
+export function getDeclaredFeatureOwnerPackageId(featureId: string): string | undefined {
+  return FEATURE_PACKAGE_MANIFESTS.find(manifest => (
+    manifest.features.some(feature => feature.id === featureId)
+  ))?.id;
+}
+
 export function isCommandAvailable(resolution: FeaturePackageResolution, command: string): boolean {
   const normalizedCommand = normalizeCommandName(command);
   return resolution.features.some(feature => feature.feature.adapters.some(adapter => (

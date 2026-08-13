@@ -156,14 +156,10 @@ jobs:
             code-agent-packages/package-lock.json
 
       - name: Install feature package dependencies
-        if: matrix.platform != 'windows'
         working-directory: code-agent-packages
         run: npm ci
 
       - name: Build feature packages
-        # The Windows desktop build consumes the generated core catalog, not this
-        # external artifact. The CLI and macOS jobs continue to build it.
-        if: matrix.platform != 'windows'
         working-directory: code-agent-packages
         run: npm run build
 

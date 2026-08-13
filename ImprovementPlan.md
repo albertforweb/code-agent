@@ -130,7 +130,7 @@ type PolicyDecision =
 
 - [ ] Split `src/renderer/App.tsx` into feature-owned routes and state modules for chat, projects, automation, tools, history, models, packages, and settings.
 - [ ] Split `electron/services-bridge.ts` into narrowly scoped service registrars with explicit dependencies.
-- [ ] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into `code-agent-packages/software-developer`.
+- [~] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into feature packages. Package-owned renderer views are now loaded from built package artifacts through the generic `FeaturePackageRendererModule` SDK contract; host state helpers and several desktop services still need extraction. (2026-08-12)
 - [ ] Restrict the base application to package hosting, shared primitives, account/provider setup, entitlement resolution, and free features.
 - [x] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI. The strict boundary check, feature-package tests, and runtime architecture suite now gate pull requests/main pushes and CLI releases. (2026-08-12; `8bba38c`)
 - [ ] Add update, uninstall, rollback, revoked-signature, and signing-key rotation states to the package lifecycle.
@@ -219,6 +219,7 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Shared provider profiles | Complete | CLI/profile resolution tests, desktop bridge tests, Electron TypeScript compilation, and the production CLI build pass |
 | 2026-08-12 | Durable task graph contract and validation | Complete | Legacy compatibility, dependency/cycle, budget, and active-resource conflict tests pass |
 | 2026-08-12 | Architecture CI gates | Complete | Local strict package-boundary check, 61 runtime tests, and 2 feature-package tests pass; equivalent commands added to PR/main and release workflows |
+| 2026-08-12 | SDK-only core/package renderer boundary | Complete | Core has no direct package identity/source imports; manifest-driven renderer registry loads built artifacts through SDK contracts; generic strict gate and renderer artifact contract tests pass |
 
 ---
 

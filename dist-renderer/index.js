@@ -1088,7 +1088,7 @@
             }
             return dispatcher.useContext(Context);
           }
-          function useState2(initialState) {
+          function useState3(initialState) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useState(initialState);
           }
@@ -1096,11 +1096,11 @@
             var dispatcher = resolveDispatcher();
             return dispatcher.useReducer(reducer, initialArg, init);
           }
-          function useRef2(initialValue) {
+          function useRef3(initialValue) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useRef(initialValue);
           }
-          function useEffect2(create, deps) {
+          function useEffect3(create, deps) {
             var dispatcher = resolveDispatcher();
             return dispatcher.useEffect(create, deps);
           }
@@ -1883,15 +1883,15 @@
           exports.useContext = useContext2;
           exports.useDebugValue = useDebugValue2;
           exports.useDeferredValue = useDeferredValue2;
-          exports.useEffect = useEffect2;
+          exports.useEffect = useEffect3;
           exports.useId = useId2;
           exports.useImperativeHandle = useImperativeHandle2;
           exports.useInsertionEffect = useInsertionEffect2;
           exports.useLayoutEffect = useLayoutEffect2;
           exports.useMemo = useMemo2;
           exports.useReducer = useReducer2;
-          exports.useRef = useRef2;
-          exports.useState = useState2;
+          exports.useRef = useRef3;
+          exports.useState = useState3;
           exports.useSyncExternalStore = useSyncExternalStore2;
           exports.useTransition = useTransition2;
           exports.version = ReactVersion;
@@ -2387,9 +2387,9 @@
           if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
             __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
           }
-          var React2 = require_react();
+          var React3 = require_react();
           var Scheduler = require_scheduler();
-          var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+          var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
           var suppressWarning = false;
           function setSuppressWarning(newSuppressWarning) {
             {
@@ -3996,7 +3996,7 @@
             {
               if (props.value == null) {
                 if (typeof props.children === "object" && props.children !== null) {
-                  React2.Children.forEach(props.children, function(child) {
+                  React3.Children.forEach(props.children, function(child) {
                     if (child == null) {
                       return;
                     }
@@ -25748,8 +25748,8 @@
           this.add(node);
         }
         toHTML() {
-          const renderer = new HTMLRenderer(this, this.options);
-          return renderer.value();
+          const renderer2 = new HTMLRenderer(this, this.options);
+          return renderer2.value();
         }
         finalize() {
           this.closeAllNodes();
@@ -39594,14 +39594,17 @@
     }
   });
 
-  // node_modules/react/cjs/react-jsx-runtime.development.js
-  var require_react_jsx_runtime_development = __commonJS({
-    "node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+  // ../code-agent-packages/node_modules/react/cjs/react.development.js
+  var require_react_development2 = __commonJS({
+    "../code-agent-packages/node_modules/react/cjs/react.development.js"(exports, module) {
       "use strict";
       if (true) {
         (function() {
           "use strict";
-          var React2 = require_react();
+          if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
+            __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
+          }
+          var ReactVersion = "18.3.1";
           var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
           var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
           var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -39627,7 +39630,1890 @@
             }
             return null;
           }
-          var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+          var ReactCurrentDispatcher = {
+            /**
+             * @internal
+             * @type {ReactComponent}
+             */
+            current: null
+          };
+          var ReactCurrentBatchConfig = {
+            transition: null
+          };
+          var ReactCurrentActQueue = {
+            current: null,
+            // Used to reproduce behavior of `batchedUpdates` in legacy mode.
+            isBatchingLegacy: false,
+            didScheduleLegacyUpdate: false
+          };
+          var ReactCurrentOwner = {
+            /**
+             * @internal
+             * @type {ReactComponent}
+             */
+            current: null
+          };
+          var ReactDebugCurrentFrame = {};
+          var currentExtraStackFrame = null;
+          function setExtraStackFrame(stack) {
+            {
+              currentExtraStackFrame = stack;
+            }
+          }
+          {
+            ReactDebugCurrentFrame.setExtraStackFrame = function(stack) {
+              {
+                currentExtraStackFrame = stack;
+              }
+            };
+            ReactDebugCurrentFrame.getCurrentStack = null;
+            ReactDebugCurrentFrame.getStackAddendum = function() {
+              var stack = "";
+              if (currentExtraStackFrame) {
+                stack += currentExtraStackFrame;
+              }
+              var impl = ReactDebugCurrentFrame.getCurrentStack;
+              if (impl) {
+                stack += impl() || "";
+              }
+              return stack;
+            };
+          }
+          var enableScopeAPI = false;
+          var enableCacheElement = false;
+          var enableTransitionTracing = false;
+          var enableLegacyHidden = false;
+          var enableDebugTracing = false;
+          var ReactSharedInternals = {
+            ReactCurrentDispatcher,
+            ReactCurrentBatchConfig,
+            ReactCurrentOwner
+          };
+          {
+            ReactSharedInternals.ReactDebugCurrentFrame = ReactDebugCurrentFrame;
+            ReactSharedInternals.ReactCurrentActQueue = ReactCurrentActQueue;
+          }
+          function warn(format) {
+            {
+              {
+                for (var _len = arguments.length, args = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+                  args[_key - 1] = arguments[_key];
+                }
+                printWarning("warn", format, args);
+              }
+            }
+          }
+          function error(format) {
+            {
+              {
+                for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+                  args[_key2 - 1] = arguments[_key2];
+                }
+                printWarning("error", format, args);
+              }
+            }
+          }
+          function printWarning(level, format, args) {
+            {
+              var ReactDebugCurrentFrame2 = ReactSharedInternals.ReactDebugCurrentFrame;
+              var stack = ReactDebugCurrentFrame2.getStackAddendum();
+              if (stack !== "") {
+                format += "%s";
+                args = args.concat([stack]);
+              }
+              var argsWithFormat = args.map(function(item) {
+                return String(item);
+              });
+              argsWithFormat.unshift("Warning: " + format);
+              Function.prototype.apply.call(console[level], console, argsWithFormat);
+            }
+          }
+          var didWarnStateUpdateForUnmountedComponent = {};
+          function warnNoop(publicInstance, callerName) {
+            {
+              var _constructor = publicInstance.constructor;
+              var componentName = _constructor && (_constructor.displayName || _constructor.name) || "ReactClass";
+              var warningKey = componentName + "." + callerName;
+              if (didWarnStateUpdateForUnmountedComponent[warningKey]) {
+                return;
+              }
+              error("Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.", callerName, componentName);
+              didWarnStateUpdateForUnmountedComponent[warningKey] = true;
+            }
+          }
+          var ReactNoopUpdateQueue = {
+            /**
+             * Checks whether or not this composite component is mounted.
+             * @param {ReactClass} publicInstance The instance we want to test.
+             * @return {boolean} True if mounted, false otherwise.
+             * @protected
+             * @final
+             */
+            isMounted: function(publicInstance) {
+              return false;
+            },
+            /**
+             * Forces an update. This should only be invoked when it is known with
+             * certainty that we are **not** in a DOM transaction.
+             *
+             * You may want to call this when you know that some deeper aspect of the
+             * component's state has changed but `setState` was not called.
+             *
+             * This will not invoke `shouldComponentUpdate`, but it will invoke
+             * `componentWillUpdate` and `componentDidUpdate`.
+             *
+             * @param {ReactClass} publicInstance The instance that should rerender.
+             * @param {?function} callback Called after component is updated.
+             * @param {?string} callerName name of the calling function in the public API.
+             * @internal
+             */
+            enqueueForceUpdate: function(publicInstance, callback, callerName) {
+              warnNoop(publicInstance, "forceUpdate");
+            },
+            /**
+             * Replaces all of the state. Always use this or `setState` to mutate state.
+             * You should treat `this.state` as immutable.
+             *
+             * There is no guarantee that `this.state` will be immediately updated, so
+             * accessing `this.state` after calling this method may return the old value.
+             *
+             * @param {ReactClass} publicInstance The instance that should rerender.
+             * @param {object} completeState Next state.
+             * @param {?function} callback Called after component is updated.
+             * @param {?string} callerName name of the calling function in the public API.
+             * @internal
+             */
+            enqueueReplaceState: function(publicInstance, completeState, callback, callerName) {
+              warnNoop(publicInstance, "replaceState");
+            },
+            /**
+             * Sets a subset of the state. This only exists because _pendingState is
+             * internal. This provides a merging strategy that is not available to deep
+             * properties which is confusing. TODO: Expose pendingState or don't use it
+             * during the merge.
+             *
+             * @param {ReactClass} publicInstance The instance that should rerender.
+             * @param {object} partialState Next partial state to be merged with state.
+             * @param {?function} callback Called after component is updated.
+             * @param {?string} Name of the calling function in the public API.
+             * @internal
+             */
+            enqueueSetState: function(publicInstance, partialState, callback, callerName) {
+              warnNoop(publicInstance, "setState");
+            }
+          };
+          var assign = Object.assign;
+          var emptyObject = {};
+          {
+            Object.freeze(emptyObject);
+          }
+          function Component2(props, context, updater) {
+            this.props = props;
+            this.context = context;
+            this.refs = emptyObject;
+            this.updater = updater || ReactNoopUpdateQueue;
+          }
+          Component2.prototype.isReactComponent = {};
+          Component2.prototype.setState = function(partialState, callback) {
+            if (typeof partialState !== "object" && typeof partialState !== "function" && partialState != null) {
+              throw new Error("setState(...): takes an object of state variables to update or a function which returns an object of state variables.");
+            }
+            this.updater.enqueueSetState(this, partialState, callback, "setState");
+          };
+          Component2.prototype.forceUpdate = function(callback) {
+            this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+          };
+          {
+            var deprecatedAPIs = {
+              isMounted: ["isMounted", "Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks."],
+              replaceState: ["replaceState", "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."]
+            };
+            var defineDeprecationWarning = function(methodName, info) {
+              Object.defineProperty(Component2.prototype, methodName, {
+                get: function() {
+                  warn("%s(...) is deprecated in plain JavaScript React classes. %s", info[0], info[1]);
+                  return void 0;
+                }
+              });
+            };
+            for (var fnName in deprecatedAPIs) {
+              if (deprecatedAPIs.hasOwnProperty(fnName)) {
+                defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);
+              }
+            }
+          }
+          function ComponentDummy() {
+          }
+          ComponentDummy.prototype = Component2.prototype;
+          function PureComponent2(props, context, updater) {
+            this.props = props;
+            this.context = context;
+            this.refs = emptyObject;
+            this.updater = updater || ReactNoopUpdateQueue;
+          }
+          var pureComponentPrototype = PureComponent2.prototype = new ComponentDummy();
+          pureComponentPrototype.constructor = PureComponent2;
+          assign(pureComponentPrototype, Component2.prototype);
+          pureComponentPrototype.isPureReactComponent = true;
+          function createRef2() {
+            var refObject = {
+              current: null
+            };
+            {
+              Object.seal(refObject);
+            }
+            return refObject;
+          }
+          var isArrayImpl = Array.isArray;
+          function isArray(a) {
+            return isArrayImpl(a);
+          }
+          function typeName(value) {
+            {
+              var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
+              var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+              return type;
+            }
+          }
+          function willCoercionThrow(value) {
+            {
+              try {
+                testStringCoercion(value);
+                return false;
+              } catch (e) {
+                return true;
+              }
+            }
+          }
+          function testStringCoercion(value) {
+            return "" + value;
+          }
+          function checkKeyStringCoercion(value) {
+            {
+              if (willCoercionThrow(value)) {
+                error("The provided key is an unsupported type %s. This value must be coerced to a string before before using it here.", typeName(value));
+                return testStringCoercion(value);
+              }
+            }
+          }
+          function getWrappedName(outerType, innerType, wrapperName) {
+            var displayName = outerType.displayName;
+            if (displayName) {
+              return displayName;
+            }
+            var functionName = innerType.displayName || innerType.name || "";
+            return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
+          }
+          function getContextName(type) {
+            return type.displayName || "Context";
+          }
+          function getComponentNameFromType(type) {
+            if (type == null) {
+              return null;
+            }
+            {
+              if (typeof type.tag === "number") {
+                error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
+              }
+            }
+            if (typeof type === "function") {
+              return type.displayName || type.name || null;
+            }
+            if (typeof type === "string") {
+              return type;
+            }
+            switch (type) {
+              case REACT_FRAGMENT_TYPE:
+                return "Fragment";
+              case REACT_PORTAL_TYPE:
+                return "Portal";
+              case REACT_PROFILER_TYPE:
+                return "Profiler";
+              case REACT_STRICT_MODE_TYPE:
+                return "StrictMode";
+              case REACT_SUSPENSE_TYPE:
+                return "Suspense";
+              case REACT_SUSPENSE_LIST_TYPE:
+                return "SuspenseList";
+            }
+            if (typeof type === "object") {
+              switch (type.$$typeof) {
+                case REACT_CONTEXT_TYPE:
+                  var context = type;
+                  return getContextName(context) + ".Consumer";
+                case REACT_PROVIDER_TYPE:
+                  var provider = type;
+                  return getContextName(provider._context) + ".Provider";
+                case REACT_FORWARD_REF_TYPE:
+                  return getWrappedName(type, type.render, "ForwardRef");
+                case REACT_MEMO_TYPE:
+                  var outerName = type.displayName || null;
+                  if (outerName !== null) {
+                    return outerName;
+                  }
+                  return getComponentNameFromType(type.type) || "Memo";
+                case REACT_LAZY_TYPE: {
+                  var lazyComponent = type;
+                  var payload = lazyComponent._payload;
+                  var init = lazyComponent._init;
+                  try {
+                    return getComponentNameFromType(init(payload));
+                  } catch (x) {
+                    return null;
+                  }
+                }
+              }
+            }
+            return null;
+          }
+          var hasOwnProperty = Object.prototype.hasOwnProperty;
+          var RESERVED_PROPS = {
+            key: true,
+            ref: true,
+            __self: true,
+            __source: true
+          };
+          var specialPropKeyWarningShown, specialPropRefWarningShown, didWarnAboutStringRefs;
+          {
+            didWarnAboutStringRefs = {};
+          }
+          function hasValidRef(config) {
+            {
+              if (hasOwnProperty.call(config, "ref")) {
+                var getter = Object.getOwnPropertyDescriptor(config, "ref").get;
+                if (getter && getter.isReactWarning) {
+                  return false;
+                }
+              }
+            }
+            return config.ref !== void 0;
+          }
+          function hasValidKey(config) {
+            {
+              if (hasOwnProperty.call(config, "key")) {
+                var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+                if (getter && getter.isReactWarning) {
+                  return false;
+                }
+              }
+            }
+            return config.key !== void 0;
+          }
+          function defineKeyPropWarningGetter(props, displayName) {
+            var warnAboutAccessingKey = function() {
+              {
+                if (!specialPropKeyWarningShown) {
+                  specialPropKeyWarningShown = true;
+                  error("%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
+                }
+              }
+            };
+            warnAboutAccessingKey.isReactWarning = true;
+            Object.defineProperty(props, "key", {
+              get: warnAboutAccessingKey,
+              configurable: true
+            });
+          }
+          function defineRefPropWarningGetter(props, displayName) {
+            var warnAboutAccessingRef = function() {
+              {
+                if (!specialPropRefWarningShown) {
+                  specialPropRefWarningShown = true;
+                  error("%s: `ref` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
+                }
+              }
+            };
+            warnAboutAccessingRef.isReactWarning = true;
+            Object.defineProperty(props, "ref", {
+              get: warnAboutAccessingRef,
+              configurable: true
+            });
+          }
+          function warnIfStringRefCannotBeAutoConverted(config) {
+            {
+              if (typeof config.ref === "string" && ReactCurrentOwner.current && config.__self && ReactCurrentOwner.current.stateNode !== config.__self) {
+                var componentName = getComponentNameFromType(ReactCurrentOwner.current.type);
+                if (!didWarnAboutStringRefs[componentName]) {
+                  error('Component "%s" contains the string ref "%s". Support for string refs will be removed in a future major release. This case cannot be automatically converted to an arrow function. We ask you to manually fix this case by using useRef() or createRef() instead. Learn more about using refs safely here: https://reactjs.org/link/strict-mode-string-ref', componentName, config.ref);
+                  didWarnAboutStringRefs[componentName] = true;
+                }
+              }
+            }
+          }
+          var ReactElement = function(type, key, ref, self, source, owner, props) {
+            var element = {
+              // This tag allows us to uniquely identify this as a React Element
+              $$typeof: REACT_ELEMENT_TYPE,
+              // Built-in properties that belong on the element
+              type,
+              key,
+              ref,
+              props,
+              // Record the component responsible for creating this element.
+              _owner: owner
+            };
+            {
+              element._store = {};
+              Object.defineProperty(element._store, "validated", {
+                configurable: false,
+                enumerable: false,
+                writable: true,
+                value: false
+              });
+              Object.defineProperty(element, "_self", {
+                configurable: false,
+                enumerable: false,
+                writable: false,
+                value: self
+              });
+              Object.defineProperty(element, "_source", {
+                configurable: false,
+                enumerable: false,
+                writable: false,
+                value: source
+              });
+              if (Object.freeze) {
+                Object.freeze(element.props);
+                Object.freeze(element);
+              }
+            }
+            return element;
+          };
+          function createElement2(type, config, children) {
+            var propName;
+            var props = {};
+            var key = null;
+            var ref = null;
+            var self = null;
+            var source = null;
+            if (config != null) {
+              if (hasValidRef(config)) {
+                ref = config.ref;
+                {
+                  warnIfStringRefCannotBeAutoConverted(config);
+                }
+              }
+              if (hasValidKey(config)) {
+                {
+                  checkKeyStringCoercion(config.key);
+                }
+                key = "" + config.key;
+              }
+              self = config.__self === void 0 ? null : config.__self;
+              source = config.__source === void 0 ? null : config.__source;
+              for (propName in config) {
+                if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+                  props[propName] = config[propName];
+                }
+              }
+            }
+            var childrenLength = arguments.length - 2;
+            if (childrenLength === 1) {
+              props.children = children;
+            } else if (childrenLength > 1) {
+              var childArray = Array(childrenLength);
+              for (var i = 0; i < childrenLength; i++) {
+                childArray[i] = arguments[i + 2];
+              }
+              {
+                if (Object.freeze) {
+                  Object.freeze(childArray);
+                }
+              }
+              props.children = childArray;
+            }
+            if (type && type.defaultProps) {
+              var defaultProps = type.defaultProps;
+              for (propName in defaultProps) {
+                if (props[propName] === void 0) {
+                  props[propName] = defaultProps[propName];
+                }
+              }
+            }
+            {
+              if (key || ref) {
+                var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
+                if (key) {
+                  defineKeyPropWarningGetter(props, displayName);
+                }
+                if (ref) {
+                  defineRefPropWarningGetter(props, displayName);
+                }
+              }
+            }
+            return ReactElement(type, key, ref, self, source, ReactCurrentOwner.current, props);
+          }
+          function cloneAndReplaceKey(oldElement, newKey) {
+            var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
+            return newElement;
+          }
+          function cloneElement2(element, config, children) {
+            if (element === null || element === void 0) {
+              throw new Error("React.cloneElement(...): The argument must be a React element, but you passed " + element + ".");
+            }
+            var propName;
+            var props = assign({}, element.props);
+            var key = element.key;
+            var ref = element.ref;
+            var self = element._self;
+            var source = element._source;
+            var owner = element._owner;
+            if (config != null) {
+              if (hasValidRef(config)) {
+                ref = config.ref;
+                owner = ReactCurrentOwner.current;
+              }
+              if (hasValidKey(config)) {
+                {
+                  checkKeyStringCoercion(config.key);
+                }
+                key = "" + config.key;
+              }
+              var defaultProps;
+              if (element.type && element.type.defaultProps) {
+                defaultProps = element.type.defaultProps;
+              }
+              for (propName in config) {
+                if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+                  if (config[propName] === void 0 && defaultProps !== void 0) {
+                    props[propName] = defaultProps[propName];
+                  } else {
+                    props[propName] = config[propName];
+                  }
+                }
+              }
+            }
+            var childrenLength = arguments.length - 2;
+            if (childrenLength === 1) {
+              props.children = children;
+            } else if (childrenLength > 1) {
+              var childArray = Array(childrenLength);
+              for (var i = 0; i < childrenLength; i++) {
+                childArray[i] = arguments[i + 2];
+              }
+              props.children = childArray;
+            }
+            return ReactElement(element.type, key, ref, self, source, owner, props);
+          }
+          function isValidElement2(object) {
+            return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+          }
+          var SEPARATOR = ".";
+          var SUBSEPARATOR = ":";
+          function escape(key) {
+            var escapeRegex = /[=:]/g;
+            var escaperLookup = {
+              "=": "=0",
+              ":": "=2"
+            };
+            var escapedString = key.replace(escapeRegex, function(match) {
+              return escaperLookup[match];
+            });
+            return "$" + escapedString;
+          }
+          var didWarnAboutMaps = false;
+          var userProvidedKeyEscapeRegex = /\/+/g;
+          function escapeUserProvidedKey(text) {
+            return text.replace(userProvidedKeyEscapeRegex, "$&/");
+          }
+          function getElementKey(element, index) {
+            if (typeof element === "object" && element !== null && element.key != null) {
+              {
+                checkKeyStringCoercion(element.key);
+              }
+              return escape("" + element.key);
+            }
+            return index.toString(36);
+          }
+          function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+            var type = typeof children;
+            if (type === "undefined" || type === "boolean") {
+              children = null;
+            }
+            var invokeCallback = false;
+            if (children === null) {
+              invokeCallback = true;
+            } else {
+              switch (type) {
+                case "string":
+                case "number":
+                  invokeCallback = true;
+                  break;
+                case "object":
+                  switch (children.$$typeof) {
+                    case REACT_ELEMENT_TYPE:
+                    case REACT_PORTAL_TYPE:
+                      invokeCallback = true;
+                  }
+              }
+            }
+            if (invokeCallback) {
+              var _child = children;
+              var mappedChild = callback(_child);
+              var childKey = nameSoFar === "" ? SEPARATOR + getElementKey(_child, 0) : nameSoFar;
+              if (isArray(mappedChild)) {
+                var escapedChildKey = "";
+                if (childKey != null) {
+                  escapedChildKey = escapeUserProvidedKey(childKey) + "/";
+                }
+                mapIntoArray(mappedChild, array, escapedChildKey, "", function(c) {
+                  return c;
+                });
+              } else if (mappedChild != null) {
+                if (isValidElement2(mappedChild)) {
+                  {
+                    if (mappedChild.key && (!_child || _child.key !== mappedChild.key)) {
+                      checkKeyStringCoercion(mappedChild.key);
+                    }
+                  }
+                  mappedChild = cloneAndReplaceKey(
+                    mappedChild,
+                    // Keep both the (mapped) and old keys if they differ, just as
+                    // traverseAllChildren used to do for objects as children
+                    escapedPrefix + // $FlowFixMe Flow incorrectly thinks React.Portal doesn't have a key
+                    (mappedChild.key && (!_child || _child.key !== mappedChild.key) ? (
+                      // $FlowFixMe Flow incorrectly thinks existing element's key can be a number
+                      // eslint-disable-next-line react-internal/safe-string-coercion
+                      escapeUserProvidedKey("" + mappedChild.key) + "/"
+                    ) : "") + childKey
+                  );
+                }
+                array.push(mappedChild);
+              }
+              return 1;
+            }
+            var child;
+            var nextName;
+            var subtreeCount = 0;
+            var nextNamePrefix = nameSoFar === "" ? SEPARATOR : nameSoFar + SUBSEPARATOR;
+            if (isArray(children)) {
+              for (var i = 0; i < children.length; i++) {
+                child = children[i];
+                nextName = nextNamePrefix + getElementKey(child, i);
+                subtreeCount += mapIntoArray(child, array, escapedPrefix, nextName, callback);
+              }
+            } else {
+              var iteratorFn = getIteratorFn(children);
+              if (typeof iteratorFn === "function") {
+                var iterableChildren = children;
+                {
+                  if (iteratorFn === iterableChildren.entries) {
+                    if (!didWarnAboutMaps) {
+                      warn("Using Maps as children is not supported. Use an array of keyed ReactElements instead.");
+                    }
+                    didWarnAboutMaps = true;
+                  }
+                }
+                var iterator = iteratorFn.call(iterableChildren);
+                var step;
+                var ii = 0;
+                while (!(step = iterator.next()).done) {
+                  child = step.value;
+                  nextName = nextNamePrefix + getElementKey(child, ii++);
+                  subtreeCount += mapIntoArray(child, array, escapedPrefix, nextName, callback);
+                }
+              } else if (type === "object") {
+                var childrenString = String(children);
+                throw new Error("Objects are not valid as a React child (found: " + (childrenString === "[object Object]" ? "object with keys {" + Object.keys(children).join(", ") + "}" : childrenString) + "). If you meant to render a collection of children, use an array instead.");
+              }
+            }
+            return subtreeCount;
+          }
+          function mapChildren(children, func, context) {
+            if (children == null) {
+              return children;
+            }
+            var result = [];
+            var count = 0;
+            mapIntoArray(children, result, "", "", function(child) {
+              return func.call(context, child, count++);
+            });
+            return result;
+          }
+          function countChildren(children) {
+            var n = 0;
+            mapChildren(children, function() {
+              n++;
+            });
+            return n;
+          }
+          function forEachChildren(children, forEachFunc, forEachContext) {
+            mapChildren(children, function() {
+              forEachFunc.apply(this, arguments);
+            }, forEachContext);
+          }
+          function toArray(children) {
+            return mapChildren(children, function(child) {
+              return child;
+            }) || [];
+          }
+          function onlyChild(children) {
+            if (!isValidElement2(children)) {
+              throw new Error("React.Children.only expected to receive a single React element child.");
+            }
+            return children;
+          }
+          function createContext2(defaultValue) {
+            var context = {
+              $$typeof: REACT_CONTEXT_TYPE,
+              // As a workaround to support multiple concurrent renderers, we categorize
+              // some renderers as primary and others as secondary. We only expect
+              // there to be two concurrent renderers at most: React Native (primary) and
+              // Fabric (secondary); React DOM (primary) and React ART (secondary).
+              // Secondary renderers store their context values on separate fields.
+              _currentValue: defaultValue,
+              _currentValue2: defaultValue,
+              // Used to track how many concurrent renderers this context currently
+              // supports within in a single renderer. Such as parallel server rendering.
+              _threadCount: 0,
+              // These are circular
+              Provider: null,
+              Consumer: null,
+              // Add these to use same hidden class in VM as ServerContext
+              _defaultValue: null,
+              _globalName: null
+            };
+            context.Provider = {
+              $$typeof: REACT_PROVIDER_TYPE,
+              _context: context
+            };
+            var hasWarnedAboutUsingNestedContextConsumers = false;
+            var hasWarnedAboutUsingConsumerProvider = false;
+            var hasWarnedAboutDisplayNameOnConsumer = false;
+            {
+              var Consumer = {
+                $$typeof: REACT_CONTEXT_TYPE,
+                _context: context
+              };
+              Object.defineProperties(Consumer, {
+                Provider: {
+                  get: function() {
+                    if (!hasWarnedAboutUsingConsumerProvider) {
+                      hasWarnedAboutUsingConsumerProvider = true;
+                      error("Rendering <Context.Consumer.Provider> is not supported and will be removed in a future major release. Did you mean to render <Context.Provider> instead?");
+                    }
+                    return context.Provider;
+                  },
+                  set: function(_Provider) {
+                    context.Provider = _Provider;
+                  }
+                },
+                _currentValue: {
+                  get: function() {
+                    return context._currentValue;
+                  },
+                  set: function(_currentValue) {
+                    context._currentValue = _currentValue;
+                  }
+                },
+                _currentValue2: {
+                  get: function() {
+                    return context._currentValue2;
+                  },
+                  set: function(_currentValue2) {
+                    context._currentValue2 = _currentValue2;
+                  }
+                },
+                _threadCount: {
+                  get: function() {
+                    return context._threadCount;
+                  },
+                  set: function(_threadCount) {
+                    context._threadCount = _threadCount;
+                  }
+                },
+                Consumer: {
+                  get: function() {
+                    if (!hasWarnedAboutUsingNestedContextConsumers) {
+                      hasWarnedAboutUsingNestedContextConsumers = true;
+                      error("Rendering <Context.Consumer.Consumer> is not supported and will be removed in a future major release. Did you mean to render <Context.Consumer> instead?");
+                    }
+                    return context.Consumer;
+                  }
+                },
+                displayName: {
+                  get: function() {
+                    return context.displayName;
+                  },
+                  set: function(displayName) {
+                    if (!hasWarnedAboutDisplayNameOnConsumer) {
+                      warn("Setting `displayName` on Context.Consumer has no effect. You should set it directly on the context with Context.displayName = '%s'.", displayName);
+                      hasWarnedAboutDisplayNameOnConsumer = true;
+                    }
+                  }
+                }
+              });
+              context.Consumer = Consumer;
+            }
+            {
+              context._currentRenderer = null;
+              context._currentRenderer2 = null;
+            }
+            return context;
+          }
+          var Uninitialized = -1;
+          var Pending = 0;
+          var Resolved = 1;
+          var Rejected = 2;
+          function lazyInitializer(payload) {
+            if (payload._status === Uninitialized) {
+              var ctor = payload._result;
+              var thenable = ctor();
+              thenable.then(function(moduleObject2) {
+                if (payload._status === Pending || payload._status === Uninitialized) {
+                  var resolved = payload;
+                  resolved._status = Resolved;
+                  resolved._result = moduleObject2;
+                }
+              }, function(error2) {
+                if (payload._status === Pending || payload._status === Uninitialized) {
+                  var rejected = payload;
+                  rejected._status = Rejected;
+                  rejected._result = error2;
+                }
+              });
+              if (payload._status === Uninitialized) {
+                var pending = payload;
+                pending._status = Pending;
+                pending._result = thenable;
+              }
+            }
+            if (payload._status === Resolved) {
+              var moduleObject = payload._result;
+              {
+                if (moduleObject === void 0) {
+                  error("lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))\n\nDid you accidentally put curly braces around the import?", moduleObject);
+                }
+              }
+              {
+                if (!("default" in moduleObject)) {
+                  error("lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))", moduleObject);
+                }
+              }
+              return moduleObject.default;
+            } else {
+              throw payload._result;
+            }
+          }
+          function lazy2(ctor) {
+            var payload = {
+              // We use these fields to store the result.
+              _status: Uninitialized,
+              _result: ctor
+            };
+            var lazyType = {
+              $$typeof: REACT_LAZY_TYPE,
+              _payload: payload,
+              _init: lazyInitializer
+            };
+            {
+              var defaultProps;
+              var propTypes;
+              Object.defineProperties(lazyType, {
+                defaultProps: {
+                  configurable: true,
+                  get: function() {
+                    return defaultProps;
+                  },
+                  set: function(newDefaultProps) {
+                    error("React.lazy(...): It is not supported to assign `defaultProps` to a lazy component import. Either specify them where the component is defined, or create a wrapping component around it.");
+                    defaultProps = newDefaultProps;
+                    Object.defineProperty(lazyType, "defaultProps", {
+                      enumerable: true
+                    });
+                  }
+                },
+                propTypes: {
+                  configurable: true,
+                  get: function() {
+                    return propTypes;
+                  },
+                  set: function(newPropTypes) {
+                    error("React.lazy(...): It is not supported to assign `propTypes` to a lazy component import. Either specify them where the component is defined, or create a wrapping component around it.");
+                    propTypes = newPropTypes;
+                    Object.defineProperty(lazyType, "propTypes", {
+                      enumerable: true
+                    });
+                  }
+                }
+              });
+            }
+            return lazyType;
+          }
+          function forwardRef2(render) {
+            {
+              if (render != null && render.$$typeof === REACT_MEMO_TYPE) {
+                error("forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...)).");
+              } else if (typeof render !== "function") {
+                error("forwardRef requires a render function but was given %s.", render === null ? "null" : typeof render);
+              } else {
+                if (render.length !== 0 && render.length !== 2) {
+                  error("forwardRef render functions accept exactly two parameters: props and ref. %s", render.length === 1 ? "Did you forget to use the ref parameter?" : "Any additional parameter will be undefined.");
+                }
+              }
+              if (render != null) {
+                if (render.defaultProps != null || render.propTypes != null) {
+                  error("forwardRef render functions do not support propTypes or defaultProps. Did you accidentally pass a React component?");
+                }
+              }
+            }
+            var elementType = {
+              $$typeof: REACT_FORWARD_REF_TYPE,
+              render
+            };
+            {
+              var ownName;
+              Object.defineProperty(elementType, "displayName", {
+                enumerable: false,
+                configurable: true,
+                get: function() {
+                  return ownName;
+                },
+                set: function(name) {
+                  ownName = name;
+                  if (!render.name && !render.displayName) {
+                    render.displayName = name;
+                  }
+                }
+              });
+            }
+            return elementType;
+          }
+          var REACT_MODULE_REFERENCE;
+          {
+            REACT_MODULE_REFERENCE = /* @__PURE__ */ Symbol.for("react.module.reference");
+          }
+          function isValidElementType(type) {
+            if (typeof type === "string" || typeof type === "function") {
+              return true;
+            }
+            if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
+              return true;
+            }
+            if (typeof type === "object" && type !== null) {
+              if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || // This needs to include all possible module reference object
+              // types supported by any Flight configuration anywhere since
+              // we don't know which Flight build this will end up being used
+              // with.
+              type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== void 0) {
+                return true;
+              }
+            }
+            return false;
+          }
+          function memo2(type, compare) {
+            {
+              if (!isValidElementType(type)) {
+                error("memo: The first argument must be a component. Instead received: %s", type === null ? "null" : typeof type);
+              }
+            }
+            var elementType = {
+              $$typeof: REACT_MEMO_TYPE,
+              type,
+              compare: compare === void 0 ? null : compare
+            };
+            {
+              var ownName;
+              Object.defineProperty(elementType, "displayName", {
+                enumerable: false,
+                configurable: true,
+                get: function() {
+                  return ownName;
+                },
+                set: function(name) {
+                  ownName = name;
+                  if (!type.name && !type.displayName) {
+                    type.displayName = name;
+                  }
+                }
+              });
+            }
+            return elementType;
+          }
+          function resolveDispatcher() {
+            var dispatcher = ReactCurrentDispatcher.current;
+            {
+              if (dispatcher === null) {
+                error("Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://reactjs.org/link/invalid-hook-call for tips about how to debug and fix this problem.");
+              }
+            }
+            return dispatcher;
+          }
+          function useContext2(Context) {
+            var dispatcher = resolveDispatcher();
+            {
+              if (Context._context !== void 0) {
+                var realContext = Context._context;
+                if (realContext.Consumer === Context) {
+                  error("Calling useContext(Context.Consumer) is not supported, may cause bugs, and will be removed in a future major release. Did you mean to call useContext(Context) instead?");
+                } else if (realContext.Provider === Context) {
+                  error("Calling useContext(Context.Provider) is not supported. Did you mean to call useContext(Context) instead?");
+                }
+              }
+            }
+            return dispatcher.useContext(Context);
+          }
+          function useState3(initialState) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useState(initialState);
+          }
+          function useReducer2(reducer, initialArg, init) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useReducer(reducer, initialArg, init);
+          }
+          function useRef3(initialValue) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useRef(initialValue);
+          }
+          function useEffect3(create, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useEffect(create, deps);
+          }
+          function useInsertionEffect2(create, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useInsertionEffect(create, deps);
+          }
+          function useLayoutEffect2(create, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useLayoutEffect(create, deps);
+          }
+          function useCallback2(callback, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useCallback(callback, deps);
+          }
+          function useMemo2(create, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useMemo(create, deps);
+          }
+          function useImperativeHandle2(ref, create, deps) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useImperativeHandle(ref, create, deps);
+          }
+          function useDebugValue2(value, formatterFn) {
+            {
+              var dispatcher = resolveDispatcher();
+              return dispatcher.useDebugValue(value, formatterFn);
+            }
+          }
+          function useTransition2() {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useTransition();
+          }
+          function useDeferredValue2(value) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useDeferredValue(value);
+          }
+          function useId2() {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useId();
+          }
+          function useSyncExternalStore2(subscribe, getSnapshot, getServerSnapshot) {
+            var dispatcher = resolveDispatcher();
+            return dispatcher.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+          }
+          var disabledDepth = 0;
+          var prevLog;
+          var prevInfo;
+          var prevWarn;
+          var prevError;
+          var prevGroup;
+          var prevGroupCollapsed;
+          var prevGroupEnd;
+          function disabledLog() {
+          }
+          disabledLog.__reactDisabledLog = true;
+          function disableLogs() {
+            {
+              if (disabledDepth === 0) {
+                prevLog = console.log;
+                prevInfo = console.info;
+                prevWarn = console.warn;
+                prevError = console.error;
+                prevGroup = console.group;
+                prevGroupCollapsed = console.groupCollapsed;
+                prevGroupEnd = console.groupEnd;
+                var props = {
+                  configurable: true,
+                  enumerable: true,
+                  value: disabledLog,
+                  writable: true
+                };
+                Object.defineProperties(console, {
+                  info: props,
+                  log: props,
+                  warn: props,
+                  error: props,
+                  group: props,
+                  groupCollapsed: props,
+                  groupEnd: props
+                });
+              }
+              disabledDepth++;
+            }
+          }
+          function reenableLogs() {
+            {
+              disabledDepth--;
+              if (disabledDepth === 0) {
+                var props = {
+                  configurable: true,
+                  enumerable: true,
+                  writable: true
+                };
+                Object.defineProperties(console, {
+                  log: assign({}, props, {
+                    value: prevLog
+                  }),
+                  info: assign({}, props, {
+                    value: prevInfo
+                  }),
+                  warn: assign({}, props, {
+                    value: prevWarn
+                  }),
+                  error: assign({}, props, {
+                    value: prevError
+                  }),
+                  group: assign({}, props, {
+                    value: prevGroup
+                  }),
+                  groupCollapsed: assign({}, props, {
+                    value: prevGroupCollapsed
+                  }),
+                  groupEnd: assign({}, props, {
+                    value: prevGroupEnd
+                  })
+                });
+              }
+              if (disabledDepth < 0) {
+                error("disabledDepth fell below zero. This is a bug in React. Please file an issue.");
+              }
+            }
+          }
+          var ReactCurrentDispatcher$1 = ReactSharedInternals.ReactCurrentDispatcher;
+          var prefix;
+          function describeBuiltInComponentFrame(name, source, ownerFn) {
+            {
+              if (prefix === void 0) {
+                try {
+                  throw Error();
+                } catch (x) {
+                  var match = x.stack.trim().match(/\n( *(at )?)/);
+                  prefix = match && match[1] || "";
+                }
+              }
+              return "\n" + prefix + name;
+            }
+          }
+          var reentry = false;
+          var componentFrameCache;
+          {
+            var PossiblyWeakMap = typeof WeakMap === "function" ? WeakMap : Map;
+            componentFrameCache = new PossiblyWeakMap();
+          }
+          function describeNativeComponentFrame(fn, construct) {
+            if (!fn || reentry) {
+              return "";
+            }
+            {
+              var frame = componentFrameCache.get(fn);
+              if (frame !== void 0) {
+                return frame;
+              }
+            }
+            var control;
+            reentry = true;
+            var previousPrepareStackTrace = Error.prepareStackTrace;
+            Error.prepareStackTrace = void 0;
+            var previousDispatcher;
+            {
+              previousDispatcher = ReactCurrentDispatcher$1.current;
+              ReactCurrentDispatcher$1.current = null;
+              disableLogs();
+            }
+            try {
+              if (construct) {
+                var Fake = function() {
+                  throw Error();
+                };
+                Object.defineProperty(Fake.prototype, "props", {
+                  set: function() {
+                    throw Error();
+                  }
+                });
+                if (typeof Reflect === "object" && Reflect.construct) {
+                  try {
+                    Reflect.construct(Fake, []);
+                  } catch (x) {
+                    control = x;
+                  }
+                  Reflect.construct(fn, [], Fake);
+                } else {
+                  try {
+                    Fake.call();
+                  } catch (x) {
+                    control = x;
+                  }
+                  fn.call(Fake.prototype);
+                }
+              } else {
+                try {
+                  throw Error();
+                } catch (x) {
+                  control = x;
+                }
+                fn();
+              }
+            } catch (sample) {
+              if (sample && control && typeof sample.stack === "string") {
+                var sampleLines = sample.stack.split("\n");
+                var controlLines = control.stack.split("\n");
+                var s = sampleLines.length - 1;
+                var c = controlLines.length - 1;
+                while (s >= 1 && c >= 0 && sampleLines[s] !== controlLines[c]) {
+                  c--;
+                }
+                for (; s >= 1 && c >= 0; s--, c--) {
+                  if (sampleLines[s] !== controlLines[c]) {
+                    if (s !== 1 || c !== 1) {
+                      do {
+                        s--;
+                        c--;
+                        if (c < 0 || sampleLines[s] !== controlLines[c]) {
+                          var _frame = "\n" + sampleLines[s].replace(" at new ", " at ");
+                          if (fn.displayName && _frame.includes("<anonymous>")) {
+                            _frame = _frame.replace("<anonymous>", fn.displayName);
+                          }
+                          {
+                            if (typeof fn === "function") {
+                              componentFrameCache.set(fn, _frame);
+                            }
+                          }
+                          return _frame;
+                        }
+                      } while (s >= 1 && c >= 0);
+                    }
+                    break;
+                  }
+                }
+              }
+            } finally {
+              reentry = false;
+              {
+                ReactCurrentDispatcher$1.current = previousDispatcher;
+                reenableLogs();
+              }
+              Error.prepareStackTrace = previousPrepareStackTrace;
+            }
+            var name = fn ? fn.displayName || fn.name : "";
+            var syntheticFrame = name ? describeBuiltInComponentFrame(name) : "";
+            {
+              if (typeof fn === "function") {
+                componentFrameCache.set(fn, syntheticFrame);
+              }
+            }
+            return syntheticFrame;
+          }
+          function describeFunctionComponentFrame(fn, source, ownerFn) {
+            {
+              return describeNativeComponentFrame(fn, false);
+            }
+          }
+          function shouldConstruct(Component3) {
+            var prototype = Component3.prototype;
+            return !!(prototype && prototype.isReactComponent);
+          }
+          function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+            if (type == null) {
+              return "";
+            }
+            if (typeof type === "function") {
+              {
+                return describeNativeComponentFrame(type, shouldConstruct(type));
+              }
+            }
+            if (typeof type === "string") {
+              return describeBuiltInComponentFrame(type);
+            }
+            switch (type) {
+              case REACT_SUSPENSE_TYPE:
+                return describeBuiltInComponentFrame("Suspense");
+              case REACT_SUSPENSE_LIST_TYPE:
+                return describeBuiltInComponentFrame("SuspenseList");
+            }
+            if (typeof type === "object") {
+              switch (type.$$typeof) {
+                case REACT_FORWARD_REF_TYPE:
+                  return describeFunctionComponentFrame(type.render);
+                case REACT_MEMO_TYPE:
+                  return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
+                case REACT_LAZY_TYPE: {
+                  var lazyComponent = type;
+                  var payload = lazyComponent._payload;
+                  var init = lazyComponent._init;
+                  try {
+                    return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
+                  } catch (x) {
+                  }
+                }
+              }
+            }
+            return "";
+          }
+          var loggedTypeFailures = {};
+          var ReactDebugCurrentFrame$1 = ReactSharedInternals.ReactDebugCurrentFrame;
+          function setCurrentlyValidatingElement(element) {
+            {
+              if (element) {
+                var owner = element._owner;
+                var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+                ReactDebugCurrentFrame$1.setExtraStackFrame(stack);
+              } else {
+                ReactDebugCurrentFrame$1.setExtraStackFrame(null);
+              }
+            }
+          }
+          function checkPropTypes(typeSpecs, values, location, componentName, element) {
+            {
+              var has = Function.call.bind(hasOwnProperty);
+              for (var typeSpecName in typeSpecs) {
+                if (has(typeSpecs, typeSpecName)) {
+                  var error$1 = void 0;
+                  try {
+                    if (typeof typeSpecs[typeSpecName] !== "function") {
+                      var err = Error((componentName || "React class") + ": " + location + " type `" + typeSpecName + "` is invalid; it must be a function, usually from the `prop-types` package, but received `" + typeof typeSpecs[typeSpecName] + "`.This often happens because of typos such as `PropTypes.function` instead of `PropTypes.func`.");
+                      err.name = "Invariant Violation";
+                      throw err;
+                    }
+                    error$1 = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, "SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED");
+                  } catch (ex) {
+                    error$1 = ex;
+                  }
+                  if (error$1 && !(error$1 instanceof Error)) {
+                    setCurrentlyValidatingElement(element);
+                    error("%s: type specification of %s `%s` is invalid; the type checker function must return `null` or an `Error` but returned a %s. You may have forgotten to pass an argument to the type checker creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and shape all require an argument).", componentName || "React class", location, typeSpecName, typeof error$1);
+                    setCurrentlyValidatingElement(null);
+                  }
+                  if (error$1 instanceof Error && !(error$1.message in loggedTypeFailures)) {
+                    loggedTypeFailures[error$1.message] = true;
+                    setCurrentlyValidatingElement(element);
+                    error("Failed %s type: %s", location, error$1.message);
+                    setCurrentlyValidatingElement(null);
+                  }
+                }
+              }
+            }
+          }
+          function setCurrentlyValidatingElement$1(element) {
+            {
+              if (element) {
+                var owner = element._owner;
+                var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+                setExtraStackFrame(stack);
+              } else {
+                setExtraStackFrame(null);
+              }
+            }
+          }
+          var propTypesMisspellWarningShown;
+          {
+            propTypesMisspellWarningShown = false;
+          }
+          function getDeclarationErrorAddendum() {
+            if (ReactCurrentOwner.current) {
+              var name = getComponentNameFromType(ReactCurrentOwner.current.type);
+              if (name) {
+                return "\n\nCheck the render method of `" + name + "`.";
+              }
+            }
+            return "";
+          }
+          function getSourceInfoErrorAddendum(source) {
+            if (source !== void 0) {
+              var fileName = source.fileName.replace(/^.*[\\\/]/, "");
+              var lineNumber = source.lineNumber;
+              return "\n\nCheck your code at " + fileName + ":" + lineNumber + ".";
+            }
+            return "";
+          }
+          function getSourceInfoErrorAddendumForProps(elementProps) {
+            if (elementProps !== null && elementProps !== void 0) {
+              return getSourceInfoErrorAddendum(elementProps.__source);
+            }
+            return "";
+          }
+          var ownerHasKeyUseWarning = {};
+          function getCurrentComponentErrorInfo(parentType) {
+            var info = getDeclarationErrorAddendum();
+            if (!info) {
+              var parentName = typeof parentType === "string" ? parentType : parentType.displayName || parentType.name;
+              if (parentName) {
+                info = "\n\nCheck the top-level render call using <" + parentName + ">.";
+              }
+            }
+            return info;
+          }
+          function validateExplicitKey(element, parentType) {
+            if (!element._store || element._store.validated || element.key != null) {
+              return;
+            }
+            element._store.validated = true;
+            var currentComponentErrorInfo = getCurrentComponentErrorInfo(parentType);
+            if (ownerHasKeyUseWarning[currentComponentErrorInfo]) {
+              return;
+            }
+            ownerHasKeyUseWarning[currentComponentErrorInfo] = true;
+            var childOwner = "";
+            if (element && element._owner && element._owner !== ReactCurrentOwner.current) {
+              childOwner = " It was passed a child from " + getComponentNameFromType(element._owner.type) + ".";
+            }
+            {
+              setCurrentlyValidatingElement$1(element);
+              error('Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.', currentComponentErrorInfo, childOwner);
+              setCurrentlyValidatingElement$1(null);
+            }
+          }
+          function validateChildKeys(node, parentType) {
+            if (typeof node !== "object") {
+              return;
+            }
+            if (isArray(node)) {
+              for (var i = 0; i < node.length; i++) {
+                var child = node[i];
+                if (isValidElement2(child)) {
+                  validateExplicitKey(child, parentType);
+                }
+              }
+            } else if (isValidElement2(node)) {
+              if (node._store) {
+                node._store.validated = true;
+              }
+            } else if (node) {
+              var iteratorFn = getIteratorFn(node);
+              if (typeof iteratorFn === "function") {
+                if (iteratorFn !== node.entries) {
+                  var iterator = iteratorFn.call(node);
+                  var step;
+                  while (!(step = iterator.next()).done) {
+                    if (isValidElement2(step.value)) {
+                      validateExplicitKey(step.value, parentType);
+                    }
+                  }
+                }
+              }
+            }
+          }
+          function validatePropTypes(element) {
+            {
+              var type = element.type;
+              if (type === null || type === void 0 || typeof type === "string") {
+                return;
+              }
+              var propTypes;
+              if (typeof type === "function") {
+                propTypes = type.propTypes;
+              } else if (typeof type === "object" && (type.$$typeof === REACT_FORWARD_REF_TYPE || // Note: Memo only checks outer props here.
+              // Inner props are checked in the reconciler.
+              type.$$typeof === REACT_MEMO_TYPE)) {
+                propTypes = type.propTypes;
+              } else {
+                return;
+              }
+              if (propTypes) {
+                var name = getComponentNameFromType(type);
+                checkPropTypes(propTypes, element.props, "prop", name, element);
+              } else if (type.PropTypes !== void 0 && !propTypesMisspellWarningShown) {
+                propTypesMisspellWarningShown = true;
+                var _name = getComponentNameFromType(type);
+                error("Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?", _name || "Unknown");
+              }
+              if (typeof type.getDefaultProps === "function" && !type.getDefaultProps.isReactClassApproved) {
+                error("getDefaultProps is only used on classic React.createClass definitions. Use a static property named `defaultProps` instead.");
+              }
+            }
+          }
+          function validateFragmentProps(fragment) {
+            {
+              var keys = Object.keys(fragment.props);
+              for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                if (key !== "children" && key !== "key") {
+                  setCurrentlyValidatingElement$1(fragment);
+                  error("Invalid prop `%s` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.", key);
+                  setCurrentlyValidatingElement$1(null);
+                  break;
+                }
+              }
+              if (fragment.ref !== null) {
+                setCurrentlyValidatingElement$1(fragment);
+                error("Invalid attribute `ref` supplied to `React.Fragment`.");
+                setCurrentlyValidatingElement$1(null);
+              }
+            }
+          }
+          function createElementWithValidation(type, props, children) {
+            var validType = isValidElementType(type);
+            if (!validType) {
+              var info = "";
+              if (type === void 0 || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
+                info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
+              }
+              var sourceInfo = getSourceInfoErrorAddendumForProps(props);
+              if (sourceInfo) {
+                info += sourceInfo;
+              } else {
+                info += getDeclarationErrorAddendum();
+              }
+              var typeString;
+              if (type === null) {
+                typeString = "null";
+              } else if (isArray(type)) {
+                typeString = "array";
+              } else if (type !== void 0 && type.$$typeof === REACT_ELEMENT_TYPE) {
+                typeString = "<" + (getComponentNameFromType(type.type) || "Unknown") + " />";
+                info = " Did you accidentally export a JSX literal instead of a component?";
+              } else {
+                typeString = typeof type;
+              }
+              {
+                error("React.createElement: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
+              }
+            }
+            var element = createElement2.apply(this, arguments);
+            if (element == null) {
+              return element;
+            }
+            if (validType) {
+              for (var i = 2; i < arguments.length; i++) {
+                validateChildKeys(arguments[i], type);
+              }
+            }
+            if (type === REACT_FRAGMENT_TYPE) {
+              validateFragmentProps(element);
+            } else {
+              validatePropTypes(element);
+            }
+            return element;
+          }
+          var didWarnAboutDeprecatedCreateFactory = false;
+          function createFactoryWithValidation(type) {
+            var validatedFactory = createElementWithValidation.bind(null, type);
+            validatedFactory.type = type;
+            {
+              if (!didWarnAboutDeprecatedCreateFactory) {
+                didWarnAboutDeprecatedCreateFactory = true;
+                warn("React.createFactory() is deprecated and will be removed in a future major release. Consider using JSX or use React.createElement() directly instead.");
+              }
+              Object.defineProperty(validatedFactory, "type", {
+                enumerable: false,
+                get: function() {
+                  warn("Factory.type is deprecated. Access the class directly before passing it to createFactory.");
+                  Object.defineProperty(this, "type", {
+                    value: type
+                  });
+                  return type;
+                }
+              });
+            }
+            return validatedFactory;
+          }
+          function cloneElementWithValidation(element, props, children) {
+            var newElement = cloneElement2.apply(this, arguments);
+            for (var i = 2; i < arguments.length; i++) {
+              validateChildKeys(arguments[i], newElement.type);
+            }
+            validatePropTypes(newElement);
+            return newElement;
+          }
+          function startTransition2(scope, options) {
+            var prevTransition = ReactCurrentBatchConfig.transition;
+            ReactCurrentBatchConfig.transition = {};
+            var currentTransition = ReactCurrentBatchConfig.transition;
+            {
+              ReactCurrentBatchConfig.transition._updatedFibers = /* @__PURE__ */ new Set();
+            }
+            try {
+              scope();
+            } finally {
+              ReactCurrentBatchConfig.transition = prevTransition;
+              {
+                if (prevTransition === null && currentTransition._updatedFibers) {
+                  var updatedFibersCount = currentTransition._updatedFibers.size;
+                  if (updatedFibersCount > 10) {
+                    warn("Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table.");
+                  }
+                  currentTransition._updatedFibers.clear();
+                }
+              }
+            }
+          }
+          var didWarnAboutMessageChannel = false;
+          var enqueueTaskImpl = null;
+          function enqueueTask(task) {
+            if (enqueueTaskImpl === null) {
+              try {
+                var requireString = ("require" + Math.random()).slice(0, 7);
+                var nodeRequire = module && module[requireString];
+                enqueueTaskImpl = nodeRequire.call(module, "timers").setImmediate;
+              } catch (_err) {
+                enqueueTaskImpl = function(callback) {
+                  {
+                    if (didWarnAboutMessageChannel === false) {
+                      didWarnAboutMessageChannel = true;
+                      if (typeof MessageChannel === "undefined") {
+                        error("This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning.");
+                      }
+                    }
+                  }
+                  var channel = new MessageChannel();
+                  channel.port1.onmessage = callback;
+                  channel.port2.postMessage(void 0);
+                };
+              }
+            }
+            return enqueueTaskImpl(task);
+          }
+          var actScopeDepth = 0;
+          var didWarnNoAwaitAct = false;
+          function act(callback) {
+            {
+              var prevActScopeDepth = actScopeDepth;
+              actScopeDepth++;
+              if (ReactCurrentActQueue.current === null) {
+                ReactCurrentActQueue.current = [];
+              }
+              var prevIsBatchingLegacy = ReactCurrentActQueue.isBatchingLegacy;
+              var result;
+              try {
+                ReactCurrentActQueue.isBatchingLegacy = true;
+                result = callback();
+                if (!prevIsBatchingLegacy && ReactCurrentActQueue.didScheduleLegacyUpdate) {
+                  var queue = ReactCurrentActQueue.current;
+                  if (queue !== null) {
+                    ReactCurrentActQueue.didScheduleLegacyUpdate = false;
+                    flushActQueue(queue);
+                  }
+                }
+              } catch (error2) {
+                popActScope(prevActScopeDepth);
+                throw error2;
+              } finally {
+                ReactCurrentActQueue.isBatchingLegacy = prevIsBatchingLegacy;
+              }
+              if (result !== null && typeof result === "object" && typeof result.then === "function") {
+                var thenableResult = result;
+                var wasAwaited = false;
+                var thenable = {
+                  then: function(resolve, reject) {
+                    wasAwaited = true;
+                    thenableResult.then(function(returnValue2) {
+                      popActScope(prevActScopeDepth);
+                      if (actScopeDepth === 0) {
+                        recursivelyFlushAsyncActWork(returnValue2, resolve, reject);
+                      } else {
+                        resolve(returnValue2);
+                      }
+                    }, function(error2) {
+                      popActScope(prevActScopeDepth);
+                      reject(error2);
+                    });
+                  }
+                };
+                {
+                  if (!didWarnNoAwaitAct && typeof Promise !== "undefined") {
+                    Promise.resolve().then(function() {
+                    }).then(function() {
+                      if (!wasAwaited) {
+                        didWarnNoAwaitAct = true;
+                        error("You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);");
+                      }
+                    });
+                  }
+                }
+                return thenable;
+              } else {
+                var returnValue = result;
+                popActScope(prevActScopeDepth);
+                if (actScopeDepth === 0) {
+                  var _queue = ReactCurrentActQueue.current;
+                  if (_queue !== null) {
+                    flushActQueue(_queue);
+                    ReactCurrentActQueue.current = null;
+                  }
+                  var _thenable = {
+                    then: function(resolve, reject) {
+                      if (ReactCurrentActQueue.current === null) {
+                        ReactCurrentActQueue.current = [];
+                        recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+                      } else {
+                        resolve(returnValue);
+                      }
+                    }
+                  };
+                  return _thenable;
+                } else {
+                  var _thenable2 = {
+                    then: function(resolve, reject) {
+                      resolve(returnValue);
+                    }
+                  };
+                  return _thenable2;
+                }
+              }
+            }
+          }
+          function popActScope(prevActScopeDepth) {
+            {
+              if (prevActScopeDepth !== actScopeDepth - 1) {
+                error("You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. ");
+              }
+              actScopeDepth = prevActScopeDepth;
+            }
+          }
+          function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {
+            {
+              var queue = ReactCurrentActQueue.current;
+              if (queue !== null) {
+                try {
+                  flushActQueue(queue);
+                  enqueueTask(function() {
+                    if (queue.length === 0) {
+                      ReactCurrentActQueue.current = null;
+                      resolve(returnValue);
+                    } else {
+                      recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+                    }
+                  });
+                } catch (error2) {
+                  reject(error2);
+                }
+              } else {
+                resolve(returnValue);
+              }
+            }
+          }
+          var isFlushing = false;
+          function flushActQueue(queue) {
+            {
+              if (!isFlushing) {
+                isFlushing = true;
+                var i = 0;
+                try {
+                  for (; i < queue.length; i++) {
+                    var callback = queue[i];
+                    do {
+                      callback = callback(true);
+                    } while (callback !== null);
+                  }
+                  queue.length = 0;
+                } catch (error2) {
+                  queue = queue.slice(i + 1);
+                  throw error2;
+                } finally {
+                  isFlushing = false;
+                }
+              }
+            }
+          }
+          var createElement$1 = createElementWithValidation;
+          var cloneElement$1 = cloneElementWithValidation;
+          var createFactory2 = createFactoryWithValidation;
+          var Children2 = {
+            map: mapChildren,
+            forEach: forEachChildren,
+            count: countChildren,
+            toArray,
+            only: onlyChild
+          };
+          exports.Children = Children2;
+          exports.Component = Component2;
+          exports.Fragment = REACT_FRAGMENT_TYPE;
+          exports.Profiler = REACT_PROFILER_TYPE;
+          exports.PureComponent = PureComponent2;
+          exports.StrictMode = REACT_STRICT_MODE_TYPE;
+          exports.Suspense = REACT_SUSPENSE_TYPE;
+          exports.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED = ReactSharedInternals;
+          exports.act = act;
+          exports.cloneElement = cloneElement$1;
+          exports.createContext = createContext2;
+          exports.createElement = createElement$1;
+          exports.createFactory = createFactory2;
+          exports.createRef = createRef2;
+          exports.forwardRef = forwardRef2;
+          exports.isValidElement = isValidElement2;
+          exports.lazy = lazy2;
+          exports.memo = memo2;
+          exports.startTransition = startTransition2;
+          exports.unstable_act = act;
+          exports.useCallback = useCallback2;
+          exports.useContext = useContext2;
+          exports.useDebugValue = useDebugValue2;
+          exports.useDeferredValue = useDeferredValue2;
+          exports.useEffect = useEffect3;
+          exports.useId = useId2;
+          exports.useImperativeHandle = useImperativeHandle2;
+          exports.useInsertionEffect = useInsertionEffect2;
+          exports.useLayoutEffect = useLayoutEffect2;
+          exports.useMemo = useMemo2;
+          exports.useReducer = useReducer2;
+          exports.useRef = useRef3;
+          exports.useState = useState3;
+          exports.useSyncExternalStore = useSyncExternalStore2;
+          exports.useTransition = useTransition2;
+          exports.version = ReactVersion;
+          if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop === "function") {
+            __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(new Error());
+          }
+        })();
+      }
+    }
+  });
+
+  // ../code-agent-packages/node_modules/react/index.js
+  var require_react2 = __commonJS({
+    "../code-agent-packages/node_modules/react/index.js"(exports, module) {
+      "use strict";
+      if (false) {
+        module.exports = null;
+      } else {
+        module.exports = require_react_development2();
+      }
+    }
+  });
+
+  // node_modules/react/cjs/react-jsx-runtime.development.js
+  var require_react_jsx_runtime_development = __commonJS({
+    "node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+      "use strict";
+      if (true) {
+        (function() {
+          "use strict";
+          var React3 = require_react();
+          var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
+          var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
+          var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
+          var REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode");
+          var REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler");
+          var REACT_PROVIDER_TYPE = /* @__PURE__ */ Symbol.for("react.provider");
+          var REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context");
+          var REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref");
+          var REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense");
+          var REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list");
+          var REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo");
+          var REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy");
+          var REACT_OFFSCREEN_TYPE = /* @__PURE__ */ Symbol.for("react.offscreen");
+          var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+          var FAUX_ITERATOR_SYMBOL = "@@iterator";
+          function getIteratorFn(maybeIterable) {
+            if (maybeIterable === null || typeof maybeIterable !== "object") {
+              return null;
+            }
+            var maybeIterator = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL];
+            if (typeof maybeIterator === "function") {
+              return maybeIterator;
+            }
+            return null;
+          }
+          var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
           function error(format) {
             {
               {
@@ -40550,2200 +42436,6 @@
   // src/renderer/App.tsx
   var import_semver2 = __toESM(require_semver2(), 1);
 
-  // ../code-agent-packages/software-developer/src/project-defaults.ts
-  function getDefaultTeamGoal(role) {
-    const normalizedRole = role.toLowerCase();
-    if (normalizedRole.includes("supervisor")) {
-      return "Coordinate the team, keep work aligned to the project objective, and decide the next handoff.";
-    }
-    if (normalizedRole.includes("manager")) {
-      return "Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.";
-    }
-    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
-      return "Validate the implementation plan, propose tests, and call out release blockers.";
-    }
-    if (normalizedRole.includes("review")) {
-      return "Review the work for correctness, maintainability, security, and missing verification.";
-    }
-    return "Implement the assigned work, use tools conservatively, and report concrete results.";
-  }
-  function getDefaultTeamTools(role) {
-    const normalizedRole = role.toLowerCase();
-    if (normalizedRole.includes("supervisor") || normalizedRole.includes("manager")) {
-      return ["automation.listTeams", "automation.listTeamRuns", "fs.read"];
-    }
-    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
-      return ["fs.read", "bash.run"];
-    }
-    return ["fs.read", "fs.write", "bash.run"];
-  }
-
-  // ../code-agent-packages/software-developer/src/renderer.tsx
-  function createSoftwareDeveloperRendererViews(host) {
-    const {
-      AUTOMATION_PERMISSION_TOOLS: AUTOMATION_PERMISSION_TOOLS2,
-      DEFAULT_AUTONOMOUS_ROLES: DEFAULT_AUTONOMOUS_ROLES2,
-      DEFAULT_EMPLOYEE_PERMISSIONS: DEFAULT_EMPLOYEE_PERMISSIONS2,
-      DEFAULT_PROJECT_ARTIFACTS: DEFAULT_PROJECT_ARTIFACTS2,
-      PROJECT_LIST_PAGE_SIZE: PROJECT_LIST_PAGE_SIZE2,
-      TOOL_PERMISSION_OPTIONS: TOOL_PERMISSION_OPTIONS2,
-      Icon: Icon2,
-      InlineApprovalQueue: InlineApprovalQueue2,
-      MessageItem: MessageItem2,
-      RecordViewToggle: RecordViewToggle2,
-      ToolActivityPanel: ToolActivityPanel2,
-      createDefaultProjectTeams: createDefaultProjectTeams2,
-      createProjectReadyMessages: createProjectReadyMessages2,
-      createProjectTeamId: createProjectTeamId2,
-      createSoftwareProjectDraft: createSoftwareProjectDraft2,
-      createVirtualEmployeeProfile: createVirtualEmployeeProfile2,
-      createVirtualRoleDefinition: createVirtualRoleDefinition2,
-      formatFileSize: formatFileSize2,
-      formatImageAttachmentSummary: formatImageAttachmentSummary2,
-      formatProjectOutputSource: formatProjectOutputSource2,
-      formatProjectStatus: formatProjectStatus2,
-      getDefaultRoleId: getDefaultRoleId2,
-      getEmployeeRoleDefinition: getEmployeeRoleDefinition2,
-      getHistoryRecordSummary: getHistoryRecordSummary2,
-      getHistoryRecordTitle: getHistoryRecordTitle2,
-      getHistoryRecordTypeLabel: getHistoryRecordTypeLabel2,
-      getPathBasename: getPathBasename2,
-      getProjectAssignedEmployees: getProjectAssignedEmployees2,
-      getProjectAutomationTeamId: getProjectAutomationTeamId2,
-      getProjectChatKey: getProjectChatKey2,
-      getProjectStaffingEmployees: getProjectStaffingEmployees2,
-      getProjectSupervisor: getProjectSupervisor2,
-      getProjectTeams: getProjectTeams2,
-      getProviderDefault: getProviderDefault2,
-      getRoleDefinitionById: getRoleDefinitionById2,
-      getTeamMembers: getTeamMembers2,
-      getTeamSupervisor: getTeamSupervisor2,
-      getToolPermissionPolicy: getToolPermissionPolicy2,
-      getToolResultPath: getToolResultPath2,
-      groupMessagesByAssistantRun: groupMessagesByAssistantRun2,
-      groupToolsByCategory: groupToolsByCategory2,
-      isProjectToolActivity: isProjectToolActivity2,
-      isReviewForProjectChat: isReviewForProjectChat2,
-      isSupervisorEmployee: isSupervisorEmployee2,
-      isToolExposedToModel: isToolExposedToModel2,
-      joinWorkspacePath: joinWorkspacePath2,
-      normalizeStringList: normalizeStringList3,
-      normalizeToolNameList: normalizeToolNameList2,
-      readCliOption: readCliOption2,
-      styles,
-      summarizeProjectGoals: summarizeProjectGoals2,
-      summarizeToolResult: summarizeToolResult2
-    } = host;
-    function SettingsSection2({
-      title,
-      children
-    }) {
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsSection }, title && /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, title), children);
-    }
-    function WorkbenchEditorPanel({
-      title,
-      subtitle,
-      children,
-      footer,
-      onClose,
-      wide = false,
-      bodyClassName
-    }) {
-      return /* @__PURE__ */ esm_wrapper_default.createElement("aside", { className: wide ? `${styles.workbenchEditorPanel} ${styles.workbenchEditorPanelWide}` : styles.workbenchEditorPanel, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchEditorHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, title), subtitle && /* @__PURE__ */ esm_wrapper_default.createElement("span", null, subtitle)), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onClose, title: "Close this panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Close")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: bodyClassName ? `${styles.workbenchEditorBody} ${bodyClassName}` : styles.workbenchEditorBody }, children), footer && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchEditorFooter }, footer));
-    }
-    function ProjectsView2({
-      activeSection,
-      appInfo,
-      appConfig,
-      appState,
-      activeProviderLabel,
-      activeProviderDefault,
-      viewportSize,
-      tokenUsage,
-      toolActivities,
-      teamRuns,
-      runningProjectIds,
-      currentSessionTitle,
-      sessionCount,
-      projects,
-      activeProjectId,
-      roles,
-      employees,
-      projectTeams,
-      projectChatMessages,
-      fileWriteReviews,
-      commandReviews,
-      toolPermissionReviews,
-      projectGeneratedOutputs,
-      projectChatSendingKeys,
-      workspacePath,
-      workspaceEntries,
-      workspaceBrowserError,
-      workspaceActionMessage,
-      isLoadingWorkspaceEntries,
-      onOpenWorkspaceEntry,
-      onOpenWorkspacePath,
-      onRevealWorkspacePath,
-      onGoToWorkspaceParent,
-      onRefreshWorkspace,
-      mcpServers,
-      mcpTools,
-      onSaveProject,
-      onSaveRole,
-      onDeleteRole,
-      onSaveEmployee,
-      onDeleteEmployee,
-      onSaveTeam,
-      onDeleteTeam,
-      onSelectProject,
-      onSetProjectStatus,
-      onDeleteProject,
-      onSendProjectChat,
-      onResolveFileWrite,
-      onResolveCommand,
-      onResolveToolPermission,
-      onChangeSection
-    }) {
-      const visibleActiveSection = ["studio", "roles", "employees", "teams"].includes(activeSection) ? activeSection : "studio";
-      const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
-      const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
-      const guidedProjects = projects.filter((project) => project.mode === "guided");
-      const autonomousProjects = projects.filter((project) => project.mode === "autonomous");
-      const selectedAutonomousProject = autonomousProjects.find((project) => project.id === activeProjectId) ?? autonomousProjects[0];
-      const selectedAutonomousSupervisor = selectedAutonomousProject ? getProjectSupervisor2(selectedAutonomousProject, employees, roles) : employees.find((employee) => isSupervisorEmployee2(employee, roles));
-      const selectedAutonomousTeams = selectedAutonomousProject ? getProjectTeams2(selectedAutonomousProject, projectTeams) : [];
-      const selectedAutonomousDirectEmployees = selectedAutonomousProject ? getProjectAssignedEmployees2(selectedAutonomousProject, employees, roles) : [];
-      const selectedAutonomousStaff = selectedAutonomousProject ? getProjectStaffingEmployees2(selectedAutonomousProject, employees, roles, projectTeams) : employees.filter((employee) => employee.id !== selectedAutonomousSupervisor?.id);
-      function getProjectLatestRun(project) {
-        if (project.mode !== "autonomous") {
-          return void 0;
-        }
-        const automationTeamId = getProjectAutomationTeamId2(project.id);
-        return teamRuns.filter((run) => run.teamId === automationTeamId).sort((left, right) => right.startedAt - left.startedAt)[0];
-      }
-      function getProjectEffectiveStatus(project) {
-        if (project.status === "stopped") {
-          return "stopped";
-        }
-        const latestRun = getProjectLatestRun(project);
-        if (project.mode === "autonomous" && (runningProjectIds.has(project.id) || latestRun?.status === "running")) {
-          return "active";
-        }
-        if (latestRun?.status === "succeeded") {
-          return "done";
-        }
-        if (latestRun?.status === "failed") {
-          return "blocked";
-        }
-        return project.status;
-      }
-      const activeProjects = projects.filter((project) => getProjectEffectiveStatus(project) === "active");
-      const staffedProjectCount = projects.filter((project) => project.mode === "guided" ? project.assignedEmployeeIds.length > 0 : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)).length;
-      const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
-      const projectModeMetrics = [
-        { label: "Standard", value: guidedProjects.length, className: styles.projectMetricGuided },
-        { label: "Fully autonomous", value: autonomousProjects.length, className: styles.projectMetricAutonomous }
-      ];
-      const projectStatusMetrics = [
-        ["Active", "active", styles.projectMetricActive],
-        ["Planning", "planning", styles.projectMetricPlanning],
-        ["Blocked", "blocked", styles.projectMetricBlocked],
-        ["Stopped", "stopped", styles.projectMetricStopped],
-        ["Done", "done", styles.projectMetricDone],
-        ["Idea", "idea", styles.projectMetricIdea]
-      ].map(([label, status, className]) => ({
-        label,
-        value: projects.filter((project) => getProjectEffectiveStatus(project) === status).length,
-        className
-      }));
-      const projectStaffingMetrics = [
-        { label: "Staffed", value: staffedProjectCount, className: styles.projectMetricStaffed },
-        { label: "Needs staffing", value: Math.max(0, projects.length - staffedProjectCount), className: styles.projectMetricNeedsStaffing }
-      ];
-      const [draft, setDraft] = useState(() => createSoftwareProjectDraft2(appInfo?.workspacePath));
-      const [roleDraft, setRoleDraft] = useState(() => createVirtualRoleDefinition2("Developer"));
-      const [employeeDraft, setEmployeeDraft] = useState(() => createVirtualEmployeeProfile2("Developer"));
-      const [teamDraft, setTeamDraft] = useState(() => createDefaultProjectTeams2()[0]);
-      const [profileEmployeeId, setProfileEmployeeId] = useState("");
-      const [projectEditorPanel, setProjectEditorPanel] = useState(null);
-      const [projectDeleteTarget, setProjectDeleteTarget] = useState(null);
-      const [projectActionProjectId, setProjectActionProjectId] = useState("");
-      const [projectChatDrafts, setProjectChatDrafts] = useState({});
-      const [activityRunSelections, setActivityRunSelections] = useState({});
-      const [copiedProjectMessageId, setCopiedProjectMessageId] = useState(null);
-      const [projectPortfolioView, setProjectPortfolioView] = useState("table");
-      const [roleListView, setRoleListView] = useState("table");
-      const [employeeListView, setEmployeeListView] = useState("table");
-      const [teamListView, setTeamListView] = useState("table");
-      const [projectPage, setProjectPage] = useState(1);
-      const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2));
-      const normalizedProjectPage = Math.min(projectPage, projectPageCount);
-      const projectPageStartIndex = (normalizedProjectPage - 1) * PROJECT_LIST_PAGE_SIZE2;
-      const visibleProjects = projects.slice(projectPageStartIndex, projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2);
-      const projectPageFirstRecord = projects.length === 0 ? 0 : projectPageStartIndex + 1;
-      const projectPageLastRecord = Math.min(projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2, projects.length);
-      const projectChatTranscriptRef = useRef(null);
-      const profileEmployee = employees.find((employee) => employee.id === profileEmployeeId);
-      const projectActionProject = projects.find((project) => project.id === projectActionProjectId) ?? selectedProject;
-      const projectWidePanels = [
-        "project-chat",
-        "project-org",
-        "project-execution",
-        "project-board",
-        "project-team-chat",
-        "project-deliverables"
-      ];
-      const projectRailOpen = Boolean(projectEditorPanel);
-      const projectRailWide = Boolean(projectEditorPanel && projectWidePanels.includes(projectEditorPanel));
-      useEffect(() => {
-        setProjectPage((current) => Math.min(Math.max(1, current), Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2))));
-      }, [projects.length]);
-      useEffect(() => {
-        if (projectEditorPanel !== "project-chat" && projectEditorPanel !== "project-team-chat") {
-          return;
-        }
-        const transcript = projectChatTranscriptRef.current;
-        if (transcript) {
-          transcript.scrollTop = transcript.scrollHeight;
-        }
-      }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
-      function startDraft() {
-        const supervisor = employees.find((employee) => isSupervisorEmployee2(employee, roles)) ?? employees[0];
-        setDraft({
-          ...createSoftwareProjectDraft2(appInfo?.workspacePath),
-          mode: "guided",
-          permissionMode: "supervised",
-          supervisorEmployeeId: supervisor?.id ?? "",
-          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
-          assignedEmployeeIds: [],
-          assignedTeamIds: [],
-          teamRoles: []
-        });
-        setProfileEmployeeId("");
-        setProjectDeleteTarget(null);
-        setProjectActionProjectId("");
-        setProjectEditorPanel("project");
-      }
-      function editProject(project) {
-        setDraft({
-          ...project,
-          artifacts: [...project.artifacts],
-          teamRoles: [...project.teamRoles],
-          assignedTeamIds: [...project.assignedTeamIds],
-          assignedEmployeeIds: [...project.assignedEmployeeIds]
-        });
-        onSelectProject(project.id);
-        setProfileEmployeeId("");
-        setProjectDeleteTarget(null);
-        setProjectActionProjectId(project.id);
-        setProjectEditorPanel("project");
-      }
-      function updateDraft(update) {
-        setDraft((current) => ({
-          ...current,
-          ...update,
-          updatedAt: Date.now()
-        }));
-      }
-      function saveDraft() {
-        const supervisor = employees.find((employee) => employee.id === draft.supervisorEmployeeId);
-        const assignedEmployees = employees.filter((employee) => draft.assignedEmployeeIds.includes(employee.id));
-        const assignedTeams = projectTeams.filter((team) => draft.assignedTeamIds.includes(team.id));
-        const next = {
-          ...draft,
-          name: draft.name.trim() || "Untitled software project",
-          workspacePath: draft.workspacePath || appInfo?.workspacePath,
-          artifacts: normalizeStringList3(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS2),
-          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
-          assignedTeamIds: assignedTeams.map((team) => team.id),
-          teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
-            ...assignedTeams.map((team) => team.name),
-            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
-          ] : normalizeStringList3(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES2),
-          updatedAt: Date.now()
-        };
-        onSaveProject(next);
-        setDraft(next);
-        return next;
-      }
-      function saveDraftAndViewOrganization() {
-        const project = saveDraft();
-        onSelectProject(project.id);
-        setProjectActionProjectId(project.id);
-        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
-      }
-      function saveDraftAndOpenProjectChat() {
-        const project = saveDraft();
-        onSelectProject(project.id);
-        setProjectActionProjectId(project.id);
-        setProjectEditorPanel("project-chat");
-      }
-      function closeProjectEditorPanel() {
-        setProjectEditorPanel(null);
-        setProfileEmployeeId("");
-        setProjectDeleteTarget(null);
-        setProjectActionProjectId("");
-      }
-      function openProjectDeleteConfirmation(target) {
-        setProfileEmployeeId("");
-        setProjectActionProjectId(target.kind === "project" ? target.id : "");
-        setProjectDeleteTarget(target);
-        setProjectEditorPanel("delete");
-      }
-      function openProjectActionPanel(project, panel) {
-        onSelectProject(project.id);
-        setProfileEmployeeId("");
-        setProjectDeleteTarget(null);
-        setProjectActionProjectId(project.id);
-        setProjectEditorPanel(panel);
-      }
-      function confirmProjectDelete() {
-        if (!projectDeleteTarget) {
-          return;
-        }
-        if (projectDeleteTarget.kind === "project") {
-          onDeleteProject(projectDeleteTarget.id);
-        } else if (projectDeleteTarget.kind === "role") {
-          onDeleteRole(projectDeleteTarget.id);
-        } else if (projectDeleteTarget.kind === "employee") {
-          onDeleteEmployee(projectDeleteTarget.id);
-        } else if (projectDeleteTarget.kind === "team") {
-          onDeleteTeam(projectDeleteTarget.id);
-        }
-        closeProjectEditorPanel();
-      }
-      function openNewRoleEditor() {
-        setRoleDraft(createVirtualRoleDefinition2("Developer"));
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("role");
-      }
-      function openRoleEditor(role) {
-        setRoleDraft({
-          ...role,
-          responsibilities: [...role.responsibilities],
-          defaultTools: [...role.defaultTools]
-        });
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("role");
-      }
-      function openNewEmployeeEditor() {
-        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("employee");
-      }
-      function openEmployeeEditor(employee) {
-        setEmployeeDraft({
-          ...employee,
-          permissions: [...employee.permissions]
-        });
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("employee");
-      }
-      function openEmployeeProfile(employeeId) {
-        setProjectDeleteTarget(null);
-        setProfileEmployeeId(employeeId);
-        setProjectEditorPanel("employee-profile");
-      }
-      function openNewProjectTeamEditor() {
-        setTeamDraft({
-          ...createDefaultProjectTeams2()[0],
-          id: createProjectTeamId2("Project team"),
-          name: "New Project Team",
-          memberEmployeeIds: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("team");
-      }
-      function openProjectTeamEditor(team) {
-        setTeamDraft({
-          ...team,
-          memberEmployeeIds: [...team.memberEmployeeIds]
-        });
-        setProjectDeleteTarget(null);
-        setProjectEditorPanel("team");
-      }
-      function saveRoleDraft() {
-        onSaveRole({
-          ...roleDraft,
-          title: roleDraft.title.trim() || "Contributor",
-          responsibilities: normalizeStringList3(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
-          defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
-          defaultTools: normalizeStringList3(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
-          updatedAt: Date.now()
-        });
-        setRoleDraft(createVirtualRoleDefinition2("Developer"));
-        closeProjectEditorPanel();
-      }
-      function selectEmployeeRole(roleId) {
-        const role = getRoleDefinitionById2(roles, roleId);
-        setEmployeeDraft((current) => ({
-          ...current,
-          roleId,
-          role: role?.title ?? current.role,
-          updatedAt: Date.now()
-        }));
-      }
-      function saveEmployeeDraft() {
-        const role = getRoleDefinitionById2(roles, employeeDraft.roleId, employeeDraft.role);
-        onSaveEmployee({
-          ...employeeDraft,
-          name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Employee",
-          roleId: role?.id ?? employeeDraft.roleId,
-          role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
-          permissions: normalizeStringList3(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS2),
-          updatedAt: Date.now()
-        });
-        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
-        closeProjectEditorPanel();
-      }
-      function saveTeamDraft() {
-        onSaveTeam({
-          ...teamDraft,
-          name: teamDraft.name.trim() || "Project team",
-          mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
-          memberEmployeeIds: normalizeStringList3(teamDraft.memberEmployeeIds, []),
-          updatedAt: Date.now()
-        });
-        setTeamDraft({
-          ...createDefaultProjectTeams2()[0],
-          id: createProjectTeamId2("Project team"),
-          name: "New Project Team",
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
-        closeProjectEditorPanel();
-      }
-      function selectTeamSupervisor(employeeId) {
-        setTeamDraft((current) => ({
-          ...current,
-          supervisorEmployeeId: employeeId,
-          memberEmployeeIds: current.memberEmployeeIds.filter((id) => id !== employeeId),
-          updatedAt: Date.now()
-        }));
-      }
-      function toggleTeamMember(employeeId) {
-        setTeamDraft((current) => {
-          const members = new Set(current.memberEmployeeIds);
-          if (members.has(employeeId)) {
-            members.delete(employeeId);
-          } else {
-            members.add(employeeId);
-          }
-          members.delete(current.supervisorEmployeeId);
-          return {
-            ...current,
-            memberEmployeeIds: Array.from(members),
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function toggleDraftEmployee(employeeId) {
-        setDraft((current) => {
-          const assigned = new Set(current.assignedEmployeeIds);
-          if (assigned.has(employeeId)) {
-            assigned.delete(employeeId);
-          } else {
-            assigned.add(employeeId);
-          }
-          assigned.delete(current.supervisorEmployeeId);
-          const assignedEmployees = employees.filter((employee) => assigned.has(employee.id));
-          const assignedTeams = projectTeams.filter((team) => current.assignedTeamIds.includes(team.id));
-          return {
-            ...current,
-            assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
-            teamRoles: [
-              ...assignedTeams.map((team) => team.name),
-              ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
-            ],
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function selectDraftSupervisor(employeeId) {
-        const supervisor = employees.find((employee) => employee.id === employeeId);
-        updateDraft({
-          supervisorEmployeeId: employeeId,
-          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
-          assignedEmployeeIds: draft.assignedEmployeeIds.filter((id) => id !== employeeId)
-        });
-      }
-      function toggleDraftTeam(teamId) {
-        setDraft((current) => {
-          const assigned = new Set(current.assignedTeamIds);
-          if (assigned.has(teamId)) {
-            assigned.delete(teamId);
-          } else {
-            assigned.add(teamId);
-          }
-          const assignedTeams = projectTeams.filter((team) => assigned.has(team.id));
-          return {
-            ...current,
-            assignedTeamIds: assignedTeams.map((team) => team.id),
-            teamRoles: [
-              ...assignedTeams.map((team) => team.name),
-              ...employees.filter((employee) => current.assignedEmployeeIds.includes(employee.id)).map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
-            ],
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function buildProjectDeleteTarget(project) {
-        return {
-          kind: "project",
-          id: project.id,
-          name: project.name,
-          detail: "Delete this saved software project from Project Studio.",
-          impact: [
-            `${formatProjectStatus2(getProjectEffectiveStatus(project))} ${project.mode} project record will be removed.`,
-            `${project.artifacts.length} planned artifact entry(ies) and project staffing selections will be removed from the local project list.`
-          ]
-        };
-      }
-      function buildRoleDeleteTarget(role) {
-        const affectedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-        return {
-          kind: "role",
-          id: role.id,
-          name: role.title,
-          detail: "Delete this role definition from the shared project role library.",
-          impact: [
-            `${affectedEmployees.length} employee profile(s) currently reference this role and will be normalized by the existing delete handler.`,
-            `${role.responsibilities.length} responsibility entry(ies) and ${role.defaultTools.length} default tool entry(ies) will be removed.`
-          ]
-        };
-      }
-      function buildEmployeeDeleteTarget(employee) {
-        const assignedProjects = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id));
-        const assignedTeams = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-        return {
-          kind: "employee",
-          id: employee.id,
-          name: employee.name,
-          detail: "Delete this employee profile from the shared staffing pool.",
-          impact: [
-            `${assignedProjects.length} project(s) reference this employee directly or as supervisor.`,
-            `${assignedTeams.length} project team(s) reference this employee as supervisor or member.`
-          ]
-        };
-      }
-      function buildProjectTeamDeleteTarget(team) {
-        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-        return {
-          kind: "team",
-          id: team.id,
-          name: team.name,
-          detail: "Delete this reusable project team.",
-          impact: [
-            `${assignedProjects.length} project(s) currently assign this team.`,
-            `${team.memberEmployeeIds.length} member assignment(s) and the team mission will be removed.`
-          ]
-        };
-      }
-      function renderRoleRow(role) {
-        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: role.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, role.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedEmployees.length, " employee profile(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, role.canSupervise ? "Supervisor-capable" : "Contributor"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, summary), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
-            disabled: roles.length <= 1,
-            title: `Delete role ${role.title}`
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
-          "Delete"
-        )));
-      }
-      function renderRoleCard(role) {
-        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: role.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, role.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedEmployees.length, " employee profile(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, role.canSupervise ? "Supervisor-capable" : "Contributor")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, summary))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, role.responsibilities.slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility)), role.responsibilities.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", role.responsibilities.length - 4)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
-            disabled: roles.length <= 1,
-            title: `Delete role ${role.title}`
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
-          "Delete"
-        )));
-      }
-      function renderEmployeeRow(employee) {
-        const role = getEmployeeRoleDefinition2(employee, roles);
-        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projectsForEmployee.length, " project(s) / ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: role?.title ?? employee.role }, role?.title ?? employee.role), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, employee.status, " / ", employee.model), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: activeWork }, activeWork), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderEmployeeCard(employee, options = {}) {
-        const role = getEmployeeRoleDefinition2(employee, roles);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.employeeCard, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), !options.compact && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, role?.defaultGoal ?? employee.currentTask), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))));
-      }
-      function renderEmployeeManagementCard(employee) {
-        const role = getEmployeeRoleDefinition2(employee, roles);
-        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: activeWork }, activeWork), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Assignments"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectsForEmployee.length, " project(s), ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.model))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderEmployeeProfile(employee) {
-        const role = getEmployeeRoleDefinition2(employee, roles);
-        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-        return /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, teamsForEmployee.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectsForEmployee.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current task"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.currentTask))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: item }, item))));
-      }
-      function renderProjectTeamRow(team) {
-        const supervisor = getTeamSupervisor2(team, employees);
-        const members = getTeamMembers2(team, employees);
-        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedProjects.length, " assigned project(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: supervisor?.name ?? "Unassigned" }, supervisor?.name ?? "Unassigned"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, members.length, " member(s)"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: team.mission }, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => openProjectTeamEditor(team),
-            title: `Edit team ${team.name}`
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }),
-          "Edit"
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderProjectTeamCard(team, options = {}) {
-        const supervisor = getTeamSupervisor2(team, employees);
-        const members = getTeamMembers2(team, employees);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.employeeCard, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, team.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor: ", supervisor?.name ?? "Unassigned"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, members.slice(0, options.compact ? 3 : 6).map((member) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "No members")));
-      }
-      function renderProjectTeamManagementCard(team) {
-        const supervisor = getTeamSupervisor2(team, employees);
-        const members = getTeamMembers2(team, employees);
-        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedProjects.length, " assigned project(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: team.mission }, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, supervisor?.name ?? "Unassigned")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, members.length, " member(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, members.slice(0, 6).map((member) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "No members")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => openProjectTeamEditor(team),
-            title: `Edit team ${team.name}`
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }),
-          "Edit"
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function getBoardTasks(project) {
-        const latestRun = getProjectLatestRun(project);
-        const assignmentTasks = (latestRun?.assignments ?? []).map((assignment) => ({
-          title: assignment.title,
-          status: assignment.status === "pending" ? "todo" : assignment.status === "running" ? "doing" : assignment.status === "failed" ? "review" : "done",
-          employee: employees.find((employee) => employee.id === assignment.memberId),
-          detail: [
-            assignment.description,
-            assignment.dependencies.length > 0 ? `Depends on: ${assignment.dependencies.join(", ")}` : "",
-            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : ""
-          ].filter(Boolean).join("\n")
-        }));
-        if (assignmentTasks.length > 0) {
-          return assignmentTasks;
-        }
-        const stepTasks = (latestRun?.steps ?? []).map((step) => ({
-          title: step.assignmentTitle ?? `${step.role} work`,
-          status: step.status === "running" ? "doing" : step.status === "failed" ? "review" : "done",
-          employee: employees.find((employee) => employee.id === step.memberId),
-          detail: [
-            step.dependencyIds?.length ? `Depends on: ${step.dependencyIds.join(", ")}` : "",
-            step.workspacePath ? `Workspace: ${step.workspacePath}` : ""
-          ].filter(Boolean).join("\n")
-        }));
-        if (stepTasks.length > 0) {
-          return stepTasks;
-        }
-        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== project.supervisorEmployeeId);
-        const supervisor = getProjectSupervisor2(project, employees, roles);
-        const employeePool = assigned.length > 0 ? assigned : employees;
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const baseTasks = [
-          { title: "Clarify requirements and acceptance criteria", status: "done", employee: supervisor },
-          ...project.artifacts.map((artifact, index) => ({
-            title: `Produce ${artifact}`,
-            status: effectiveStatus === "done" ? "done" : index === 0 ? "doing" : index === 1 ? "review" : "todo",
-            employee: employeePool[index % Math.max(employeePool.length, 1)]
-          })),
-          { title: "Final integration and release notes", status: effectiveStatus === "done" ? "done" : "todo", employee: supervisor }
-        ];
-        return baseTasks;
-      }
-      function renderTaskBoard(project) {
-        const tasks = getBoardTasks(project);
-        const columns = [
-          { id: "todo", title: "Todo" },
-          { id: "doing", title: "Doing" },
-          { id: "review", title: "Review" },
-          { id: "done", title: "Done" }
-        ];
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectBoard }, columns.map((column) => {
-          const columnTasks = tasks.filter((task) => task.status === column.id);
-          return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.projectBoardColumn, key: column.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectBoardColumnHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, column.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, columnTasks.length)), columnTasks.map((task) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectTaskCard, key: `${column.id}-${task.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.employee?.name ?? "Unassigned", " / ", task.employee ? getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role : "Contributor"), "detail" in task && typeof task.detail === "string" && task.detail && /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.detail))));
-        }));
-      }
-      function renderTeamChat(project) {
-        const supervisor = getProjectSupervisor2(project, employees, roles);
-        const assignedTeams = getProjectTeams2(project, projectTeams);
-        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== supervisor?.id);
-        const chatEmployees = [supervisor, ...assigned].filter((employee) => Boolean(employee));
-        const messages = [
-          { author: supervisor, text: `I will coordinate "${project.name}" and keep work aligned to the project goal.` },
-          ...assignedTeams.slice(0, 3).map((team) => ({
-            author: getTeamSupervisor2(team, employees) ?? supervisor,
-            text: `Team "${team.name}" is responsible for: ${team.mission}`
-          })),
-          ...assigned.slice(0, 4).map((employee, index) => ({
-            author: employee,
-            text: index === 0 ? `I am taking the first implementation task and will report blockers here.` : index === 1 ? `I will review architecture and integration risks before code changes fan out.` : index === 2 ? `I will prepare verification coverage for the planned deliverables.` : `I am available for the next queued task.`
-          }))
-        ];
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChatList }, messages.map((message, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectChatMessage, key: `${message.author?.id ?? "system"}-${index}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, message.author?.name.slice(0, 2).toUpperCase() ?? "CA"), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, message.author?.name ?? "CodeAgent"), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, message.text)))), chatEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Assign employees to start team chat."));
-      }
-      function renderDeliverables(project) {
-        const latestRun = getProjectLatestRun(project);
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const projectRootPath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
-        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
-        function resolveDeliverablePath(targetPath) {
-          if (!targetPath.trim()) {
-            return projectRootPath;
-          }
-          return targetPath.startsWith("/") ? targetPath : joinWorkspacePath2(projectRootPath, targetPath);
-        }
-        function getExpectedArtifactPath(artifact, index) {
-          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
-          return `artifacts/${slug}.md`;
-        }
-        function renderDeliverableActions(targetPath, label = "Open") {
-          const resolvedPath = resolveDeliverablePath(targetPath);
-          return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverableActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(resolvedPath), title: `Open ${resolvedPath}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), label), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(resolvedPath), title: `Reveal ${resolvedPath}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"));
-        }
-        const assignmentOutputs = (latestRun?.assignments ?? []).filter((assignment) => assignment.output || assignment.error || assignment.workspacePath).map((assignment) => ({
-          title: assignment.title,
-          status: assignment.status === "succeeded" ? "Completed" : assignment.status === "failed" ? "Needs review" : assignment.status === "running" ? "Running" : "Pending",
-          workspacePath: assignment.workspacePath,
-          detail: [
-            `${assignment.memberName} / ${assignment.role}`,
-            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : "",
-            assignment.output ? assignment.output.slice(0, 240) : assignment.error ? assignment.error.slice(0, 240) : ""
-          ].filter(Boolean).join("\n")
-        }));
-        const activityOutputs = toolActivities.filter((activity) => activity.status === "succeeded" && isProjectToolActivity2(activity, project.id, projectAutomationTeamId)).map((activity) => {
-          const outputPath = getToolResultPath2(activity);
-          if (!outputPath) {
-            return null;
-          }
-          const absolutePath = activity.result && typeof activity.result === "object" && typeof activity.result.absolutePath === "string" ? String(activity.result.absolutePath) : void 0;
-          return {
-            id: `${project.id}:${absolutePath || outputPath}`,
-            projectId: project.id,
-            path: outputPath,
-            absolutePath,
-            toolName: activity.toolName,
-            source: activity.scope?.source === "virtual-team" ? "automation" : activity.scope?.channel === "team" ? "team-chat" : "guided-chat",
-            summary: activity.resultPreview,
-            createdAt: activity.startedAt,
-            updatedAt: activity.completedAt ?? activity.startedAt
-          };
-        }).filter((output) => Boolean(output));
-        const generatedOutputs = [
-          ...projectGeneratedOutputs[project.id] ?? [],
-          ...activityOutputs
-        ].reduce((outputs, output) => {
-          if (!outputs.some((candidate) => candidate.id === output.id || candidate.path === output.path || Boolean(candidate.absolutePath && output.absolutePath && candidate.absolutePath === output.absolutePath))) {
-            outputs.push(output);
-          }
-          return outputs;
-        }, []).sort((left, right) => right.updatedAt - left.updatedAt);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, generatedOutputs.length > 0 && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverableGroupHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Generated files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, generatedOutputs.length, " tracked output", generatedOutputs.length === 1 ? "" : "s")), generatedOutputs.map((output) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `generated-${output.id}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", { title: output.absolutePath ?? output.path }, output.path), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, formatProjectOutputSource2(output.source))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, output.summary || `${output.toolName} at ${new Date(output.updatedAt).toLocaleString()}`), renderDeliverableActions(output.absolutePath ?? output.path, "Open file"))), latestRun?.artifactPath && /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Automation run artifact"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, latestRun.status === "succeeded" ? "Completed" : latestRun.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, latestRun.artifactPath), renderDeliverableActions(latestRun.artifactPath, "Open artifact")), project.artifacts.map((artifact, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, artifact), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, effectiveStatus === "done" ? "Completed" : index < 2 ? "Draft planned" : "Queued")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, effectiveStatus === "done" ? latestRun?.summary ?? "Completed by the latest autonomous project run." : index < 2 ? "Ready to be produced by the assigned team." : "Will be generated after upstream work completes."), effectiveStatus === "done" && renderDeliverableActions(getExpectedArtifactPath(artifact, index), "Open expected file"))), assignmentOutputs.map((output) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `assignment-${output.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, output.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, output.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, output.detail), output.workspacePath && renderDeliverableActions(output.workspacePath, "Open workspace"))), project.artifacts.length === 0 && generatedOutputs.length === 0 && assignmentOutputs.length === 0 && !latestRun?.artifactPath && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No deliverables or run artifacts recorded yet."));
-      }
-      function getProjectPanelMessages(project, channel) {
-        const projectChatKey = getProjectChatKey2(project.id, channel);
-        return projectChatMessages[projectChatKey] ?? createProjectReadyMessages2(project, channel);
-      }
-      function updateProjectChatDraft(project, channel, value) {
-        const projectChatKey = getProjectChatKey2(project.id, channel);
-        setProjectChatDrafts((current) => ({
-          ...current,
-          [projectChatKey]: value
-        }));
-      }
-      function submitProjectChatDraft(project, channel) {
-        const projectChatKey = getProjectChatKey2(project.id, channel);
-        const draftValue = projectChatDrafts[projectChatKey] ?? "";
-        if (!draftValue.trim() || projectChatSendingKeys.has(projectChatKey)) {
-          return;
-        }
-        setProjectChatDrafts((current) => ({
-          ...current,
-          [projectChatKey]: ""
-        }));
-        onSendProjectChat(project, channel, draftValue);
-      }
-      function handleProjectChatKeyDown(event, project, channel) {
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          submitProjectChatDraft(project, channel);
-        }
-      }
-      async function copyProjectMessage(message) {
-        try {
-          const imageSummary = formatImageAttachmentSummary2(message.imageAttachments ?? []);
-          await navigator.clipboard.writeText(imageSummary ? `${message.content}
-
-Attached images: ${imageSummary}` : message.content);
-          setCopiedProjectMessageId(message.id);
-          window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
-        } catch {
-        }
-      }
-      function renderProjectChatSurface(project, channel) {
-        const projectChatKey = getProjectChatKey2(project.id, channel);
-        const panelMessages = getProjectPanelMessages(project, channel);
-        const draftValue = projectChatDrafts[projectChatKey] ?? "";
-        const isProjectSending = projectChatSendingKeys.has(projectChatKey);
-        const scopedFileWriteReviews = fileWriteReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
-        const scopedCommandReviews = commandReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
-        const scopedToolPermissionReviews = toolPermissionReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
-        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.projectChatSurface }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChatTranscript, ref: projectChatTranscriptRef }, groupMessagesByAssistantRun2(panelMessages).map(({ message, activities }) => /* @__PURE__ */ esm_wrapper_default.createElement(
-          MessageItem2,
-          {
-            key: message.id,
-            message,
-            activities,
-            copied: copiedProjectMessageId === message.id,
-            onCopy: () => copyProjectMessage(message)
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement(
-          InlineApprovalQueue2,
-          {
-            fileWriteReviews: scopedFileWriteReviews,
-            commandReviews: scopedCommandReviews,
-            toolPermissionReviews: scopedToolPermissionReviews,
-            onResolveFileWrite,
-            onResolveCommand,
-            onResolveToolPermission
-          }
-        ), isProjectSending && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.typingIndicator, role: "status" }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null), /* @__PURE__ */ esm_wrapper_default.createElement("span", null), /* @__PURE__ */ esm_wrapper_default.createElement("span", null))), /* @__PURE__ */ esm_wrapper_default.createElement("form", { className: styles.projectChatComposer, onSubmit: (event) => {
-          event.preventDefault();
-          submitProjectChatDraft(project, channel);
-        } }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "textarea",
-          {
-            value: draftValue,
-            onChange: (event) => updateProjectChatDraft(project, channel, event.target.value),
-            onKeyDown: (event) => handleProjectChatKeyDown(event, project, channel),
-            placeholder: channel === "team" ? "Direct the supervisor or team\u2026" : "Ask about this project\u2026",
-            rows: 2,
-            disabled: isProjectSending,
-            "aria-label": channel === "team" ? "Team chat message" : "Project chat message"
-          }
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerToolbar }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectComposerIdentity, title: channel === "team" ? "Instructions are handled by this autonomous project\u2019s supervisor and team" : "This agent can use tools within the project working folder" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: channel === "team" ? "network" : "bot", size: 13 }), channel === "team" ? "Project supervisor" : "Project agent"), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.projectComposerPermission, title: "Permission level for this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 12 }), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.visuallyHidden }, "Project permissions"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "select",
-          {
-            value: project.permissionMode,
-            onChange: (event) => onSaveProject({
-              ...project,
-              permissionMode: event.target.value,
-              updatedAt: Date.now()
-            }),
-            disabled: isProjectSending,
-            "aria-label": "Project permissions"
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"),
-          /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full project access")
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: project.workspacePath }, getPathBasename2(project.workspacePath))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerActions }, draftValue && /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.composerClearButton,
-            type: "button",
-            onClick: () => updateProjectChatDraft(project, channel, ""),
-            disabled: isProjectSending,
-            title: "Clear the draft message"
-          },
-          "Clear input"
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message (Command+Enter)" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "send", size: 14 }), "Send", /* @__PURE__ */ esm_wrapper_default.createElement("kbd", null, "\u2318\u21B5"))))));
-      }
-      function renderAutonomousProjectSelector() {
-        if (autonomousProjects.length === 0) {
-          return /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create an autonomous project before using this view.");
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Autonomous project"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: selectedAutonomousProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, autonomousProjects.map((project) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: project.id, key: project.id }, project.name))));
-      }
-      function renderProjectSelector() {
-        if (projects.length === 0) {
-          return /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create a project before using this view.");
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: selectedProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, projects.map((project) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: project.id, key: project.id }, project.name, " / ", project.mode === "autonomous" ? "autonomous" : "guided"))));
-      }
-      function renderProjectInsights(project) {
-        const assignedTeams = getProjectTeams2(project, projectTeams);
-        const supervisor = getProjectSupervisor2(project, employees, roles);
-        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const risks = [
-          !project.goals.trim() ? { title: "Goals missing", detail: "Project goals are empty or underspecified.", level: "Risk" } : null,
-          project.mode === "autonomous" && !supervisor ? { title: "Supervisor missing", detail: "Autonomous execution needs a supervisor employee.", level: "Risk" } : null,
-          project.mode === "autonomous" && assignedTeams.length === 0 && project.assignedEmployeeIds.length === 0 ? { title: "No staffing assigned", detail: "Assign at least one team or direct employee.", level: "Risk" } : null,
-          project.artifacts.length < 3 ? { title: "Artifact scope thin", detail: "Expected deliverables may not cover requirements, design, and verification.", level: "Watch" } : null,
-          effectiveStatus === "blocked" ? { title: "Project blocked", detail: "Resume requires resolving the active blocker.", level: "Risk" } : null
-        ].filter((item) => Boolean(item));
-        const signals = [
-          { title: "Staffing", detail: `${assignedTeams.length} team(s), ${assignedStaff.length} total employee(s)` },
-          { title: "Delivery shape", detail: `${project.artifacts.length} artifact(s), ${getBoardTasks(project).length} planned task(s)` },
-          { title: "Execution posture", detail: project.permissionMode === "full-access" ? "Supervisor has full project permission" : "Risky actions require approval" }
-        ];
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Risk Signals"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, risks.map((risk) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: risk.title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, risk.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, risk.level)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, risk.detail))), risks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No immediate project risks detected."))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Operational Signals"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, signals.map((signal) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: signal.title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, signal.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, signal.detail))))));
-      }
-      function renderExecutionConsole(project) {
-        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
-        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
-        const projectRunRecords = teamRuns.filter((run) => run.teamId === projectAutomationTeamId).sort((left, right) => right.startedAt - left.startedAt);
-        const latestRun = projectRunRecords[0];
-        const selectedRunId = activityRunSelections[project.id] ?? "";
-        const selectedRun = selectedRunId ? projectRunRecords.find((run) => run.id === selectedRunId) : void 0;
-        const visibleRun = selectedRun ?? latestRun;
-        const allProjectToolActivities = toolActivities.filter((activity) => isProjectToolActivity2(activity, project.id, projectAutomationTeamId));
-        const projectToolActivities = visibleRun ? allProjectToolActivities.filter((activity) => activity.scope?.runId === visibleRun.id) : allProjectToolActivities;
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const isProjectRunning = effectiveStatus === "active";
-        const activityEntries = [];
-        const pushActivity = (entry) => {
-          if (entry) {
-            activityEntries.push(entry);
-          }
-        };
-        if (!visibleRun) {
-          pushActivity({
-            id: `project-ready-${project.id}`,
-            timestamp: project.updatedAt,
-            employee: "Project Studio",
-            title: "Project ready",
-            summary: `${project.mode === "autonomous" ? "Fully autonomous" : "Standard"} project is ${formatProjectStatus2(effectiveStatus)} and has not started an automation run yet.`,
-            status: effectiveStatus
-          });
-        }
-        if (!visibleRun && projectSupervisor) {
-          pushActivity({
-            id: `project-supervisor-${project.id}`,
-            timestamp: project.updatedAt,
-            employee: projectSupervisor.name,
-            title: "Supervisor assigned",
-            summary: `${getEmployeeRoleDefinition2(projectSupervisor, roles)?.title ?? projectSupervisor.role} owns project coordination.`,
-            status: "ready"
-          });
-        }
-        for (const run of visibleRun ? [visibleRun] : []) {
-          pushActivity({
-            id: `${run.id}-started`,
-            timestamp: run.startedAt,
-            employee: run.teamName,
-            title: "Automation run started",
-            summary: `${run.objective.slice(0, 180)}${run.objective.length > 180 ? "..." : ""}`,
-            status: run.status === "running" ? "running" : "ready"
-          });
-          for (const assignment of run.assignments ?? []) {
-            pushActivity(assignment.startedAt ? {
-              id: `${run.id}-${assignment.id}-started`,
-              timestamp: assignment.startedAt,
-              employee: assignment.memberName,
-              title: assignment.title,
-              summary: [
-                assignment.description,
-                assignment.dependencies.length > 0 ? `Depends on ${assignment.dependencies.join(", ")}` : "No blocking dependencies",
-                `Parallel group ${assignment.parallelGroup}`
-              ].join(" / "),
-              status: "running"
-            } : null);
-            pushActivity(assignment.completedAt ? {
-              id: `${run.id}-${assignment.id}-completed`,
-              timestamp: assignment.completedAt,
-              employee: assignment.memberName,
-              title: `${assignment.title} ${assignment.status === "succeeded" ? "completed" : "finished"}`,
-              summary: assignment.output?.slice(0, 220) ?? assignment.error?.slice(0, 220) ?? assignment.workspacePath ?? "Assignment finished.",
-              status: assignment.status
-            } : null);
-          }
-          if (!run.assignments?.length) {
-            for (const step of run.steps) {
-              pushActivity({
-                id: `${run.id}-${step.memberId}-${step.startedAt}-started`,
-                timestamp: step.startedAt,
-                employee: step.memberName,
-                title: step.assignmentTitle ?? `${step.role} work started`,
-                summary: step.dependencyIds?.length ? `Depends on ${step.dependencyIds.join(", ")}` : step.workspacePath ?? "Worker started.",
-                status: "running"
-              });
-              pushActivity(step.completedAt ? {
-                id: `${run.id}-${step.memberId}-${step.completedAt}-completed`,
-                timestamp: step.completedAt,
-                employee: step.memberName,
-                title: step.assignmentTitle ? `${step.assignmentTitle} completed` : `${step.role} work completed`,
-                summary: step.output?.slice(0, 220) ?? step.error?.slice(0, 220) ?? "Worker finished.",
-                status: step.status
-              } : null);
-            }
-          }
-          pushActivity(run.completedAt ? {
-            id: `${run.id}-completed`,
-            timestamp: run.completedAt,
-            employee: run.teamName,
-            title: `Automation run ${run.status}`,
-            summary: run.summary ?? run.error ?? run.artifactPath ?? `Run ${run.status}.`,
-            status: run.status
-          } : null);
-        }
-        for (const activity of projectToolActivities) {
-          pushActivity({
-            id: `${activity.id}-tool-start`,
-            timestamp: activity.startedAt,
-            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
-            title: `Tool call: ${activity.toolName}`,
-            summary: activity.scope?.assignmentTitle ? `${activity.scope.assignmentTitle} / ${summarizeToolResult2(activity.args)}` : summarizeToolResult2(activity.args),
-            status: activity.status === "running" ? "running" : "ready"
-          });
-          pushActivity(activity.completedAt ? {
-            id: `${activity.id}-tool-complete`,
-            timestamp: activity.completedAt,
-            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
-            title: `Tool ${activity.status}`,
-            summary: activity.error ?? activity.resultPreview ?? `${activity.toolName} finished${activity.duration ? ` in ${activity.duration} ms` : ""}.`,
-            status: activity.status
-          } : null);
-        }
-        if (isProjectRunning && !visibleRun) {
-          pushActivity({
-            id: `project-${project.id}-starting`,
-            timestamp: Date.now(),
-            employee: projectSupervisor?.name ?? "Supervisor",
-            title: "Automation run starting",
-            summary: "The project run has been requested and the planner is preparing assignments.",
-            status: "running"
-          });
-        }
-        const timelineEntries = activityEntries.sort((left, right) => left.timestamp - right.timestamp).slice(-160);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Activity Timeline"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, visibleRun ? `${visibleRun.id === latestRun?.id ? "Current run" : "Past run"}: ${visibleRun.status} / ${projectToolActivities.length} tool call(s)` : "No automation run yet")), projectRunRecords.length > 0 && /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.activityRunPicker }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Run"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "select",
-          {
-            value: visibleRun?.id ?? "",
-            onChange: (event) => setActivityRunSelections((current) => ({
-              ...current,
-              [project.id]: event.target.value
-            }))
-          },
-          projectRunRecords.map((run, index) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: run.id, key: run.id }, index === 0 ? "Current" : "Past", " / ", run.status, " / ", new Date(run.startedAt).toLocaleString()))
-        ))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimeline }, timelineEntries.map((entry) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectTimelineItem, key: entry.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineMarker }), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineContentHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.title), /* @__PURE__ */ esm_wrapper_default.createElement("time", { dateTime: new Date(entry.timestamp).toISOString() }, new Date(entry.timestamp).toLocaleString())), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, entry.employee), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, entry.summary), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.status)))), timelineEntries.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, isProjectRunning ? "Automation run is starting." : "No activity recorded for this project yet.")));
-      }
-      function renderArtifactsExplorer(project) {
-        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Artifact Explorer"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, project.artifacts.map((artifact, index) => {
-          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
-          return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, artifact), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, index < 2 ? "Planned" : "Queued")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, `artifacts/${slug}.md`));
-        }), project.artifacts.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No artifacts defined.")));
-      }
-      function renderProjectTimeline(project) {
-        const tasks = getBoardTasks(project);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Timeline"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, tasks.map((task, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `${task.title}-${index}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, task.employee ? `${task.employee.name} / ${getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role}` : "Unassigned")))));
-      }
-      function renderGovernance(project) {
-        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Approval Policy"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, project.permissionMode === "full-access" ? "Full supervisor permission" : "Supervised approvals")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectSupervisor?.name ?? "Unassigned")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, formatProjectStatus2(getProjectEffectiveStatus(project)))))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Tool Posture"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)))));
-      }
-      function renderProjectFormFields() {
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace path"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goals"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "textarea",
-          {
-            value: draft.artifacts.join("\n"),
-            onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
-            rows: 6
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "checkbox",
-            checked: draft.mode === "autonomous",
-            onChange: (event) => updateDraft({
-              mode: event.target.checked ? "autonomous" : "guided",
-              permissionMode: event.target.checked ? "full-access" : "supervised",
-              assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
-              assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
-              teamRoles: event.target.checked ? draft.teamRoles : []
-            })
-          }
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project.")), draft.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "checkbox",
-            checked: draft.assignedTeamIds.includes(team.id),
-            onChange: () => toggleDraftTeam(team.id)
-          }
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "checkbox",
-            checked: draft.assignedEmployeeIds.includes(employee.id),
-            onChange: () => toggleDraftEmployee(employee.id)
-          }
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))))));
-      }
-      function saveProjectDraftAndClose() {
-        const project = saveDraft();
-        onSelectProject(project.id);
-        closeProjectEditorPanel();
-      }
-      function saveProjectDraftAndOpenPrimaryAction() {
-        const project = saveDraft();
-        onSelectProject(project.id);
-        setProjectActionProjectId(project.id);
-        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
-      }
-      function renderProjectFormPanel() {
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          WorkbenchEditorPanel,
-          {
-            title: projects.some((project) => project.id === draft.id) ? "Edit Project" : "New Project",
-            subtitle: draft.mode === "autonomous" ? "Project details with autonomous staffing and execution" : "Project details, workspace, goals, and deliverables",
-            onClose: closeProjectEditorPanel,
-            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveProjectDraftAndClose, title: "Save this project and close the panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveProjectDraftAndOpenPrimaryAction, title: draft.mode === "autonomous" ? "Save this project and open its team view" : "Save this project and open its chat" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: draft.mode === "autonomous" ? "network" : "chat", size: 14 }), draft.mode === "autonomous" ? "Save And View Team" : "Save And Open Chat"))
-          },
-          renderProjectFormFields()
-        );
-      }
-      function renderProjectDeleteConfirmation() {
-        if (!projectDeleteTarget) {
-          return null;
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          WorkbenchEditorPanel,
-          {
-            title: `Delete ${projectDeleteTarget.kind}`,
-            subtitle: projectDeleteTarget.name,
-            onClose: closeProjectEditorPanel,
-            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmProjectDelete, title: `Confirm deletion of ${projectDeleteTarget.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeProjectEditorPanel, title: "Cancel deletion and close the panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, projectDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local Project Studio state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, projectDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
-        );
-      }
-      function renderGuidedProjectChat(project) {
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "guided"));
-      }
-      function renderProjectOrganization(project) {
-        const supervisor = getProjectSupervisor2(project, employees, roles);
-        const assignedTeams = getProjectTeams2(project, projectTeams);
-        const directEmployees = getProjectAssignedEmployees2(project, employees, roles);
-        return /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Team Organization"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.name)), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(project), title: "Edit project staffing and team assignments" }, "Edit Members")), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTeamDiagram }, supervisor ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, supervisor.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role, " / ", project.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, assignedTeams.map((team) => renderProjectTeamCard(team, { compact: true })), assignedTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, directEmployees.length), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, directEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), directEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams.")))));
-      }
-      function renderProjectActionPanel() {
-        const project = projectActionProject;
-        if (!project) {
-          return null;
-        }
-        if (projectEditorPanel === "project-chat") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(
-            WorkbenchEditorPanel,
-            {
-              title: "Project Chat",
-              subtitle: project.name,
-              onClose: closeProjectEditorPanel,
-              wide: true,
-              bodyClassName: styles.projectChatPanelBody
-            },
-            renderGuidedProjectChat(project)
-          );
-        }
-        if (projectEditorPanel === "project-org") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Team Organization", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderProjectOrganization(project));
-        }
-        if (projectEditorPanel === "project-board") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Task Board", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderTaskBoard(project));
-        }
-        if (projectEditorPanel === "project-execution") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Activity", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderExecutionConsole(project));
-        }
-        if (projectEditorPanel === "project-team-chat") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Team Chat", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "team")));
-        }
-        if (projectEditorPanel === "project-deliverables") {
-          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Deliverables", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderDeliverables(project));
-        }
-        return null;
-      }
-      function getLifecycleButton(project, showLabel = false) {
-        if (project.mode !== "autonomous") {
-          return null;
-        }
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
-        const iconSize = showLabel ? 14 : 15;
-        const renderLifecycleButton = (status, icon, label, title) => /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => onSetProjectStatus(project.id, status), title, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
-        if (runningProjectIds.has(project.id)) {
-          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this running autonomous project");
-        }
-        if (effectiveStatus === "active") {
-          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this autonomous project");
-        }
-        if (effectiveStatus === "stopped") {
-          return renderLifecycleButton("active", "play", "Resume", "Resume this autonomous project");
-        }
-        if (effectiveStatus === "blocked") {
-          return renderLifecycleButton("active", "rotate", "Retry", "Retry this blocked autonomous project");
-        }
-        if (effectiveStatus === "done") {
-          return renderLifecycleButton("active", "rotate", "Re-run", "Run this completed autonomous project again");
-        }
-        if (effectiveStatus === "idea" || effectiveStatus === "planning") {
-          return renderLifecycleButton("active", "play", "Start", "Start this autonomous project");
-        }
-        return null;
-      }
-      function renderProjectPortfolioActions(project, variant) {
-        const showLabel = variant === "expanded";
-        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
-        const iconSize = showLabel ? 14 : 15;
-        const actionsClassName = showLabel ? styles.projectCardActions : `${styles.workbenchRecordActions} ${styles.projectRecordActions}`;
-        const renderActionButton = (panel, icon, label, title) => /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectActionPanel(project, panel), title, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: actionsClassName }, project.mode === "guided" ? /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, renderActionButton("project-chat", "chat", "Chat", "Open this project chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")) : /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, getLifecycleButton(project, showLabel), renderActionButton("project-org", "network", "Team", "View team organization for this project"), renderActionButton("project-board", "board", "Board", "Open this project task board"), renderActionButton("project-execution", "activity", "Activity", "Open this project activity"), renderActionButton("project-team-chat", "message", "Team Chat", "Open this autonomous team chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => editProject(project), title: "Edit this project", "aria-label": "Edit this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: iconSize }), showLabel && "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project", "aria-label": "Delete this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: iconSize }), showLabel && "Delete"));
-      }
-      function renderProjectRow(project) {
-        const assignedTeams = getProjectTeams2(project, projectTeams);
-        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: `${styles.workbenchRecordRow} ${styles.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: project.workspacePath ?? appInfo?.workspacePath ?? void 0 }, project.workspacePath ?? workspaceTitle), renderProjectPortfolioActions(project, "compact"));
-      }
-      function renderProjectCard(project, action) {
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const cardClassName = [
-          styles.projectCard,
-          getProjectStatusCardClassName(effectiveStatus),
-          project.id === selectedProject?.id ? styles.projectCardSelected : ""
-        ].filter(Boolean).join(" ");
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => editProject(project), title: "Edit this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 13 }), "Edit")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), project.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.supervisorRole), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, project.permissionMode === "full-access" ? "Full permission" : "Supervised")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            title: action === "organization" ? "View this project team" : "Open this project chat",
-            onClick: () => {
-              if (action === "organization") {
-                openProjectActionPanel(project, "project-org");
-                return;
-              }
-              openProjectActionPanel(project, "project-chat");
-            }
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: action === "organization" ? "network" : "chat", size: 14 }),
-          action === "organization" ? "Team" : "Open Chat"
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSelectProject(project.id), title: "Select this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Select"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderProjectPortfolioCard(project) {
-        const assignedTeams = getProjectTeams2(project, projectTeams);
-        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
-        const effectiveStatus = getProjectEffectiveStatus(project);
-        const workspace = project.workspacePath ?? workspaceTitle;
-        const cardClassName = [
-          styles.projectCard,
-          styles.projectPortfolioCard,
-          getProjectStatusCardClassName(effectiveStatus),
-          project.id === selectedProject?.id ? styles.projectCardSelected : ""
-        ].filter(Boolean).join(" ");
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: `${styles.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}` }, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: workspace }, workspace))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), renderProjectPortfolioActions(project, "expanded"));
-      }
-      function renderProjectMetricBar(segments, total) {
-        const visibleSegments = segments.filter((segment) => segment.value > 0);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricChart }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricBar, "aria-label": "Project metric distribution" }, visibleSegments.length > 0 ? visibleSegments.map((segment) => {
-          const width = total > 0 ? Math.max(8, segment.value / total * 100) : 0;
-          return /* @__PURE__ */ esm_wrapper_default.createElement(
-            "span",
-            {
-              className: `${styles.projectMetricSegment} ${segment.className}`,
-              key: segment.label,
-              style: { width: `${width}%` },
-              title: `${segment.label}: ${segment.value}`
-            }
-          );
-        }) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectMetricEmpty }, "No data")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricLegend }, segments.map((segment) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { key: segment.label }, /* @__PURE__ */ esm_wrapper_default.createElement("i", { className: segment.className }), segment.label, ": ", segment.value))));
-      }
-      function getProjectStatusRowClassName(status) {
-        if (status === "active") {
-          return styles.projectRecordRowActive;
-        }
-        if (status === "planning") {
-          return styles.projectRecordRowPlanning;
-        }
-        if (status === "blocked") {
-          return styles.projectRecordRowBlocked;
-        }
-        if (status === "stopped") {
-          return styles.projectRecordRowStopped;
-        }
-        if (status === "done") {
-          return styles.projectRecordRowDone;
-        }
-        return styles.projectRecordRowIdea;
-      }
-      function getProjectStatusCardClassName(status) {
-        if (status === "active") {
-          return styles.projectStatusCardActive;
-        }
-        if (status === "planning") {
-          return styles.projectStatusCardPlanning;
-        }
-        if (status === "blocked") {
-          return styles.projectStatusCardBlocked;
-        }
-        if (status === "stopped") {
-          return styles.projectStatusCardStopped;
-        }
-        if (status === "done") {
-          return styles.projectStatusCardDone;
-        }
-        return styles.projectStatusCardIdea;
-      }
-      function getProjectStatusBadgeClassName(status) {
-        if (status === "active") {
-          return styles.projectStatusBadgeActive;
-        }
-        if (status === "planning") {
-          return styles.projectStatusBadgePlanning;
-        }
-        if (status === "blocked") {
-          return styles.projectStatusBadgeBlocked;
-        }
-        if (status === "stopped") {
-          return styles.projectStatusBadgeStopped;
-        }
-        if (status === "done") {
-          return styles.projectStatusBadgeDone;
-        }
-        return styles.projectStatusBadgeIdea;
-      }
-      function renderProjectPagination() {
-        if (projects.length <= PROJECT_LIST_PAGE_SIZE2) {
-          return null;
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPager }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Showing ", projectPageFirstRecord, "-", projectPageLastRecord, " of ", projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPagerControls }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => setProjectPage((page) => Math.max(1, page - 1)),
-            disabled: normalizedProjectPage <= 1,
-            title: "Previous project page"
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chevron-left", size: 14 }),
-          "Previous"
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Page ", normalizedProjectPage, " / ", projectPageCount), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.secondaryButton,
-            type: "button",
-            onClick: () => setProjectPage((page) => Math.min(projectPageCount, page + 1)),
-            disabled: normalizedProjectPage >= projectPageCount,
-            title: "Next project page"
-          },
-          "Next",
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chevron-right", size: 14 })
-        )));
-      }
-      const projectDetailViewClassName = projectRailOpen ? `${styles.detailView} ${styles.detailViewWithRail} ${projectRailWide ? styles.detailViewWithWideRail : ""}` : styles.detailView;
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: projectDetailViewClassName, "aria-label": "Projects" }, projectEditorPanel === "project" && renderProjectFormPanel(), projectEditorPanel === "delete" && renderProjectDeleteConfirmation(), renderProjectActionPanel(), visibleActiveSection === "studio" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("h2", null, "Turn ideas into software projects"), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Portfolio"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Total project(s)")), renderProjectMetricBar(projectModeMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Use project row actions to open chat, team, board, or deliverables.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Status"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, activeProjects.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Active project(s)")), renderProjectMetricBar(projectStatusMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Fully autonomous projects can run in the background; the table below is the source of project navigation.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Staffing"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employees.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Employee profile(s)")), renderProjectMetricBar(projectStaffingMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Roles"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, roles.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectTeams.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Deliverables"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, deliverableCount))))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projects.length, " saved project(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: projectPortfolioView, onChange: setProjectPortfolioView, label: "Project list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: startDraft, title: "Create a software project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Project"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectStatusLegend, "aria-label": "Project status color legend" }, projectStatusMetrics.map((segment) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { key: segment.label, title: `${segment.label}: ${segment.value} project(s)` }, /* @__PURE__ */ esm_wrapper_default.createElement("i", { className: segment.className }), segment.label))), projectPortfolioView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordList} ${styles.projectRecordList}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader} ${styles.projectRecordRow}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goal"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), visibleProjects.map((project) => renderProjectRow(project)), projects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPortfolioGrid }, visibleProjects.map((project) => renderProjectPortfolioCard(project)), projects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")), renderProjectPagination())), visibleActiveSection === "roles" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Roles"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, roles.length, " project role definition(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: roleListView, onChange: setRoleListView, label: "Role list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewRoleEditor, title: "Create a new role definition" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Role"))), roleListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default goal"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), roles.map((role) => renderRoleRow(role)), roles.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No roles configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, roles.map((role) => renderRoleCard(role)), roles.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No roles configured."))), projectEditorPanel === "role" && /* @__PURE__ */ esm_wrapper_default.createElement(
-        WorkbenchEditorPanel,
-        {
-          title: roles.some((role) => role.id === roleDraft.id) ? "Edit Role" : "New Role",
-          subtitle: "Responsibilities, default goal, and tool expectations",
-          onClose: closeProjectEditorPanel,
-          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveRoleDraft, title: "Save this role definition" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Role"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewRoleEditor, title: "Reset the form for a new role" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
-        },
-        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role title"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: roleDraft.title, onChange: (event) => setRoleDraft((current) => ({ ...current, title: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Can supervise"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: roleDraft.canSupervise ? "yes" : "no", onChange: (event) => setRoleDraft((current) => ({ ...current, canSupervise: event.target.value === "yes", updatedAt: Date.now() })) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default goal"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: roleDraft.defaultGoal, onChange: (event) => setRoleDraft((current) => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() })), rows: 3 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Responsibilities"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "textarea",
-          {
-            value: roleDraft.responsibilities.join("\n"),
-            onChange: (event) => setRoleDraft((current) => ({
-              ...current,
-              responsibilities: normalizeStringList3(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
-              updatedAt: Date.now()
-            })),
-            rows: 7
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default tools"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "textarea",
-          {
-            value: roleDraft.defaultTools.join("\n"),
-            onChange: (event) => setRoleDraft((current) => ({
-              ...current,
-              defaultTools: normalizeStringList3(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
-              updatedAt: Date.now()
-            })),
-            rows: 4
-          }
-        )))
-      )), visibleActiveSection === "employees" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Employees"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employees.length, " reusable employee profile(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: employeeListView, onChange: setEmployeeListView, label: "Employee list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Create a new employee profile" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Employee"))), employeeListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Employee"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Current work"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), employees.map((employee) => renderEmployeeRow(employee)), employees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, employees.map((employee) => renderEmployeeManagementCard(employee)), employees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured."))), projectEditorPanel === "employee-profile" && profileEmployee && /* @__PURE__ */ esm_wrapper_default.createElement(
-        WorkbenchEditorPanel,
-        {
-          title: profileEmployee.name,
-          subtitle: `${getEmployeeRoleDefinition2(profileEmployee, roles)?.title ?? profileEmployee.role} / ${profileEmployee.status}`,
-          onClose: closeProjectEditorPanel
-        },
-        renderEmployeeProfile(profileEmployee)
-      ), projectEditorPanel === "employee" && /* @__PURE__ */ esm_wrapper_default.createElement(
-        WorkbenchEditorPanel,
-        {
-          title: employees.some((employee) => employee.id === employeeDraft.id) ? "Edit Employee" : "New Employee",
-          subtitle: "Role, model, permissions, and current assignment",
-          onClose: closeProjectEditorPanel,
-          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveEmployeeDraft, title: "Save this employee profile" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Employee"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Reset the form for a new employee" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
-        },
-        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.name, onChange: (event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: employeeDraft.roleId || getDefaultRoleId2(employeeDraft.role), onChange: (event) => selectEmployeeRole(event.target.value) }, roles.map((role) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: role.id, key: role.id }, role.title)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.model, onChange: (event) => setEmployeeDraft((current) => ({ ...current, model: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: employeeDraft.status, onChange: (event) => setEmployeeDraft((current) => ({ ...current, status: event.target.value, updatedAt: Date.now() })) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idle" }, "Idle"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "working" }, "Working"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "approval" }, "Needs approval"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Current task"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.currentTask, onChange: (event) => setEmployeeDraft((current) => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Permissions"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "textarea",
-          {
-            value: employeeDraft.permissions.join("\n"),
-            onChange: (event) => setEmployeeDraft((current) => ({
-              ...current,
-              permissions: normalizeStringList3(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS2),
-              updatedAt: Date.now()
-            })),
-            rows: 5
-          }
-        )))
-      )), visibleActiveSection === "teams" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projectTeams.length, " reusable project team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: teamListView, onChange: setTeamListView, label: "Team list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Create a new reusable team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Team"))), teamListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Team"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Mission"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), projectTeams.map((team) => renderProjectTeamRow(team)), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, projectTeams.map((team) => renderProjectTeamManagementCard(team)), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured."))), projectEditorPanel === "team" && /* @__PURE__ */ esm_wrapper_default.createElement(
-        WorkbenchEditorPanel,
-        {
-          title: projectTeams.some((team) => team.id === teamDraft.id) ? "Edit Team" : "New Team",
-          subtitle: "Mission, supervisor, and members",
-          onClose: closeProjectEditorPanel,
-          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTeamDraft, title: "Save this reusable team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Team"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Reset the form for a new team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
-        },
-        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Team name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: teamDraft.name, onChange: (event) => setTeamDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: teamDraft.supervisorEmployeeId, onChange: (event) => selectTeamSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Mission"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: teamDraft.mission, onChange: (event) => setTeamDraft((current) => ({ ...current, mission: event.target.value, updatedAt: Date.now() })), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== teamDraft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "checkbox",
-            checked: teamDraft.memberEmployeeIds.includes(employee.id),
-            onChange: () => toggleTeamMember(employee.id)
-          }
-        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))
-      )), visibleActiveSection === "new" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, draft.mode === "autonomous" ? "Fully autonomous execution enabled" : "Standard project"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace path"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goals"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ esm_wrapper_default.createElement(
-        "textarea",
-        {
-          value: draft.artifacts.join("\n"),
-          onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
-          rows: 6
-        }
-      )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement(
-        "input",
-        {
-          type: "checkbox",
-          checked: draft.mode === "autonomous",
-          onChange: (event) => updateDraft({
-            mode: event.target.checked ? "autonomous" : "guided",
-            permissionMode: event.target.checked ? "full-access" : "supervised",
-            assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
-            assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
-            teamRoles: event.target.checked ? draft.teamRoles : []
-          })
-        }
-      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "A supervisor and virtual team manage this project on your behalf.")), draft.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
-        "input",
-        {
-          type: "checkbox",
-          checked: draft.assignedTeamIds.includes(team.id),
-          onChange: () => toggleDraftTeam(team.id)
-        }
-      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
-        "input",
-        {
-          type: "checkbox",
-          checked: draft.assignedEmployeeIds.includes(employee.id),
-          onChange: () => toggleDraftEmployee(employee.id)
-        }
-      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveDraft, title: "Save this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), draft.mode === "autonomous" ? /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, title: "Save this autonomous project and view its team organization" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "network", size: 14 }), "Save And View Team") : /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this project and open chat" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chat", size: 14 }), "Save And Open Chat"))), visibleActiveSection === "guided" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Standard Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectList }, guidedProjects.map((project) => renderProjectCard(project, "chat")), guidedProjects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No standard projects yet."))), visibleActiveSection === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Autonomous Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector()), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Autonomous Project Organization"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "Select or create an autonomous project")), selectedAutonomousProject && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(selectedAutonomousProject), title: "Edit project staffing and team assignments" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "users", size: 14 }), "Edit Project Members"))), selectedAutonomousProject ? /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(selectedAutonomousProject)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTeamDiagram }, selectedAutonomousSupervisor ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, selectedAutonomousSupervisor.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, selectedAutonomousSupervisor.role, " / ", selectedAutonomousProject.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousTeams.map((team) => renderProjectTeamCard(team, { compact: true })), selectedAutonomousTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, selectedAutonomousDirectEmployees.length), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousDirectEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), selectedAutonomousDirectEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("board"), title: "Open the task board for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "board", size: 14 }), "Task Board"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("chat"), title: "Open team chat for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "message", size: 14 }), "Team Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("deliverables"), title: "View deliverables for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "archive", size: 14 }), "Deliverables"))) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No autonomous project yet.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Autonomous Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectList }, autonomousProjects.map((project) => renderProjectCard(project, "organization")), autonomousProjects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No autonomous projects yet.")))), visibleActiveSection === "insights" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectInsights(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see insights.")), visibleActiveSection === "execution" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderExecutionConsole(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see execution state.")), visibleActiveSection === "artifacts" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderArtifactsExplorer(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see artifacts.")), visibleActiveSection === "timeline" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectTimeline(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see timeline.")), visibleActiveSection === "governance" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderGovernance(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see governance.")), visibleActiveSection === "board" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Task Board"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTaskBoard(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see its task board.")), visibleActiveSection === "chat" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Team Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTeamChat(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see employee chat.")), visibleActiveSection === "deliverables" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Deliverables"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderDeliverables(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see deliverables.")), visibleActiveSection === "context" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
-        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          "div",
-          {
-            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
-            key: `${entry.type}-${entry.name}`,
-            title: entry.name
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(
-            "button",
-            {
-              className: styles.fileEntryMain,
-              type: "button",
-              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
-            },
-            /* @__PURE__ */ esm_wrapper_default.createElement("span", null, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
-            /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.name),
-            /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
-          ),
-          /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
-        );
-      }))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Base URL"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Context"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Session"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, sessionCount)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.outputTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Runtime"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "App"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Viewport"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)))))), visibleActiveSection === "overview" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("h2", null, workspaceTitle), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Base URL"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Context"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Workspace State"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tool calls"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)))))), visibleActiveSection === "files" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
-        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          "div",
-          {
-            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
-            key: `${entry.type}-${entry.name}`,
-            title: entry.name
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(
-            "button",
-            {
-              className: styles.fileEntryMain,
-              type: "button",
-              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
-            },
-            /* @__PURE__ */ esm_wrapper_default.createElement("span", null, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
-            /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.name),
-            /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
-          ),
-          /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
-        );
-      }))), visibleActiveSection === "session" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Session"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, sessionCount)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.outputTokens)))), visibleActiveSection === "runtime" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Runtime"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "App"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Viewport"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)))));
-    }
-    function ToolsView2({
-      activeSection,
-      tools,
-      mcpTools,
-      mcpServers,
-      appConfig,
-      routerMessage,
-      toolActivities,
-      onToggleModelTool,
-      onApplyToolPreset,
-      onSetToolPermission,
-      onApplyPermissionPreset,
-      onRunCommand,
-      onOpenWorkspacePath,
-      onRevealWorkspacePath,
-      onRefresh,
-      onClearActivities
-    }) {
-      const exposedToolCount = tools.filter((tool) => isToolExposedToModel2(tool, appConfig)).length;
-      const toolGroups = groupToolsByCategory2(tools);
-      const policyCounts = tools.reduce(
-        (counts, tool) => {
-          counts[getToolPermissionPolicy2(tool, appConfig)] += 1;
-          return counts;
-        },
-        { allow: 0, ask: 0, deny: 0 }
-      );
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailView, "aria-label": "Tools" }, (activeSection === "bridge" || activeSection === "mcp") && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), activeSection === "bridge" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Bridge Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterSummary }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Model exposure"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, exposedToolCount, " / ", tools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Tool calls"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Ask policy"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, policyCounts.ask)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Denied"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, policyCounts.deny))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Expose all"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Read-only only"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Hide mutating"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Allow all"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Ask mutating"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 14 }), "Deny mutating")), routerMessage && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.toolRouterMessage }, routerMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, toolGroups.map((group) => /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.toolCatalogGroup, key: group.id }, /* @__PURE__ */ esm_wrapper_default.createElement("h4", null, group.label), group.tools.map((tool) => {
-        const exposed = isToolExposedToModel2(tool, appConfig);
-        const permission = getToolPermissionPolicy2(tool, appConfig);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: tool.name }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, tool.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, tool.readOnly ? "Read-only" : "Can change workspace")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, tool.description), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolExposureRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, exposed ? "Exposed to model" : "Hidden from model"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: exposed ? styles.toolExposureButton : styles.toolExposureButtonOff,
-            type: "button",
-            onClick: () => onToggleModelTool(tool.name, !exposed)
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: exposed ? "x" : "check", size: 13 }),
-          exposed ? "Hide" : "Expose"
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.toolPermissionRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Permission"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "select",
-          {
-            value: permission,
-            onChange: (event) => onSetToolPermission(tool.name, event.target.value)
-          },
-          TOOL_PERMISSION_OPTIONS2.map((option) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: option.value, key: option.value }, option.label))
-        )));
-      }))), tools.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No bridge tools available"))), activeSection === "mcp" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "MCP Registry"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Execution policy"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, getToolPermissionPolicy2({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig)))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, mcpServers.map((server) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: `${server.scope ?? "unknown"}-${server.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, server.name), /* @__PURE__ */ esm_wrapper_default.createElement(
-        "span",
-        {
-          className: [
-            styles.toolStatusBadge,
-            server.status === "connected" ? styles.toolStatusConnected : "",
-            server.status === "error" ? styles.toolStatusError : ""
-          ].filter(Boolean).join(" ")
-        },
-        server.status
-      )), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, server.type, server.scope ? ` / ${server.scope}` : "", server.error ? ` / ${server.error}` : ""))), mcpServers.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No MCP servers configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.tagList }, mcpTools.map((tool) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.tag, key: `${tool.serverKey ?? tool.serverName}-${tool.toolName}` }, tool.serverScope ? `${tool.serverScope}:` : "", tool.serverName, ".", tool.toolName)), mcpTools.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No executable stdio MCP tools discovered yet"))), activeSection === "command" && /* @__PURE__ */ esm_wrapper_default.createElement(RunCommandPanel, { onRunCommand }), activeSection === "activity" && /* @__PURE__ */ esm_wrapper_default.createElement(
-        ToolActivityPanel2,
-        {
-          activities: toolActivities,
-          onClear: onClearActivities,
-          onOpenWorkspacePath,
-          onRevealWorkspacePath
-        }
-      ), activeSection === "plugins" && /* @__PURE__ */ esm_wrapper_default.createElement(PluginSkillPanel, { appConfig }));
-    }
-    function HistoryView2({
-      activeSection,
-      records,
-      storageInfo,
-      message,
-      exportText,
-      onRefresh,
-      onDeleteRecord,
-      onRestoreChat,
-      onExportRecords
-    }) {
-      const automationRecords = records.filter((record) => record.type === "automation-run");
-      const projectEventRecords = records.filter((record) => record.type === "project-event");
-      const projectActivityRecords = records.filter((record) => record.type === "automation-run" || record.type === "project-event");
-      const visibleRecords = activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : projectActivityRecords;
-      const [historyDeleteTarget, setHistoryDeleteTarget] = useState(null);
-      function openHistoryDeleteConfirmation(record) {
-        setHistoryDeleteTarget({
-          kind: "record",
-          id: record.id,
-          name: getHistoryRecordTitle2(record),
-          detail: "Delete this local history record.",
-          impact: [
-            `${getHistoryRecordTypeLabel2(record.type)} record will be removed from local history storage.`,
-            record.workspacePath ? `Workspace: ${record.workspacePath}` : "This does not delete workspace files or project artifacts."
-          ]
-        });
-      }
-      function closeHistoryDeleteConfirmation() {
-        setHistoryDeleteTarget(null);
-      }
-      function confirmHistoryDelete() {
-        if (!historyDeleteTarget) {
-          return;
-        }
-        onDeleteRecord(historyDeleteTarget.id);
-        closeHistoryDeleteConfirmation();
-      }
-      function renderHistoryDeleteConfirmation() {
-        if (!historyDeleteTarget) {
-          return null;
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          WorkbenchEditorPanel,
-          {
-            title: "Delete record",
-            subtitle: historyDeleteTarget.name,
-            onClose: closeHistoryDeleteConfirmation,
-            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmHistoryDelete }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeHistoryDeleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, historyDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local History state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, historyDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
-        );
-      }
-      async function copyExportText() {
-        if (exportText) {
-          await navigator.clipboard.writeText(exportText);
-        }
-      }
-      function downloadExportText() {
-        if (!exportText) {
-          return;
-        }
-        const blob = new Blob([exportText], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `code-agent-history-${Date.now()}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsView, "aria-label": "Project activity" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Project activity" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: historyDeleteTarget ? `${styles.settingsContent} ${styles.workbenchSplitWithRail}` : styles.settingsContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.inlineSuccess }, message), historyDeleteTarget && renderHistoryDeleteConfirmation(), activeSection === "overview" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Storage" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Records"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectActivityRecords.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Automation"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, automationRecords.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Project events"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectEventRecords.length))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText, title: storageInfo.storagePath }, "Storage path: ", storageInfo.storagePath || "Unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement(
-        HistoryRecordList,
-        {
-          records: projectActivityRecords.slice(0, 12),
-          onRequestDeleteRecord: openHistoryDeleteConfirmation,
-          onRestoreChat
-        }
-      )), (activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ esm_wrapper_default.createElement(
-        HistoryRecordList,
-        {
-          records: visibleRecords,
-          onRequestDeleteRecord: openHistoryDeleteConfirmation,
-          onRestoreChat
-        }
-      ), activeSection === "export" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Export History" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Exports are local JSON snapshots. They do not include provider API keys."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "bot", size: 14 }), "Export Automation"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("project-event") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "activity", size: 14 }), "Export Project Events"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Export Data" }, /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: exportText, readOnly: true, rows: 14, placeholder: "Choose an export option above." }), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "file", size: 14 }), "Copy JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Download JSON")))))));
-    }
-    function HistoryRecordList({
-      records,
-      onRequestDeleteRecord,
-      onRestoreChat
-    }) {
-      return /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Records" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, records.map((record) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: record.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, getHistoryRecordTitle2(record)), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, getHistoryRecordTypeLabel2(record.type))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, getHistoryRecordSummary2(record)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(record.updatedAt).toLocaleString()), record.workspacePath && /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: record.workspacePath }, "Workspace: ", record.workspacePath), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, record.type === "chat-session" && /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRestoreChat(record) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Restore Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onRequestDeleteRecord(record) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")))), records.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No history records in this section.")));
-    }
-    function createAutomationDraftId(prefix) {
-      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    }
-    function createVirtualTeamMemberDraft(role = "Developer") {
-      return {
-        id: createAutomationDraftId("member"),
-        name: role,
-        role,
-        goal: getDefaultTeamGoal(role),
-        tools: getDefaultTeamTools(role)
-      };
-    }
-    function createVirtualTeamDraft(workspacePath, providerId) {
-      const members = [
-        createVirtualTeamMemberDraft("Supervisor"),
-        createVirtualTeamMemberDraft("Project Manager"),
-        createVirtualTeamMemberDraft("Developer"),
-        createVirtualTeamMemberDraft("QA")
-      ];
-      const now = Date.now();
-      return {
-        id: createAutomationDraftId("team"),
-        name: "Autonomous project team",
-        objective: "Build and validate the software project from the human blueprint.",
-        workspacePath,
-        permissionMode: "full-access",
-        maxIterations: 1,
-        providerId,
-        providerConfig: { requireQaSignoff: true },
-        supervisorId: members[0].id,
-        members,
-        status: "draft",
-        createdAt: now,
-        updatedAt: now
-      };
-    }
-    function cloneVirtualTeamForDraft(team, workspacePath) {
-      const members = team.members.map((member) => ({
-        ...member,
-        tools: [...member.tools]
-      }));
-      const supervisorId = members.some((member) => member.id === team.supervisorId) ? team.supervisorId : members[0]?.id ?? "";
-      return {
-        ...team,
-        workspacePath: team.workspacePath ?? workspacePath,
-        permissionMode: team.permissionMode ?? "full-access",
-        maxIterations: team.maxIterations ?? 1,
-        providerId: team.providerId,
-        providerConfig: team.providerConfig ? { ...team.providerConfig } : void 0,
-        supervisorId,
-        members
-      };
-    }
-    function getTeamPermissionLabel(mode) {
-      return mode === "supervised" ? "Supervised" : "Full access";
-    }
-    function formatTeamTools(tools) {
-      return tools.join(", ");
-    }
-    function createPermissionTool(toolName) {
-      const readOnly = !["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"].includes(toolName);
-      return {
-        name: toolName,
-        description: "",
-        inputSchema: {},
-        readOnly
-      };
-    }
-    function AutomationView2({
-      providerId,
-      activeSection,
-      skills,
-      tasks,
-      taskRuns,
-      schedulerStatus,
-      remoteControl,
-      teams,
-      teamRuns,
-      runningTeamIds,
-      roles,
-      employees,
-      appConfig,
-      workspacePath,
-      message,
-      exportText,
-      importText,
-      onRefresh,
-      onSetSkillEnabled,
-      onExportProject,
-      onImportTextChange,
-      onImportProject,
-      onSaveTask,
-      onRunTask,
-      onSetTaskEnabled,
-      onDeleteTask,
-      onUpdateRemoteControl,
-      onCreatePairingCode,
-      onRevokeRemoteDevice,
-      onCreateDefaultTeam,
-      onSaveTeam,
-      onRunTeam,
-      onDeleteTeam,
-      onSetToolPermission,
-      onApplyPermissionPreset
-    }) {
-      const [taskName, setTaskName] = useState("Daily project check");
-      const [taskPrompt, setTaskPrompt] = useState("Summarize git status, failing tests, and next actions for this workspace.");
-      const [taskInterval, setTaskInterval] = useState(1440);
-      const [taskRetryEnabled, setTaskRetryEnabled] = useState(false);
-      const [taskMaxRetries, setTaskMaxRetries] = useState(1);
-      const [taskRetryDelay, setTaskRetryDelay] = useState(15);
-      const [taskNotifySuccess, setTaskNotifySuccess] = useState(false);
-      const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
-      const [taskNotificationChannel, setTaskNotificationChannel] = useState("desktop");
-      const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState("run-once");
-      const [taskDraftId, setTaskDraftId] = useState("");
-      const [taskEnabled, setTaskEnabled] = useState(true);
-      const [deviceName, setDeviceName] = useState("Phone");
-      const [selectedTeamId, setSelectedTeamId] = useState("");
-      const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = useState("");
-      const [teamDraft, setTeamDraft] = useState(() => createVirtualTeamDraft(workspacePath, providerId));
-      const [automationEditorPanel, setAutomationEditorPanel] = useState(null);
-      const [automationDeleteTarget, setAutomationDeleteTarget] = useState(null);
-      const [scheduledTaskView, setScheduledTaskView] = useState("table");
-      const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-      const recentTeamRuns = selectedTeamId ? teamRuns.filter((run) => run.teamId === selectedTeamId) : teamRuns;
-      const taskRailOpen = automationEditorPanel === "task" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task";
-      const teamRailOpen = automationEditorPanel === "team" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "team";
-      useEffect(() => {
-        if (!selectedTeamId && teams[0]) {
-          setSelectedTeamId(teams[0].id);
-          setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
-        }
-      }, [selectedTeamId, teams, workspacePath]);
-      function closeAutomationEditorPanel() {
-        setAutomationEditorPanel(null);
-        setAutomationDeleteTarget(null);
-      }
-      function openAutomationDeleteConfirmation(target) {
-        setAutomationDeleteTarget(target);
-        setAutomationEditorPanel("delete");
-      }
-      function confirmAutomationDelete() {
-        if (!automationDeleteTarget) {
-          return;
-        }
-        if (automationDeleteTarget.kind === "task") {
-          onDeleteTask(automationDeleteTarget.id);
-        } else if (automationDeleteTarget.kind === "team") {
-          onDeleteTeam(automationDeleteTarget.id);
-        } else if (automationDeleteTarget.kind === "device") {
-          onRevokeRemoteDevice(automationDeleteTarget.id);
-        }
-        closeAutomationEditorPanel();
-      }
-      function openNewTaskEditor() {
-        setAutomationDeleteTarget(null);
-        setTaskDraftId("");
-        setTaskName("Daily project check");
-        setTaskPrompt("Summarize git status, failing tests, and next actions for this workspace.");
-        setTaskInterval(1440);
-        setTaskRetryEnabled(false);
-        setTaskMaxRetries(1);
-        setTaskRetryDelay(15);
-        setTaskNotifySuccess(false);
-        setTaskNotifyFailure(true);
-        setTaskNotificationChannel("desktop");
-        setTaskMissedRunPolicy("run-once");
-        setTaskEnabled(true);
-        setAutomationEditorPanel("task");
-      }
-      function openTaskEditor(task) {
-        setAutomationDeleteTarget(null);
-        setTaskDraftId(task.id);
-        setTaskName(task.name);
-        setTaskPrompt(task.prompt);
-        setTaskInterval(task.intervalMinutes);
-        setTaskRetryEnabled(Boolean(task.retryPolicy?.enabled));
-        setTaskMaxRetries(task.retryPolicy?.maxRetries ?? 1);
-        setTaskRetryDelay(task.retryPolicy?.retryDelayMinutes ?? 15);
-        setTaskNotifySuccess(Boolean(task.notificationPolicy?.onSuccess));
-        setTaskNotifyFailure(task.notificationPolicy?.onFailure !== false);
-        setTaskNotificationChannel(task.notificationPolicy?.channel ?? "desktop");
-        setTaskMissedRunPolicy(task.missedRunPolicy ?? "run-once");
-        setTaskEnabled(task.enabled);
-        setAutomationEditorPanel("task");
-      }
-      function saveTaskDraft() {
-        onSaveTask({
-          id: taskDraftId || void 0,
-          name: taskName,
-          prompt: taskPrompt,
-          intervalMinutes: taskInterval,
-          enabled: taskEnabled,
-          retryPolicy: {
-            enabled: taskRetryEnabled,
-            maxRetries: taskMaxRetries,
-            retryDelayMinutes: taskRetryDelay
-          },
-          notificationPolicy: {
-            onSuccess: taskNotifySuccess,
-            onFailure: taskNotifyFailure,
-            channel: taskNotificationChannel
-          },
-          missedRunPolicy: taskMissedRunPolicy
-        });
-        closeAutomationEditorPanel();
-      }
-      function startNewTeamDraft() {
-        const draft = createVirtualTeamDraft(workspacePath, providerId);
-        setSelectedTeamId("");
-        setTeamDraft(draft);
-        setAutomationDeleteTarget(null);
-        setAutomationEditorPanel("team");
-      }
-      function selectTeam(team) {
-        setSelectedTeamId(team.id);
-        setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
-        setAutomationDeleteTarget(null);
-        setAutomationEditorPanel("team");
-      }
-      function updateTeamDraft(update) {
-        setTeamDraft((current) => ({
-          ...current,
-          ...update,
-          updatedAt: Date.now()
-        }));
-      }
-      function updateTeamMember(index, update) {
-        setTeamDraft((current) => {
-          const members = current.members.map((member, memberIndex) => memberIndex === index ? { ...member, ...update } : member);
-          const supervisorId = members.some((member) => member.id === current.supervisorId) ? current.supervisorId : members[0]?.id ?? "";
-          return {
-            ...current,
-            members,
-            supervisorId,
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function addTeamMember(role = "Developer") {
-        setTeamDraft((current) => {
-          const member = createVirtualTeamMemberDraft(role);
-          return {
-            ...current,
-            members: [...current.members, member],
-            supervisorId: current.supervisorId || member.id,
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function addSharedEmployeeToTeam(employeeId) {
-        const employee = employees.find((candidate) => candidate.id === employeeId);
-        if (!employee) {
-          return;
-        }
-        const role = getEmployeeRoleDefinition2(employee, roles);
-        const member = {
-          id: `member-${employee.id}`,
-          name: employee.name,
-          role: role?.title ?? employee.role,
-          goal: role?.defaultGoal ?? getDefaultTeamGoal(employee.role),
-          tools: role?.defaultTools ?? getDefaultTeamTools(employee.role)
-        };
-        setTeamDraft((current) => {
-          const members = [
-            member,
-            ...current.members.filter((candidate) => candidate.id !== member.id)
-          ];
-          return {
-            ...current,
-            members,
-            supervisorId: current.supervisorId || (role?.canSupervise ? member.id : members[0]?.id ?? ""),
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function deleteTeamMember(memberId) {
-        setTeamDraft((current) => {
-          const members = current.members.filter((member) => member.id !== memberId);
-          return {
-            ...current,
-            members,
-            supervisorId: current.supervisorId === memberId ? members[0]?.id ?? "" : current.supervisorId,
-            updatedAt: Date.now()
-          };
-        });
-      }
-      function saveTeamDraft() {
-        onSaveTeam({
-          ...teamDraft,
-          permissionMode: teamDraft.permissionMode ?? "full-access",
-          maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
-          providerId: teamDraft.providerId,
-          providerConfig: teamDraft.providerConfig ? { ...teamDraft.providerConfig } : void 0,
-          members: teamDraft.members.map((member) => ({
-            ...member,
-            name: member.name.trim() || member.role.trim() || "Team member",
-            role: member.role.trim() || "Contributor",
-            goal: member.goal.trim() || getDefaultTeamGoal(member.role),
-            tools: normalizeToolNameList2(member.tools)
-          }))
-        });
-        closeAutomationEditorPanel();
-      }
-      function buildScheduledTaskDeleteTarget(task) {
-        return {
-          kind: "task",
-          id: task.id,
-          name: task.name,
-          detail: "Delete this scheduled automation task.",
-          impact: [
-            `The ${task.enabled ? "enabled" : "disabled"} schedule running every ${task.intervalMinutes} minute(s) will be removed.`,
-            "Existing task run history remains visible until history retention removes it."
-          ]
-        };
-      }
-      function buildAutomationTeamDeleteTarget(team) {
-        return {
-          kind: "team",
-          id: team.id,
-          name: team.name,
-          detail: "Delete this automation team blueprint.",
-          impact: [
-            `${team.members.length} virtual team member definition(s) will be removed from this blueprint.`,
-            "Existing team run records are not deleted by this action."
-          ]
-        };
-      }
-      function buildRemoteDeviceDeleteTarget(device) {
-        return {
-          kind: "device",
-          id: device.id,
-          name: device.name,
-          detail: "Revoke this approved remote-control device.",
-          impact: [
-            "The device token will no longer be accepted for remote approvals.",
-            device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}.` : `Paired ${new Date(device.createdAt).toLocaleString()}.`
-          ]
-        };
-      }
-      function getScheduledTaskPolicyLabels(task) {
-        const retryLabel = task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} retry` : "Retry off";
-        const notifyLabel = `${task.notificationPolicy?.channel ?? "desktop"} notifications`;
-        return { retryLabel, notifyLabel };
-      }
-      function renderScheduledTaskRow(task) {
-        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: task.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, "Every ", task.intervalMinutes, " min"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: new Date(task.nextRunAt).toLocaleString() }, "Next ", new Date(task.nextRunAt).toLocaleString()), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: `${task.prompt} / ${retryLabel} / ${notifyLabel}` }, retryLabel, " / ", notifyLabel), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderScheduledTaskCard(task) {
-        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: task.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: task.prompt }, task.prompt), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Cadence"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, "Every ", task.intervalMinutes, " min")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Next Run"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: new Date(task.nextRunAt).toLocaleString() }, new Date(task.nextRunAt).toLocaleString()))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, retryLabel), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, notifyLabel), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, task.missedRunPolicy ?? "run-once")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
-      }
-      function renderAutomationTeamRow(team) {
-        const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === "running";
-        const status = teamIsRunning ? "running" : team.status;
-        const governance = `${team.maxIterations ?? 1} iteration(s) / QA ${team.providerConfig?.requireQaSignoff === true ? "required" : "optional"}`;
-        const rowClassName = team.id === selectedTeamId ? `${styles.workbenchRecordRow} ${styles.workbenchRecordRowSelected}` : styles.workbenchRecordRow;
-        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: rowClassName, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: team.workspacePath ?? workspacePath }, team.workspacePath ?? workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, status, " / ", getTeamPermissionLabel(team.permissionMode)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, team.members.length, " member(s) / ", governance), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: `${team.objective}${team.lastResult ? ` / ${team.lastResult}` : ""}` }, team.objective), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => selectTeam(team), disabled: teamIsRunning }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTeam(team.id), disabled: teamIsRunning }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: teamIsRunning ? "activity" : "play", size: 14 }), teamIsRunning ? "Running..." : "Run Team"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "button",
-          {
-            className: styles.dangerButton,
-            type: "button",
-            onClick: () => openAutomationDeleteConfirmation(buildAutomationTeamDeleteTarget(team)),
-            disabled: teamIsRunning
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
-          "Delete"
-        )));
-      }
-      function renderAutomationDeleteConfirmation() {
-        if (!automationDeleteTarget) {
-          return null;
-        }
-        return /* @__PURE__ */ esm_wrapper_default.createElement(
-          WorkbenchEditorPanel,
-          {
-            title: `Delete ${automationDeleteTarget.kind}`,
-            subtitle: automationDeleteTarget.name,
-            onClose: closeAutomationEditorPanel,
-            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmAutomationDelete }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeAutomationEditorPanel }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
-          },
-          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, automationDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local Automation state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, automationDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
-        );
-      }
-      async function copyAutomationExportText() {
-        if (exportText) {
-          await navigator.clipboard.writeText(exportText);
-        }
-      }
-      function downloadAutomationExportText() {
-        if (!exportText) {
-          return;
-        }
-        const blob = new Blob([exportText], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `code-agent-automation-${Date.now()}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-      }
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsView, "aria-label": "Automation" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Automation" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.inlineSuccess }, message), activeSection === "skills" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Workspace Skills" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Workspace skills are discovered from `.code-agent/skills` and `skills`."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, skills.map((skill) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: skill.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, skill.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, skill.enabled ? "Enabled" : "Disabled", " / ", skill.source)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, skill.description || "No description provided."), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: skill.path }, skill.path), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetSkillEnabled(skill.id, !skill.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: skill.enabled ? "pause" : "play", size: 14 }), skill.enabled ? "Disable" : "Enable")))), skills.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No workspace skills found yet."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Shareable Project Bundle" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(false) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Export Config"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(true) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "archive", size: 14 }), "Export With Runs"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyAutomationExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "file", size: 14 }), "Copy Export"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadAutomationExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Download Export"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: onImportProject, disabled: !importText.trim() }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 14 }), "Import JSON")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Export JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: exportText, readOnly: true, rows: 8, placeholder: "Exported automation JSON appears here." })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Import JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: importText, onChange: (event) => onImportTextChange(event.target.value), rows: 8, placeholder: "Paste a CodeAgent automation export JSON object." }))))), activeSection === "tasks" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: taskRailOpen ? `${styles.workbenchSplit} ${styles.workbenchSplitWithRail}` : styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchMainStack }, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Scheduler" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, schedulerStatus.running ? "Running" : "Stopped")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tick"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Math.round(schedulerStatus.intervalMs / 1e3), "s")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Active tasks"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, schedulerStatus.runningTaskIds.length))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the team panel when trusted autonomous work should not pause for approvals."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewTaskEditor }, "New Task"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Configured Tasks" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordSectionToolbar }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: scheduledTaskView, onChange: setScheduledTaskView, label: "Scheduled task list view" })), scheduledTaskView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Task"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Cadence"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Next run"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Policy"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), tasks.map((task) => renderScheduledTaskRow(task)), tasks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, tasks.map((task) => renderScheduledTaskCard(task)), tasks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Recent Task Runs" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, taskRuns.slice(0, 8).map((run) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: run.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, run.taskName), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, run.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, run.result ?? run.error ?? "Running..."), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(run.startedAt).toLocaleString()))), taskRuns.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No task runs yet.")))), automationEditorPanel === "task" && /* @__PURE__ */ esm_wrapper_default.createElement(
-        WorkbenchEditorPanel,
-        {
-          title: taskDraftId ? "Edit Scheduled Task" : "New Scheduled Task",
-          subtitle: "Prompt, cadence, retries, notifications, and missed-run handling",
-          onClose: closeAutomationEditorPanel,
-          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTaskDraft }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Task"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewTaskEditor }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
-        },
-        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: taskName, onChange: (event) => setTaskName(event.target.value) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Enabled"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskEnabled ? "yes" : "no", onChange: (event) => setTaskEnabled(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Interval minutes"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "number",
-            min: 1,
-            value: taskInterval,
-            onChange: (event) => setTaskInterval(Math.max(1, Number(event.target.value) || 1))
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Prompt"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: taskPrompt, onChange: (event) => setTaskPrompt(event.target.value), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Retry failed runs"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskRetryEnabled ? "enabled" : "disabled", onChange: (event) => setTaskRetryEnabled(event.target.value === "enabled") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "disabled" }, "Disabled"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "enabled" }, "Enabled"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Max retries"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "number",
-            min: 0,
-            max: 10,
-            value: taskMaxRetries,
-            onChange: (event) => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Retry delay minutes"), /* @__PURE__ */ esm_wrapper_default.createElement(
-          "input",
-          {
-            type: "number",
-            min: 1,
-            max: 1440,
-            value: taskRetryDelay,
-            onChange: (event) => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))
-          }
-        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notify on success"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotifySuccess ? "yes" : "no", onChange: (event) => setTaskNotifySuccess(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notify on failure"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotifyFailure ? "yes" : "no", onChange: (event) => setTaskNotifyFailure(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notification channel"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotificationChannel, onChange: (event) => setTaskNotificationChannel(event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "desktop" }, "Desktop"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "remote" }, "Remote"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "none" }, "None"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Missed runs"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskMissedRunPolicy, onChange: (event) => setTaskMissedRunPolicy(event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "run-once" }, "Run once after restart"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "skip" }, "Skip and resume schedule"))))
-      ), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task" && renderAutomationDeleteConfirmation()), activeSection === "remote" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote Access" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.enabled ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.mode)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Devices"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.approvedDevices.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Pending approvals"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.pendingActions?.length ?? 0))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Device name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: deviceName, onChange: (event) => setDeviceName(event.target.value) }))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? "disabled" : "local-network" }) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: remoteControl.enabled ? "pause" : "play", size: 14 }), remoteControl.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onCreatePairingCode(deviceName) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "phone", size: 14 }), "Pair Device"))), remoteControl.pairingCode && /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Pairing Code" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Pairing code"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, remoteControl.pairingCode), remoteControl.pairingExpiresAt && /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Expires ", new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()))), (remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote URL" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Remote URL"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl), remoteControl.serverUrl && /* @__PURE__ */ esm_wrapper_default.createElement("em", null, remoteControl.serverUrl))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Managed Relay" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.enrollmentStatus ?? "not-configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Broker"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.brokerUrl ?? "Not configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Account"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.accountId ?? "Not configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Device"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.deviceId ?? "Not configured"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Off-network relay control stays disabled until the managed relay implements identity, encryption, token rotation, audit propagation, and emergency revocation.")), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Approved Devices" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, remoteControl.approvedDevices.map((device) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: device.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, device.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, device.lastSeenAt ? "Seen recently" : "Paired")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Paired ", new Date(device.createdAt).toLocaleString()), device.lastSeenAt && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Last seen ", new Date(device.lastSeenAt).toLocaleString()), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildRemoteDeviceDeleteTarget(device)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Revoke")))), remoteControl.approvedDevices.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No approved remote devices."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote Audit Log" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, (remoteControl.auditLog ?? []).slice(0, 12).map((event) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: event.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, event.message), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, event.type)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(event.createdAt).toLocaleString()), event.deviceName && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Device: ", event.deviceName))), (remoteControl.auditLog ?? []).length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No remote-control audit events yet."))), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "device" && renderAutomationDeleteConfirmation()), activeSection === "permissions" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Unattended Execution Policy" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Allow All Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Ask Before Changes"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 14 }), "Deny Mutating Tools"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Key Automation Tools" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, AUTOMATION_PERMISSION_TOOLS2.map((toolName) => {
-        const permission = getToolPermissionPolicy2(createPermissionTool(toolName), appConfig);
-        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.toolPermissionRow, key: toolName }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, toolName), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: permission, onChange: (event) => onSetToolPermission(toolName, event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "allow" }, "Allow"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "ask" }, "Ask"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "deny" }, "Deny")));
-      })))))));
-    }
-    function RunCommandPanel({
-      onRunCommand
-    }) {
-      const [command, setCommand] = useState("");
-      const [cwd, setCwd] = useState(".");
-      const helperCommands = [
-        { label: "Git status", command: "git status --short --branch" },
-        { label: "Git diff", command: "git diff --stat" },
-        { label: "Branch", command: "git branch --show-current" },
-        { label: "NPM scripts", command: "npm run" },
-        { label: "Dev servers", command: "lsof -iTCP -sTCP:LISTEN -P -n" }
-      ];
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Run Command"), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Commands run through `bash.run`, stay inside the workspace, and require approval before execution."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.commandRunner }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Command"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: command, onChange: (event) => setCommand(event.target.value), placeholder: "npm test" })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Working directory"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: cwd, onChange: (event) => setCwd(event.target.value), placeholder: "." })), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onRunCommand(command, cwd) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "terminal", size: 14 }), "Review Run")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, helperCommands.map((helper) => /* @__PURE__ */ esm_wrapper_default.createElement(
-        "button",
-        {
-          className: styles.secondaryButton,
-          type: "button",
-          key: helper.label,
-          onClick: () => setCommand(helper.command)
-        },
-        /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "terminal", size: 14 }),
-        helper.label
-      ))));
-    }
-    function PluginSkillPanel({ appConfig }) {
-      const pluginDirs = readCliOption2(appConfig, "pluginDirs") || "Default plugin paths";
-      const agentsJson = readCliOption2(appConfig, "agentsJson") || "Not configured";
-      const mcpConfig = readCliOption2(appConfig, "mcpConfig") || "Default MCP config";
-      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Plugins & Skills"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Plugin dirs"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: pluginDirs }, pluginDirs)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Agents JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: agentsJson }, agentsJson)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP config"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: mcpConfig }, mcpConfig))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above."));
-    }
-    return { ProjectsView: ProjectsView2, ToolsView: ToolsView2, AutomationView: AutomationView2, HistoryView: HistoryView2 };
-  }
-
   // node_modules/highlight.js/es/common.js
   var import_common = __toESM(require_common(), 1);
   var common_default = import_common.default;
@@ -43397,10 +43089,11 @@ Attached images: ${imageSummary}` : message.content);
       "rolloutStatus": "active",
       "sdk": {
         "name": "@codeagent/feature-package-sdk",
-        "versionRange": "^0.1.0"
+        "versionRange": "^0.2.0"
       },
       "entrypoints": {
         "runtime": "dist/index.js",
+        "renderer": "dist/renderer.js",
         "cli": "dist/cli.js"
       },
       "distribution": {
@@ -44575,6 +44268,9 @@ Attached images: ${imageSummary}` : message.content);
   function getFeatureOwnerPackageId(resolution, featureId) {
     return resolution.features.find((feature) => feature.featureId === featureId)?.packageId;
   }
+  function getDeclaredFeatureOwnerPackageId(featureId) {
+    return FEATURE_PACKAGE_MANIFESTS.find((manifest) => manifest.features.some((feature) => feature.id === featureId))?.id;
+  }
   function getFeaturePackageExtensions(resolution, point) {
     return resolution.extensions.filter((entry) => !point || entry.extension.point === point).sort((left, right) => {
       const leftOrder = left.extension.order ?? 0;
@@ -44788,6 +44484,2241 @@ Attached images: ${imageSummary}` : message.content);
     return value === "bundled" || value === "not-owned" || value === "owned-not-installed" || value === "installed" || value === "update-available" || value === "install-failed" || value === "remote-service" ? value : "owned-not-installed";
   }
 
+  // ../code-agent-packages/dist-feature-packages/software-developer/dist/renderer.js
+  var import_react = __toESM(require_react2(), 1);
+
+  // ../code-agent-sdk/src/index.ts
+  function defineFeaturePackageRenderer(renderer2) {
+    return renderer2;
+  }
+
+  // ../code-agent-packages/dist-feature-packages/software-developer/dist/renderer.js
+  function getDefaultTeamGoal(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor")) {
+      return "Coordinate the team, keep work aligned to the project objective, and decide the next handoff.";
+    }
+    if (normalizedRole.includes("manager")) {
+      return "Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.";
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return "Validate the implementation plan, propose tests, and call out release blockers.";
+    }
+    if (normalizedRole.includes("review")) {
+      return "Review the work for correctness, maintainability, security, and missing verification.";
+    }
+    return "Implement the assigned work, use tools conservatively, and report concrete results.";
+  }
+  function getDefaultTeamTools(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor") || normalizedRole.includes("manager")) {
+      return ["automation.listTeams", "automation.listTeamRuns", "fs.read"];
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return ["fs.read", "bash.run"];
+    }
+    return ["fs.read", "fs.write", "bash.run"];
+  }
+  function createSoftwareDeveloperRendererViews(host) {
+    const {
+      AUTOMATION_PERMISSION_TOOLS: AUTOMATION_PERMISSION_TOOLS2,
+      DEFAULT_AUTONOMOUS_ROLES: DEFAULT_AUTONOMOUS_ROLES2,
+      DEFAULT_EMPLOYEE_PERMISSIONS: DEFAULT_EMPLOYEE_PERMISSIONS2,
+      DEFAULT_PROJECT_ARTIFACTS: DEFAULT_PROJECT_ARTIFACTS2,
+      PROJECT_LIST_PAGE_SIZE: PROJECT_LIST_PAGE_SIZE2,
+      TOOL_PERMISSION_OPTIONS: TOOL_PERMISSION_OPTIONS2,
+      Icon: Icon2,
+      InlineApprovalQueue: InlineApprovalQueue2,
+      MessageItem: MessageItem2,
+      RecordViewToggle: RecordViewToggle2,
+      ToolActivityPanel: ToolActivityPanel2,
+      createDefaultProjectTeams: createDefaultProjectTeams2,
+      createProjectReadyMessages: createProjectReadyMessages2,
+      createProjectTeamId: createProjectTeamId2,
+      createSoftwareProjectDraft: createSoftwareProjectDraft2,
+      createVirtualEmployeeProfile: createVirtualEmployeeProfile2,
+      createVirtualRoleDefinition: createVirtualRoleDefinition2,
+      formatFileSize: formatFileSize2,
+      formatImageAttachmentSummary: formatImageAttachmentSummary2,
+      formatProjectOutputSource: formatProjectOutputSource2,
+      formatProjectStatus: formatProjectStatus2,
+      getDefaultRoleId: getDefaultRoleId2,
+      getEmployeeRoleDefinition: getEmployeeRoleDefinition2,
+      getHistoryRecordSummary: getHistoryRecordSummary2,
+      getHistoryRecordTitle: getHistoryRecordTitle2,
+      getHistoryRecordTypeLabel: getHistoryRecordTypeLabel2,
+      getPathBasename: getPathBasename2,
+      getProjectAssignedEmployees: getProjectAssignedEmployees2,
+      getProjectAutomationTeamId: getProjectAutomationTeamId2,
+      getProjectChatKey: getProjectChatKey2,
+      getProjectStaffingEmployees: getProjectStaffingEmployees2,
+      getProjectSupervisor: getProjectSupervisor2,
+      getProjectTeams: getProjectTeams2,
+      getProviderDefault: getProviderDefault2,
+      getRoleDefinitionById: getRoleDefinitionById2,
+      getTeamMembers: getTeamMembers2,
+      getTeamSupervisor: getTeamSupervisor2,
+      getToolPermissionPolicy: getToolPermissionPolicy2,
+      getToolResultPath: getToolResultPath2,
+      groupMessagesByAssistantRun: groupMessagesByAssistantRun2,
+      groupToolsByCategory: groupToolsByCategory2,
+      isProjectToolActivity: isProjectToolActivity2,
+      isReviewForProjectChat: isReviewForProjectChat2,
+      isSupervisorEmployee: isSupervisorEmployee2,
+      isToolExposedToModel: isToolExposedToModel2,
+      joinWorkspacePath: joinWorkspacePath2,
+      normalizeStringList: normalizeStringList3,
+      normalizeToolNameList: normalizeToolNameList2,
+      readCliOption: readCliOption2,
+      styles,
+      summarizeProjectGoals: summarizeProjectGoals2,
+      summarizeToolResult: summarizeToolResult2
+    } = host;
+    function SettingsSection2({
+      title,
+      children
+    }) {
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.settingsSection }, title && /* @__PURE__ */ import_react.default.createElement("h3", null, title), children);
+    }
+    function WorkbenchEditorPanel({
+      title,
+      subtitle,
+      children,
+      footer,
+      onClose,
+      wide = false,
+      bodyClassName
+    }) {
+      return /* @__PURE__ */ import_react.default.createElement("aside", { className: wide ? `${styles.workbenchEditorPanel} ${styles.workbenchEditorPanelWide}` : styles.workbenchEditorPanel, "aria-label": title }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchEditorHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, title), subtitle && /* @__PURE__ */ import_react.default.createElement("span", null, subtitle)), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onClose, title: "Close this panel" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "x", size: 14 }), "Close")), /* @__PURE__ */ import_react.default.createElement("div", { className: bodyClassName ? `${styles.workbenchEditorBody} ${bodyClassName}` : styles.workbenchEditorBody }, children), footer && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchEditorFooter }, footer));
+    }
+    function ProjectsView2({
+      activeSection,
+      appInfo,
+      appConfig,
+      appState,
+      activeProviderLabel,
+      activeProviderDefault,
+      viewportSize,
+      tokenUsage,
+      toolActivities,
+      teamRuns,
+      runningProjectIds,
+      currentSessionTitle,
+      sessionCount,
+      projects,
+      activeProjectId,
+      roles,
+      employees,
+      projectTeams,
+      projectChatMessages,
+      fileWriteReviews,
+      commandReviews,
+      toolPermissionReviews,
+      projectGeneratedOutputs,
+      projectChatSendingKeys,
+      workspacePath,
+      workspaceEntries,
+      workspaceBrowserError,
+      workspaceActionMessage,
+      isLoadingWorkspaceEntries,
+      onOpenWorkspaceEntry,
+      onOpenWorkspacePath,
+      onRevealWorkspacePath,
+      onGoToWorkspaceParent,
+      onRefreshWorkspace,
+      mcpServers,
+      mcpTools,
+      onSaveProject,
+      onSaveRole,
+      onDeleteRole,
+      onSaveEmployee,
+      onDeleteEmployee,
+      onSaveTeam,
+      onDeleteTeam,
+      onSelectProject,
+      onSetProjectStatus,
+      onDeleteProject,
+      onSendProjectChat,
+      onResolveFileWrite,
+      onResolveCommand,
+      onResolveToolPermission,
+      onChangeSection
+    }) {
+      const visibleActiveSection = ["studio", "roles", "employees", "teams"].includes(activeSection) ? activeSection : "studio";
+      const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
+      const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
+      const guidedProjects = projects.filter((project) => project.mode === "guided");
+      const autonomousProjects = projects.filter((project) => project.mode === "autonomous");
+      const selectedAutonomousProject = autonomousProjects.find((project) => project.id === activeProjectId) ?? autonomousProjects[0];
+      const selectedAutonomousSupervisor = selectedAutonomousProject ? getProjectSupervisor2(selectedAutonomousProject, employees, roles) : employees.find((employee) => isSupervisorEmployee2(employee, roles));
+      const selectedAutonomousTeams = selectedAutonomousProject ? getProjectTeams2(selectedAutonomousProject, projectTeams) : [];
+      const selectedAutonomousDirectEmployees = selectedAutonomousProject ? getProjectAssignedEmployees2(selectedAutonomousProject, employees, roles) : [];
+      const selectedAutonomousStaff = selectedAutonomousProject ? getProjectStaffingEmployees2(selectedAutonomousProject, employees, roles, projectTeams) : employees.filter((employee) => employee.id !== selectedAutonomousSupervisor?.id);
+      function getProjectLatestRun(project) {
+        if (project.mode !== "autonomous") {
+          return void 0;
+        }
+        const automationTeamId = getProjectAutomationTeamId2(project.id);
+        return teamRuns.filter((run) => run.teamId === automationTeamId).sort((left, right) => right.startedAt - left.startedAt)[0];
+      }
+      function getProjectEffectiveStatus(project) {
+        if (project.status === "stopped") {
+          return "stopped";
+        }
+        const latestRun = getProjectLatestRun(project);
+        if (project.mode === "autonomous" && (runningProjectIds.has(project.id) || latestRun?.status === "running")) {
+          return "active";
+        }
+        if (latestRun?.status === "succeeded") {
+          return "done";
+        }
+        if (latestRun?.status === "failed") {
+          return "blocked";
+        }
+        return project.status;
+      }
+      const activeProjects = projects.filter((project) => getProjectEffectiveStatus(project) === "active");
+      const staffedProjectCount = projects.filter((project) => project.mode === "guided" ? project.assignedEmployeeIds.length > 0 : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)).length;
+      const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
+      const projectModeMetrics = [
+        { label: "Standard", value: guidedProjects.length, className: styles.projectMetricGuided },
+        { label: "Fully autonomous", value: autonomousProjects.length, className: styles.projectMetricAutonomous }
+      ];
+      const projectStatusMetrics = [
+        ["Active", "active", styles.projectMetricActive],
+        ["Planning", "planning", styles.projectMetricPlanning],
+        ["Blocked", "blocked", styles.projectMetricBlocked],
+        ["Stopped", "stopped", styles.projectMetricStopped],
+        ["Done", "done", styles.projectMetricDone],
+        ["Idea", "idea", styles.projectMetricIdea]
+      ].map(([label, status, className]) => ({
+        label,
+        value: projects.filter((project) => getProjectEffectiveStatus(project) === status).length,
+        className
+      }));
+      const projectStaffingMetrics = [
+        { label: "Staffed", value: staffedProjectCount, className: styles.projectMetricStaffed },
+        { label: "Needs staffing", value: Math.max(0, projects.length - staffedProjectCount), className: styles.projectMetricNeedsStaffing }
+      ];
+      const [draft, setDraft] = (0, import_react.useState)(() => createSoftwareProjectDraft2(appInfo?.workspacePath));
+      const [roleDraft, setRoleDraft] = (0, import_react.useState)(() => createVirtualRoleDefinition2("Developer"));
+      const [employeeDraft, setEmployeeDraft] = (0, import_react.useState)(() => createVirtualEmployeeProfile2("Developer"));
+      const [teamDraft, setTeamDraft] = (0, import_react.useState)(() => createDefaultProjectTeams2()[0]);
+      const [profileEmployeeId, setProfileEmployeeId] = (0, import_react.useState)("");
+      const [projectEditorPanel, setProjectEditorPanel] = (0, import_react.useState)(null);
+      const [projectDeleteTarget, setProjectDeleteTarget] = (0, import_react.useState)(null);
+      const [projectActionProjectId, setProjectActionProjectId] = (0, import_react.useState)("");
+      const [projectChatDrafts, setProjectChatDrafts] = (0, import_react.useState)({});
+      const [activityRunSelections, setActivityRunSelections] = (0, import_react.useState)({});
+      const [copiedProjectMessageId, setCopiedProjectMessageId] = (0, import_react.useState)(null);
+      const [projectPortfolioView, setProjectPortfolioView] = (0, import_react.useState)("table");
+      const [roleListView, setRoleListView] = (0, import_react.useState)("table");
+      const [employeeListView, setEmployeeListView] = (0, import_react.useState)("table");
+      const [teamListView, setTeamListView] = (0, import_react.useState)("table");
+      const [projectPage, setProjectPage] = (0, import_react.useState)(1);
+      const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2));
+      const normalizedProjectPage = Math.min(projectPage, projectPageCount);
+      const projectPageStartIndex = (normalizedProjectPage - 1) * PROJECT_LIST_PAGE_SIZE2;
+      const visibleProjects = projects.slice(projectPageStartIndex, projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2);
+      const projectPageFirstRecord = projects.length === 0 ? 0 : projectPageStartIndex + 1;
+      const projectPageLastRecord = Math.min(projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2, projects.length);
+      const projectChatTranscriptRef = (0, import_react.useRef)(null);
+      const profileEmployee = employees.find((employee) => employee.id === profileEmployeeId);
+      const projectActionProject = projects.find((project) => project.id === projectActionProjectId) ?? selectedProject;
+      const projectWidePanels = [
+        "project-chat",
+        "project-org",
+        "project-execution",
+        "project-board",
+        "project-team-chat",
+        "project-deliverables"
+      ];
+      const projectRailOpen = Boolean(projectEditorPanel);
+      const projectRailWide = Boolean(projectEditorPanel && projectWidePanels.includes(projectEditorPanel));
+      (0, import_react.useEffect)(() => {
+        setProjectPage((current) => Math.min(Math.max(1, current), Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2))));
+      }, [projects.length]);
+      (0, import_react.useEffect)(() => {
+        if (projectEditorPanel !== "project-chat" && projectEditorPanel !== "project-team-chat") {
+          return;
+        }
+        const transcript = projectChatTranscriptRef.current;
+        if (transcript) {
+          transcript.scrollTop = transcript.scrollHeight;
+        }
+      }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
+      function startDraft() {
+        const supervisor = employees.find((employee) => isSupervisorEmployee2(employee, roles)) ?? employees[0];
+        setDraft({
+          ...createSoftwareProjectDraft2(appInfo?.workspacePath),
+          mode: "guided",
+          permissionMode: "supervised",
+          supervisorEmployeeId: supervisor?.id ?? "",
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+          assignedEmployeeIds: [],
+          assignedTeamIds: [],
+          teamRoles: []
+        });
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId("");
+        setProjectEditorPanel("project");
+      }
+      function editProject(project) {
+        setDraft({
+          ...project,
+          artifacts: [...project.artifacts],
+          teamRoles: [...project.teamRoles],
+          assignedTeamIds: [...project.assignedTeamIds],
+          assignedEmployeeIds: [...project.assignedEmployeeIds]
+        });
+        onSelectProject(project.id);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel("project");
+      }
+      function updateDraft(update) {
+        setDraft((current) => ({
+          ...current,
+          ...update,
+          updatedAt: Date.now()
+        }));
+      }
+      function saveDraft() {
+        const supervisor = employees.find((employee) => employee.id === draft.supervisorEmployeeId);
+        const assignedEmployees = employees.filter((employee) => draft.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = projectTeams.filter((team) => draft.assignedTeamIds.includes(team.id));
+        const next = {
+          ...draft,
+          name: draft.name.trim() || "Untitled software project",
+          workspacePath: draft.workspacePath || appInfo?.workspacePath,
+          artifacts: normalizeStringList3(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS2),
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
+          assignedTeamIds: assignedTeams.map((team) => team.id),
+          teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
+            ...assignedTeams.map((team) => team.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+          ] : normalizeStringList3(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES2),
+          updatedAt: Date.now()
+        };
+        onSaveProject(next);
+        setDraft(next);
+        return next;
+      }
+      function saveDraftAndViewOrganization() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
+      }
+      function saveDraftAndOpenProjectChat() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel("project-chat");
+      }
+      function closeProjectEditorPanel() {
+        setProjectEditorPanel(null);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId("");
+      }
+      function openProjectDeleteConfirmation(target) {
+        setProfileEmployeeId("");
+        setProjectActionProjectId(target.kind === "project" ? target.id : "");
+        setProjectDeleteTarget(target);
+        setProjectEditorPanel("delete");
+      }
+      function openProjectActionPanel(project, panel) {
+        onSelectProject(project.id);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(panel);
+      }
+      function confirmProjectDelete() {
+        if (!projectDeleteTarget) {
+          return;
+        }
+        if (projectDeleteTarget.kind === "project") {
+          onDeleteProject(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "role") {
+          onDeleteRole(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "employee") {
+          onDeleteEmployee(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "team") {
+          onDeleteTeam(projectDeleteTarget.id);
+        }
+        closeProjectEditorPanel();
+      }
+      function openNewRoleEditor() {
+        setRoleDraft(createVirtualRoleDefinition2("Developer"));
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("role");
+      }
+      function openRoleEditor(role) {
+        setRoleDraft({
+          ...role,
+          responsibilities: [...role.responsibilities],
+          defaultTools: [...role.defaultTools]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("role");
+      }
+      function openNewEmployeeEditor() {
+        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("employee");
+      }
+      function openEmployeeEditor(employee) {
+        setEmployeeDraft({
+          ...employee,
+          permissions: [...employee.permissions]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("employee");
+      }
+      function openEmployeeProfile(employeeId) {
+        setProjectDeleteTarget(null);
+        setProfileEmployeeId(employeeId);
+        setProjectEditorPanel("employee-profile");
+      }
+      function openNewProjectTeamEditor() {
+        setTeamDraft({
+          ...createDefaultProjectTeams2()[0],
+          id: createProjectTeamId2("Project team"),
+          name: "New Project Team",
+          memberEmployeeIds: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("team");
+      }
+      function openProjectTeamEditor(team) {
+        setTeamDraft({
+          ...team,
+          memberEmployeeIds: [...team.memberEmployeeIds]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("team");
+      }
+      function saveRoleDraft() {
+        onSaveRole({
+          ...roleDraft,
+          title: roleDraft.title.trim() || "Contributor",
+          responsibilities: normalizeStringList3(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
+          defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
+          defaultTools: normalizeStringList3(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
+          updatedAt: Date.now()
+        });
+        setRoleDraft(createVirtualRoleDefinition2("Developer"));
+        closeProjectEditorPanel();
+      }
+      function selectEmployeeRole(roleId) {
+        const role = getRoleDefinitionById2(roles, roleId);
+        setEmployeeDraft((current) => ({
+          ...current,
+          roleId,
+          role: role?.title ?? current.role,
+          updatedAt: Date.now()
+        }));
+      }
+      function saveEmployeeDraft() {
+        const role = getRoleDefinitionById2(roles, employeeDraft.roleId, employeeDraft.role);
+        onSaveEmployee({
+          ...employeeDraft,
+          name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Employee",
+          roleId: role?.id ?? employeeDraft.roleId,
+          role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
+          permissions: normalizeStringList3(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS2),
+          updatedAt: Date.now()
+        });
+        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
+        closeProjectEditorPanel();
+      }
+      function saveTeamDraft() {
+        onSaveTeam({
+          ...teamDraft,
+          name: teamDraft.name.trim() || "Project team",
+          mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
+          memberEmployeeIds: normalizeStringList3(teamDraft.memberEmployeeIds, []),
+          updatedAt: Date.now()
+        });
+        setTeamDraft({
+          ...createDefaultProjectTeams2()[0],
+          id: createProjectTeamId2("Project team"),
+          name: "New Project Team",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        closeProjectEditorPanel();
+      }
+      function selectTeamSupervisor(employeeId) {
+        setTeamDraft((current) => ({
+          ...current,
+          supervisorEmployeeId: employeeId,
+          memberEmployeeIds: current.memberEmployeeIds.filter((id) => id !== employeeId),
+          updatedAt: Date.now()
+        }));
+      }
+      function toggleTeamMember(employeeId) {
+        setTeamDraft((current) => {
+          const members = new Set(current.memberEmployeeIds);
+          if (members.has(employeeId)) {
+            members.delete(employeeId);
+          } else {
+            members.add(employeeId);
+          }
+          members.delete(current.supervisorEmployeeId);
+          return {
+            ...current,
+            memberEmployeeIds: Array.from(members),
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function toggleDraftEmployee(employeeId) {
+        setDraft((current) => {
+          const assigned = new Set(current.assignedEmployeeIds);
+          if (assigned.has(employeeId)) {
+            assigned.delete(employeeId);
+          } else {
+            assigned.add(employeeId);
+          }
+          assigned.delete(current.supervisorEmployeeId);
+          const assignedEmployees = employees.filter((employee) => assigned.has(employee.id));
+          const assignedTeams = projectTeams.filter((team) => current.assignedTeamIds.includes(team.id));
+          return {
+            ...current,
+            assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
+            teamRoles: [
+              ...assignedTeams.map((team) => team.name),
+              ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+            ],
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function selectDraftSupervisor(employeeId) {
+        const supervisor = employees.find((employee) => employee.id === employeeId);
+        updateDraft({
+          supervisorEmployeeId: employeeId,
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+          assignedEmployeeIds: draft.assignedEmployeeIds.filter((id) => id !== employeeId)
+        });
+      }
+      function toggleDraftTeam(teamId) {
+        setDraft((current) => {
+          const assigned = new Set(current.assignedTeamIds);
+          if (assigned.has(teamId)) {
+            assigned.delete(teamId);
+          } else {
+            assigned.add(teamId);
+          }
+          const assignedTeams = projectTeams.filter((team) => assigned.has(team.id));
+          return {
+            ...current,
+            assignedTeamIds: assignedTeams.map((team) => team.id),
+            teamRoles: [
+              ...assignedTeams.map((team) => team.name),
+              ...employees.filter((employee) => current.assignedEmployeeIds.includes(employee.id)).map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+            ],
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function buildProjectDeleteTarget(project) {
+        return {
+          kind: "project",
+          id: project.id,
+          name: project.name,
+          detail: "Delete this saved software project from Project Studio.",
+          impact: [
+            `${formatProjectStatus2(getProjectEffectiveStatus(project))} ${project.mode} project record will be removed.`,
+            `${project.artifacts.length} planned artifact entry(ies) and project staffing selections will be removed from the local project list.`
+          ]
+        };
+      }
+      function buildRoleDeleteTarget(role) {
+        const affectedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        return {
+          kind: "role",
+          id: role.id,
+          name: role.title,
+          detail: "Delete this role definition from the shared project role library.",
+          impact: [
+            `${affectedEmployees.length} employee profile(s) currently reference this role and will be normalized by the existing delete handler.`,
+            `${role.responsibilities.length} responsibility entry(ies) and ${role.defaultTools.length} default tool entry(ies) will be removed.`
+          ]
+        };
+      }
+      function buildEmployeeDeleteTarget(employee) {
+        const assignedProjects = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        return {
+          kind: "employee",
+          id: employee.id,
+          name: employee.name,
+          detail: "Delete this employee profile from the shared staffing pool.",
+          impact: [
+            `${assignedProjects.length} project(s) reference this employee directly or as supervisor.`,
+            `${assignedTeams.length} project team(s) reference this employee as supervisor or member.`
+          ]
+        };
+      }
+      function buildProjectTeamDeleteTarget(team) {
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return {
+          kind: "team",
+          id: team.id,
+          name: team.name,
+          detail: "Delete this reusable project team.",
+          impact: [
+            `${assignedProjects.length} project(s) currently assign this team.`,
+            `${team.memberEmployeeIds.length} member assignment(s) and the team mission will be removed.`
+          ]
+        };
+      }
+      function renderRoleRow(role) {
+        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.workbenchRecordRow, key: role.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, role.title), /* @__PURE__ */ import_react.default.createElement("span", null, assignedEmployees.length, " employee profile(s)")), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, role.canSupervise ? "Supervisor-capable" : "Contributor"), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, summary), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
+            disabled: roles.length <= 1,
+            title: `Delete role ${role.title}`
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderRoleCard(role) {
+        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectCard, key: role.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, role.title), /* @__PURE__ */ import_react.default.createElement("span", null, assignedEmployees.length, " employee profile(s)"))), /* @__PURE__ */ import_react.default.createElement("p", { title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Scope"), /* @__PURE__ */ import_react.default.createElement("dd", null, role.canSupervise ? "Supervisor-capable" : "Contributor")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Definition"), /* @__PURE__ */ import_react.default.createElement("dd", null, summary))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, role.responsibilities.slice(0, 4).map((responsibility) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility)), role.responsibilities.length > 4 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, "+", role.responsibilities.length - 4)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
+            disabled: roles.length <= 1,
+            title: `Delete role ${role.title}`
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderEmployeeRow(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.workbenchRecordRow, key: employee.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, employee.name), /* @__PURE__ */ import_react.default.createElement("span", null, projectsForEmployee.length, " project(s) / ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: role?.title ?? employee.role }, role?.title ?? employee.role), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, employee.status, " / ", employee.model), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: activeWork }, activeWork), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderEmployeeCard(employee, options = {}) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.employeeCard, key: employee.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, employee.name), /* @__PURE__ */ import_react.default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), !options.compact && /* @__PURE__ */ import_react.default.createElement("p", null, role?.defaultGoal ?? employee.currentTask), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))));
+      }
+      function renderEmployeeManagementCard(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectCard, key: employee.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, employee.name), /* @__PURE__ */ import_react.default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), /* @__PURE__ */ import_react.default.createElement("p", { title: activeWork }, activeWork), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Assignments"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectsForEmployee.length, " project(s), ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dd", null, employee.model))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderEmployeeProfile(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        return /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dd", null, employee.model)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Teams"), /* @__PURE__ */ import_react.default.createElement("dd", null, teamsForEmployee.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Projects"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectsForEmployee.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Current task"), /* @__PURE__ */ import_react.default.createElement("dd", null, employee.currentTask))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).map((item) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: item }, item))));
+      }
+      function renderProjectTeamRow(team) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.workbenchRecordRow, key: team.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, team.name), /* @__PURE__ */ import_react.default.createElement("span", null, assignedProjects.length, " assigned project(s)")), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: supervisor?.name ?? "Unassigned" }, supervisor?.name ?? "Unassigned"), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, members.length, " member(s)"), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: team.mission }, team.mission), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectTeamEditor(team),
+            title: `Edit team ${team.name}`
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }),
+          "Edit"
+        ), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderProjectTeamCard(team, options = {}) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.employeeCard, key: team.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.employeeAvatar }, team.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, team.name), /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor: ", supervisor?.name ?? "Unassigned"))), /* @__PURE__ */ import_react.default.createElement("p", null, team.mission), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, members.slice(0, options.compact ? 3 : 6).map((member) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, "No members")));
+      }
+      function renderProjectTeamManagementCard(team) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectCard, key: team.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, team.name), /* @__PURE__ */ import_react.default.createElement("span", null, assignedProjects.length, " assigned project(s)"))), /* @__PURE__ */ import_react.default.createElement("p", { title: team.mission }, team.mission), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ import_react.default.createElement("dd", null, supervisor?.name ?? "Unassigned")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Members"), /* @__PURE__ */ import_react.default.createElement("dd", null, members.length, " member(s)"))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, members.slice(0, 6).map((member) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, "No members")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectTeamEditor(team),
+            title: `Edit team ${team.name}`
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }),
+          "Edit"
+        ), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function getBoardTasks(project) {
+        const latestRun = getProjectLatestRun(project);
+        const assignmentTasks = (latestRun?.assignments ?? []).map((assignment) => ({
+          title: assignment.title,
+          status: assignment.status === "pending" ? "todo" : assignment.status === "running" ? "doing" : assignment.status === "failed" ? "review" : "done",
+          employee: employees.find((employee) => employee.id === assignment.memberId),
+          detail: [
+            assignment.description,
+            assignment.dependencies.length > 0 ? `Depends on: ${assignment.dependencies.join(", ")}` : "",
+            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : ""
+          ].filter(Boolean).join("\n")
+        }));
+        if (assignmentTasks.length > 0) {
+          return assignmentTasks;
+        }
+        const stepTasks = (latestRun?.steps ?? []).map((step) => ({
+          title: step.assignmentTitle ?? `${step.role} work`,
+          status: step.status === "running" ? "doing" : step.status === "failed" ? "review" : "done",
+          employee: employees.find((employee) => employee.id === step.memberId),
+          detail: [
+            step.dependencyIds?.length ? `Depends on: ${step.dependencyIds.join(", ")}` : "",
+            step.workspacePath ? `Workspace: ${step.workspacePath}` : ""
+          ].filter(Boolean).join("\n")
+        }));
+        if (stepTasks.length > 0) {
+          return stepTasks;
+        }
+        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== project.supervisorEmployeeId);
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const employeePool = assigned.length > 0 ? assigned : employees;
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const baseTasks = [
+          { title: "Clarify requirements and acceptance criteria", status: "done", employee: supervisor },
+          ...project.artifacts.map((artifact, index) => ({
+            title: `Produce ${artifact}`,
+            status: effectiveStatus === "done" ? "done" : index === 0 ? "doing" : index === 1 ? "review" : "todo",
+            employee: employeePool[index % Math.max(employeePool.length, 1)]
+          })),
+          { title: "Final integration and release notes", status: effectiveStatus === "done" ? "done" : "todo", employee: supervisor }
+        ];
+        return baseTasks;
+      }
+      function renderTaskBoard(project) {
+        const tasks = getBoardTasks(project);
+        const columns = [
+          { id: "todo", title: "Todo" },
+          { id: "doing", title: "Doing" },
+          { id: "review", title: "Review" },
+          { id: "done", title: "Done" }
+        ];
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectBoard }, columns.map((column) => {
+          const columnTasks = tasks.filter((task) => task.status === column.id);
+          return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.projectBoardColumn, key: column.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectBoardColumnHeader }, /* @__PURE__ */ import_react.default.createElement("strong", null, column.title), /* @__PURE__ */ import_react.default.createElement("span", null, columnTasks.length)), columnTasks.map((task) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectTaskCard, key: `${column.id}-${task.title}` }, /* @__PURE__ */ import_react.default.createElement("strong", null, task.title), /* @__PURE__ */ import_react.default.createElement("span", null, task.employee?.name ?? "Unassigned", " / ", task.employee ? getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role : "Contributor"), "detail" in task && typeof task.detail === "string" && task.detail && /* @__PURE__ */ import_react.default.createElement("span", null, task.detail))));
+        }));
+      }
+      function renderTeamChat(project) {
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== supervisor?.id);
+        const chatEmployees = [supervisor, ...assigned].filter((employee) => Boolean(employee));
+        const messages = [
+          { author: supervisor, text: `I will coordinate "${project.name}" and keep work aligned to the project goal.` },
+          ...assignedTeams.slice(0, 3).map((team) => ({
+            author: getTeamSupervisor2(team, employees) ?? supervisor,
+            text: `Team "${team.name}" is responsible for: ${team.mission}`
+          })),
+          ...assigned.slice(0, 4).map((employee, index) => ({
+            author: employee,
+            text: index === 0 ? `I am taking the first implementation task and will report blockers here.` : index === 1 ? `I will review architecture and integration risks before code changes fan out.` : index === 2 ? `I will prepare verification coverage for the planned deliverables.` : `I am available for the next queued task.`
+          }))
+        ];
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChatList }, messages.map((message, index) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectChatMessage, key: `${message.author?.id ?? "system"}-${index}` }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.employeeAvatar }, message.author?.name.slice(0, 2).toUpperCase() ?? "CA"), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, message.author?.name ?? "CodeAgent"), /* @__PURE__ */ import_react.default.createElement("p", null, message.text)))), chatEmployees.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Assign employees to start team chat."));
+      }
+      function renderDeliverables(project) {
+        const latestRun = getProjectLatestRun(project);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const projectRootPath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
+        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
+        function resolveDeliverablePath(targetPath) {
+          if (!targetPath.trim()) {
+            return projectRootPath;
+          }
+          return targetPath.startsWith("/") ? targetPath : joinWorkspacePath2(projectRootPath, targetPath);
+        }
+        function getExpectedArtifactPath(artifact, index) {
+          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
+          return `artifacts/${slug}.md`;
+        }
+        function renderDeliverableActions(targetPath, label = "Open") {
+          const resolvedPath = resolveDeliverablePath(targetPath);
+          return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverableActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(resolvedPath), title: `Open ${resolvedPath}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "external", size: 13 }), label), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(resolvedPath), title: `Reveal ${resolvedPath}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"));
+        }
+        const assignmentOutputs = (latestRun?.assignments ?? []).filter((assignment) => assignment.output || assignment.error || assignment.workspacePath).map((assignment) => ({
+          title: assignment.title,
+          status: assignment.status === "succeeded" ? "Completed" : assignment.status === "failed" ? "Needs review" : assignment.status === "running" ? "Running" : "Pending",
+          workspacePath: assignment.workspacePath,
+          detail: [
+            `${assignment.memberName} / ${assignment.role}`,
+            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : "",
+            assignment.output ? assignment.output.slice(0, 240) : assignment.error ? assignment.error.slice(0, 240) : ""
+          ].filter(Boolean).join("\n")
+        }));
+        const activityOutputs = toolActivities.filter((activity) => activity.status === "succeeded" && isProjectToolActivity2(activity, project.id, projectAutomationTeamId)).map((activity) => {
+          const outputPath = getToolResultPath2(activity);
+          if (!outputPath) {
+            return null;
+          }
+          const absolutePath = activity.result && typeof activity.result === "object" && typeof activity.result.absolutePath === "string" ? String(activity.result.absolutePath) : void 0;
+          return {
+            id: `${project.id}:${absolutePath || outputPath}`,
+            projectId: project.id,
+            path: outputPath,
+            absolutePath,
+            toolName: activity.toolName,
+            source: activity.scope?.source === "virtual-team" ? "automation" : activity.scope?.channel === "team" ? "team-chat" : "guided-chat",
+            summary: activity.resultPreview,
+            createdAt: activity.startedAt,
+            updatedAt: activity.completedAt ?? activity.startedAt
+          };
+        }).filter((output) => Boolean(output));
+        const generatedOutputs = [
+          ...projectGeneratedOutputs[project.id] ?? [],
+          ...activityOutputs
+        ].reduce((outputs, output) => {
+          if (!outputs.some((candidate) => candidate.id === output.id || candidate.path === output.path || Boolean(candidate.absolutePath && output.absolutePath && candidate.absolutePath === output.absolutePath))) {
+            outputs.push(output);
+          }
+          return outputs;
+        }, []).sort((left, right) => right.updatedAt - left.updatedAt);
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverables }, generatedOutputs.length > 0 && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverableGroupHeader }, /* @__PURE__ */ import_react.default.createElement("strong", null, "Generated files"), /* @__PURE__ */ import_react.default.createElement("span", null, generatedOutputs.length, " tracked output", generatedOutputs.length === 1 ? "" : "s")), generatedOutputs.map((output) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: `generated-${output.id}` }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", { title: output.absolutePath ?? output.path }, output.path), /* @__PURE__ */ import_react.default.createElement("span", null, formatProjectOutputSource2(output.source))), /* @__PURE__ */ import_react.default.createElement("p", null, output.summary || `${output.toolName} at ${new Date(output.updatedAt).toLocaleString()}`), renderDeliverableActions(output.absolutePath ?? output.path, "Open file"))), latestRun?.artifactPath && /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, "Automation run artifact"), /* @__PURE__ */ import_react.default.createElement("span", null, latestRun.status === "succeeded" ? "Completed" : latestRun.status)), /* @__PURE__ */ import_react.default.createElement("p", null, latestRun.artifactPath), renderDeliverableActions(latestRun.artifactPath, "Open artifact")), project.artifacts.map((artifact, index) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, artifact), /* @__PURE__ */ import_react.default.createElement("span", null, effectiveStatus === "done" ? "Completed" : index < 2 ? "Draft planned" : "Queued")), /* @__PURE__ */ import_react.default.createElement("p", null, effectiveStatus === "done" ? latestRun?.summary ?? "Completed by the latest autonomous project run." : index < 2 ? "Ready to be produced by the assigned team." : "Will be generated after upstream work completes."), effectiveStatus === "done" && renderDeliverableActions(getExpectedArtifactPath(artifact, index), "Open expected file"))), assignmentOutputs.map((output) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: `assignment-${output.title}` }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, output.title), /* @__PURE__ */ import_react.default.createElement("span", null, output.status)), /* @__PURE__ */ import_react.default.createElement("p", null, output.detail), output.workspacePath && renderDeliverableActions(output.workspacePath, "Open workspace"))), project.artifacts.length === 0 && generatedOutputs.length === 0 && assignmentOutputs.length === 0 && !latestRun?.artifactPath && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No deliverables or run artifacts recorded yet."));
+      }
+      function getProjectPanelMessages(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        return projectChatMessages[projectChatKey] ?? createProjectReadyMessages2(project, channel);
+      }
+      function updateProjectChatDraft(project, channel, value) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        setProjectChatDrafts((current) => ({
+          ...current,
+          [projectChatKey]: value
+        }));
+      }
+      function submitProjectChatDraft(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        const draftValue = projectChatDrafts[projectChatKey] ?? "";
+        if (!draftValue.trim() || projectChatSendingKeys.has(projectChatKey)) {
+          return;
+        }
+        setProjectChatDrafts((current) => ({
+          ...current,
+          [projectChatKey]: ""
+        }));
+        onSendProjectChat(project, channel, draftValue);
+      }
+      function handleProjectChatKeyDown(event, project, channel) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          submitProjectChatDraft(project, channel);
+        }
+      }
+      async function copyProjectMessage(message) {
+        try {
+          const imageSummary = formatImageAttachmentSummary2(message.imageAttachments ?? []);
+          await navigator.clipboard.writeText(imageSummary ? `${message.content}
+
+Attached images: ${imageSummary}` : message.content);
+          setCopiedProjectMessageId(message.id);
+          window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
+        } catch {
+        }
+      }
+      function renderProjectChatSurface(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        const panelMessages = getProjectPanelMessages(project, channel);
+        const draftValue = projectChatDrafts[projectChatKey] ?? "";
+        const isProjectSending = projectChatSendingKeys.has(projectChatKey);
+        const scopedFileWriteReviews = fileWriteReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        const scopedCommandReviews = commandReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        const scopedToolPermissionReviews = toolPermissionReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.projectChatSurface }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChatTranscript, ref: projectChatTranscriptRef }, groupMessagesByAssistantRun2(panelMessages).map(({ message, activities }) => /* @__PURE__ */ import_react.default.createElement(
+          MessageItem2,
+          {
+            key: message.id,
+            message,
+            activities,
+            copied: copiedProjectMessageId === message.id,
+            onCopy: () => copyProjectMessage(message)
+          }
+        )), /* @__PURE__ */ import_react.default.createElement(
+          InlineApprovalQueue2,
+          {
+            fileWriteReviews: scopedFileWriteReviews,
+            commandReviews: scopedCommandReviews,
+            toolPermissionReviews: scopedToolPermissionReviews,
+            onResolveFileWrite,
+            onResolveCommand,
+            onResolveToolPermission
+          }
+        ), isProjectSending && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.typingIndicator, role: "status" }, /* @__PURE__ */ import_react.default.createElement("span", null), /* @__PURE__ */ import_react.default.createElement("span", null), /* @__PURE__ */ import_react.default.createElement("span", null))), /* @__PURE__ */ import_react.default.createElement("form", { className: styles.projectChatComposer, onSubmit: (event) => {
+          event.preventDefault();
+          submitProjectChatDraft(project, channel);
+        } }, /* @__PURE__ */ import_react.default.createElement(
+          "textarea",
+          {
+            value: draftValue,
+            onChange: (event) => updateProjectChatDraft(project, channel, event.target.value),
+            onKeyDown: (event) => handleProjectChatKeyDown(event, project, channel),
+            placeholder: channel === "team" ? "Direct the supervisor or team\u2026" : "Ask about this project\u2026",
+            rows: 2,
+            disabled: isProjectSending,
+            "aria-label": channel === "team" ? "Team chat message" : "Project chat message"
+          }
+        ), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.composerToolbar }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.composerMeta }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectComposerIdentity, title: channel === "team" ? "Instructions are handled by this autonomous project\u2019s supervisor and team" : "This agent can use tools within the project working folder" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: channel === "team" ? "network" : "bot", size: 13 }), channel === "team" ? "Project supervisor" : "Project agent"), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.projectComposerPermission, title: "Permission level for this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "lock", size: 12 }), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.visuallyHidden }, "Project permissions"), /* @__PURE__ */ import_react.default.createElement(
+          "select",
+          {
+            value: project.permissionMode,
+            onChange: (event) => onSaveProject({
+              ...project,
+              permissionMode: event.target.value,
+              updatedAt: Date.now()
+            }),
+            disabled: isProjectSending,
+            "aria-label": "Project permissions"
+          },
+          /* @__PURE__ */ import_react.default.createElement("option", { value: "supervised" }, "Ask for risky actions"),
+          /* @__PURE__ */ import_react.default.createElement("option", { value: "full-access" }, "Full project access")
+        )), /* @__PURE__ */ import_react.default.createElement("span", { title: project.workspacePath }, getPathBasename2(project.workspacePath))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.composerActions }, draftValue && /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.composerClearButton,
+            type: "button",
+            onClick: () => updateProjectChatDraft(project, channel, ""),
+            disabled: isProjectSending,
+            title: "Clear the draft message"
+          },
+          "Clear input"
+        ), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message (Command+Enter)" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "send", size: 14 }), "Send", /* @__PURE__ */ import_react.default.createElement("kbd", null, "\u2318\u21B5"))))));
+      }
+      function renderAutonomousProjectSelector() {
+        if (autonomousProjects.length === 0) {
+          return /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Create an autonomous project before using this view.");
+        }
+        return /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Autonomous project"), /* @__PURE__ */ import_react.default.createElement("select", { value: selectedAutonomousProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, autonomousProjects.map((project) => /* @__PURE__ */ import_react.default.createElement("option", { value: project.id, key: project.id }, project.name))));
+      }
+      function renderProjectSelector() {
+        if (projects.length === 0) {
+          return /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Create a project before using this view.");
+        }
+        return /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Project"), /* @__PURE__ */ import_react.default.createElement("select", { value: selectedProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, projects.map((project) => /* @__PURE__ */ import_react.default.createElement("option", { value: project.id, key: project.id }, project.name, " / ", project.mode === "autonomous" ? "autonomous" : "guided"))));
+      }
+      function renderProjectInsights(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const risks = [
+          !project.goals.trim() ? { title: "Goals missing", detail: "Project goals are empty or underspecified.", level: "Risk" } : null,
+          project.mode === "autonomous" && !supervisor ? { title: "Supervisor missing", detail: "Autonomous execution needs a supervisor employee.", level: "Risk" } : null,
+          project.mode === "autonomous" && assignedTeams.length === 0 && project.assignedEmployeeIds.length === 0 ? { title: "No staffing assigned", detail: "Assign at least one team or direct employee.", level: "Risk" } : null,
+          project.artifacts.length < 3 ? { title: "Artifact scope thin", detail: "Expected deliverables may not cover requirements, design, and verification.", level: "Watch" } : null,
+          effectiveStatus === "blocked" ? { title: "Project blocked", detail: "Resume requires resolving the active blocker.", level: "Risk" } : null
+        ].filter((item) => Boolean(item));
+        const signals = [
+          { title: "Staffing", detail: `${assignedTeams.length} team(s), ${assignedStaff.length} total employee(s)` },
+          { title: "Delivery shape", detail: `${project.artifacts.length} artifact(s), ${getBoardTasks(project).length} planned task(s)` },
+          { title: "Execution posture", detail: project.permissionMode === "full-access" ? "Supervisor has full project permission" : "Risky actions require approval" }
+        ];
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Risk Signals"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverables }, risks.map((risk) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: risk.title }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, risk.title), /* @__PURE__ */ import_react.default.createElement("span", null, risk.level)), /* @__PURE__ */ import_react.default.createElement("p", null, risk.detail))), risks.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No immediate project risks detected."))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Operational Signals"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverables }, signals.map((signal) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: signal.title }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, signal.title), /* @__PURE__ */ import_react.default.createElement("span", null, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ import_react.default.createElement("p", null, signal.detail))))));
+      }
+      function renderExecutionConsole(project) {
+        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
+        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
+        const projectRunRecords = teamRuns.filter((run) => run.teamId === projectAutomationTeamId).sort((left, right) => right.startedAt - left.startedAt);
+        const latestRun = projectRunRecords[0];
+        const selectedRunId = activityRunSelections[project.id] ?? "";
+        const selectedRun = selectedRunId ? projectRunRecords.find((run) => run.id === selectedRunId) : void 0;
+        const visibleRun = selectedRun ?? latestRun;
+        const allProjectToolActivities = toolActivities.filter((activity) => isProjectToolActivity2(activity, project.id, projectAutomationTeamId));
+        const projectToolActivities = visibleRun ? allProjectToolActivities.filter((activity) => activity.scope?.runId === visibleRun.id) : allProjectToolActivities;
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const isProjectRunning = effectiveStatus === "active";
+        const activityEntries = [];
+        const pushActivity = (entry) => {
+          if (entry) {
+            activityEntries.push(entry);
+          }
+        };
+        if (!visibleRun) {
+          pushActivity({
+            id: `project-ready-${project.id}`,
+            timestamp: project.updatedAt,
+            employee: "Project Studio",
+            title: "Project ready",
+            summary: `${project.mode === "autonomous" ? "Fully autonomous" : "Standard"} project is ${formatProjectStatus2(effectiveStatus)} and has not started an automation run yet.`,
+            status: effectiveStatus
+          });
+        }
+        if (!visibleRun && projectSupervisor) {
+          pushActivity({
+            id: `project-supervisor-${project.id}`,
+            timestamp: project.updatedAt,
+            employee: projectSupervisor.name,
+            title: "Supervisor assigned",
+            summary: `${getEmployeeRoleDefinition2(projectSupervisor, roles)?.title ?? projectSupervisor.role} owns project coordination.`,
+            status: "ready"
+          });
+        }
+        for (const run of visibleRun ? [visibleRun] : []) {
+          pushActivity({
+            id: `${run.id}-started`,
+            timestamp: run.startedAt,
+            employee: run.teamName,
+            title: "Automation run started",
+            summary: `${run.objective.slice(0, 180)}${run.objective.length > 180 ? "..." : ""}`,
+            status: run.status === "running" ? "running" : "ready"
+          });
+          for (const assignment of run.assignments ?? []) {
+            pushActivity(assignment.startedAt ? {
+              id: `${run.id}-${assignment.id}-started`,
+              timestamp: assignment.startedAt,
+              employee: assignment.memberName,
+              title: assignment.title,
+              summary: [
+                assignment.description,
+                assignment.dependencies.length > 0 ? `Depends on ${assignment.dependencies.join(", ")}` : "No blocking dependencies",
+                `Parallel group ${assignment.parallelGroup}`
+              ].join(" / "),
+              status: "running"
+            } : null);
+            pushActivity(assignment.completedAt ? {
+              id: `${run.id}-${assignment.id}-completed`,
+              timestamp: assignment.completedAt,
+              employee: assignment.memberName,
+              title: `${assignment.title} ${assignment.status === "succeeded" ? "completed" : "finished"}`,
+              summary: assignment.output?.slice(0, 220) ?? assignment.error?.slice(0, 220) ?? assignment.workspacePath ?? "Assignment finished.",
+              status: assignment.status
+            } : null);
+          }
+          if (!run.assignments?.length) {
+            for (const step of run.steps) {
+              pushActivity({
+                id: `${run.id}-${step.memberId}-${step.startedAt}-started`,
+                timestamp: step.startedAt,
+                employee: step.memberName,
+                title: step.assignmentTitle ?? `${step.role} work started`,
+                summary: step.dependencyIds?.length ? `Depends on ${step.dependencyIds.join(", ")}` : step.workspacePath ?? "Worker started.",
+                status: "running"
+              });
+              pushActivity(step.completedAt ? {
+                id: `${run.id}-${step.memberId}-${step.completedAt}-completed`,
+                timestamp: step.completedAt,
+                employee: step.memberName,
+                title: step.assignmentTitle ? `${step.assignmentTitle} completed` : `${step.role} work completed`,
+                summary: step.output?.slice(0, 220) ?? step.error?.slice(0, 220) ?? "Worker finished.",
+                status: step.status
+              } : null);
+            }
+          }
+          pushActivity(run.completedAt ? {
+            id: `${run.id}-completed`,
+            timestamp: run.completedAt,
+            employee: run.teamName,
+            title: `Automation run ${run.status}`,
+            summary: run.summary ?? run.error ?? run.artifactPath ?? `Run ${run.status}.`,
+            status: run.status
+          } : null);
+        }
+        for (const activity of projectToolActivities) {
+          pushActivity({
+            id: `${activity.id}-tool-start`,
+            timestamp: activity.startedAt,
+            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
+            title: `Tool call: ${activity.toolName}`,
+            summary: activity.scope?.assignmentTitle ? `${activity.scope.assignmentTitle} / ${summarizeToolResult2(activity.args)}` : summarizeToolResult2(activity.args),
+            status: activity.status === "running" ? "running" : "ready"
+          });
+          pushActivity(activity.completedAt ? {
+            id: `${activity.id}-tool-complete`,
+            timestamp: activity.completedAt,
+            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
+            title: `Tool ${activity.status}`,
+            summary: activity.error ?? activity.resultPreview ?? `${activity.toolName} finished${activity.duration ? ` in ${activity.duration} ms` : ""}.`,
+            status: activity.status
+          } : null);
+        }
+        if (isProjectRunning && !visibleRun) {
+          pushActivity({
+            id: `project-${project.id}-starting`,
+            timestamp: Date.now(),
+            employee: projectSupervisor?.name ?? "Supervisor",
+            title: "Automation run starting",
+            summary: "The project run has been requested and the planner is preparing assignments.",
+            status: "running"
+          });
+        }
+        const timelineEntries = activityEntries.sort((left, right) => left.timestamp - right.timestamp).slice(-160);
+        return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Activity Timeline"), /* @__PURE__ */ import_react.default.createElement("span", null, visibleRun ? `${visibleRun.id === latestRun?.id ? "Current run" : "Past run"}: ${visibleRun.status} / ${projectToolActivities.length} tool call(s)` : "No automation run yet")), projectRunRecords.length > 0 && /* @__PURE__ */ import_react.default.createElement("label", { className: styles.activityRunPicker }, /* @__PURE__ */ import_react.default.createElement("span", null, "Run"), /* @__PURE__ */ import_react.default.createElement(
+          "select",
+          {
+            value: visibleRun?.id ?? "",
+            onChange: (event) => setActivityRunSelections((current) => ({
+              ...current,
+              [project.id]: event.target.value
+            }))
+          },
+          projectRunRecords.map((run, index) => /* @__PURE__ */ import_react.default.createElement("option", { value: run.id, key: run.id }, index === 0 ? "Current" : "Past", " / ", run.status, " / ", new Date(run.startedAt).toLocaleString()))
+        ))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTimeline }, timelineEntries.map((entry) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectTimelineItem, key: entry.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTimelineMarker }), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTimelineContent }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTimelineContentHeader }, /* @__PURE__ */ import_react.default.createElement("strong", null, entry.title), /* @__PURE__ */ import_react.default.createElement("time", { dateTime: new Date(entry.timestamp).toISOString() }, new Date(entry.timestamp).toLocaleString())), /* @__PURE__ */ import_react.default.createElement("span", null, entry.employee), /* @__PURE__ */ import_react.default.createElement("p", null, entry.summary), /* @__PURE__ */ import_react.default.createElement("em", null, entry.status)))), timelineEntries.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, isProjectRunning ? "Automation run is starting." : "No activity recorded for this project yet.")));
+      }
+      function renderArtifactsExplorer(project) {
+        return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Artifact Explorer"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverables }, project.artifacts.map((artifact, index) => {
+          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
+          return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, artifact), /* @__PURE__ */ import_react.default.createElement("span", null, index < 2 ? "Planned" : "Queued")), /* @__PURE__ */ import_react.default.createElement("p", null, `artifacts/${slug}.md`));
+        }), project.artifacts.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No artifacts defined.")));
+      }
+      function renderProjectTimeline(project) {
+        const tasks = getBoardTasks(project);
+        return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Timeline"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectDeliverables }, tasks.map((task, index) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectDeliverableCard, key: `${task.title}-${index}` }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, task.title), /* @__PURE__ */ import_react.default.createElement("span", null, task.status)), /* @__PURE__ */ import_react.default.createElement("p", null, task.employee ? `${task.employee.name} / ${getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role}` : "Unassigned")))));
+      }
+      function renderGovernance(project) {
+        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Approval Policy"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Mode"), /* @__PURE__ */ import_react.default.createElement("dd", null, project.permissionMode === "full-access" ? "Full supervisor permission" : "Supervised approvals")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectSupervisor?.name ?? "Unassigned")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Status"), /* @__PURE__ */ import_react.default.createElement("dd", null, formatProjectStatus2(getProjectEffectiveStatus(project)))))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Tool Posture"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Provider"), /* @__PURE__ */ import_react.default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpServers.length)))));
+      }
+      function renderProjectFormFields() {
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Project name"), /* @__PURE__ */ import_react.default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Status"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ import_react.default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ import_react.default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ import_react.default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ import_react.default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ import_react.default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Workspace path"), /* @__PURE__ */ import_react.default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Idea"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Goals"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ import_react.default.createElement(
+          "textarea",
+          {
+            value: draft.artifacts.join("\n"),
+            onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
+            rows: 6
+          }
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.mode === "autonomous",
+            onChange: (event) => updateDraft({
+              mode: event.target.checked ? "autonomous" : "guided",
+              permissionMode: event.target.checked ? "full-access" : "supervised",
+              assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+              assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+              teamRoles: event.target.checked ? draft.teamRoles : []
+            })
+          }
+        ), /* @__PURE__ */ import_react.default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ import_react.default.createElement("em", null, "A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project.")), draft.mode === "autonomous" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ import_react.default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ import_react.default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ import_react.default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.assignedTeamIds.includes(team.id),
+            onChange: () => toggleDraftTeam(team.id)
+          }
+        ), /* @__PURE__ */ import_react.default.createElement("span", null, team.name), /* @__PURE__ */ import_react.default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Direct employees"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ import_react.default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.assignedEmployeeIds.includes(employee.id),
+            onChange: () => toggleDraftEmployee(employee.id)
+          }
+        ), /* @__PURE__ */ import_react.default.createElement("span", null, employee.name), /* @__PURE__ */ import_react.default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))))));
+      }
+      function saveProjectDraftAndClose() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        closeProjectEditorPanel();
+      }
+      function saveProjectDraftAndOpenPrimaryAction() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
+      }
+      function renderProjectFormPanel() {
+        return /* @__PURE__ */ import_react.default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: projects.some((project) => project.id === draft.id) ? "Edit Project" : "New Project",
+            subtitle: draft.mode === "autonomous" ? "Project details with autonomous staffing and execution" : "Project details, workspace, goals, and deliverables",
+            onClose: closeProjectEditorPanel,
+            footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveProjectDraftAndClose, title: "Save this project and close the panel" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveProjectDraftAndOpenPrimaryAction, title: draft.mode === "autonomous" ? "Save this project and open its team view" : "Save this project and open its chat" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: draft.mode === "autonomous" ? "network" : "chat", size: 14 }), draft.mode === "autonomous" ? "Save And View Team" : "Save And Open Chat"))
+          },
+          renderProjectFormFields()
+        );
+      }
+      function renderProjectDeleteConfirmation() {
+        if (!projectDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ import_react.default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: `Delete ${projectDeleteTarget.kind}`,
+            subtitle: projectDeleteTarget.name,
+            onClose: closeProjectEditorPanel,
+            footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmProjectDelete, title: `Confirm deletion of ${projectDeleteTarget.name}` }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeProjectEditorPanel, title: "Cancel deletion and close the panel" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ import_react.default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ import_react.default.createElement("strong", null, projectDeleteTarget.detail), /* @__PURE__ */ import_react.default.createElement("span", null, "This action updates local Project Studio state immediately."), /* @__PURE__ */ import_react.default.createElement("ul", null, projectDeleteTarget.impact.map((item) => /* @__PURE__ */ import_react.default.createElement("li", { key: item }, item))))
+        );
+      }
+      function renderGuidedProjectChat(project) {
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "guided"));
+      }
+      function renderProjectOrganization(project) {
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const directEmployees = getProjectAssignedEmployees2(project, employees, roles);
+        return /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Team Organization"), /* @__PURE__ */ import_react.default.createElement("span", null, project.name)), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(project), title: "Edit project staffing and team assignments" }, "Edit Members")), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTeamDiagram }, supervisor ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ import_react.default.createElement("strong", null, supervisor.name), /* @__PURE__ */ import_react.default.createElement("em", null, getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role, " / ", project.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeGrid }, assignedTeams.map((team) => renderProjectTeamCard(team, { compact: true })), assignedTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ import_react.default.createElement("span", null, "Direct employees"), /* @__PURE__ */ import_react.default.createElement("strong", null, directEmployees.length), /* @__PURE__ */ import_react.default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeGrid }, directEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), directEmployees.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams.")))));
+      }
+      function renderProjectActionPanel() {
+        const project = projectActionProject;
+        if (!project) {
+          return null;
+        }
+        if (projectEditorPanel === "project-chat") {
+          return /* @__PURE__ */ import_react.default.createElement(
+            WorkbenchEditorPanel,
+            {
+              title: "Project Chat",
+              subtitle: project.name,
+              onClose: closeProjectEditorPanel,
+              wide: true,
+              bodyClassName: styles.projectChatPanelBody
+            },
+            renderGuidedProjectChat(project)
+          );
+        }
+        if (projectEditorPanel === "project-org") {
+          return /* @__PURE__ */ import_react.default.createElement(WorkbenchEditorPanel, { title: "Team Organization", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderProjectOrganization(project));
+        }
+        if (projectEditorPanel === "project-board") {
+          return /* @__PURE__ */ import_react.default.createElement(WorkbenchEditorPanel, { title: "Task Board", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderTaskBoard(project));
+        }
+        if (projectEditorPanel === "project-execution") {
+          return /* @__PURE__ */ import_react.default.createElement(WorkbenchEditorPanel, { title: "Activity", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderExecutionConsole(project));
+        }
+        if (projectEditorPanel === "project-team-chat") {
+          return /* @__PURE__ */ import_react.default.createElement(WorkbenchEditorPanel, { title: "Team Chat", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "team")));
+        }
+        if (projectEditorPanel === "project-deliverables") {
+          return /* @__PURE__ */ import_react.default.createElement(WorkbenchEditorPanel, { title: "Deliverables", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderDeliverables(project));
+        }
+        return null;
+      }
+      function getLifecycleButton(project, showLabel = false) {
+        if (project.mode !== "autonomous") {
+          return null;
+        }
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+        const iconSize = showLabel ? 14 : 15;
+        const renderLifecycleButton = (status, icon, label, title) => /* @__PURE__ */ import_react.default.createElement("button", { className: buttonClassName, type: "button", onClick: () => onSetProjectStatus(project.id, status), title, "aria-label": title }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
+        if (runningProjectIds.has(project.id)) {
+          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this running autonomous project");
+        }
+        if (effectiveStatus === "active") {
+          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this autonomous project");
+        }
+        if (effectiveStatus === "stopped") {
+          return renderLifecycleButton("active", "play", "Resume", "Resume this autonomous project");
+        }
+        if (effectiveStatus === "blocked") {
+          return renderLifecycleButton("active", "rotate", "Retry", "Retry this blocked autonomous project");
+        }
+        if (effectiveStatus === "done") {
+          return renderLifecycleButton("active", "rotate", "Re-run", "Run this completed autonomous project again");
+        }
+        if (effectiveStatus === "idea" || effectiveStatus === "planning") {
+          return renderLifecycleButton("active", "play", "Start", "Start this autonomous project");
+        }
+        return null;
+      }
+      function renderProjectPortfolioActions(project, variant) {
+        const showLabel = variant === "expanded";
+        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+        const iconSize = showLabel ? 14 : 15;
+        const actionsClassName = showLabel ? styles.projectCardActions : `${styles.workbenchRecordActions} ${styles.projectRecordActions}`;
+        const renderActionButton = (panel, icon, label, title) => /* @__PURE__ */ import_react.default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectActionPanel(project, panel), title, "aria-label": title }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: actionsClassName }, project.mode === "guided" ? /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, renderActionButton("project-chat", "chat", "Chat", "Open this project chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")) : /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, getLifecycleButton(project, showLabel), renderActionButton("project-org", "network", "Team", "View team organization for this project"), renderActionButton("project-board", "board", "Board", "Open this project task board"), renderActionButton("project-execution", "activity", "Activity", "Open this project activity"), renderActionButton("project-team-chat", "message", "Team Chat", "Open this autonomous team chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")), /* @__PURE__ */ import_react.default.createElement("button", { className: buttonClassName, type: "button", onClick: () => editProject(project), title: "Edit this project", "aria-label": "Edit this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: iconSize }), showLabel && "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project", "aria-label": "Delete this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: iconSize }), showLabel && "Delete"));
+      }
+      function renderProjectRow(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: `${styles.workbenchRecordRow} ${styles.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`, key: project.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, project.name), /* @__PURE__ */ import_react.default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: project.workspacePath ?? appInfo?.workspacePath ?? void 0 }, project.workspacePath ?? workspaceTitle), renderProjectPortfolioActions(project, "compact"));
+      }
+      function renderProjectCard(project, action) {
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const cardClassName = [
+          styles.projectCard,
+          getProjectStatusCardClassName(effectiveStatus),
+          project.id === selectedProject?.id ? styles.projectCardSelected : ""
+        ].filter(Boolean).join(" ");
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, project.name), /* @__PURE__ */ import_react.default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => editProject(project), title: "Edit this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 13 }), "Edit")), /* @__PURE__ */ import_react.default.createElement("p", null, summarizeProjectGoals2(project)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), project.mode === "autonomous" && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor"), /* @__PURE__ */ import_react.default.createElement("strong", null, project.supervisorRole), /* @__PURE__ */ import_react.default.createElement("em", null, project.permissionMode === "full-access" ? "Full permission" : "Supervised")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            title: action === "organization" ? "View this project team" : "Open this project chat",
+            onClick: () => {
+              if (action === "organization") {
+                openProjectActionPanel(project, "project-org");
+                return;
+              }
+              openProjectActionPanel(project, "project-chat");
+            }
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: action === "organization" ? "network" : "chat", size: 14 }),
+          action === "organization" ? "Team" : "Open Chat"
+        ), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSelectProject(project.id), title: "Select this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "check", size: 14 }), "Select"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderProjectPortfolioCard(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const workspace = project.workspacePath ?? workspaceTitle;
+        const cardClassName = [
+          styles.projectCard,
+          styles.projectPortfolioCard,
+          getProjectStatusCardClassName(effectiveStatus),
+          project.id === selectedProject?.id ? styles.projectCardSelected : ""
+        ].filter(Boolean).join(" ");
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, project.name), /* @__PURE__ */ import_react.default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ import_react.default.createElement("span", { className: `${styles.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}` }, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ import_react.default.createElement("p", { title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Scope"), /* @__PURE__ */ import_react.default.createElement("dd", null, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Workspace"), /* @__PURE__ */ import_react.default.createElement("dd", { title: workspace }, workspace))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), renderProjectPortfolioActions(project, "expanded"));
+      }
+      function renderProjectMetricBar(segments, total) {
+        const visibleSegments = segments.filter((segment) => segment.value > 0);
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricChart }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricBar, "aria-label": "Project metric distribution" }, visibleSegments.length > 0 ? visibleSegments.map((segment) => {
+          const width = total > 0 ? Math.max(8, segment.value / total * 100) : 0;
+          return /* @__PURE__ */ import_react.default.createElement(
+            "span",
+            {
+              className: `${styles.projectMetricSegment} ${segment.className}`,
+              key: segment.label,
+              style: { width: `${width}%` },
+              title: `${segment.label}: ${segment.value}`
+            }
+          );
+        }) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectMetricEmpty }, "No data")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricLegend }, segments.map((segment) => /* @__PURE__ */ import_react.default.createElement("span", { key: segment.label }, /* @__PURE__ */ import_react.default.createElement("i", { className: segment.className }), segment.label, ": ", segment.value))));
+      }
+      function getProjectStatusRowClassName(status) {
+        if (status === "active") {
+          return styles.projectRecordRowActive;
+        }
+        if (status === "planning") {
+          return styles.projectRecordRowPlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectRecordRowBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectRecordRowStopped;
+        }
+        if (status === "done") {
+          return styles.projectRecordRowDone;
+        }
+        return styles.projectRecordRowIdea;
+      }
+      function getProjectStatusCardClassName(status) {
+        if (status === "active") {
+          return styles.projectStatusCardActive;
+        }
+        if (status === "planning") {
+          return styles.projectStatusCardPlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectStatusCardBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectStatusCardStopped;
+        }
+        if (status === "done") {
+          return styles.projectStatusCardDone;
+        }
+        return styles.projectStatusCardIdea;
+      }
+      function getProjectStatusBadgeClassName(status) {
+        if (status === "active") {
+          return styles.projectStatusBadgeActive;
+        }
+        if (status === "planning") {
+          return styles.projectStatusBadgePlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectStatusBadgeBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectStatusBadgeStopped;
+        }
+        if (status === "done") {
+          return styles.projectStatusBadgeDone;
+        }
+        return styles.projectStatusBadgeIdea;
+      }
+      function renderProjectPagination() {
+        if (projects.length <= PROJECT_LIST_PAGE_SIZE2) {
+          return null;
+        }
+        return /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectPager }, /* @__PURE__ */ import_react.default.createElement("span", null, "Showing ", projectPageFirstRecord, "-", projectPageLastRecord, " of ", projects.length), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectPagerControls }, /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => setProjectPage((page) => Math.max(1, page - 1)),
+            disabled: normalizedProjectPage <= 1,
+            title: "Previous project page"
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "chevron-left", size: 14 }),
+          "Previous"
+        ), /* @__PURE__ */ import_react.default.createElement("strong", null, "Page ", normalizedProjectPage, " / ", projectPageCount), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => setProjectPage((page) => Math.min(projectPageCount, page + 1)),
+            disabled: normalizedProjectPage >= projectPageCount,
+            title: "Next project page"
+          },
+          "Next",
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "chevron-right", size: 14 })
+        )));
+      }
+      const projectDetailViewClassName = projectRailOpen ? `${styles.detailView} ${styles.detailViewWithRail} ${projectRailWide ? styles.detailViewWithWideRail : ""}` : styles.detailView;
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: projectDetailViewClassName, "aria-label": "Projects" }, projectEditorPanel === "project" && renderProjectFormPanel(), projectEditorPanel === "delete" && renderProjectDeleteConfirmation(), renderProjectActionPanel(), visibleActiveSection === "studio" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ import_react.default.createElement("h2", null, "Turn ideas into software projects"), /* @__PURE__ */ import_react.default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Project Portfolio"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ import_react.default.createElement("strong", null, projects.length), /* @__PURE__ */ import_react.default.createElement("span", null, "Total project(s)")), renderProjectMetricBar(projectModeMetrics, projects.length), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Use project row actions to open chat, team, board, or deliverables.")), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Project Status"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ import_react.default.createElement("strong", null, activeProjects.length), /* @__PURE__ */ import_react.default.createElement("span", null, "Active project(s)")), renderProjectMetricBar(projectStatusMetrics, projects.length), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Fully autonomous projects can run in the background; the table below is the source of project navigation.")), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Project Staffing"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ import_react.default.createElement("strong", null, employees.length), /* @__PURE__ */ import_react.default.createElement("span", null, "Employee profile(s)")), renderProjectMetricBar(projectStaffingMetrics, projects.length), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Roles"), /* @__PURE__ */ import_react.default.createElement("dd", null, roles.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Teams"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectTeams.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Deliverables"), /* @__PURE__ */ import_react.default.createElement("dd", null, deliverableCount))))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Projects"), /* @__PURE__ */ import_react.default.createElement("span", null, projects.length, " saved project(s)")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement(RecordViewToggle2, { view: projectPortfolioView, onChange: setProjectPortfolioView, label: "Project list view" }), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: startDraft, title: "Create a software project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "plus", size: 14 }), "New Project"))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectStatusLegend, "aria-label": "Project status color legend" }, projectStatusMetrics.map((segment) => /* @__PURE__ */ import_react.default.createElement("span", { key: segment.label, title: `${segment.label}: ${segment.value} project(s)` }, /* @__PURE__ */ import_react.default.createElement("i", { className: segment.className }), segment.label))), projectPortfolioView === "table" ? /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordList} ${styles.projectRecordList}` }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader} ${styles.projectRecordRow}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Project"), /* @__PURE__ */ import_react.default.createElement("span", null, "Goal"), /* @__PURE__ */ import_react.default.createElement("span", null, "Scope"), /* @__PURE__ */ import_react.default.createElement("span", null, "Workspace"), /* @__PURE__ */ import_react.default.createElement("span", null, "Actions")), visibleProjects.map((project) => renderProjectRow(project)), projects.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")) : /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectPortfolioGrid }, visibleProjects.map((project) => renderProjectPortfolioCard(project)), projects.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")), renderProjectPagination())), visibleActiveSection === "roles" && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ import_react.default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Roles"), /* @__PURE__ */ import_react.default.createElement("span", null, roles.length, " project role definition(s)")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement(RecordViewToggle2, { view: roleListView, onChange: setRoleListView, label: "Role list view" }), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewRoleEditor, title: "Create a new role definition" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "plus", size: 14 }), "New Role"))), roleListView === "table" ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Role"), /* @__PURE__ */ import_react.default.createElement("span", null, "Scope"), /* @__PURE__ */ import_react.default.createElement("span", null, "Default goal"), /* @__PURE__ */ import_react.default.createElement("span", null, "Definition"), /* @__PURE__ */ import_react.default.createElement("span", null, "Actions")), roles.map((role) => renderRoleRow(role)), roles.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No roles configured.")) : /* @__PURE__ */ import_react.default.createElement("div", { className: styles.recordCardGrid }, roles.map((role) => renderRoleCard(role)), roles.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No roles configured."))), projectEditorPanel === "role" && /* @__PURE__ */ import_react.default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: roles.some((role) => role.id === roleDraft.id) ? "Edit Role" : "New Role",
+          subtitle: "Responsibilities, default goal, and tool expectations",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveRoleDraft, title: "Save this role definition" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Role"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewRoleEditor, title: "Reset the form for a new role" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Role title"), /* @__PURE__ */ import_react.default.createElement("input", { value: roleDraft.title, onChange: (event) => setRoleDraft((current) => ({ ...current, title: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Can supervise"), /* @__PURE__ */ import_react.default.createElement("select", { value: roleDraft.canSupervise ? "yes" : "no", onChange: (event) => setRoleDraft((current) => ({ ...current, canSupervise: event.target.value === "yes", updatedAt: Date.now() })) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ import_react.default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Default goal"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: roleDraft.defaultGoal, onChange: (event) => setRoleDraft((current) => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() })), rows: 3 })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Responsibilities"), /* @__PURE__ */ import_react.default.createElement(
+          "textarea",
+          {
+            value: roleDraft.responsibilities.join("\n"),
+            onChange: (event) => setRoleDraft((current) => ({
+              ...current,
+              responsibilities: normalizeStringList3(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
+              updatedAt: Date.now()
+            })),
+            rows: 7
+          }
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Default tools"), /* @__PURE__ */ import_react.default.createElement(
+          "textarea",
+          {
+            value: roleDraft.defaultTools.join("\n"),
+            onChange: (event) => setRoleDraft((current) => ({
+              ...current,
+              defaultTools: normalizeStringList3(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
+              updatedAt: Date.now()
+            })),
+            rows: 4
+          }
+        )))
+      )), visibleActiveSection === "employees" && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ import_react.default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Employees"), /* @__PURE__ */ import_react.default.createElement("span", null, employees.length, " reusable employee profile(s)")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement(RecordViewToggle2, { view: employeeListView, onChange: setEmployeeListView, label: "Employee list view" }), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Create a new employee profile" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "plus", size: 14 }), "New Employee"))), employeeListView === "table" ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Employee"), /* @__PURE__ */ import_react.default.createElement("span", null, "Role"), /* @__PURE__ */ import_react.default.createElement("span", null, "Status"), /* @__PURE__ */ import_react.default.createElement("span", null, "Current work"), /* @__PURE__ */ import_react.default.createElement("span", null, "Actions")), employees.map((employee) => renderEmployeeRow(employee)), employees.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured.")) : /* @__PURE__ */ import_react.default.createElement("div", { className: styles.recordCardGrid }, employees.map((employee) => renderEmployeeManagementCard(employee)), employees.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured."))), projectEditorPanel === "employee-profile" && profileEmployee && /* @__PURE__ */ import_react.default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: profileEmployee.name,
+          subtitle: `${getEmployeeRoleDefinition2(profileEmployee, roles)?.title ?? profileEmployee.role} / ${profileEmployee.status}`,
+          onClose: closeProjectEditorPanel
+        },
+        renderEmployeeProfile(profileEmployee)
+      ), projectEditorPanel === "employee" && /* @__PURE__ */ import_react.default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: employees.some((employee) => employee.id === employeeDraft.id) ? "Edit Employee" : "New Employee",
+          subtitle: "Role, model, permissions, and current assignment",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveEmployeeDraft, title: "Save this employee profile" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Employee"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Reset the form for a new employee" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Name"), /* @__PURE__ */ import_react.default.createElement("input", { value: employeeDraft.name, onChange: (event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Role"), /* @__PURE__ */ import_react.default.createElement("select", { value: employeeDraft.roleId || getDefaultRoleId2(employeeDraft.role), onChange: (event) => selectEmployeeRole(event.target.value) }, roles.map((role) => /* @__PURE__ */ import_react.default.createElement("option", { value: role.id, key: role.id }, role.title)))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Model"), /* @__PURE__ */ import_react.default.createElement("input", { value: employeeDraft.model, onChange: (event) => setEmployeeDraft((current) => ({ ...current, model: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Status"), /* @__PURE__ */ import_react.default.createElement("select", { value: employeeDraft.status, onChange: (event) => setEmployeeDraft((current) => ({ ...current, status: event.target.value, updatedAt: Date.now() })) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "idle" }, "Idle"), /* @__PURE__ */ import_react.default.createElement("option", { value: "working" }, "Working"), /* @__PURE__ */ import_react.default.createElement("option", { value: "approval" }, "Needs approval"))), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Current task"), /* @__PURE__ */ import_react.default.createElement("input", { value: employeeDraft.currentTask, onChange: (event) => setEmployeeDraft((current) => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Permissions"), /* @__PURE__ */ import_react.default.createElement(
+          "textarea",
+          {
+            value: employeeDraft.permissions.join("\n"),
+            onChange: (event) => setEmployeeDraft((current) => ({
+              ...current,
+              permissions: normalizeStringList3(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS2),
+              updatedAt: Date.now()
+            })),
+            rows: 5
+          }
+        )))
+      )), visibleActiveSection === "teams" && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ import_react.default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Teams"), /* @__PURE__ */ import_react.default.createElement("span", null, projectTeams.length, " reusable project team(s)")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement(RecordViewToggle2, { view: teamListView, onChange: setTeamListView, label: "Team list view" }), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Create a new reusable team" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "plus", size: 14 }), "New Team"))), teamListView === "table" ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Team"), /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor"), /* @__PURE__ */ import_react.default.createElement("span", null, "Members"), /* @__PURE__ */ import_react.default.createElement("span", null, "Mission"), /* @__PURE__ */ import_react.default.createElement("span", null, "Actions")), projectTeams.map((team) => renderProjectTeamRow(team)), projectTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured.")) : /* @__PURE__ */ import_react.default.createElement("div", { className: styles.recordCardGrid }, projectTeams.map((team) => renderProjectTeamManagementCard(team)), projectTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured."))), projectEditorPanel === "team" && /* @__PURE__ */ import_react.default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: projectTeams.some((team) => team.id === teamDraft.id) ? "Edit Team" : "New Team",
+          subtitle: "Mission, supervisor, and members",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTeamDraft, title: "Save this reusable team" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Team"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Reset the form for a new team" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Team name"), /* @__PURE__ */ import_react.default.createElement("input", { value: teamDraft.name, onChange: (event) => setTeamDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor"), /* @__PURE__ */ import_react.default.createElement("select", { value: teamDraft.supervisorEmployeeId, onChange: (event) => selectTeamSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ import_react.default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Mission"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: teamDraft.mission, onChange: (event) => setTeamDraft((current) => ({ ...current, mission: event.target.value, updatedAt: Date.now() })), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Members"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== teamDraft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ import_react.default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: teamDraft.memberEmployeeIds.includes(employee.id),
+            onChange: () => toggleTeamMember(employee.id)
+          }
+        ), /* @__PURE__ */ import_react.default.createElement("span", null, employee.name), /* @__PURE__ */ import_react.default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))
+      )), visibleActiveSection === "new" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Project Definition"), /* @__PURE__ */ import_react.default.createElement("span", null, draft.mode === "autonomous" ? "Fully autonomous execution enabled" : "Standard project"))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Project name"), /* @__PURE__ */ import_react.default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Status"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ import_react.default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ import_react.default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ import_react.default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ import_react.default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ import_react.default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Workspace path"), /* @__PURE__ */ import_react.default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Idea"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Goals"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ import_react.default.createElement(
+        "textarea",
+        {
+          value: draft.artifacts.join("\n"),
+          onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
+          rows: 6
+        }
+      )), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.mode === "autonomous",
+          onChange: (event) => updateDraft({
+            mode: event.target.checked ? "autonomous" : "guided",
+            permissionMode: event.target.checked ? "full-access" : "supervised",
+            assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+            assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+            teamRoles: event.target.checked ? draft.teamRoles : []
+          })
+        }
+      ), /* @__PURE__ */ import_react.default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ import_react.default.createElement("em", null, "A supervisor and virtual team manage this project on your behalf.")), draft.mode === "autonomous" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ import_react.default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ import_react.default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ import_react.default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ import_react.default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ import_react.default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.assignedTeamIds.includes(team.id),
+          onChange: () => toggleDraftTeam(team.id)
+        }
+      ), /* @__PURE__ */ import_react.default.createElement("span", null, team.name), /* @__PURE__ */ import_react.default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Direct employees"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ import_react.default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ import_react.default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.assignedEmployeeIds.includes(employee.id),
+          onChange: () => toggleDraftEmployee(employee.id)
+        }
+      ), /* @__PURE__ */ import_react.default.createElement("span", null, employee.name), /* @__PURE__ */ import_react.default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveDraft, title: "Save this project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), draft.mode === "autonomous" ? /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, title: "Save this autonomous project and view its team organization" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "network", size: 14 }), "Save And View Team") : /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this project and open chat" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "chat", size: 14 }), "Save And Open Chat"))), visibleActiveSection === "guided" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Standard Projects"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectList }, guidedProjects.map((project) => renderProjectCard(project, "chat")), guidedProjects.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No standard projects yet."))), visibleActiveSection === "autonomous" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Autonomous Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector()), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Autonomous Project Organization"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedAutonomousProject?.name ?? "Select or create an autonomous project")), selectedAutonomousProject && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(selectedAutonomousProject), title: "Edit project staffing and team assignments" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "users", size: 14 }), "Edit Project Members"))), selectedAutonomousProject ? /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(selectedAutonomousProject)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectTeamDiagram }, selectedAutonomousSupervisor ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ import_react.default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ import_react.default.createElement("strong", null, selectedAutonomousSupervisor.name), /* @__PURE__ */ import_react.default.createElement("em", null, selectedAutonomousSupervisor.role, " / ", selectedAutonomousProject.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousTeams.map((team) => renderProjectTeamCard(team, { compact: true })), selectedAutonomousTeams.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ import_react.default.createElement("span", null, "Direct employees"), /* @__PURE__ */ import_react.default.createElement("strong", null, selectedAutonomousDirectEmployees.length), /* @__PURE__ */ import_react.default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousDirectEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), selectedAutonomousDirectEmployees.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams."))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("board"), title: "Open the task board for this autonomous project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "board", size: 14 }), "Task Board"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("chat"), title: "Open team chat for this autonomous project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "message", size: 14 }), "Team Chat"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("deliverables"), title: "View deliverables for this autonomous project" }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "archive", size: 14 }), "Deliverables"))) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No autonomous project yet.")), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Autonomous Projects"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectList }, autonomousProjects.map((project) => renderProjectCard(project, "organization")), autonomousProjects.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No autonomous projects yet.")))), visibleActiveSection === "insights" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectInsights(selectedProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select a project to see insights.")), visibleActiveSection === "execution" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderExecutionConsole(selectedProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select a project to see execution state.")), visibleActiveSection === "artifacts" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderArtifactsExplorer(selectedProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select a project to see artifacts.")), visibleActiveSection === "timeline" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectTimeline(selectedProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select a project to see timeline.")), visibleActiveSection === "governance" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderGovernance(selectedProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select a project to see governance.")), visibleActiveSection === "board" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Task Board"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTaskBoard(selectedAutonomousProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see its task board.")), visibleActiveSection === "chat" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Team Chat"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTeamChat(selectedAutonomousProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see employee chat.")), visibleActiveSection === "deliverables" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Deliverables"), /* @__PURE__ */ import_react.default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderDeliverables(selectedAutonomousProject) : /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see deliverables.")), visibleActiveSection === "context" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Files"), /* @__PURE__ */ import_react.default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
+        return /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
+            key: `${entry.type}-${entry.name}`,
+            title: entry.name
+          },
+          /* @__PURE__ */ import_react.default.createElement(
+            "button",
+            {
+              className: styles.fileEntryMain,
+              type: "button",
+              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
+            },
+            /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
+            /* @__PURE__ */ import_react.default.createElement("strong", null, entry.name),
+            /* @__PURE__ */ import_react.default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
+          ),
+          /* @__PURE__ */ import_react.default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
+        );
+      }))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Provider"), /* @__PURE__ */ import_react.default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Base URL"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Context"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Session"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Current"), /* @__PURE__ */ import_react.default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ import_react.default.createElement("dd", null, sessionCount)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ import_react.default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ import_react.default.createElement("dd", null, tokenUsage.outputTokens)))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Runtime"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "App"), /* @__PURE__ */ import_react.default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Mode"), /* @__PURE__ */ import_react.default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Viewport"), /* @__PURE__ */ import_react.default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "State keys"), /* @__PURE__ */ import_react.default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpTools.length)))))), visibleActiveSection === "overview" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ import_react.default.createElement("h2", null, workspaceTitle), /* @__PURE__ */ import_react.default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Provider"), /* @__PURE__ */ import_react.default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Model"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Base URL"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Context"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Workspace State"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Tool calls"), /* @__PURE__ */ import_react.default.createElement("dd", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "State keys"), /* @__PURE__ */ import_react.default.createElement("dd", null, Object.keys(appState).length)))))), visibleActiveSection === "files" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("h3", null, "Files"), /* @__PURE__ */ import_react.default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
+        return /* @__PURE__ */ import_react.default.createElement(
+          "div",
+          {
+            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
+            key: `${entry.type}-${entry.name}`,
+            title: entry.name
+          },
+          /* @__PURE__ */ import_react.default.createElement(
+            "button",
+            {
+              className: styles.fileEntryMain,
+              type: "button",
+              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
+            },
+            /* @__PURE__ */ import_react.default.createElement("span", null, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
+            /* @__PURE__ */ import_react.default.createElement("strong", null, entry.name),
+            /* @__PURE__ */ import_react.default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
+          ),
+          /* @__PURE__ */ import_react.default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
+        );
+      }))), visibleActiveSection === "session" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Session"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Current"), /* @__PURE__ */ import_react.default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ import_react.default.createElement("dd", null, sessionCount)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ import_react.default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ import_react.default.createElement("dd", null, tokenUsage.outputTokens)))), visibleActiveSection === "runtime" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Runtime"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "App"), /* @__PURE__ */ import_react.default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Mode"), /* @__PURE__ */ import_react.default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Viewport"), /* @__PURE__ */ import_react.default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "State keys"), /* @__PURE__ */ import_react.default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpTools.length)))));
+    }
+    function ToolsView2({
+      activeSection,
+      tools,
+      mcpTools,
+      mcpServers,
+      appConfig,
+      routerMessage,
+      toolActivities,
+      onToggleModelTool,
+      onApplyToolPreset,
+      onSetToolPermission,
+      onApplyPermissionPreset,
+      onRunCommand,
+      onOpenWorkspacePath,
+      onRevealWorkspacePath,
+      onRefresh,
+      onClearActivities
+    }) {
+      const exposedToolCount = tools.filter((tool) => isToolExposedToModel2(tool, appConfig)).length;
+      const toolGroups = groupToolsByCategory2(tools);
+      const policyCounts = tools.reduce(
+        (counts, tool) => {
+          counts[getToolPermissionPolicy2(tool, appConfig)] += 1;
+          return counts;
+        },
+        { allow: 0, ask: 0, deny: 0 }
+      );
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailView, "aria-label": "Tools" }, (activeSection === "bridge" || activeSection === "mcp") && /* @__PURE__ */ import_react.default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), activeSection === "bridge" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Bridge Tools"), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterSummary }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("span", null, "Model exposure"), /* @__PURE__ */ import_react.default.createElement("strong", null, exposedToolCount, " / ", tools.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("span", null, "Tool calls"), /* @__PURE__ */ import_react.default.createElement("strong", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("span", null, "Ask policy"), /* @__PURE__ */ import_react.default.createElement("strong", null, policyCounts.ask)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("span", null, "Denied"), /* @__PURE__ */ import_react.default.createElement("strong", null, policyCounts.deny))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "check", size: 14 }), "Expose all"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "shield", size: 14 }), "Read-only only"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "x", size: 14 }), "Hide mutating"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "check", size: 14 }), "Allow all"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "shield", size: 14 }), "Ask mutating"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "lock", size: 14 }), "Deny mutating")), routerMessage && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.toolRouterMessage }, routerMessage), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, toolGroups.map((group) => /* @__PURE__ */ import_react.default.createElement("section", { className: styles.toolCatalogGroup, key: group.id }, /* @__PURE__ */ import_react.default.createElement("h4", null, group.label), group.tools.map((tool) => {
+        const exposed = isToolExposedToModel2(tool, appConfig);
+        const permission = getToolPermissionPolicy2(tool, appConfig);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: tool.name }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, tool.name), /* @__PURE__ */ import_react.default.createElement("span", null, tool.readOnly ? "Read-only" : "Can change workspace")), /* @__PURE__ */ import_react.default.createElement("p", null, tool.description), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolExposureRow }, /* @__PURE__ */ import_react.default.createElement("span", null, exposed ? "Exposed to model" : "Hidden from model"), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: exposed ? styles.toolExposureButton : styles.toolExposureButtonOff,
+            type: "button",
+            onClick: () => onToggleModelTool(tool.name, !exposed)
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: exposed ? "x" : "check", size: 13 }),
+          exposed ? "Hide" : "Expose"
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.toolPermissionRow }, /* @__PURE__ */ import_react.default.createElement("span", null, "Permission"), /* @__PURE__ */ import_react.default.createElement(
+          "select",
+          {
+            value: permission,
+            onChange: (event) => onSetToolPermission(tool.name, event.target.value)
+          },
+          TOOL_PERMISSION_OPTIONS2.map((option) => /* @__PURE__ */ import_react.default.createElement("option", { value: option.value, key: option.value }, option.label))
+        )));
+      }))), tools.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No bridge tools available"))), activeSection === "mcp" && /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "MCP Registry"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Servers"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Tools"), /* @__PURE__ */ import_react.default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Execution policy"), /* @__PURE__ */ import_react.default.createElement("dd", null, getToolPermissionPolicy2({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig)))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, mcpServers.map((server) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: `${server.scope ?? "unknown"}-${server.name}` }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, server.name), /* @__PURE__ */ import_react.default.createElement(
+        "span",
+        {
+          className: [
+            styles.toolStatusBadge,
+            server.status === "connected" ? styles.toolStatusConnected : "",
+            server.status === "error" ? styles.toolStatusError : ""
+          ].filter(Boolean).join(" ")
+        },
+        server.status
+      )), /* @__PURE__ */ import_react.default.createElement("p", null, server.type, server.scope ? ` / ${server.scope}` : "", server.error ? ` / ${server.error}` : ""))), mcpServers.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No MCP servers configured")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.tagList }, mcpTools.map((tool) => /* @__PURE__ */ import_react.default.createElement("span", { className: styles.tag, key: `${tool.serverKey ?? tool.serverName}-${tool.toolName}` }, tool.serverScope ? `${tool.serverScope}:` : "", tool.serverName, ".", tool.toolName)), mcpTools.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No executable stdio MCP tools discovered yet"))), activeSection === "command" && /* @__PURE__ */ import_react.default.createElement(RunCommandPanel, { onRunCommand }), activeSection === "activity" && /* @__PURE__ */ import_react.default.createElement(
+        ToolActivityPanel2,
+        {
+          activities: toolActivities,
+          onClear: onClearActivities,
+          onOpenWorkspacePath,
+          onRevealWorkspacePath
+        }
+      ), activeSection === "plugins" && /* @__PURE__ */ import_react.default.createElement(PluginSkillPanel, { appConfig }));
+    }
+    function HistoryView2({
+      activeSection,
+      records,
+      storageInfo,
+      message,
+      exportText,
+      onRefresh,
+      onDeleteRecord,
+      onRestoreChat,
+      onExportRecords
+    }) {
+      const automationRecords = records.filter((record) => record.type === "automation-run");
+      const projectEventRecords = records.filter((record) => record.type === "project-event");
+      const projectActivityRecords = records.filter((record) => record.type === "automation-run" || record.type === "project-event");
+      const visibleRecords = activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : projectActivityRecords;
+      const [historyDeleteTarget, setHistoryDeleteTarget] = (0, import_react.useState)(null);
+      function openHistoryDeleteConfirmation(record) {
+        setHistoryDeleteTarget({
+          kind: "record",
+          id: record.id,
+          name: getHistoryRecordTitle2(record),
+          detail: "Delete this local history record.",
+          impact: [
+            `${getHistoryRecordTypeLabel2(record.type)} record will be removed from local history storage.`,
+            record.workspacePath ? `Workspace: ${record.workspacePath}` : "This does not delete workspace files or project artifacts."
+          ]
+        });
+      }
+      function closeHistoryDeleteConfirmation() {
+        setHistoryDeleteTarget(null);
+      }
+      function confirmHistoryDelete() {
+        if (!historyDeleteTarget) {
+          return;
+        }
+        onDeleteRecord(historyDeleteTarget.id);
+        closeHistoryDeleteConfirmation();
+      }
+      function renderHistoryDeleteConfirmation() {
+        if (!historyDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ import_react.default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: "Delete record",
+            subtitle: historyDeleteTarget.name,
+            onClose: closeHistoryDeleteConfirmation,
+            footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmHistoryDelete }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeHistoryDeleteConfirmation }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ import_react.default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ import_react.default.createElement("strong", null, historyDeleteTarget.detail), /* @__PURE__ */ import_react.default.createElement("span", null, "This action updates local History state immediately."), /* @__PURE__ */ import_react.default.createElement("ul", null, historyDeleteTarget.impact.map((item) => /* @__PURE__ */ import_react.default.createElement("li", { key: item }, item))))
+        );
+      }
+      async function copyExportText() {
+        if (exportText) {
+          await navigator.clipboard.writeText(exportText);
+        }
+      }
+      function downloadExportText() {
+        if (!exportText) {
+          return;
+        }
+        const blob = new Blob([exportText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `code-agent-history-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.settingsView, "aria-label": "Project activity" }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Project activity" }, /* @__PURE__ */ import_react.default.createElement("div", { className: historyDeleteTarget ? `${styles.settingsContent} ${styles.workbenchSplitWithRail}` : styles.settingsContent }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ import_react.default.createElement("p", { className: styles.inlineSuccess }, message), historyDeleteTarget && renderHistoryDeleteConfirmation(), activeSection === "overview" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Storage" }, /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Records"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectActivityRecords.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Automation"), /* @__PURE__ */ import_react.default.createElement("dd", null, automationRecords.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Project events"), /* @__PURE__ */ import_react.default.createElement("dd", null, projectEventRecords.length))), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText, title: storageInfo.storagePath }, "Storage path: ", storageInfo.storagePath || "Unavailable")), /* @__PURE__ */ import_react.default.createElement(
+        HistoryRecordList,
+        {
+          records: projectActivityRecords.slice(0, 12),
+          onRequestDeleteRecord: openHistoryDeleteConfirmation,
+          onRestoreChat
+        }
+      )), (activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ import_react.default.createElement(
+        HistoryRecordList,
+        {
+          records: visibleRecords,
+          onRequestDeleteRecord: openHistoryDeleteConfirmation,
+          onRestoreChat
+        }
+      ), activeSection === "export" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Export History" }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Exports are local JSON snapshots. They do not include provider API keys."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "bot", size: 14 }), "Export Automation"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("project-event") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "activity", size: 14 }), "Export Project Events"))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Export Data" }, /* @__PURE__ */ import_react.default.createElement("textarea", { value: exportText, readOnly: true, rows: 14, placeholder: "Choose an export option above." }), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyExportText }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "file", size: 14 }), "Copy JSON"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadExportText }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "download", size: 14 }), "Download JSON")))))));
+    }
+    function HistoryRecordList({
+      records,
+      onRequestDeleteRecord,
+      onRestoreChat
+    }) {
+      return /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Records" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, records.map((record) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: record.id }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, getHistoryRecordTitle2(record)), /* @__PURE__ */ import_react.default.createElement("span", null, getHistoryRecordTypeLabel2(record.type))), /* @__PURE__ */ import_react.default.createElement("p", null, getHistoryRecordSummary2(record)), /* @__PURE__ */ import_react.default.createElement("p", null, new Date(record.updatedAt).toLocaleString()), record.workspacePath && /* @__PURE__ */ import_react.default.createElement("p", { title: record.workspacePath }, "Workspace: ", record.workspacePath), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, record.type === "chat-session" && /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRestoreChat(record) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "rotate", size: 14 }), "Restore Chat"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onRequestDeleteRecord(record) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")))), records.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No history records in this section.")));
+    }
+    function createAutomationDraftId(prefix) {
+      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    function createVirtualTeamMemberDraft(role = "Developer") {
+      return {
+        id: createAutomationDraftId("member"),
+        name: role,
+        role,
+        goal: getDefaultTeamGoal(role),
+        tools: getDefaultTeamTools(role)
+      };
+    }
+    function createVirtualTeamDraft(workspacePath, providerId) {
+      const members = [
+        createVirtualTeamMemberDraft("Supervisor"),
+        createVirtualTeamMemberDraft("Project Manager"),
+        createVirtualTeamMemberDraft("Developer"),
+        createVirtualTeamMemberDraft("QA")
+      ];
+      const now = Date.now();
+      return {
+        id: createAutomationDraftId("team"),
+        name: "Autonomous project team",
+        objective: "Build and validate the software project from the human blueprint.",
+        workspacePath,
+        permissionMode: "full-access",
+        maxIterations: 1,
+        providerId,
+        providerConfig: { requireQaSignoff: true },
+        supervisorId: members[0].id,
+        members,
+        status: "draft",
+        createdAt: now,
+        updatedAt: now
+      };
+    }
+    function cloneVirtualTeamForDraft(team, workspacePath) {
+      const members = team.members.map((member) => ({
+        ...member,
+        tools: [...member.tools]
+      }));
+      const supervisorId = members.some((member) => member.id === team.supervisorId) ? team.supervisorId : members[0]?.id ?? "";
+      return {
+        ...team,
+        workspacePath: team.workspacePath ?? workspacePath,
+        permissionMode: team.permissionMode ?? "full-access",
+        maxIterations: team.maxIterations ?? 1,
+        providerId: team.providerId,
+        providerConfig: team.providerConfig ? { ...team.providerConfig } : void 0,
+        supervisorId,
+        members
+      };
+    }
+    function getTeamPermissionLabel(mode) {
+      return mode === "supervised" ? "Supervised" : "Full access";
+    }
+    function formatTeamTools(tools) {
+      return tools.join(", ");
+    }
+    function createPermissionTool(toolName) {
+      const readOnly = !["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"].includes(toolName);
+      return {
+        name: toolName,
+        description: "",
+        inputSchema: {},
+        readOnly
+      };
+    }
+    function AutomationView2({
+      providerId,
+      activeSection,
+      skills,
+      tasks,
+      taskRuns,
+      schedulerStatus,
+      remoteControl,
+      teams,
+      teamRuns,
+      runningTeamIds,
+      roles,
+      employees,
+      appConfig,
+      workspacePath,
+      message,
+      exportText,
+      importText,
+      onRefresh,
+      onSetSkillEnabled,
+      onExportProject,
+      onImportTextChange,
+      onImportProject,
+      onSaveTask,
+      onRunTask,
+      onSetTaskEnabled,
+      onDeleteTask,
+      onUpdateRemoteControl,
+      onCreatePairingCode,
+      onRevokeRemoteDevice,
+      onCreateDefaultTeam,
+      onSaveTeam,
+      onRunTeam,
+      onDeleteTeam,
+      onSetToolPermission,
+      onApplyPermissionPreset
+    }) {
+      const [taskName, setTaskName] = (0, import_react.useState)("Daily project check");
+      const [taskPrompt, setTaskPrompt] = (0, import_react.useState)("Summarize git status, failing tests, and next actions for this workspace.");
+      const [taskInterval, setTaskInterval] = (0, import_react.useState)(1440);
+      const [taskRetryEnabled, setTaskRetryEnabled] = (0, import_react.useState)(false);
+      const [taskMaxRetries, setTaskMaxRetries] = (0, import_react.useState)(1);
+      const [taskRetryDelay, setTaskRetryDelay] = (0, import_react.useState)(15);
+      const [taskNotifySuccess, setTaskNotifySuccess] = (0, import_react.useState)(false);
+      const [taskNotifyFailure, setTaskNotifyFailure] = (0, import_react.useState)(true);
+      const [taskNotificationChannel, setTaskNotificationChannel] = (0, import_react.useState)("desktop");
+      const [taskMissedRunPolicy, setTaskMissedRunPolicy] = (0, import_react.useState)("run-once");
+      const [taskDraftId, setTaskDraftId] = (0, import_react.useState)("");
+      const [taskEnabled, setTaskEnabled] = (0, import_react.useState)(true);
+      const [deviceName, setDeviceName] = (0, import_react.useState)("Phone");
+      const [selectedTeamId, setSelectedTeamId] = (0, import_react.useState)("");
+      const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = (0, import_react.useState)("");
+      const [teamDraft, setTeamDraft] = (0, import_react.useState)(() => createVirtualTeamDraft(workspacePath, providerId));
+      const [automationEditorPanel, setAutomationEditorPanel] = (0, import_react.useState)(null);
+      const [automationDeleteTarget, setAutomationDeleteTarget] = (0, import_react.useState)(null);
+      const [scheduledTaskView, setScheduledTaskView] = (0, import_react.useState)("table");
+      const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+      const recentTeamRuns = selectedTeamId ? teamRuns.filter((run) => run.teamId === selectedTeamId) : teamRuns;
+      const taskRailOpen = automationEditorPanel === "task" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task";
+      const teamRailOpen = automationEditorPanel === "team" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "team";
+      (0, import_react.useEffect)(() => {
+        if (!selectedTeamId && teams[0]) {
+          setSelectedTeamId(teams[0].id);
+          setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
+        }
+      }, [selectedTeamId, teams, workspacePath]);
+      function closeAutomationEditorPanel() {
+        setAutomationEditorPanel(null);
+        setAutomationDeleteTarget(null);
+      }
+      function openAutomationDeleteConfirmation(target) {
+        setAutomationDeleteTarget(target);
+        setAutomationEditorPanel("delete");
+      }
+      function confirmAutomationDelete() {
+        if (!automationDeleteTarget) {
+          return;
+        }
+        if (automationDeleteTarget.kind === "task") {
+          onDeleteTask(automationDeleteTarget.id);
+        } else if (automationDeleteTarget.kind === "team") {
+          onDeleteTeam(automationDeleteTarget.id);
+        } else if (automationDeleteTarget.kind === "device") {
+          onRevokeRemoteDevice(automationDeleteTarget.id);
+        }
+        closeAutomationEditorPanel();
+      }
+      function openNewTaskEditor() {
+        setAutomationDeleteTarget(null);
+        setTaskDraftId("");
+        setTaskName("Daily project check");
+        setTaskPrompt("Summarize git status, failing tests, and next actions for this workspace.");
+        setTaskInterval(1440);
+        setTaskRetryEnabled(false);
+        setTaskMaxRetries(1);
+        setTaskRetryDelay(15);
+        setTaskNotifySuccess(false);
+        setTaskNotifyFailure(true);
+        setTaskNotificationChannel("desktop");
+        setTaskMissedRunPolicy("run-once");
+        setTaskEnabled(true);
+        setAutomationEditorPanel("task");
+      }
+      function openTaskEditor(task) {
+        setAutomationDeleteTarget(null);
+        setTaskDraftId(task.id);
+        setTaskName(task.name);
+        setTaskPrompt(task.prompt);
+        setTaskInterval(task.intervalMinutes);
+        setTaskRetryEnabled(Boolean(task.retryPolicy?.enabled));
+        setTaskMaxRetries(task.retryPolicy?.maxRetries ?? 1);
+        setTaskRetryDelay(task.retryPolicy?.retryDelayMinutes ?? 15);
+        setTaskNotifySuccess(Boolean(task.notificationPolicy?.onSuccess));
+        setTaskNotifyFailure(task.notificationPolicy?.onFailure !== false);
+        setTaskNotificationChannel(task.notificationPolicy?.channel ?? "desktop");
+        setTaskMissedRunPolicy(task.missedRunPolicy ?? "run-once");
+        setTaskEnabled(task.enabled);
+        setAutomationEditorPanel("task");
+      }
+      function saveTaskDraft() {
+        onSaveTask({
+          id: taskDraftId || void 0,
+          name: taskName,
+          prompt: taskPrompt,
+          intervalMinutes: taskInterval,
+          enabled: taskEnabled,
+          retryPolicy: {
+            enabled: taskRetryEnabled,
+            maxRetries: taskMaxRetries,
+            retryDelayMinutes: taskRetryDelay
+          },
+          notificationPolicy: {
+            onSuccess: taskNotifySuccess,
+            onFailure: taskNotifyFailure,
+            channel: taskNotificationChannel
+          },
+          missedRunPolicy: taskMissedRunPolicy
+        });
+        closeAutomationEditorPanel();
+      }
+      function startNewTeamDraft() {
+        const draft = createVirtualTeamDraft(workspacePath, providerId);
+        setSelectedTeamId("");
+        setTeamDraft(draft);
+        setAutomationDeleteTarget(null);
+        setAutomationEditorPanel("team");
+      }
+      function selectTeam(team) {
+        setSelectedTeamId(team.id);
+        setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
+        setAutomationDeleteTarget(null);
+        setAutomationEditorPanel("team");
+      }
+      function updateTeamDraft(update) {
+        setTeamDraft((current) => ({
+          ...current,
+          ...update,
+          updatedAt: Date.now()
+        }));
+      }
+      function updateTeamMember(index, update) {
+        setTeamDraft((current) => {
+          const members = current.members.map((member, memberIndex) => memberIndex === index ? { ...member, ...update } : member);
+          const supervisorId = members.some((member) => member.id === current.supervisorId) ? current.supervisorId : members[0]?.id ?? "";
+          return {
+            ...current,
+            members,
+            supervisorId,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function addTeamMember(role = "Developer") {
+        setTeamDraft((current) => {
+          const member = createVirtualTeamMemberDraft(role);
+          return {
+            ...current,
+            members: [...current.members, member],
+            supervisorId: current.supervisorId || member.id,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function addSharedEmployeeToTeam(employeeId) {
+        const employee = employees.find((candidate) => candidate.id === employeeId);
+        if (!employee) {
+          return;
+        }
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const member = {
+          id: `member-${employee.id}`,
+          name: employee.name,
+          role: role?.title ?? employee.role,
+          goal: role?.defaultGoal ?? getDefaultTeamGoal(employee.role),
+          tools: role?.defaultTools ?? getDefaultTeamTools(employee.role)
+        };
+        setTeamDraft((current) => {
+          const members = [
+            member,
+            ...current.members.filter((candidate) => candidate.id !== member.id)
+          ];
+          return {
+            ...current,
+            members,
+            supervisorId: current.supervisorId || (role?.canSupervise ? member.id : members[0]?.id ?? ""),
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function deleteTeamMember(memberId) {
+        setTeamDraft((current) => {
+          const members = current.members.filter((member) => member.id !== memberId);
+          return {
+            ...current,
+            members,
+            supervisorId: current.supervisorId === memberId ? members[0]?.id ?? "" : current.supervisorId,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function saveTeamDraft() {
+        onSaveTeam({
+          ...teamDraft,
+          permissionMode: teamDraft.permissionMode ?? "full-access",
+          maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
+          providerId: teamDraft.providerId,
+          providerConfig: teamDraft.providerConfig ? { ...teamDraft.providerConfig } : void 0,
+          members: teamDraft.members.map((member) => ({
+            ...member,
+            name: member.name.trim() || member.role.trim() || "Team member",
+            role: member.role.trim() || "Contributor",
+            goal: member.goal.trim() || getDefaultTeamGoal(member.role),
+            tools: normalizeToolNameList2(member.tools)
+          }))
+        });
+        closeAutomationEditorPanel();
+      }
+      function buildScheduledTaskDeleteTarget(task) {
+        return {
+          kind: "task",
+          id: task.id,
+          name: task.name,
+          detail: "Delete this scheduled automation task.",
+          impact: [
+            `The ${task.enabled ? "enabled" : "disabled"} schedule running every ${task.intervalMinutes} minute(s) will be removed.`,
+            "Existing task run history remains visible until history retention removes it."
+          ]
+        };
+      }
+      function buildAutomationTeamDeleteTarget(team) {
+        return {
+          kind: "team",
+          id: team.id,
+          name: team.name,
+          detail: "Delete this automation team blueprint.",
+          impact: [
+            `${team.members.length} virtual team member definition(s) will be removed from this blueprint.`,
+            "Existing team run records are not deleted by this action."
+          ]
+        };
+      }
+      function buildRemoteDeviceDeleteTarget(device) {
+        return {
+          kind: "device",
+          id: device.id,
+          name: device.name,
+          detail: "Revoke this approved remote-control device.",
+          impact: [
+            "The device token will no longer be accepted for remote approvals.",
+            device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}.` : `Paired ${new Date(device.createdAt).toLocaleString()}.`
+          ]
+        };
+      }
+      function getScheduledTaskPolicyLabels(task) {
+        const retryLabel = task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} retry` : "Retry off";
+        const notifyLabel = `${task.notificationPolicy?.channel ?? "desktop"} notifications`;
+        return { retryLabel, notifyLabel };
+      }
+      function renderScheduledTaskRow(task) {
+        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.workbenchRecordRow, key: task.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, task.name), /* @__PURE__ */ import_react.default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run")), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, "Every ", task.intervalMinutes, " min"), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: new Date(task.nextRunAt).toLocaleString() }, "Next ", new Date(task.nextRunAt).toLocaleString()), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: `${task.prompt} / ${retryLabel} / ${notifyLabel}` }, retryLabel, " / ", notifyLabel), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderScheduledTaskCard(task) {
+        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: styles.projectCard, key: task.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, task.name), /* @__PURE__ */ import_react.default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run"))), /* @__PURE__ */ import_react.default.createElement("p", { title: task.prompt }, task.prompt), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Cadence"), /* @__PURE__ */ import_react.default.createElement("dd", null, "Every ", task.intervalMinutes, " min")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Next Run"), /* @__PURE__ */ import_react.default.createElement("dd", { title: new Date(task.nextRunAt).toLocaleString() }, new Date(task.nextRunAt).toLocaleString()))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectChipList }, /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, retryLabel), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, notifyLabel), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.projectChip }, task.missedRunPolicy ?? "run-once")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderAutomationTeamRow(team) {
+        const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === "running";
+        const status = teamIsRunning ? "running" : team.status;
+        const governance = `${team.maxIterations ?? 1} iteration(s) / QA ${team.providerConfig?.requireQaSignoff === true ? "required" : "optional"}`;
+        const rowClassName = team.id === selectedTeamId ? `${styles.workbenchRecordRow} ${styles.workbenchRecordRowSelected}` : styles.workbenchRecordRow;
+        return /* @__PURE__ */ import_react.default.createElement("article", { className: rowClassName, key: team.id }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ import_react.default.createElement("strong", null, team.name), /* @__PURE__ */ import_react.default.createElement("span", { title: team.workspacePath ?? workspacePath }, team.workspacePath ?? workspacePath)), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, status, " / ", getTeamPermissionLabel(team.permissionMode)), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell }, team.members.length, " member(s) / ", governance), /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchRecordCell, title: `${team.objective}${team.lastResult ? ` / ${team.lastResult}` : ""}` }, team.objective), /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => selectTeam(team), disabled: teamIsRunning }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTeam(team.id), disabled: teamIsRunning }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: teamIsRunning ? "activity" : "play", size: 14 }), teamIsRunning ? "Running..." : "Run Team"), /* @__PURE__ */ import_react.default.createElement(
+          "button",
+          {
+            className: styles.dangerButton,
+            type: "button",
+            onClick: () => openAutomationDeleteConfirmation(buildAutomationTeamDeleteTarget(team)),
+            disabled: teamIsRunning
+          },
+          /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderAutomationDeleteConfirmation() {
+        if (!automationDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ import_react.default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: `Delete ${automationDeleteTarget.kind}`,
+            subtitle: automationDeleteTarget.name,
+            onClose: closeAutomationEditorPanel,
+            footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmAutomationDelete }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeAutomationEditorPanel }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ import_react.default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ import_react.default.createElement("strong", null, automationDeleteTarget.detail), /* @__PURE__ */ import_react.default.createElement("span", null, "This action updates local Automation state immediately."), /* @__PURE__ */ import_react.default.createElement("ul", null, automationDeleteTarget.impact.map((item) => /* @__PURE__ */ import_react.default.createElement("li", { key: item }, item))))
+        );
+      }
+      async function copyAutomationExportText() {
+        if (exportText) {
+          await navigator.clipboard.writeText(exportText);
+        }
+      }
+      function downloadAutomationExportText() {
+        if (!exportText) {
+          return;
+        }
+        const blob = new Blob([exportText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `code-agent-automation-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.settingsView, "aria-label": "Automation" }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Automation" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsContent }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ import_react.default.createElement("p", { className: styles.inlineSuccess }, message), activeSection === "skills" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Workspace Skills" }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Workspace skills are discovered from `.code-agent/skills` and `skills`."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, skills.map((skill) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: skill.id }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, skill.name), /* @__PURE__ */ import_react.default.createElement("span", null, skill.enabled ? "Enabled" : "Disabled", " / ", skill.source)), /* @__PURE__ */ import_react.default.createElement("p", null, skill.description || "No description provided."), /* @__PURE__ */ import_react.default.createElement("p", { title: skill.path }, skill.path), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetSkillEnabled(skill.id, !skill.enabled) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: skill.enabled ? "pause" : "play", size: 14 }), skill.enabled ? "Disable" : "Enable")))), skills.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No workspace skills found yet."))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Shareable Project Bundle" }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(false) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "download", size: 14 }), "Export Config"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(true) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "archive", size: 14 }), "Export With Runs"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyAutomationExportText }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "file", size: 14 }), "Copy Export"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadAutomationExportText }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "download", size: 14 }), "Download Export"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: onImportProject, disabled: !importText.trim() }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "folder-open", size: 14 }), "Import JSON")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Export JSON"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: exportText, readOnly: true, rows: 8, placeholder: "Exported automation JSON appears here." })), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Import JSON"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: importText, onChange: (event) => onImportTextChange(event.target.value), rows: 8, placeholder: "Paste a CodeAgent automation export JSON object." }))))), activeSection === "tasks" && /* @__PURE__ */ import_react.default.createElement("div", { className: taskRailOpen ? `${styles.workbenchSplit} ${styles.workbenchSplitWithRail}` : styles.workbenchSplit }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchMainStack }, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Scheduler" }, /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Status"), /* @__PURE__ */ import_react.default.createElement("dd", null, schedulerStatus.running ? "Running" : "Stopped")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Tick"), /* @__PURE__ */ import_react.default.createElement("dd", null, Math.round(schedulerStatus.intervalMs / 1e3), "s")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Active tasks"), /* @__PURE__ */ import_react.default.createElement("dd", null, schedulerStatus.runningTaskIds.length))), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the team panel when trusted autonomous work should not pause for approvals."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewTaskEditor }, "New Task"))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Configured Tasks" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.recordSectionToolbar }, /* @__PURE__ */ import_react.default.createElement(RecordViewToggle2, { view: scheduledTaskView, onChange: setScheduledTaskView, label: "Scheduled task list view" })), scheduledTaskView === "table" ? /* @__PURE__ */ import_react.default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ import_react.default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Task"), /* @__PURE__ */ import_react.default.createElement("span", null, "Cadence"), /* @__PURE__ */ import_react.default.createElement("span", null, "Next run"), /* @__PURE__ */ import_react.default.createElement("span", null, "Policy"), /* @__PURE__ */ import_react.default.createElement("span", null, "Actions")), tasks.map((task) => renderScheduledTaskRow(task)), tasks.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured.")) : /* @__PURE__ */ import_react.default.createElement("div", { className: styles.recordCardGrid }, tasks.map((task) => renderScheduledTaskCard(task)), tasks.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured."))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Recent Task Runs" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, taskRuns.slice(0, 8).map((run) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: run.id }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, run.taskName), /* @__PURE__ */ import_react.default.createElement("span", null, run.status)), /* @__PURE__ */ import_react.default.createElement("p", null, run.result ?? run.error ?? "Running..."), /* @__PURE__ */ import_react.default.createElement("p", null, new Date(run.startedAt).toLocaleString()))), taskRuns.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No task runs yet.")))), automationEditorPanel === "task" && /* @__PURE__ */ import_react.default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: taskDraftId ? "Edit Scheduled Task" : "New Scheduled Task",
+          subtitle: "Prompt, cadence, retries, notifications, and missed-run handling",
+          onClose: closeAutomationEditorPanel,
+          footer: /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTaskDraft }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "save", size: 14 }), "Save Task"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewTaskEditor }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Name"), /* @__PURE__ */ import_react.default.createElement("input", { value: taskName, onChange: (event) => setTaskName(event.target.value) })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Enabled"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskEnabled ? "yes" : "no", onChange: (event) => setTaskEnabled(event.target.value === "yes") }, /* @__PURE__ */ import_react.default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ import_react.default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Interval minutes"), /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 1,
+            value: taskInterval,
+            onChange: (event) => setTaskInterval(Math.max(1, Number(event.target.value) || 1))
+          }
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ import_react.default.createElement("span", null, "Prompt"), /* @__PURE__ */ import_react.default.createElement("textarea", { value: taskPrompt, onChange: (event) => setTaskPrompt(event.target.value), rows: 4 })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Retry failed runs"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskRetryEnabled ? "enabled" : "disabled", onChange: (event) => setTaskRetryEnabled(event.target.value === "enabled") }, /* @__PURE__ */ import_react.default.createElement("option", { value: "disabled" }, "Disabled"), /* @__PURE__ */ import_react.default.createElement("option", { value: "enabled" }, "Enabled"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Max retries"), /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 0,
+            max: 10,
+            value: taskMaxRetries,
+            onChange: (event) => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))
+          }
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Retry delay minutes"), /* @__PURE__ */ import_react.default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 1,
+            max: 1440,
+            value: taskRetryDelay,
+            onChange: (event) => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))
+          }
+        )), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Notify on success"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskNotifySuccess ? "yes" : "no", onChange: (event) => setTaskNotifySuccess(event.target.value === "yes") }, /* @__PURE__ */ import_react.default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ import_react.default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Notify on failure"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskNotifyFailure ? "yes" : "no", onChange: (event) => setTaskNotifyFailure(event.target.value === "yes") }, /* @__PURE__ */ import_react.default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ import_react.default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Notification channel"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskNotificationChannel, onChange: (event) => setTaskNotificationChannel(event.target.value) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "desktop" }, "Desktop"), /* @__PURE__ */ import_react.default.createElement("option", { value: "remote" }, "Remote"), /* @__PURE__ */ import_react.default.createElement("option", { value: "none" }, "None"))), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Missed runs"), /* @__PURE__ */ import_react.default.createElement("select", { value: taskMissedRunPolicy, onChange: (event) => setTaskMissedRunPolicy(event.target.value) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "run-once" }, "Run once after restart"), /* @__PURE__ */ import_react.default.createElement("option", { value: "skip" }, "Skip and resume schedule"))))
+      ), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task" && renderAutomationDeleteConfirmation()), activeSection === "remote" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Remote Access" }, /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Status"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.enabled ? "Enabled" : "Disabled")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Mode"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.mode)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Devices"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.approvedDevices.length)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Pending approvals"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.pendingActions?.length ?? 0))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Device name"), /* @__PURE__ */ import_react.default.createElement("input", { value: deviceName, onChange: (event) => setDeviceName(event.target.value) }))), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? "disabled" : "local-network" }) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: remoteControl.enabled ? "pause" : "play", size: 14 }), remoteControl.enabled ? "Disable" : "Enable"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onCreatePairingCode(deviceName) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "phone", size: 14 }), "Pair Device"))), remoteControl.pairingCode && /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Pairing Code" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ import_react.default.createElement("span", null, "Pairing code"), /* @__PURE__ */ import_react.default.createElement("strong", null, remoteControl.pairingCode), remoteControl.pairingExpiresAt && /* @__PURE__ */ import_react.default.createElement("em", null, "Expires ", new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()))), (remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Remote URL" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ import_react.default.createElement("span", null, "Remote URL"), /* @__PURE__ */ import_react.default.createElement("strong", null, remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl), remoteControl.serverUrl && /* @__PURE__ */ import_react.default.createElement("em", null, remoteControl.serverUrl))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Managed Relay" }, /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Status"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.relay?.enrollmentStatus ?? "not-configured")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Broker"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.relay?.brokerUrl ?? "Not configured")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Account"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.relay?.accountId ?? "Not configured")), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Device"), /* @__PURE__ */ import_react.default.createElement("dd", null, remoteControl.relay?.deviceId ?? "Not configured"))), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Off-network relay control stays disabled until the managed relay implements identity, encryption, token rotation, audit propagation, and emergency revocation.")), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Approved Devices" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, remoteControl.approvedDevices.map((device) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: device.id }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, device.name), /* @__PURE__ */ import_react.default.createElement("span", null, device.lastSeenAt ? "Seen recently" : "Paired")), /* @__PURE__ */ import_react.default.createElement("p", null, "Paired ", new Date(device.createdAt).toLocaleString()), device.lastSeenAt && /* @__PURE__ */ import_react.default.createElement("p", null, "Last seen ", new Date(device.lastSeenAt).toLocaleString()), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildRemoteDeviceDeleteTarget(device)) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "trash", size: 14 }), "Revoke")))), remoteControl.approvedDevices.length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No approved remote devices."))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Remote Audit Log" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, (remoteControl.auditLog ?? []).slice(0, 12).map((event) => /* @__PURE__ */ import_react.default.createElement("article", { className: styles.toolCatalogItem, key: event.id }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("strong", null, event.message), /* @__PURE__ */ import_react.default.createElement("span", null, event.type)), /* @__PURE__ */ import_react.default.createElement("p", null, new Date(event.createdAt).toLocaleString()), event.deviceName && /* @__PURE__ */ import_react.default.createElement("p", null, "Device: ", event.deviceName))), (remoteControl.auditLog ?? []).length === 0 && /* @__PURE__ */ import_react.default.createElement("span", { className: styles.mutedText }, "No remote-control audit events yet."))), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "device" && renderAutomationDeleteConfirmation()), activeSection === "permissions" && /* @__PURE__ */ import_react.default.createElement(import_react.default.Fragment, null, /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Unattended Execution Policy" }, /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "check", size: 14 }), "Allow All Tools"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "shield", size: 14 }), "Ask Before Changes"), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "lock", size: 14 }), "Deny Mutating Tools"))), /* @__PURE__ */ import_react.default.createElement(SettingsSection2, { title: "Key Automation Tools" }, /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolCatalog }, AUTOMATION_PERMISSION_TOOLS2.map((toolName) => {
+        const permission = getToolPermissionPolicy2(createPermissionTool(toolName), appConfig);
+        return /* @__PURE__ */ import_react.default.createElement("label", { className: styles.toolPermissionRow, key: toolName }, /* @__PURE__ */ import_react.default.createElement("span", null, toolName), /* @__PURE__ */ import_react.default.createElement("select", { value: permission, onChange: (event) => onSetToolPermission(toolName, event.target.value) }, /* @__PURE__ */ import_react.default.createElement("option", { value: "allow" }, "Allow"), /* @__PURE__ */ import_react.default.createElement("option", { value: "ask" }, "Ask"), /* @__PURE__ */ import_react.default.createElement("option", { value: "deny" }, "Deny")));
+      })))))));
+    }
+    function RunCommandPanel({
+      onRunCommand
+    }) {
+      const [command, setCommand] = (0, import_react.useState)("");
+      const [cwd, setCwd] = (0, import_react.useState)(".");
+      const helperCommands = [
+        { label: "Git status", command: "git status --short --branch" },
+        { label: "Git diff", command: "git diff --stat" },
+        { label: "Branch", command: "git branch --show-current" },
+        { label: "NPM scripts", command: "npm run" },
+        { label: "Dev servers", command: "lsof -iTCP -sTCP:LISTEN -P -n" }
+      ];
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Run Command"), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Commands run through `bash.run`, stay inside the workspace, and require approval before execution."), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.commandRunner }, /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Command"), /* @__PURE__ */ import_react.default.createElement("input", { value: command, onChange: (event) => setCommand(event.target.value), placeholder: "npm test" })), /* @__PURE__ */ import_react.default.createElement("label", { className: styles.field }, /* @__PURE__ */ import_react.default.createElement("span", null, "Working directory"), /* @__PURE__ */ import_react.default.createElement("input", { value: cwd, onChange: (event) => setCwd(event.target.value), placeholder: "." })), /* @__PURE__ */ import_react.default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onRunCommand(command, cwd) }, /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "terminal", size: 14 }), "Review Run")), /* @__PURE__ */ import_react.default.createElement("div", { className: styles.toolRouterActions }, helperCommands.map((helper) => /* @__PURE__ */ import_react.default.createElement(
+        "button",
+        {
+          className: styles.secondaryButton,
+          type: "button",
+          key: helper.label,
+          onClick: () => setCommand(helper.command)
+        },
+        /* @__PURE__ */ import_react.default.createElement(Icon2, { name: "terminal", size: 14 }),
+        helper.label
+      ))));
+    }
+    function PluginSkillPanel({ appConfig }) {
+      const pluginDirs = readCliOption2(appConfig, "pluginDirs") || "Default plugin paths";
+      const agentsJson = readCliOption2(appConfig, "agentsJson") || "Not configured";
+      const mcpConfig = readCliOption2(appConfig, "mcpConfig") || "Default MCP config";
+      return /* @__PURE__ */ import_react.default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ import_react.default.createElement("h3", null, "Plugins & Skills"), /* @__PURE__ */ import_react.default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Plugin dirs"), /* @__PURE__ */ import_react.default.createElement("dd", { title: pluginDirs }, pluginDirs)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "Agents JSON"), /* @__PURE__ */ import_react.default.createElement("dd", { title: agentsJson }, agentsJson)), /* @__PURE__ */ import_react.default.createElement("div", null, /* @__PURE__ */ import_react.default.createElement("dt", null, "MCP config"), /* @__PURE__ */ import_react.default.createElement("dd", { title: mcpConfig }, mcpConfig))), /* @__PURE__ */ import_react.default.createElement("p", { className: styles.mutedText }, "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above."));
+    }
+    return {
+      projects: ProjectsView2,
+      tools: ToolsView2,
+      automation: AutomationView2,
+      history: HistoryView2
+    };
+  }
+  var renderer = defineFeaturePackageRenderer({
+    packageId: "software-developer",
+    createContribution(host) {
+      return {
+        views: createSoftwareDeveloperRendererViews(host),
+        workflowDefaults: {
+          getDefaultGoal: getDefaultTeamGoal,
+          getDefaultTools: getDefaultTeamTools
+        }
+      };
+    }
+  });
+  var renderer_default = renderer;
+
+  // src/features/package-renderers/generated.ts
+  var EXTERNAL_FEATURE_PACKAGE_RENDERER_MODULES = [
+    renderer_default
+  ];
+
+  // src/features/feature-package-renderers.ts
+  var modulesByPackageId = new Map(
+    EXTERNAL_FEATURE_PACKAGE_RENDERER_MODULES.map((module) => [module.packageId, module])
+  );
+  function createFeaturePackageRendererContribution(packageId, host) {
+    if (!packageId) return void 0;
+    return modulesByPackageId.get(packageId)?.createContribution(host);
+  }
+  function getFeaturePackageRendererView(contribution, viewId) {
+    return contribution?.views[viewId];
+  }
+
   // src/renderer/App.tsx
   var import_jsx_runtime = __toESM(require_jsx_runtime(), 1);
   var DEFAULT_PROVIDER = "codeagent";
@@ -44947,6 +46878,12 @@ Attached images: ${imageSummary}` : message.content);
   };
   function getProviderDefault(provider) {
     return PROVIDER_DEFAULTS[provider] ?? PROVIDER_DEFAULTS[DEFAULT_PROVIDER];
+  }
+  function getDefaultTeamGoal2(role) {
+    return activeFeatureRendererContribution?.workflowDefaults?.getDefaultGoal(role) ?? `Carry out the responsibilities of the ${role || "assigned"} role and report concrete results.`;
+  }
+  function getDefaultTeamTools2(role) {
+    return activeFeatureRendererContribution?.workflowDefaults?.getDefaultTools(role) ?? ["fs.read"];
   }
   function getSkinAccent(value) {
     return typeof value === "string" && value in SKIN_ACCENTS ? value : "blue";
@@ -45920,8 +47857,8 @@ Attached images: ${imageSummary}` : message.content);
       id: createRoleDefinitionId(title),
       title,
       responsibilities: defaultRole?.responsibilities ? [...defaultRole.responsibilities] : ["Deliver assigned project responsibilities."],
-      defaultGoal: defaultRole?.defaultGoal ?? getDefaultTeamGoal(title),
-      defaultTools: defaultRole?.defaultTools ? [...defaultRole.defaultTools] : getDefaultTeamTools(title),
+      defaultGoal: defaultRole?.defaultGoal ?? getDefaultTeamGoal2(title),
+      defaultTools: defaultRole?.defaultTools ? [...defaultRole.defaultTools] : getDefaultTeamTools2(title),
       canSupervise: Boolean(defaultRole?.canSupervise),
       createdAt: now,
       updatedAt: now
@@ -45938,8 +47875,8 @@ Attached images: ${imageSummary}` : message.content);
       id: typeof raw.id === "string" && raw.id.trim() ? raw.id : createRoleDefinitionId(title),
       title,
       responsibilities: normalizeStringList2(raw.responsibilities, ["Deliver assigned project responsibilities."]),
-      defaultGoal: typeof raw.defaultGoal === "string" && raw.defaultGoal.trim() ? raw.defaultGoal.trim() : getDefaultTeamGoal(title),
-      defaultTools: normalizeStringList2(raw.defaultTools, getDefaultTeamTools(title)),
+      defaultGoal: typeof raw.defaultGoal === "string" && raw.defaultGoal.trim() ? raw.defaultGoal.trim() : getDefaultTeamGoal2(title),
+      defaultTools: normalizeStringList2(raw.defaultTools, getDefaultTeamTools2(title)),
       canSupervise: Boolean(raw.canSupervise),
       createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
       updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now
@@ -47623,7 +49560,8 @@ Attached images: ${imageSummary}` : message.content);
   function renderAnsiText(text) {
     return parseAnsiText(text).map((segment, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: segment.style, children: segment.text }, `${index}-${segment.text.slice(0, 8)}`));
   }
-  var { ProjectsView, ToolsView, AutomationView, HistoryView } = createSoftwareDeveloperRendererViews({
+  var activeFeatureRendererPackageId = getDeclaredFeatureOwnerPackageId("project-studio");
+  var activeFeatureRendererContribution = createFeaturePackageRendererContribution(activeFeatureRendererPackageId, {
     AUTOMATION_PERMISSION_TOOLS,
     DEFAULT_AUTONOMOUS_ROLES,
     DEFAULT_EMPLOYEE_PERMISSIONS,
@@ -47677,6 +49615,19 @@ Attached images: ${imageSummary}` : message.content);
     summarizeProjectGoals,
     summarizeToolResult
   });
+  function MissingFeaturePackageView() {
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.detailView, "aria-label": "Feature view unavailable", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Feature view unavailable" }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "The active feature package does not provide this renderer view." })
+    ] }) });
+  }
+  function rendererView(viewId) {
+    return getFeaturePackageRendererView(activeFeatureRendererContribution, viewId) ?? MissingFeaturePackageView;
+  }
+  var ProjectsView = rendererView("projects");
+  var ToolsView = rendererView("tools");
+  var AutomationView = rendererView("automation");
+  var HistoryView = rendererView("history");
   var FeatureViewErrorBoundary = class extends esm_wrapper_default.Component {
     constructor() {
       super(...arguments);
@@ -47704,7 +49655,7 @@ Attached images: ${imageSummary}` : message.content);
           this.props.viewLabel,
           " could not be displayed"
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "The Software Developer package encountered a renderer error. You can switch to another section and try again." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "The feature package encountered a renderer error. You can switch to another section and try again." }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.codeBlock, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: this.state.error.message }) })
       ] }) });
     }
@@ -48558,7 +50509,7 @@ Attached images: ${imageSummary}` : message.content);
         ...role,
         title: role.title.trim() || "Contributor",
         responsibilities: normalizeStringList2(role.responsibilities, ["Deliver assigned project responsibilities."]),
-        defaultTools: normalizeStringList2(role.defaultTools, getDefaultTeamTools(role.title)),
+        defaultTools: normalizeStringList2(role.defaultTools, getDefaultTeamTools2(role.title)),
         updatedAt: Date.now()
       });
       if (!sanitized) {
@@ -54294,6 +56245,7 @@ Attached images: ${imageSummary}` : message.content);
 })();
 /*! Bundled license information:
 
+react/cjs/react.development.js:
 react/cjs/react.development.js:
   (**
    * @license React

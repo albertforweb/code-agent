@@ -9,6 +9,14 @@ import { fileURLToPath } from 'url';
 const repoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const packageJsonPath = path.join(repoRoot, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+const featurePackagesRoot = process.env.CODEAGENT_FEATURE_PACKAGES_ROOT
+  ? path.resolve(process.env.CODEAGENT_FEATURE_PACKAGES_ROOT)
+  : path.resolve(repoRoot, '..', 'code-agent-packages');
+const featurePackageManifests = fs.readdirSync(featurePackagesRoot, { withFileTypes: true })
+  .filter(entry => entry.isDirectory())
+  .map(entry => path.join(featurePackagesRoot, entry.name, 'manifest.json'))
+  .filter(manifestPath => fs.existsSync(manifestPath))
+  .map(manifestPath => JSON.parse(fs.readFileSync(manifestPath, 'utf8')));
 const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'code-agent-cli-pack-'));
 const extractDir = path.join(tempDir, 'extract');
 
@@ -141,8 +149,10 @@ function assertCliSmoke() {
   }
 
   const featuresResult = run(process.execPath, ['dist/entrypoints/cli.js', 'features', 'packages']);
-  if (!featuresResult.stdout.includes('software-developer') || !featuresResult.stdout.includes('locked')) {
-    fail(`unexpected default CLI features output: ${featuresResult.stdout.trim()}`);
+  for (const manifest of featurePackageManifests) {
+    if (!featuresResult.stdout.includes(manifest.id) || !featuresResult.stdout.includes('locked')) {
+      fail(`default CLI features output is missing ${manifest.id}: ${featuresResult.stdout.trim()}`);
+    }
   }
 
   const developerFeaturesResult = run(process.execPath, ['dist/entrypoints/cli.js', 'features', 'list'], {
@@ -151,8 +161,11 @@ function assertCliSmoke() {
       CODEAGENT_FEATURE_LOCAL_DEV_OVERRIDE: 'true',
     },
   });
-  if (!developerFeaturesResult.stdout.includes('project-studio') || !developerFeaturesResult.stdout.includes('software-developer')) {
-    fail(`unexpected CLI developer features output: ${developerFeaturesResult.stdout.trim()}`);
+  for (const manifest of featurePackageManifests) {
+    const representativeFeatureId = manifest.features?.[0]?.id;
+    if (!developerFeaturesResult.stdout.includes(manifest.id) || (representativeFeatureId && !developerFeaturesResult.stdout.includes(representativeFeatureId))) {
+      fail(`CLI developer features output is missing ${manifest.id}: ${developerFeaturesResult.stdout.trim()}`);
+    }
   }
 }
 
@@ -220,8 +233,10 @@ function assertIsolatedInstall(tarballPath) {
   }
 
   const featuresResult = run(binPath, ['features', 'packages'], { cwd: tempDir });
-  if (!featuresResult.stdout.includes('software-developer') || !featuresResult.stdout.includes('locked')) {
-    fail(`unexpected installed CLI features output: ${featuresResult.stdout.trim()}`);
+  for (const manifest of featurePackageManifests) {
+    if (!featuresResult.stdout.includes(manifest.id) || !featuresResult.stdout.includes('locked')) {
+      fail(`installed CLI features output is missing ${manifest.id}: ${featuresResult.stdout.trim()}`);
+    }
   }
 
   const modelsResult = run(binPath, ['models', 'list'], { cwd: tempDir });

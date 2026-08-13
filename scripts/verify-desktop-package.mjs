@@ -47,12 +47,12 @@ for (let i = 0; i < args.length; i += 1) {
 const root = process.cwd();
 const packageJsonPath = path.join(root, 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-const softwareDeveloperManifestPath = path.resolve(
-  root,
-  '../code-agent-packages/software-developer/manifest.json',
-);
-const softwareDeveloperManifest = JSON.parse(readFileSync(softwareDeveloperManifestPath, 'utf8'));
-const softwareDeveloperArchiveName = `${softwareDeveloperManifest.productSku}-${softwareDeveloperManifest.version}.tgz`;
+const featurePackagesRoot = path.resolve(root, '../code-agent-packages');
+const featurePackageManifests = readdirSync(featurePackagesRoot, { withFileTypes: true })
+  .filter(entry => entry.isDirectory())
+  .map(entry => path.join(featurePackagesRoot, entry.name, 'manifest.json'))
+  .filter(manifestPath => existsSync(manifestPath))
+  .map(manifestPath => JSON.parse(readFileSync(manifestPath, 'utf8')));
 const buildConfig = packageJson.build ?? {};
 const productName = buildConfig.productName ?? 'CodeAgent';
 const appId = buildConfig.appId ?? 'com.albertforweb.codeagent';
@@ -81,11 +81,13 @@ mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp in
 mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
 mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
 mustContainFile(bundledModelsRoot, 'Qwen3-4B-Q4_K_M.gguf', 'bundled offline agent model');
-mustContainFile(
-  bundledFeaturePackagesRoot,
-  softwareDeveloperArchiveName,
-  'bundled Software Developer feature package',
-);
+for (const manifest of featurePackageManifests) {
+  mustContainFile(
+    bundledFeaturePackagesRoot,
+    `${manifest.productSku}-${manifest.version}.tgz`,
+    `bundled ${manifest.displayName || manifest.id} feature package`,
+  );
+}
 
 if (existsSync(infoPlistPath)) {
   verifyInfoPlist(infoPlistPath, appAsarPath);

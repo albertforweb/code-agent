@@ -30,10 +30,11 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
     "rolloutStatus": "active",
     "sdk": {
       "name": "@codeagent/feature-package-sdk",
-      "versionRange": "^0.1.0"
+      "versionRange": "^0.2.0"
     },
     "entrypoints": {
       "runtime": "dist/index.js",
+      "renderer": "dist/renderer.js",
       "cli": "dist/cli.js"
     },
     "distribution": {

@@ -6,317 +6,224 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const sdkRoot = process.env.CODEAGENT_FEATURE_SDK_ROOT
-  ? path.resolve(process.env.CODEAGENT_FEATURE_SDK_ROOT)
-  : path.resolve(repoRoot, '..', 'code-agent-sdk');
-const packageRoot = process.env.CODEAGENT_FEATURE_PACKAGES_ROOT
-  ? path.resolve(process.env.CODEAGENT_FEATURE_PACKAGES_ROOT)
-  : path.resolve(repoRoot, '..', 'code-agent-packages');
-const packageDistRoot = process.env.CODEAGENT_FEATURE_PACKAGE_DIST_ROOT
-  ? path.resolve(process.env.CODEAGENT_FEATURE_PACKAGE_DIST_ROOT)
-  : path.join(packageRoot, 'dist-feature-packages');
+const sdkRoot = path.resolve(process.env.CODEAGENT_FEATURE_SDK_ROOT ?? path.join(repoRoot, '..', 'code-agent-sdk'));
+const packageRoot = path.resolve(process.env.CODEAGENT_FEATURE_PACKAGES_ROOT ?? path.join(repoRoot, '..', 'code-agent-packages'));
+const packageDistRoot = path.resolve(
+  process.env.CODEAGENT_FEATURE_PACKAGE_DIST_ROOT ?? path.join(packageRoot, 'dist-feature-packages'),
+);
 const strict = process.argv.includes('--strict');
 const failures = [];
-const warnings = [];
 
-function readJson(filePath) {
-  return JSON.parse(readFileSync(filePath, 'utf8'));
-}
+const readJson = filePath => JSON.parse(readFileSync(filePath, 'utf8'));
+const readText = filePath => readFileSync(filePath, 'utf8');
+const relative = filePath => path.relative(repoRoot, filePath);
 
-function run(command, args) {
-  return spawnSync(command, args, {
-    cwd: repoRoot,
-    encoding: 'utf8',
-  });
-}
-
-function requireFile(relativePath) {
-  const filePath = path.join(repoRoot, relativePath);
-  if (!existsSync(filePath)) {
-    failures.push(`Missing ${relativePath}`);
-  }
+function requireFile(filePath, label) {
+  if (!existsSync(filePath)) failures.push(`Missing ${label}: ${filePath}`);
   return filePath;
 }
 
-function requireExternalFile(root, relativePath, label) {
-  const filePath = path.join(root, relativePath);
-  if (!existsSync(filePath)) {
-    failures.push(`Missing ${label}: ${filePath}`);
+function discoverPackages() {
+  if (!existsSync(packageRoot)) {
+    failures.push(`Feature package repository is missing: ${packageRoot}`);
+    return [];
   }
-  return filePath;
+  return readdirSync(packageRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => ({ id: entry.name, root: path.join(packageRoot, entry.name) }))
+    .filter(entry => existsSync(path.join(entry.root, 'manifest.json')))
+    .map(entry => ({ ...entry, manifest: readJson(path.join(entry.root, 'manifest.json')) }))
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
-const sourceManifestPath = requireExternalFile(packageRoot, 'software-developer/manifest.json', 'software-developer source manifest');
-const packageJsonPath = requireExternalFile(packageRoot, 'software-developer/package.json', 'software-developer package.json');
-const packageCliProjectPath = requireExternalFile(packageRoot, 'software-developer/src/cli/project-studio.ts', 'software-developer CLI project source');
-const packageCliAutomationPath = requireExternalFile(packageRoot, 'software-developer/src/cli/automation.ts', 'software-developer CLI automation source');
-const packageAutomationProviderPath = requireExternalFile(packageRoot, 'software-developer/src/automation-provider.ts', 'software-developer automation provider');
-const sdkPath = requireExternalFile(sdkRoot, 'src/index.ts', 'feature package SDK');
-const artifactManifestPath = requireExternalFile(packageDistRoot, 'software-developer/manifest.json', 'software-developer artifact manifest');
-const artifactSummaryPath = requireExternalFile(packageDistRoot, 'software-developer/build-summary.json', 'software-developer artifact summary');
-const catalogPath = requireFile('src/features/package-catalog/generated.ts');
-const resolverPath = requireFile('src/features/feature-packages.ts');
+function sourcePathForEntrypoint(packageEntry, kind) {
+  const extension = kind === 'renderer' ? 'tsx' : 'ts';
+  return path.join(packageEntry.root, 'src', `${kind === 'runtime' ? 'runtime' : kind}.${extension}`);
+}
 
-if (failures.length === 0) {
-  const sourceManifest = readJson(sourceManifestPath);
+function validateSdkContract() {
+  const sdkPath = requireFile(path.join(sdkRoot, 'src', 'index.ts'), 'feature package SDK');
+  if (!existsSync(sdkPath)) return;
+  const sdk = readText(sdkPath);
+  for (const contract of [
+    'FeaturePackageManifest',
+    'FeaturePackageRuntimeModule',
+    'FeaturePackageCliModule',
+    'FeaturePackageRendererModule',
+    'FeaturePackageRendererContribution',
+    'FeaturePackageAutomationProvider',
+  ]) {
+    if (!sdk.includes(contract)) failures.push(`Feature package SDK is missing ${contract}.`);
+  }
+}
+
+function validatePackageSource(packageEntry) {
+  const { id, manifest, root } = packageEntry;
+  const packageJsonPath = requireFile(path.join(root, 'package.json'), `${id} package.json`);
+  if (!existsSync(packageJsonPath)) return;
   const packageJson = readJson(packageJsonPath);
-  const artifactManifest = readJson(artifactManifestPath);
-  const summary = readJson(artifactSummaryPath);
 
-  if (sourceManifest.id !== 'software-developer') {
-    failures.push('software-developer source manifest has wrong id.');
+  if (manifest.id !== id) failures.push(`Package directory ${id} does not match manifest id ${manifest.id}.`);
+  if (packageJson.codeagentPackage?.packageId !== id) failures.push(`${id} package.json does not match its manifest id.`);
+  if (manifest.sdk?.name !== '@codeagent/feature-package-sdk') failures.push(`${id} does not declare the feature package SDK.`);
+  if (!manifest.entrypoints?.runtime) failures.push(`${id} does not declare a runtime entrypoint.`);
+  if (!Array.isArray(manifest.extensions) || manifest.extensions.length === 0) failures.push(`${id} declares no extension points.`);
+
+  const contractByEntrypoint = {
+    runtime: 'FeaturePackageRuntimeModule',
+    cli: 'FeaturePackageCliModule',
+    renderer: 'FeaturePackageRendererModule',
+  };
+  for (const [kind, contract] of Object.entries(contractByEntrypoint)) {
+    if (!manifest.entrypoints?.[kind]) continue;
+    const sourcePath = requireFile(sourcePathForEntrypoint(packageEntry, kind), `${id} ${kind} source`);
+    if (!existsSync(sourcePath)) continue;
+    const source = readText(sourcePath);
+    if (!source.includes('@codeagent/feature-package-sdk') || !source.includes(contract)) {
+      failures.push(`${id} ${kind} entrypoint does not implement the SDK-owned ${contract} contract.`);
+    }
   }
-  if (packageJson.codeagentPackage?.packageId !== sourceManifest.id) {
-    failures.push('software-developer package.json does not point at the manifest package id.');
-  }
-  if (sourceManifest.sdk?.name !== '@codeagent/feature-package-sdk') {
-    failures.push('software-developer manifest does not declare the feature package SDK.');
-  }
-  if (!sourceManifest.entrypoints?.runtime) {
-    failures.push('software-developer manifest does not declare a runtime entrypoint.');
-  }
-  if (!sourceManifest.entrypoints?.cli) {
-    failures.push('software-developer manifest does not declare a separate CLI entrypoint.');
-  }
-  if (!Array.isArray(sourceManifest.extensions) || sourceManifest.extensions.length === 0) {
-    failures.push('software-developer manifest does not declare any package extension points.');
-  }
-  if (artifactManifest.id !== sourceManifest.id || artifactManifest.version !== sourceManifest.version) {
-    failures.push('dist-feature-packages manifest does not match the source manifest identity.');
+}
+
+function validatePackageArtifact(packageEntry) {
+  const { id, manifest } = packageEntry;
+  const artifactRoot = path.join(packageDistRoot, id);
+  const artifactManifestPath = requireFile(path.join(artifactRoot, 'manifest.json'), `${id} artifact manifest`);
+  const summaryPath = requireFile(path.join(artifactRoot, 'build-summary.json'), `${id} build summary`);
+  if (!existsSync(artifactManifestPath) || !existsSync(summaryPath)) return;
+
+  const artifactManifest = readJson(artifactManifestPath);
+  const summary = readJson(summaryPath);
+  if (artifactManifest.id !== manifest.id || artifactManifest.version !== manifest.version) {
+    failures.push(`${id} artifact manifest does not match source identity.`);
   }
   if (!summary.archiveFile || !summary.archiveSha256) {
-    failures.push('software-developer build summary is missing archive metadata.');
-  } else {
-    const archivePath = path.join(packageDistRoot, summary.archiveFile);
-    if (!existsSync(archivePath)) {
-      failures.push(`Missing package archive ${path.relative(repoRoot, archivePath)}`);
-    } else if (statSync(archivePath).size === 0) {
-      failures.push(`Package archive is empty: ${path.relative(repoRoot, archivePath)}`);
-    } else {
-      // Separate flags for portability across BSD tar (macOS) and GNU tar.
-      const list = run('tar', ['-t', '-z', '-f', archivePath]);
-      if (list.status !== 0) {
-        failures.push(`Unable to list package archive: ${list.stderr || list.stdout}`);
-      } else {
-        for (const requiredEntry of ['package.json', 'manifest.json', 'artifact.json', 'dist/index.js', 'dist/cli.js']) {
-          if (!list.stdout.split('\n').includes(requiredEntry)) {
-            failures.push(`Package archive is missing ${requiredEntry}`);
-          }
-        }
+    failures.push(`${id} build summary is missing archive metadata.`);
+    return;
+  }
+  const archivePath = path.join(packageDistRoot, summary.archiveFile);
+  if (!existsSync(archivePath) || statSync(archivePath).size === 0) {
+    failures.push(`${id} archive is missing or empty: ${archivePath}`);
+    return;
+  }
+  const listed = spawnSync('tar', ['-t', '-z', '-f', archivePath], { encoding: 'utf8' });
+  if (listed.status !== 0) {
+    failures.push(`Unable to list ${id} archive: ${listed.stderr || listed.stdout}`);
+    return;
+  }
+  const entries = new Set(listed.stdout.split('\n').filter(Boolean));
+  const requiredEntries = [
+    'package.json',
+    'manifest.json',
+    'artifact.json',
+    ...Object.values(manifest.entrypoints ?? {}).filter(value => typeof value === 'string'),
+  ];
+  for (const entry of requiredEntries) {
+    if (!entries.has(entry)) failures.push(`${id} archive is missing ${entry}.`);
+  }
+}
+
+function validateGeneratedRegistries(packages) {
+  const catalogPath = requireFile(
+    path.join(repoRoot, 'src', 'features', 'package-catalog', 'generated.ts'),
+    'generated package catalog',
+  );
+  const rendererRegistryPath = requireFile(
+    path.join(repoRoot, 'src', 'features', 'package-renderers', 'generated.ts'),
+    'generated renderer registry',
+  );
+  if (existsSync(catalogPath)) {
+    const catalog = readText(catalogPath);
+    if (!catalog.includes('Generated by scripts/generate-feature-package-catalog.mjs')) {
+      failures.push('Core package catalog is not generated from package manifests.');
+    }
+    for (const { id } of packages) {
+      if (!catalog.includes(JSON.stringify(id))) failures.push(`Generated catalog is missing ${id}.`);
+    }
+  }
+  if (existsSync(rendererRegistryPath)) {
+    const registry = readText(rendererRegistryPath);
+    if (!registry.includes('FeaturePackageRendererModule')) {
+      failures.push('Generated renderer registry is not typed through the feature package SDK.');
+    }
+    if (registry.includes('/src/renderer')) {
+      failures.push('Generated renderer registry imports package source instead of built package entrypoints.');
+    }
+    for (const { id, manifest } of packages.filter(entry => entry.manifest.entrypoints?.renderer)) {
+      if (!registry.includes(`/dist-feature-packages/${id}/`)) {
+        failures.push(`Generated renderer registry is missing the built renderer for ${id}.`);
       }
     }
   }
 }
 
-if (existsSync(resolverPath)) {
-  const resolverText = readFileSync(resolverPath, 'utf8');
-  if (resolverText.includes("displayName: 'Software Developer'")) {
-    failures.push('Core resolver still embeds the Software Developer manifest body.');
+function walkSourceFiles(root) {
+  if (!existsSync(root)) return [];
+  const files = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const filePath = path.join(root, entry.name);
+    if (entry.isDirectory()) files.push(...walkSourceFiles(filePath));
+    else if (/\.(?:ts|tsx|js|mjs)$/.test(entry.name) && !/\.test\./.test(entry.name)) files.push(filePath);
   }
-  if (resolverText.includes('../../package-sdk')) {
-    failures.push('Core resolver still imports SDK types from the old local package-sdk folder.');
-  }
+  return files;
 }
 
-if (existsSync(sdkPath)) {
-  const sdkText = readFileSync(sdkPath, 'utf8');
-  if (!sdkText.includes('FeaturePackageExtensionPoint') || !sdkText.includes('FeaturePackageRuntimeModule')) {
-    failures.push('Feature package SDK is missing extension point or runtime module contracts.');
+function validateCoreSeparation(packages) {
+  const generatedRoots = [
+    path.join(repoRoot, 'src', 'features', 'package-catalog', 'generated.ts'),
+    path.join(repoRoot, 'src', 'features', 'package-renderers', 'generated.ts'),
+  ];
+  const coreFiles = [
+    ...walkSourceFiles(path.join(repoRoot, 'src')),
+    ...walkSourceFiles(path.join(repoRoot, 'electron')),
+    ...walkSourceFiles(path.join(repoRoot, 'cli')),
+    ...walkSourceFiles(path.join(repoRoot, 'services')),
+    ...walkSourceFiles(path.join(repoRoot, 'tools')),
+    ...walkSourceFiles(path.join(repoRoot, 'utils')),
+    path.join(repoRoot, 'main.tsx'),
+    path.join(repoRoot, 'commands.ts'),
+  ].filter(filePath => existsSync(filePath) && !generatedRoots.includes(filePath));
+
+  for (const filePath of coreFiles) {
+    const source = readText(filePath);
+    if (/from\s+['"][^'"]*code-agent-packages\//.test(source)) {
+      failures.push(`Core imports a feature package implementation directly: ${relative(filePath)}.`);
+    }
+    for (const { id, manifest } of packages) {
+      const packageIdentityMarkers = [JSON.stringify(id), JSON.stringify(manifest.displayName)];
+      if (packageIdentityMarkers.some(marker => marker !== 'undefined' && source.includes(marker))) {
+        failures.push(`Core hard-codes package identity ${id}: ${relative(filePath)}.`);
+      }
+    }
   }
-}
 
-if (existsSync(catalogPath)) {
-  const catalogText = readFileSync(catalogPath, 'utf8');
-  if (!catalogText.includes('Generated by scripts/generate-feature-package-catalog.mjs')) {
-    failures.push('Core package catalog is not generated from package manifests.');
+  const rendererHostPath = path.join(repoRoot, 'src', 'features', 'feature-package-renderers.ts');
+  if (!existsSync(rendererHostPath) || !readText(rendererHostPath).includes('FeaturePackageRendererContribution')) {
+    failures.push('Core renderer host does not consume the SDK-owned renderer contribution contract.');
   }
-  if (!catalogText.includes('"id": "software-developer"')) {
-    failures.push('Generated package catalog is missing the software-developer manifest.');
-  }
-}
-
-const oldCatalogPath = path.join(repoRoot, 'src/features/package-catalog/software-developer.ts');
-if (existsSync(oldCatalogPath)) {
-  failures.push('Core still has a package-specific software-developer catalog source file.');
-}
-
-for (const relativePath of ['feature-packages', 'package-sdk']) {
-  if (existsSync(path.join(repoRoot, relativePath))) {
-    failures.push(`Core repo still contains moved source directory: ${relativePath}`);
-  }
-}
-
-const implementationMarkers = [
-  ['src/renderer/App.tsx', 'function ProjectsView('],
-  ['src/renderer/App.tsx', 'function ToolsView('],
-  ['src/renderer/App.tsx', 'function AutomationView('],
-  ['src/renderer/App.tsx', 'function HistoryView('],
-];
-
-const packagePolicyMarkers = [
-  ['electron/services/automation-service-bridge.ts', 'parseTeamAssignmentPlan'],
-  ['electron/services/automation-service-bridge.ts', 'createFallbackTeamAssignmentPlan'],
-  ['electron/services/automation-service-bridge.ts', 'extractConfiguredProjectGoals'],
-  ['electron/services/automation-service-bridge.ts', 'isPlanningRole'],
-  ['electron/services/automation-service-bridge.ts', 'isReviewRole'],
-  ['electron/services/automation-service-bridge.ts', 'software-developer'],
-  ['electron/services/automation-service-bridge.ts', 'ASSIGNMENT.md'],
-  ['electron/services-bridge.ts', 'local virtual software delivery team'],
-  ['electron/services/app-state-service-bridge.ts', 'software-developer'],
-  ['cli/feature-package-runtime.ts', 'SoftwareDeveloper'],
-  ['cli/feature-package-runtime.ts', 'software-developer'],
-  ['commands.ts', 'SOFTWARE_DEVELOPER_LOCAL_COMMANDS'],
-  ['commands.ts', 'runSoftwareDeveloper'],
-  ['main.tsx', 'registerSoftwareDeveloperCliCommand'],
-  ['main.tsx', 'runSoftwareDeveloper'],
-  ['src/renderer/App.tsx', "'software-developer'"],
-];
-
-const requiredProviderPolicyMarkers = [
-  'buildPlannerPrompt(',
-  'parseAssignmentPlan(',
-  'validateAssignmentPlan(',
-  'createFallbackAssignmentPlan(',
-  'validateCompletedRun(',
-];
-
-for (const [relativePath, marker] of packagePolicyMarkers) {
-  const filePath = path.join(repoRoot, relativePath);
-  if (existsSync(filePath) && readFileSync(filePath, 'utf8').includes(marker)) {
-    failures.push(`Core still owns package policy: ${relativePath} (${marker})`);
-  }
-}
-
-if (existsSync(packageAutomationProviderPath)) {
-  const providerSource = readFileSync(packageAutomationProviderPath, 'utf8');
-  for (const marker of requiredProviderPolicyMarkers) {
-    if (!providerSource.includes(marker)) {
-      failures.push(`Software Developer package does not own required automation policy: ${marker}`);
+  const automationHostPath = path.join(repoRoot, 'electron', 'services', 'automation-service-bridge.ts');
+  if (existsSync(automationHostPath)) {
+    const host = readText(automationHostPath);
+    for (const delegation of ['provider.buildPlannerPrompt(', 'provider.parseAssignmentPlan(', 'provider.validateAssignmentPlan(']) {
+      if (!host.includes(delegation)) failures.push(`Core workflow host is missing SDK provider delegation: ${delegation}`);
     }
   }
 }
 
-const automationHostPath = path.join(repoRoot, 'electron/services/automation-service-bridge.ts');
-if (existsSync(automationHostPath)) {
-  const hostSource = readFileSync(automationHostPath, 'utf8');
-  for (const delegation of [
-    'provider.buildPlannerPrompt(',
-    'provider.parseAssignmentPlan(',
-    'provider.validateAssignmentPlan(',
-    'provider.validateCompletedRun?.(',
-  ]) {
-    if (!hostSource.includes(delegation)) {
-      failures.push(`Core workflow host is missing package-policy delegation: ${delegation}`);
-    }
-  }
-  for (const forbidden of [
-    'function parseAssignmentPlan(',
-    'private parseAssignmentPlan(',
-    'function buildPlannerPrompt(',
-    'private buildPlannerPrompt(',
-  ]) {
-    if (hostSource.includes(forbidden)) {
-      failures.push(`Core workflow host implements package policy instead of delegating it: ${forbidden}`);
-    }
-  }
+const packages = discoverPackages();
+if (packages.length === 0) failures.push('No feature packages were discovered.');
+validateSdkContract();
+for (const packageEntry of packages) {
+  validatePackageSource(packageEntry);
+  validatePackageArtifact(packageEntry);
 }
-
-const packageNavigationMarkers = [
-  'DeveloperNavigationGroupId',
-  'DEVELOPER_NAVIGATION_GROUPS',
-  'PROJECTS_MENU',
-  'TOOLS_MENU',
-  'AUTOMATION_MENU',
-  'HISTORY_MENU',
-  'SOFTWARE_DEVELOPER_FEATURE_PACKAGE_ID',
-];
-const appRendererPath = path.join(repoRoot, 'src/renderer/App.tsx');
-const resolverSource = existsSync(resolverPath) ? readFileSync(resolverPath, 'utf8') : '';
-const rendererSource = existsSync(appRendererPath) ? readFileSync(appRendererPath, 'utf8') : '';
-if (!resolverSource.includes('getFeatureOwnerPackageId(')) {
-  failures.push('Core feature resolver is missing generic feature-owner discovery.');
-}
-for (const marker of packageNavigationMarkers) {
-  if (rendererSource.includes(marker) || resolverSource.includes(marker)) {
-    failures.push(`Core still owns Software Developer navigation metadata: ${marker}`);
-  }
-}
-
-for (const [relativePath, marker] of implementationMarkers) {
-  const filePath = path.join(repoRoot, relativePath);
-  if (!existsSync(filePath)) {
-    continue;
-  }
-  if (readFileSync(filePath, 'utf8').includes(marker)) {
-    warnings.push(`Paid implementation marker still in core source: ${relativePath} (${marker})`);
-  }
-}
-
-const distFeatureRoot = packageDistRoot;
-if (existsSync(distFeatureRoot)) {
-  const distEntries = readdirSync(distFeatureRoot);
-  if (distEntries.length === 0) {
-    failures.push('dist-feature-packages exists but is empty.');
-  }
-}
-
-for (const relativePath of [
-  'cli/handlers/project-studio.ts',
-  'cli/handlers/automation.ts',
-  'commands/project',
-  'commands/role',
-  'commands/employee',
-  'commands/team',
-]) {
-  if (existsSync(path.join(repoRoot, relativePath))) {
-    failures.push(`Core still contains paid CLI implementation source: ${relativePath}`);
-  }
-}
-
-if (existsSync(packageCliProjectPath) && !readFileSync(packageCliProjectPath, 'utf8').includes('runProjectStudioCommand')) {
-  failures.push('software-developer package CLI project source is missing runProjectStudioCommand.');
-}
-if (existsSync(packageCliAutomationPath) && !readFileSync(packageCliAutomationPath, 'utf8').includes('runAutomationCommand')) {
-  failures.push('software-developer package CLI automation source is missing runAutomationCommand.');
-}
-
-const packageRuntimePath = path.join(packageRoot, 'software-developer/src/runtime.ts');
-const packageCliPath = path.join(packageRoot, 'software-developer/src/cli.ts');
-const packagedDesktopRuntimePath = path.join(packageDistRoot, 'software-developer/dist/index.js');
-if (existsSync(packageRuntimePath) && readFileSync(packageRuntimePath, 'utf8').includes('runCliCommand')) {
-  failures.push('software-developer desktop runtime must not import or expose CLI commands.');
-}
-if (!existsSync(packageCliPath) || !readFileSync(packageCliPath, 'utf8').includes('runCliCommand')) {
-  failures.push('software-developer package CLI entrypoint is missing the generic runCliCommand entrypoint.');
-}
-if (existsSync(packagedDesktopRuntimePath)) {
-  const packagedDesktopRuntime = readFileSync(packagedDesktopRuntimePath, 'utf8');
-  for (const privateCoreModule of [
-    'automation-service-bridge',
-    'app-state-service-bridge',
-    'services-bridge',
-    'CODEAGENT_CORE_RUNTIME_ROOT',
-  ]) {
-    if (packagedDesktopRuntime.includes(privateCoreModule)) {
-      failures.push(`Packaged desktop runtime imports private CodeAgent core module: ${privateCoreModule}`);
-    }
-  }
-}
-
-if (strict && warnings.length > 0) {
-  failures.push(...warnings);
-}
-
-for (const warning of warnings) {
-  console.warn(`Warning: ${warning}`);
-}
+validateGeneratedRegistries(packages);
+validateCoreSeparation(packages);
 
 if (failures.length > 0) {
-  for (const failure of failures) {
-    console.error(`Error: ${failure}`);
-  }
+  for (const failure of failures) console.error(`Error: ${failure}`);
   process.exit(1);
 }
 
-console.log('Feature package artifact boundary verified.');
-console.log(strict ? 'Strict implementation extraction gate passed.' : 'Strict implementation extraction gate not requested.');
+console.log(`Feature package SDK boundary verified for ${packages.length} package(s).`);
+console.log(strict ? 'Strict core/package separation gate passed.' : 'Strict separation gate not requested.');

@@ -126,13 +126,13 @@ Verify it with:
 npm run verify:feature-package-boundaries
 ```
 
-The default verifier checks that the SDK exists, the paid package builds as a separate artifact with a runtime entrypoint, extension metadata exists, the generated catalog is present, the core resolver no longer embeds the software-developer manifest body, and the CLI Project Studio/Automation implementation files live in `../code-agent-packages/software-developer/src/cli` instead of the core repo. The strict verifier is intentionally not passing yet:
+The verifier discovers every package manifest and validates its SDK declaration, generic runtime/CLI/renderer entrypoint contracts, signed artifact contents, generated catalog and renderer registries, and core-to-package separation. It rejects direct package-source imports and package identities in core runtime source:
 
 ```sh
 node scripts/verify-feature-package-boundaries.mjs --strict
 ```
 
-Strict mode fails while desktop Project Studio, Automation, developer history, and other paid renderer/service modules still live in core source or core bundles.
+Strict mode currently passes. Package renderer contributions are built into package artifacts and consumed through `FeaturePackageRendererModule`; core does not import a package-specific renderer contract. This gate verifies architectural contracts, but does not by itself prove that paid implementation is absent from every distributable bundle.
 
 ## CLI Platform Flow
 
@@ -155,7 +155,7 @@ For packages marked `signed-local-bundle`, desktop and CLI install download or r
 
 ## Distribution And Security Model
 
-The current implementation now models app-store-style package states and builds `software-developer` as a separate signed package artifact with package-owned CLI Project Studio and Automation handlers. It is not yet a production security boundary. `software-developer` is marked as an installable paid package. Desktop and CLI both have platform purchase -> entitlement-gated artifact download -> signed artifact verify -> install -> enable flows. However, the current desktop build still contains software developer renderer/service modules, so a determined local user could modify client state or code to bypass the local gate.
+The current implementation now models app-store-style package states and builds `software-developer` as a separate signed package artifact with package-owned CLI and renderer entrypoints. It is not yet a production security boundary. Desktop and CLI both have platform purchase -> entitlement-gated artifact download -> signed artifact verify -> install -> enable flows. The desktop build currently compiles the built renderer artifact into its renderer bundle for startup compatibility, and some package-oriented host state/services remain in core, so a determined local user could still modify client state or code to bypass local gating.
 
 ## Platform Integration Direction
 
@@ -210,7 +210,8 @@ The next CodeAgent client changes are:
 The production app-store model requires these remaining changes:
 
 - Ship the base app without paid package implementation code.
-- Move paid desktop views, bridge-tool registrations, automation/project services, and history surfaces out of core source into `../code-agent-packages/software-developer` runtime entrypoints built on the SDK.
+- Load installed renderer artifacts at runtime after entitlement verification instead of compiling bundled renderer artifacts into the base renderer.
+- Move remaining package-oriented host state, bridge-tool registrations, automation/project services, and history surfaces out of core source into package runtime entrypoints built on the SDK.
 - Serve package manifests from a signed catalog with product SKU, version, artifact hash, signature, and compatibility metadata.
 - Process purchases through a backend account and billing service that returns signed receipts and entitlements.
 - Download paid package artifacts only after entitlement validation.

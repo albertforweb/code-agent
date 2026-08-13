@@ -135,7 +135,7 @@ The default local repo layout is:
 - `../code-agent-packages`
 - `../code-agent`
 
-The current software-developer package artifact is written to `../code-agent-packages/dist-feature-packages/codeagent.package.software-developer-1.0.0.tgz` and contains the package manifest plus SDK runtime stub. The strict package-boundary verifier is still expected to fail until Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings are extracted from the core renderer and CLI implementation.
+Feature package artifacts are written to `../code-agent-packages/dist-feature-packages/`. Runtime, CLI, and renderer entrypoints implement contracts from `code-agent-sdk`; the generated core registries consume manifests and built artifacts without importing package-specific source contracts. The strict package-boundary verifier enforces this separation. Runtime loading of entitled renderer artifacts and extraction of remaining package-oriented host services are tracked separately from the contract boundary.
 
 ## CLI
 
