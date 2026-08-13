@@ -1,6 +1,6 @@
 "use strict";
 /**
- * Service Bridge - Local automation, skills, remote control, and virtual teams.
+ * Service Bridge - Local automation, skills, remote control, and package workflows.
  *
  * This service is intentionally local-first. It stores project automation state
  * under the workspace and exposes a small durable model that both the desktop
@@ -53,7 +53,8 @@ const DEFAULT_REMOTE_PORT = 32888;
 const SCHEDULER_INTERVAL_MS = 30000;
 const MAX_RUN_HISTORY = 100;
 const MAX_SKILL_CONTEXT_CHARS = 24000;
-const MAX_TEAM_ITERATIONS = 5;
+const MAX_WORKFLOW_ITERATIONS = 5;
+const MAX_ASSIGNMENT_ARTIFACT_ATTEMPTS = 3;
 const REMOTE_RATE_LIMIT_WINDOW_MS = 60000;
 const REMOTE_RATE_LIMIT_MAX_REQUESTS = 120;
 const REMOTE_PAIR_RATE_LIMIT_MAX_REQUESTS = 20;
@@ -70,16 +71,31 @@ function normalizeAutomationWorkspacePath(value) {
     }
     return resolved;
 }
+class AssignmentArtifactVerificationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'AssignmentArtifactVerificationError';
+    }
+}
+class IncompleteAutomationExecutionError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'IncompleteAutomationExecutionError';
+    }
+}
 class AutomationServiceBridge {
     constructor(workspacePath = process.cwd()) {
         this.taskExecutor = null;
-        this.teamPlannerExecutor = null;
-        this.teamMemberExecutor = null;
+        this.workflowPlannerExecutor = null;
+        this.workflowActorExecutor = null;
+        this.automationProviders = new Map();
+        this.automationProviderOwners = new Map();
+        this.automationProvidersReady = Promise.resolve();
         this.notificationEmitter = null;
         this.schedulerTimer = null;
         this.schedulerRunning = false;
         this.runningTaskIds = new Set();
-        this.runningTeamIds = new Set();
+        this.runningWorkflowIds = new Set();
         this.remoteServer = null;
         this.remotePort = null;
         this.approvalResolvers = new Map();
@@ -92,8 +108,10 @@ class AutomationServiceBridge {
         this.skillPoliciesPath = path.join(this.projectDir, 'skill-policies.json');
         this.tasksDir = path.join(this.projectDir, 'tasks');
         this.taskRunsDir = path.join(this.projectDir, 'runs', 'tasks');
-        this.teamsDir = path.join(this.projectDir, 'teams');
-        this.teamRunsDir = path.join(this.projectDir, 'runs', 'teams');
+        this.workflowsDir = path.join(this.projectDir, 'workflows');
+        this.workflowRunsDir = path.join(this.projectDir, 'runs', 'workflows');
+        this.legacyTeamsDir = path.join(this.projectDir, 'teams');
+        this.legacyTeamRunsDir = path.join(this.projectDir, 'runs', 'teams');
         this.localDir = path.join(this.projectDir, 'local');
         this.remoteControlPath = path.join(this.localDir, 'remote-control.json');
     }
@@ -101,10 +119,49 @@ class AutomationServiceBridge {
         this.taskExecutor = executor;
     }
     setVirtualTeamPlannerExecutor(executor) {
-        this.teamPlannerExecutor = executor;
+        this.setWorkflowPlannerExecutor(executor);
     }
     setVirtualTeamMemberExecutor(executor) {
-        this.teamMemberExecutor = executor;
+        this.setWorkflowActorExecutor(executor);
+    }
+    setWorkflowPlannerExecutor(executor) {
+        this.workflowPlannerExecutor = executor;
+    }
+    setWorkflowActorExecutor(executor) {
+        this.workflowActorExecutor = executor;
+    }
+    registerAutomationProvider(provider, packageId = provider.id) {
+        if (!provider?.id?.trim()) {
+            throw new Error('Automation provider id is required.');
+        }
+        this.automationProviders.set(provider.id, provider);
+        this.automationProviderOwners.set(provider.id, packageId);
+    }
+    unregisterAutomationProvidersForPackage(packageId) {
+        for (const [providerId, ownerPackageId] of this.automationProviderOwners) {
+            if (ownerPackageId === packageId) {
+                this.automationProviders.delete(providerId);
+                this.automationProviderOwners.delete(providerId);
+            }
+        }
+    }
+    setAutomationProvidersReady(ready) {
+        this.automationProvidersReady = ready.then(() => undefined);
+    }
+    resolveAutomationProvider(workflow) {
+        if (workflow.providerId) {
+            const provider = this.automationProviders.get(workflow.providerId);
+            if (!provider) {
+                throw new Error(`Automation provider is not installed or active: ${workflow.providerId}`);
+            }
+            return provider;
+        }
+        if (this.automationProviders.size === 1) {
+            return this.automationProviders.values().next().value;
+        }
+        throw new Error(this.automationProviders.size === 0
+            ? 'No installed package provides this automation workflow.'
+            : `Workflow ${workflow.id} does not identify which package owns it.`);
     }
     setNotificationEmitter(emitter) {
         this.notificationEmitter = emitter;
@@ -242,9 +299,9 @@ class AutomationServiceBridge {
             workspacePath: this.workspacePath,
             skillPolicies: store.skillPolicies,
             tasks: store.tasks,
-            teams: store.teams,
+            workflows: store.workflows,
             taskRuns: includeRuns ? store.taskRuns : undefined,
-            teamRuns: includeRuns ? store.teamRuns : undefined,
+            workflowRuns: includeRuns ? store.workflowRuns : undefined,
         };
     }
     async importProjectState(input) {
@@ -258,32 +315,38 @@ class AutomationServiceBridge {
         const tasks = Array.isArray(input.tasks)
             ? input.tasks.filter(value => this.isScheduledTask(value)).map(task => this.normalizeScheduledTask(task))
             : [];
-        const teams = Array.isArray(input.teams)
-            ? input.teams.filter(value => this.isVirtualTeam(value)).map(team => this.normalizeVirtualTeam(team))
+        const workflowsInput = Array.isArray(input.workflows) ? input.workflows : input.teams;
+        const workflows = Array.isArray(workflowsInput)
+            ? workflowsInput.filter(value => this.isWorkflow(value)).map(workflow => this.normalizeLegacyWorkflow(workflow))
             : [];
         const taskRuns = Array.isArray(input.taskRuns)
             ? input.taskRuns.filter(value => this.isTaskRun(value))
             : [];
-        const teamRuns = Array.isArray(input.teamRuns)
-            ? input.teamRuns.filter(value => this.isTeamRun(value))
+        const workflowRunsInput = Array.isArray(input.workflowRuns) ? input.workflowRuns : input.teamRuns;
+        const workflowRuns = Array.isArray(workflowRunsInput)
+            ? workflowRunsInput
+                .filter(value => this.isWorkflowRun(value))
+                .map(run => this.normalizeLegacyWorkflowRun(run))
             : [];
         store.skillPolicies = {
             ...store.skillPolicies,
             ...skillPolicies,
         };
         store.tasks = this.mergeRecords(store.tasks, tasks);
-        store.teams = this.mergeRecords(store.teams, teams);
+        store.workflows = this.mergeRecords(store.workflows, workflows);
         store.taskRuns = this.mergeRecords(store.taskRuns, taskRuns).slice(0, MAX_RUN_HISTORY);
-        store.teamRuns = this.mergeRecords(store.teamRuns, teamRuns).slice(0, MAX_RUN_HISTORY);
+        store.workflowRuns = this.mergeRecords(store.workflowRuns, workflowRuns).slice(0, MAX_RUN_HISTORY);
         await this.writeStore(store);
         return {
             ok: true,
             imported: {
                 skillPolicies: Object.keys(skillPolicies).length,
                 tasks: tasks.length,
-                teams: teams.length,
+                workflows: workflows.length,
+                teams: workflows.length,
                 taskRuns: taskRuns.length,
-                teamRuns: teamRuns.length,
+                workflowRuns: workflowRuns.length,
+                teamRuns: workflowRuns.length,
             },
         };
     }
@@ -576,32 +639,37 @@ class AutomationServiceBridge {
     async expireApprovalRequest(approvalId, reason = 'Approval request expired.') {
         await this.resolveApprovalRequest(approvalId, false, reason, 'system-timeout');
     }
-    async listTeams() {
+    async listWorkflows() {
         const store = await this.readStore();
-        return [...store.teams].sort((left, right) => right.updatedAt - left.updatedAt);
+        return [...store.workflows].sort((left, right) => right.updatedAt - left.updatedAt);
     }
-    async listTeamRuns(teamId) {
+    async listWorkflowRuns(workflowId) {
         const store = await this.readStore();
-        return store.teamRuns
-            .filter(run => !teamId || run.teamId === teamId)
+        return store.workflowRuns
+            .filter(run => !workflowId || run.workflowId === workflowId || run.teamId === workflowId)
             .sort((left, right) => right.startedAt - left.startedAt);
     }
-    async saveTeam(input) {
+    async saveWorkflow(input) {
+        await this.automationProvidersReady;
         const store = await this.readStore();
         const now = Date.now();
-        const existing = input.id ? store.teams.find(team => team.id === input.id) : undefined;
+        const existing = input.id ? store.workflows.find(workflow => workflow.id === input.id) : undefined;
         const members = Array.isArray(input.members) && input.members.length > 0
             ? input.members
-            : existing?.members ?? this.createDefaultMembers();
+            : existing?.members ?? [];
+        if (members.length === 0) {
+            throw new Error('Workflow actors are required. Create the workflow through an installed automation provider or supply actors explicitly.');
+        }
         const supervisorId = input.supervisorId ?? existing?.supervisorId ?? members[0]?.id ?? 'supervisor';
-        const team = {
-            id: existing?.id ?? input.id ?? this.createId('team'),
-            name: String(input.name ?? existing?.name ?? 'Autonomous project team').trim() || 'Autonomous project team',
+        const workflow = {
+            id: existing?.id ?? input.id ?? this.createId('workflow'),
+            providerId: input.providerId ?? existing?.providerId,
+            name: String(input.name ?? existing?.name ?? 'Automation workflow').trim() || 'Automation workflow',
             objective: String(input.objective ?? existing?.objective ?? '').trim(),
             workspacePath: this.normalizeWorkspacePath(input.workspacePath ?? existing?.workspacePath),
-            permissionMode: this.normalizeTeamPermissionMode(input.permissionMode ?? existing?.permissionMode),
-            maxIterations: this.normalizeTeamMaxIterations(input.maxIterations ?? existing?.maxIterations),
-            requireQaSignoff: Boolean(input.requireQaSignoff ?? existing?.requireQaSignoff ?? false),
+            permissionMode: this.normalizeWorkflowPermissionMode(input.permissionMode ?? existing?.permissionMode),
+            maxIterations: this.normalizeWorkflowMaxIterations(input.maxIterations ?? existing?.maxIterations),
+            providerConfig: this.normalizeProviderConfig(input.providerConfig ?? existing?.providerConfig),
             supervisorId,
             members,
             status: input.status ?? existing?.status ?? 'draft',
@@ -611,130 +679,190 @@ class AutomationServiceBridge {
             lastStatus: existing?.lastStatus,
             lastResult: existing?.lastResult,
         };
-        if (!team.objective) {
-            throw new Error('Team objective is required.');
+        if (!workflow.objective) {
+            throw new Error('Workflow objective is required.');
         }
-        store.teams = [
-            team,
-            ...store.teams.filter(candidate => candidate.id !== team.id),
+        store.workflows = [
+            workflow,
+            ...store.workflows.filter(candidate => candidate.id !== workflow.id),
         ];
         await this.writeStore(store);
-        return team;
+        return workflow;
     }
-    async createDefaultTeam(objective = 'Deliver the software project from blueprint to tested implementation.') {
-        return this.saveTeam({
-            name: 'Default software delivery team',
+    /**
+     * Compatibility facade for the legacy team-shaped IPC schema. The host creates
+     * a package-neutral workflow; the selected package supplies its domain model.
+     */
+    async createDefaultWorkflow(objective = 'Complete the configured workflow.') {
+        await this.automationProvidersReady;
+        const providers = [...this.automationProviders.values()].filter(provider => (provider.createDefaultWorkflow || provider.createDefaultTeam));
+        if (providers.length !== 1) {
+            throw new Error(providers.length === 0
+                ? 'No installed package provides an automation workflow template.'
+                : 'Multiple packages provide automation workflow templates; specify a provider when creating the workflow.');
+        }
+        const provider = providers[0];
+        const createWorkflow = provider.createDefaultWorkflow ?? provider.createDefaultTeam;
+        if (!createWorkflow) {
+            throw new Error(`Automation provider ${provider.id} does not provide a workflow template.`);
+        }
+        return this.saveWorkflow({
+            ...createWorkflow(objective, this.workspacePath),
+            providerId: provider.id,
             objective,
-            workspacePath: this.workspacePath,
-            permissionMode: 'full-access',
-            maxIterations: 1,
-            requireQaSignoff: true,
-            members: this.createDefaultMembers(),
-            supervisorId: 'supervisor',
             status: 'draft',
         });
     }
-    async deleteTeam(teamId) {
+    async deleteWorkflow(workflowId) {
         const store = await this.readStore();
-        store.teams = store.teams.filter(team => team.id !== teamId);
-        store.teamRuns = store.teamRuns.filter(run => run.teamId !== teamId);
+        store.workflows = store.workflows.filter(workflow => workflow.id !== workflowId);
+        store.workflowRuns = store.workflowRuns.filter(run => run.workflowId !== workflowId && run.teamId !== workflowId);
         await this.writeStore(store);
-        return { ok: true, id: teamId };
+        return { ok: true, id: workflowId };
     }
-    async runTeam(teamId) {
-        if (this.runningTeamIds.has(teamId)) {
-            const running = (await this.listTeamRuns(teamId)).find(run => run.status === 'running');
+    async runWorkflow(workflowId) {
+        await this.automationProvidersReady;
+        if (this.runningWorkflowIds.has(workflowId)) {
+            const running = (await this.listWorkflowRuns(workflowId)).find(run => run.status === 'running');
             if (running) {
                 return running;
             }
-            throw new Error(`Virtual team is already running: ${teamId}`);
+            throw new Error(`Automation workflow is already running: ${workflowId}`);
         }
         const store = await this.readStore();
-        const team = store.teams.find(candidate => candidate.id === teamId);
-        if (!team) {
-            throw new Error(`Virtual team not found: ${teamId}`);
+        const workflow = store.workflows.find(candidate => candidate.id === workflowId);
+        if (!workflow) {
+            throw new Error(`Automation workflow not found: ${workflowId}`);
         }
-        this.runningTeamIds.add(teamId);
+        const provider = this.resolveAutomationProvider(workflow);
+        this.runningWorkflowIds.add(workflowId);
         const now = Date.now();
-        const maxIterations = this.normalizeTeamMaxIterations(team.maxIterations);
+        const maxIterations = this.normalizeWorkflowMaxIterations(workflow.maxIterations);
         const run = {
-            id: this.createId('team-run'),
-            teamId: team.id,
-            teamName: team.name,
-            objective: team.objective,
-            workspacePath: team.workspacePath ?? this.workspacePath,
+            id: this.createId('workflow-run'),
+            workflowId: workflow.id,
+            workflowName: workflow.name,
+            teamId: workflow.id,
+            teamName: workflow.name,
+            objective: workflow.objective,
+            workspacePath: workflow.workspacePath ?? this.workspacePath,
             status: 'running',
             startedAt: now,
             milestones: [],
             assignments: [],
             steps: [],
         };
-        await this.ensureTeamWorkspaceSeed(team);
-        team.status = 'active';
-        team.lastRunAt = now;
-        team.lastStatus = 'running';
-        team.updatedAt = now;
-        store.teamRuns = [run, ...store.teamRuns].slice(0, MAX_RUN_HISTORY);
+        await this.prepareWorkflowWorkspace(provider, workflow, run);
+        workflow.status = 'active';
+        workflow.lastRunAt = now;
+        workflow.lastStatus = 'running';
+        workflow.updatedAt = now;
+        store.workflowRuns = [run, ...store.workflowRuns].slice(0, MAX_RUN_HISTORY);
         await this.writeStore(store);
         try {
             const enabledSkills = await this.getEnabledSkillContext();
-            const assignments = await this.createTeamAssignmentPlan(team, run, enabledSkills, maxIterations);
+            const assignments = await this.createWorkflowPlan(provider, workflow, run, enabledSkills, maxIterations);
             run.assignments = assignments;
-            run.milestones = this.createTeamRunMilestonesFromAssignments(assignments, now);
-            await this.upsertTeamRun(run);
-            await this.executeTeamAssignments(team, run, assignments, enabledSkills);
-            this.assertTeamGovernanceSatisfied(team, run);
+            run.milestones = this.createWorkflowMilestones(assignments, now);
+            await this.upsertWorkflowRun(run);
+            await this.executeWorkflowPlan(workflow, run, assignments, enabledSkills);
+            const completionFailure = await provider.validateCompletedRun?.(workflow, run);
+            if (completionFailure) {
+                throw new Error(completionFailure);
+            }
             run.status = 'succeeded';
             run.completedAt = Date.now();
-            run.summary = this.summarizeTeamRun(run);
-            run.artifactPath = await this.writeTeamRunArtifact(run);
-            await this.completeTeamRun(team.id, run, 'completed', run.summary);
+            run.summary = this.summarizeWorkflowRun(run);
+            run.artifactPath = await this.writeWorkflowRunArtifact(run);
+            await this.completeWorkflowRun(workflow.id, run, 'completed', run.summary);
             return run;
         }
         catch (error) {
             run.status = 'failed';
             run.completedAt = Date.now();
             run.error = error instanceof Error ? error.message : String(error);
-            run.artifactPath = await this.writeTeamRunArtifact(run);
-            await this.completeTeamRun(team.id, run, 'paused', run.error);
+            run.artifactPath = await this.writeWorkflowRunArtifact(run);
+            await this.completeWorkflowRun(workflow.id, run, 'paused', run.error);
             return run;
         }
         finally {
-            this.runningTeamIds.delete(teamId);
+            this.runningWorkflowIds.delete(workflowId);
         }
     }
-    async createTeamAssignmentPlan(team, run, enabledSkills, maxIterations) {
-        const teamWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
-        if (this.teamPlannerExecutor) {
-            try {
-                const result = await this.teamPlannerExecutor(team, {
-                    workspacePath: teamWorkspacePath,
-                    enabledSkills,
-                });
-                const assignments = this.parseTeamAssignmentPlan(result.content, team);
-                if (assignments.length > 0) {
-                    return this.withAssignmentWorkspaces(team, run, assignments);
+    // Legacy IPC adapters. Persisted fields retain their historical names until a
+    // versioned data migration can be shipped without breaking installed clients.
+    async listTeams() { return this.listWorkflows(); }
+    async listTeamRuns(teamId) { return this.listWorkflowRuns(teamId); }
+    async saveTeam(input) { return this.saveWorkflow(input); }
+    async createDefaultTeam(objective) { return this.createDefaultWorkflow(objective); }
+    async deleteTeam(teamId) { return this.deleteWorkflow(teamId); }
+    async runTeam(teamId) { return this.runWorkflow(teamId); }
+    async createWorkflowPlan(provider, workflow, run, enabledSkills, maxIterations) {
+        const workflowWorkspacePath = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
+        let planningFailure;
+        if (this.workflowPlannerExecutor) {
+            const maxPlanAttempts = 3;
+            for (let attempt = 1; attempt <= maxPlanAttempts; attempt += 1) {
+                try {
+                    const result = await this.workflowPlannerExecutor(workflow, {
+                        workspacePath: workflowWorkspacePath,
+                        enabledSkills,
+                        attempt,
+                        maxAttempts: maxPlanAttempts,
+                        validationFailure: planningFailure,
+                        prompt: provider.buildPlannerPrompt(workflow, {
+                            workspacePath: workflowWorkspacePath,
+                            enabledSkills,
+                            attempt,
+                            maxAttempts: maxPlanAttempts,
+                            validationFailure: planningFailure,
+                        }),
+                    });
+                    this.assertExecutionCompleted(result.content);
+                    // Parsing and validation are domain policy owned by the installed package.
+                    // The core only schedules the returned package-neutral workflow graph.
+                    const assignments = provider.parseAssignmentPlan(result.content, workflow);
+                    planningFailure = provider.validateAssignmentPlan(workflow, assignments);
+                    if (!planningFailure) {
+                        const normalized = this.assignParallelGroups(assignments);
+                        if (normalized.length > 0) {
+                            return this.withAssignmentWorkspaces(workflow, run, normalized);
+                        }
+                        planningFailure = 'The plan contains circular or unresolved dependencies.';
+                    }
+                }
+                catch (error) {
+                    planningFailure = error instanceof Error ? error.message : String(error);
                 }
             }
-            catch (error) {
-                console.warn('Virtual team planner failed; falling back to deterministic assignment plan:', error);
-            }
+            console.warn(`Automation provider ${provider.id} did not produce a valid plan:`, planningFailure);
         }
-        return this.withAssignmentWorkspaces(team, run, this.createFallbackTeamAssignmentPlan(team, maxIterations));
+        const fallback = provider.createFallbackAssignmentPlan?.(workflow, maxIterations);
+        if (!fallback?.length) {
+            throw new Error([
+                `Automation provider ${provider.id} could not produce an execution plan.`,
+                planningFailure ? `Last planning error: ${planningFailure}` : '',
+            ].filter(Boolean).join(' '));
+        }
+        const validationFailure = provider.validateAssignmentPlan(workflow, fallback);
+        if (validationFailure) {
+            throw new Error(`Automation provider ${provider.id} fallback plan is invalid: ${validationFailure}`);
+        }
+        return this.withAssignmentWorkspaces(workflow, run, this.assignParallelGroups(fallback));
     }
-    async executeTeamAssignments(team, run, assignments, enabledSkills) {
+    async executeWorkflowPlan(workflow, run, assignments, enabledSkills) {
         const completedAssignmentIds = new Set();
         const pendingAssignmentIds = new Set(assignments.map(assignment => assignment.id));
         while (pendingAssignmentIds.size > 0) {
             const readyAssignments = assignments.filter(assignment => (pendingAssignmentIds.has(assignment.id)
                 && assignment.dependencies.every(dependencyId => completedAssignmentIds.has(dependencyId))));
             if (readyAssignments.length === 0) {
-                throw new Error('Virtual team assignment plan has unresolved or circular dependencies.');
+                throw new Error('Automation workflow plan has unresolved or circular dependencies.');
             }
-            readyAssignments.forEach(assignment => this.beginTeamAssignment(run, assignment));
-            await this.upsertTeamRun(run);
-            const results = await Promise.allSettled(readyAssignments.map(assignment => this.runTeamAssignment(team, run, assignment, enabledSkills)));
-            await this.upsertTeamRun(run);
+            readyAssignments.forEach(assignment => this.beginWorkflowAssignment(run, assignment));
+            await this.upsertWorkflowRun(run);
+            const results = await Promise.allSettled(readyAssignments.map(assignment => this.runWorkflowAssignment(workflow, run, assignment, enabledSkills)));
+            await this.upsertWorkflowRun(run);
             const failed = results.find((result) => result.status === 'rejected');
             if (failed) {
                 throw failed.reason;
@@ -745,7 +873,7 @@ class AutomationServiceBridge {
             });
         }
     }
-    beginTeamAssignment(run, assignment) {
+    beginWorkflowAssignment(run, assignment) {
         const stepStartedAt = Date.now();
         assignment.status = 'running';
         assignment.startedAt = stepStartedAt;
@@ -762,39 +890,105 @@ class AutomationServiceBridge {
             status: 'running',
             startedAt: stepStartedAt,
         });
-        this.updateTeamAssignmentMilestone(run, assignment.id, {
+        this.updateWorkflowMilestone(run, assignment.id, {
             status: 'running',
             startedAt: stepStartedAt,
         });
     }
-    async runTeamAssignment(team, run, assignment, enabledSkills) {
+    async runWorkflowAssignment(workflow, run, assignment, enabledSkills) {
+        const provider = this.resolveAutomationProvider(workflow);
         const step = run.steps.find(candidate => candidate.assignmentId === assignment.id && candidate.status === 'running');
         if (!step) {
-            throw new Error(`Virtual team assignment step not found: ${assignment.id}`);
+            throw new Error(`Automation workflow step not found: ${assignment.id}`);
         }
         try {
-            const member = this.getAssignmentMember(team, assignment);
-            await this.ensureAssignmentWorkspace(team, run, assignment);
+            const member = this.getAssignmentMember(workflow, assignment);
             const sharedSteps = run.steps.filter(candidate => candidate.status === 'succeeded');
             const dependencySteps = sharedSteps.filter(candidate => (candidate.assignmentId ? assignment.dependencies.includes(candidate.assignmentId) : false));
-            const result = this.teamMemberExecutor
-                ? await this.teamMemberExecutor(team, member, {
-                    workspacePath: assignment.workspacePath ?? team.workspacePath ?? this.workspacePath,
+            await this.prepareAssignmentWorkspace(provider, workflow, run, assignment, dependencySteps);
+            const usesSharedWorkspace = this.isSharedAssignmentWorkspace(workflow, assignment);
+            const internalArtifactPaths = provider.internalArtifactPaths?.({
+                workspacePath: assignment.workspacePath,
+                assignment,
+            }) ?? [];
+            const beforeArtifacts = usesSharedWorkspace
+                ? new Map()
+                : await this.snapshotWorkspaceArtifacts(assignment.workspacePath, internalArtifactPaths, assignment.expectedArtifacts);
+            let result;
+            let producedArtifacts = [];
+            let verificationFailure;
+            const maxAttempts = usesSharedWorkspace || !this.assignmentRequiresArtifact(assignment)
+                ? 1
+                : MAX_ASSIGNMENT_ARTIFACT_ATTEMPTS;
+            for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+                if (!this.workflowActorExecutor) {
+                    throw new Error('No automation member executor is configured. The host cannot complete package automation work without an executor.');
+                }
+                result = await this.workflowActorExecutor(workflow, member, {
+                    workspacePath: assignment.workspacePath ?? workflow.workspacePath ?? this.workspacePath,
                     runId: run.id,
                     enabledSkills,
                     assignment,
                     previousSteps: dependencySteps,
                     sharedSteps,
-                })
-                : await this.createFallbackTeamStep(team, member, sharedSteps, assignment);
-            this.assertExecutionCompleted(result.content);
+                    attempt,
+                    maxAttempts,
+                    verificationFailure,
+                    prompt: provider.buildMemberPrompt(workflow, member, {
+                        workspacePath: assignment.workspacePath ?? workflow.workspacePath ?? this.workspacePath,
+                        runId: run.id,
+                        enabledSkills,
+                        assignment,
+                        previousSteps: dependencySteps,
+                        sharedSteps,
+                        attempt,
+                        maxAttempts,
+                        verificationFailure,
+                    }),
+                });
+                try {
+                    this.assertExecutionCompleted(result.content);
+                    producedArtifacts = usesSharedWorkspace
+                        ? []
+                        : await this.collectProducedArtifacts(provider, assignment, beforeArtifacts);
+                    const providerFailure = await provider.validateAssignmentCompletion?.(workflow, run, assignment, {
+                        workspacePath: assignment.workspacePath ?? workflow.workspacePath ?? this.workspacePath,
+                        output: result.content,
+                        completionRecord: result.completionRecord,
+                        producedArtifacts,
+                        dependencyOutputs: dependencySteps,
+                    });
+                    if (providerFailure) {
+                        throw new AssignmentArtifactVerificationError(providerFailure);
+                    }
+                    verificationFailure = undefined;
+                    break;
+                }
+                catch (error) {
+                    const recoverable = error instanceof AssignmentArtifactVerificationError
+                        || error instanceof IncompleteAutomationExecutionError;
+                    if (!recoverable || attempt >= maxAttempts) {
+                        throw error;
+                    }
+                    verificationFailure = error.message;
+                    await this.removeRejectedPlaceholderArtifacts(assignment.workspacePath);
+                }
+            }
+            if (!result || verificationFailure) {
+                throw new Error(verificationFailure ?? `Assignment "${assignment.title}" did not return a result.`);
+            }
+            if (!usesSharedWorkspace) {
+                await this.promoteAssignmentArtifacts(workflow, assignment, beforeArtifacts, producedArtifacts);
+            }
+            assignment.producedArtifacts = producedArtifacts;
             assignment.status = 'succeeded';
             assignment.completedAt = Date.now();
             assignment.output = result.content;
             step.status = 'succeeded';
             step.completedAt = assignment.completedAt;
             step.output = result.content;
-            this.updateTeamAssignmentMilestone(run, assignment.id, {
+            step.producedArtifacts = producedArtifacts;
+            this.updateWorkflowMilestone(run, assignment.id, {
                 status: 'succeeded',
                 completedAt: step.completedAt,
                 summary: result.content,
@@ -808,127 +1002,13 @@ class AutomationServiceBridge {
             step.status = 'failed';
             step.completedAt = assignment.completedAt;
             step.error = message;
-            this.updateTeamAssignmentMilestone(run, assignment.id, {
+            this.updateWorkflowMilestone(run, assignment.id, {
                 status: 'failed',
                 completedAt: step.completedAt,
                 summary: message,
             });
             throw error;
         }
-    }
-    parseTeamAssignmentPlan(content, team) {
-        const parsed = this.parseJsonFromText(content);
-        if (!parsed) {
-            return [];
-        }
-        const rawAssignments = Array.isArray(parsed)
-            ? parsed
-            : Array.isArray(parsed.assignments)
-                ? parsed.assignments
-                : [];
-        if (rawAssignments.length === 0) {
-            return [];
-        }
-        const usedIds = new Set();
-        const aliases = new Map();
-        const drafts = rawAssignments
-            .map((raw, index) => {
-            if (!raw || typeof raw !== 'object') {
-                return null;
-            }
-            const record = raw;
-            const member = this.resolveAssignmentMember(team, record, index);
-            const title = this.readString(record.title) || this.readString(record.name) || `${member.role} assignment`;
-            const sourceId = this.readString(record.id) || this.readString(record.key) || title;
-            const id = this.uniqueAssignmentId(sourceId, usedIds);
-            const description = this.readString(record.description)
-                || this.readString(record.goal)
-                || this.readString(record.prompt)
-                || member.goal
-                || `Complete the ${title} assignment.`;
-            const dependencyValues = this.readStringArray(record.dependencies ?? record.dependsOn ?? record.dependencyIds);
-            const assignment = {
-                id,
-                title,
-                description,
-                memberId: member.id,
-                memberName: member.name,
-                role: member.role,
-                dependencies: [],
-                parallelGroup: 1,
-                status: 'pending',
-            };
-            [sourceId, title, id].forEach(alias => {
-                aliases.set(alias, id);
-                aliases.set(this.slug(alias), id);
-            });
-            return { assignment, dependencyValues };
-        })
-            .filter((value) => Boolean(value));
-        drafts.forEach(draft => {
-            draft.assignment.dependencies = [...new Set(draft.dependencyValues
-                    .map(value => aliases.get(value) ?? aliases.get(this.slug(value)) ?? '')
-                    .filter(dependencyId => dependencyId && dependencyId !== draft.assignment.id))];
-        });
-        return this.assignParallelGroups(drafts.map(draft => draft.assignment));
-    }
-    parseJsonFromText(content) {
-        const trimmed = content.trim();
-        if (!trimmed) {
-            return null;
-        }
-        const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-        const candidate = fencedMatch?.[1]?.trim() ?? trimmed;
-        const objectStart = candidate.indexOf('{');
-        const objectEnd = candidate.lastIndexOf('}');
-        const arrayStart = candidate.indexOf('[');
-        const arrayEnd = candidate.lastIndexOf(']');
-        const startsWithArray = arrayStart >= 0 && (objectStart < 0 || arrayStart < objectStart);
-        const jsonText = startsWithArray && arrayEnd > arrayStart
-            ? candidate.slice(arrayStart, arrayEnd + 1)
-            : objectStart >= 0 && objectEnd > objectStart
-                ? candidate.slice(objectStart, objectEnd + 1)
-                : candidate;
-        try {
-            return JSON.parse(jsonText);
-        }
-        catch (error) {
-            return null;
-        }
-    }
-    createFallbackTeamAssignmentPlan(team, maxIterations) {
-        const members = team.members.length > 0 ? team.members : this.createDefaultMembers();
-        const assignments = [];
-        const usedIds = new Set();
-        let previousIterationDependencyIds = [];
-        for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
-            const planningMembers = members.filter(member => this.isPlanningRole(member, team));
-            const reviewMembers = members.filter(member => this.isReviewRole(member));
-            const deliveryMembers = members.filter(member => (!planningMembers.some(candidate => candidate.id === member.id)
-                && !reviewMembers.some(candidate => candidate.id === member.id)));
-            const planningAssignments = planningMembers.map(member => this.createFallbackAssignment(member, iteration, 'Plan work and coordinate execution', `Break down the project objective for iteration ${iteration}, clarify dependencies, and identify the handoff expected from each worker.`, previousIterationDependencyIds, usedIds));
-            const planningIds = planningAssignments.map(assignment => assignment.id);
-            const deliveryAssignments = (deliveryMembers.length > 0 ? deliveryMembers : members.filter(member => !this.isReviewRole(member))).map(member => this.createFallbackAssignment(member, iteration, `Deliver ${member.role} work`, `Complete the ${member.role} portion of the project objective and publish concrete artifacts or decisions.`, [...previousIterationDependencyIds, ...planningIds], usedIds));
-            const deliveryIds = deliveryAssignments.map(assignment => assignment.id);
-            const reviewAssignments = reviewMembers.map(member => this.createFallbackAssignment(member, iteration, `Review and sign off ${member.role} work`, 'Review dependent worker outputs, call out risks, and merge or approve only the deliverables that are ready for the shared project workspace.', deliveryIds.length > 0 ? deliveryIds : [...previousIterationDependencyIds, ...planningIds], usedIds));
-            assignments.push(...planningAssignments, ...deliveryAssignments, ...reviewAssignments);
-            previousIterationDependencyIds = (reviewAssignments.length > 0 ? reviewAssignments : deliveryAssignments.length > 0 ? deliveryAssignments : planningAssignments)
-                .map(assignment => assignment.id);
-        }
-        return this.assignParallelGroups(assignments);
-    }
-    createFallbackAssignment(member, iteration, title, description, dependencies, usedIds) {
-        return {
-            id: this.uniqueAssignmentId(`iteration-${iteration}-${member.id}-${title}`, usedIds),
-            title: iteration > 1 ? `Iteration ${iteration}: ${title}` : title,
-            description,
-            memberId: member.id,
-            memberName: member.name,
-            role: member.role,
-            dependencies: [...new Set(dependencies)],
-            parallelGroup: 1,
-            status: 'pending',
-        };
     }
     assignParallelGroups(assignments) {
         const validIds = new Set(assignments.map(assignment => assignment.id));
@@ -953,129 +1033,216 @@ class AutomationServiceBridge {
         }
         return assignments;
     }
-    withAssignmentWorkspaces(team, run, assignments) {
+    withAssignmentWorkspaces(workflow, run, assignments) {
         return assignments.map(assignment => ({
             ...assignment,
-            workspacePath: this.getAssignmentWorkspacePath(team, run, assignment),
+            workspacePath: this.getAssignmentWorkspacePath(workflow, run, assignment),
         }));
     }
-    getAssignmentWorkspacePath(team, run, assignment) {
-        const runWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
-        if (assignment.dependencies.length > 0 && this.isReviewOrMergeAssignment(assignment)) {
+    getAssignmentWorkspacePath(workflow, run, assignment) {
+        const runWorkspacePath = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
+        if (assignment.workspaceMode === 'shared') {
             return runWorkspacePath;
         }
-        return path.join(runWorkspacePath, '.code-agent', 'team-runs', run.id, 'workers', `${this.slug(assignment.memberName)}-${assignment.id}`);
+        return path.join(runWorkspacePath, '.code-agent', 'workflow-runs', run.id, 'workers', `${this.slug(assignment.memberName)}-${assignment.id}`);
     }
-    async ensureAssignmentWorkspace(team, run, assignment) {
-        const workspacePath = assignment.workspacePath ?? this.getAssignmentWorkspacePath(team, run, assignment);
+    isSharedAssignmentWorkspace(workflow, assignment) {
+        const workflowWorkspacePath = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
+        return path.resolve(assignment.workspacePath ?? '') === path.resolve(workflowWorkspacePath);
+    }
+    async prepareAssignmentWorkspace(provider, workflow, run, assignment, dependencySteps) {
+        const workspacePath = assignment.workspacePath ?? this.getAssignmentWorkspacePath(workflow, run, assignment);
         assignment.workspacePath = workspacePath;
         await fs.mkdir(workspacePath, { recursive: true });
-        const dependentOutputs = run.steps
-            .filter(step => step.assignmentId && assignment.dependencies.includes(step.assignmentId) && (step.output || step.error))
-            .map(step => [
-            `## ${step.assignmentTitle ?? step.role}`,
-            '',
-            `- Owner: ${step.memberName} (${step.role})`,
-            step.workspacePath ? `- Workspace: ${step.workspacePath}` : '',
-            '',
-            step.output ?? `Error: ${step.error}`,
-        ].filter(Boolean).join('\n'))
-            .join('\n\n');
-        await fs.writeFile(path.join(workspacePath, 'ASSIGNMENT.md'), [
-            `# ${assignment.title}`,
-            '',
-            `- Assignment ID: ${assignment.id}`,
-            `- Team run: ${run.id}`,
-            `- Owner: ${assignment.memberName} (${assignment.role})`,
-            `- Parallel group: ${assignment.parallelGroup}`,
-            `- Dependencies: ${assignment.dependencies.join(', ') || 'none'}`,
-            '',
-            '## Objective',
-            '',
-            team.objective,
-            '',
-            '## Assignment',
-            '',
-            assignment.description,
-            '',
-            '## Dependency Outputs',
-            '',
-            dependentOutputs || 'No dependency outputs yet.',
-            '',
-        ].join('\n'), 'utf-8');
-    }
-    getAssignmentMember(team, assignment) {
-        return team.members.find(member => member.id === assignment.memberId)
-            ?? team.members.find(member => member.name === assignment.memberName)
-            ?? team.members[0]
-            ?? this.createDefaultMembers()[0];
-    }
-    resolveAssignmentMember(team, record, index) {
-        const members = team.members.length > 0 ? team.members : this.createDefaultMembers();
-        const memberId = this.readString(record.memberId) || this.readString(record.assigneeId) || this.readString(record.employeeId);
-        const memberName = this.readString(record.memberName) || this.readString(record.assignee) || this.readString(record.employee);
-        const role = this.readString(record.role) || this.readString(record.ownerRole);
-        return members.find(member => member.id === memberId)
-            ?? members.find(member => member.name.toLowerCase() === String(memberName ?? '').toLowerCase())
-            ?? members.find(member => member.role.toLowerCase() === String(role ?? '').toLowerCase())
-            ?? members.find(member => role && member.role.toLowerCase().includes(role.toLowerCase()))
-            ?? members[index % members.length];
-    }
-    readString(value) {
-        return typeof value === 'string' ? value.trim() : '';
-    }
-    readStringArray(value) {
-        if (Array.isArray(value)) {
-            return value.map(item => this.readString(item)).filter(Boolean);
+        const isSharedWorkspace = this.isSharedAssignmentWorkspace(workflow, assignment);
+        if (!isSharedWorkspace) {
+            await this.seedPrivateAssignmentWorkspace(workflow, workspacePath);
         }
-        if (typeof value === 'string') {
-            return value.split(',').map(item => item.trim()).filter(Boolean);
+        await provider.prepareAssignment?.(workflow, run, assignment, {
+            workspacePath,
+            dependencyOutputs: dependencySteps,
+        });
+    }
+    async seedPrivateAssignmentWorkspace(workflow, workspacePath) {
+        const workflowWorkspace = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
+        await this.copyWorkspaceTree(workflowWorkspace, workspacePath);
+    }
+    async copyWorkspaceTree(sourceRoot, destinationRoot) {
+        const ignoredDirectories = new Set([
+            '.code-agent', '.git', 'node_modules', 'dist', 'build', 'coverage', '.venv', 'venv',
+            '__pycache__', '.pytest_cache', '.mypy_cache', '.gradle', 'target',
+        ]);
+        const visit = async (sourceDir, destinationDir) => {
+            await fs.mkdir(destinationDir, { recursive: true });
+            const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+            for (const entry of entries) {
+                if (entry.isDirectory() && ignoredDirectories.has(entry.name)) {
+                    continue;
+                }
+                const sourcePath = path.join(sourceDir, entry.name);
+                const destinationPath = path.join(destinationDir, entry.name);
+                if (entry.isDirectory()) {
+                    await visit(sourcePath, destinationPath);
+                }
+                else if (entry.isFile()) {
+                    await fs.copyFile(sourcePath, destinationPath);
+                }
+            }
+        };
+        await visit(sourceRoot, destinationRoot);
+    }
+    async snapshotWorkspaceArtifacts(workspacePath, internalArtifactPaths = [], expectedArtifactPaths = []) {
+        const snapshot = new Map();
+        const ignoredFiles = new Set([...internalArtifactPaths].map(file => path.normalize(file).replace(/^\.([/\\])/, '')));
+        const ignoredDirectories = new Set([
+            '.code-agent', '.git', 'node_modules', 'dist', 'build', 'coverage', '.venv', 'venv',
+            '__pycache__', '.pytest_cache', '.mypy_cache', '.gradle', 'target',
+        ]);
+        const visit = async (directory) => {
+            const entries = await fs.readdir(directory, { withFileTypes: true });
+            for (const entry of entries) {
+                if (entry.isDirectory() && ignoredDirectories.has(entry.name)) {
+                    continue;
+                }
+                const absolutePath = path.join(directory, entry.name);
+                if (entry.isDirectory()) {
+                    await visit(absolutePath);
+                }
+                else if (entry.isFile()) {
+                    const relativePath = path.relative(workspacePath, absolutePath);
+                    if (ignoredFiles.has(relativePath)) {
+                        continue;
+                    }
+                    const content = await fs.readFile(absolutePath);
+                    snapshot.set(relativePath, crypto.createHash('sha256').update(content).digest('hex'));
+                }
+            }
+        };
+        await visit(workspacePath);
+        // Large generated directories are intentionally skipped during the general
+        // scan, but a package may explicitly declare a deliverable inside one of
+        // them (for example build/app.zip). Always inspect those exact paths so the
+        // verifier does not reject an artifact merely because of its directory.
+        for (const expectedArtifactPath of expectedArtifactPaths) {
+            const relativePath = path.normalize(expectedArtifactPath).replace(/^\.([/\\])/, '');
+            const absolutePath = path.resolve(workspacePath, relativePath);
+            const relativeToWorkspace = path.relative(path.resolve(workspacePath), absolutePath);
+            if (!relativePath || relativeToWorkspace.startsWith('..') || path.isAbsolute(relativeToWorkspace)) {
+                throw new Error(`Assignment declared an unsafe expected artifact path: ${expectedArtifactPath}`);
+            }
+            if (ignoredFiles.has(relativePath)) {
+                continue;
+            }
+            try {
+                const stat = await fs.stat(absolutePath);
+                if (!stat.isFile()) {
+                    continue;
+                }
+                const content = await fs.readFile(absolutePath);
+                snapshot.set(relativePath, crypto.createHash('sha256').update(content).digest('hex'));
+            }
+            catch (error) {
+                if (error.code !== 'ENOENT') {
+                    throw error;
+                }
+            }
         }
-        return [];
+        return snapshot;
     }
-    uniqueAssignmentId(value, usedIds) {
-        const base = this.slug(value) || 'assignment';
-        let id = base;
-        let suffix = 2;
-        while (usedIds.has(id)) {
-            id = `${base}-${suffix}`;
-            suffix += 1;
+    async collectProducedArtifacts(provider, assignment, beforeArtifacts) {
+        const internalArtifactPaths = provider.internalArtifactPaths?.({
+            workspacePath: assignment.workspacePath,
+            assignment,
+        }) ?? [];
+        const afterArtifacts = await this.snapshotWorkspaceArtifacts(assignment.workspacePath, internalArtifactPaths, assignment.expectedArtifacts);
+        const producedArtifacts = [...afterArtifacts.entries()]
+            .filter(([relativePath, digest]) => beforeArtifacts.get(relativePath) !== digest)
+            .map(([relativePath]) => relativePath)
+            .sort();
+        if (this.assignmentRequiresArtifact(assignment) && producedArtifacts.length === 0) {
+            throw new AssignmentArtifactVerificationError(`Assignment "${assignment.title}" reported completion but produced no verifiable files. Narrative output does not complete artifact-producing work.`);
         }
-        usedIds.add(id);
-        return id;
+        if (assignment.requiresNonDocumentationArtifact && !producedArtifacts.some(file => !this.isDocumentationArtifact(file))) {
+            throw new AssignmentArtifactVerificationError(`Artifact assignment "${assignment.title}" produced no required non-documentation artifact. Documentation alone does not satisfy this assignment.`);
+        }
+        const missingExpected = (assignment.expectedArtifacts ?? []).filter(expected => {
+            const normalized = path.normalize(expected).replace(/^\.([/\\])/, '');
+            return !afterArtifacts.has(normalized);
+        });
+        if (missingExpected.length > 0) {
+            throw new AssignmentArtifactVerificationError(`Assignment "${assignment.title}" is missing expected artifact(s): ${missingExpected.join(', ')}`);
+        }
+        const placeholderArtifacts = [];
+        for (const relativePath of producedArtifacts) {
+            if (await this.isPlaceholderArtifact(assignment.workspacePath, relativePath)) {
+                placeholderArtifacts.push(relativePath);
+            }
+        }
+        if (placeholderArtifacts.length > 0) {
+            throw new AssignmentArtifactVerificationError(`Assignment "${assignment.title}" produced placeholder artifact(s) instead of usable content: ${placeholderArtifacts.join(', ')}`);
+        }
+        return producedArtifacts;
     }
-    isPlanningRole(member, team) {
-        const role = member.role.toLowerCase();
-        return member.id === team.supervisorId
-            || role.includes('supervisor')
-            || role.includes('lead')
-            || role.includes('manager')
-            || role.includes('planner')
-            || role.includes('product')
-            || role.includes('architect');
+    async promoteAssignmentArtifacts(workflow, assignment, beforeArtifacts, producedArtifacts) {
+        const projectWorkspace = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
+        for (const relativePath of producedArtifacts) {
+            const sourcePath = path.resolve(assignment.workspacePath, relativePath);
+            const destinationPath = path.resolve(projectWorkspace, relativePath);
+            if (!destinationPath.startsWith(`${path.resolve(projectWorkspace)}${path.sep}`)) {
+                throw new Error(`Assignment produced an unsafe artifact path: ${relativePath}`);
+            }
+            try {
+                const current = await fs.readFile(destinationPath);
+                const currentDigest = crypto.createHash('sha256').update(current).digest('hex');
+                const baselineDigest = beforeArtifacts.get(relativePath);
+                if (!baselineDigest || currentDigest !== baselineDigest) {
+                    throw new Error(`Artifact promotion conflict for ${relativePath}; another assignment changed the project copy.`);
+                }
+            }
+            catch (error) {
+                if (error.code !== 'ENOENT') {
+                    throw error;
+                }
+            }
+            await fs.mkdir(path.dirname(destinationPath), { recursive: true });
+            await fs.copyFile(sourcePath, destinationPath);
+        }
     }
-    isReviewRole(member) {
-        const role = member.role.toLowerCase();
-        return role.includes('qa')
-            || role.includes('quality')
-            || role.includes('test')
-            || role.includes('review')
-            || role.includes('security')
-            || role.includes('release');
+    assignmentRequiresArtifact(assignment) {
+        return assignment.requiresArtifact === true;
     }
-    isReviewOrMergeAssignment(assignment) {
-        const text = `${assignment.role} ${assignment.title}`.toLowerCase();
-        return text.includes('qa')
-            || text.includes('quality')
-            || text.includes('test')
-            || text.includes('review')
-            || text.includes('merge')
-            || text.includes('sign off')
-            || text.includes('signoff')
-            || text.includes('supervisor')
-            || text.includes('lead');
+    isDocumentationArtifact(relativePath) {
+        return ['.md', '.txt', '.rst', '.adoc'].includes(path.extname(relativePath).toLowerCase());
     }
-    createTeamRunMilestonesFromAssignments(assignments, createdAt) {
+    async isPlaceholderArtifact(workspacePath, relativePath) {
+        const textExtensions = new Set([
+            '.adoc', '.css', '.csv', '.html', '.htm', '.ini', '.js', '.json', '.jsx', '.md', '.mjs',
+            '.py', '.rst', '.sh', '.toml', '.ts', '.tsx', '.txt', '.xml', '.yaml', '.yml',
+        ]);
+        if (!textExtensions.has(path.extname(relativePath).toLowerCase())) {
+            return false;
+        }
+        const content = await fs.readFile(path.resolve(workspacePath, relativePath), 'utf8');
+        const normalized = content.trim();
+        return /^\[content omitted after successful tool execution;\s*\d+\s+characters\]$/i.test(normalized)
+            || /^\[(?:content|code|implementation) omitted\]$/i.test(normalized);
+    }
+    /** Remove transcript metadata accidentally materialized as a whole file. */
+    async removeRejectedPlaceholderArtifacts(workspacePath) {
+        const artifacts = await this.snapshotWorkspaceArtifacts(workspacePath, []);
+        for (const relativePath of artifacts.keys()) {
+            if (await this.isPlaceholderArtifact(workspacePath, relativePath)) {
+                await fs.unlink(path.resolve(workspacePath, relativePath));
+            }
+        }
+    }
+    getAssignmentMember(workflow, assignment) {
+        return workflow.members.find(actor => actor.id === assignment.memberId)
+            ?? workflow.members.find(actor => actor.name === assignment.memberName)
+            ?? workflow.members[0]
+            ?? (() => { throw new Error(`Workflow ${workflow.id} has no actors.`); })();
+    }
+    createWorkflowMilestones(assignments, createdAt) {
         return assignments.map(assignment => ({
             id: `assignment-${assignment.id}`,
             title: assignment.title,
@@ -1087,7 +1254,7 @@ class AutomationServiceBridge {
             createdAt,
         }));
     }
-    updateTeamAssignmentMilestone(run, assignmentId, update) {
+    updateWorkflowMilestone(run, assignmentId, update) {
         const milestone = run.milestones?.find(candidate => candidate.id === `assignment-${assignmentId}`);
         if (!milestone) {
             return;
@@ -1311,6 +1478,19 @@ class AutomationServiceBridge {
             this.sendJson(response, 200, { task: await this.executeTask(taskRunMatch[1], 'remote') });
             return;
         }
+        if (request.method === 'GET' && pathname === '/api/workflows') {
+            this.sendJson(response, 200, {
+                workflows: await this.listWorkflows(),
+                runs: await this.listWorkflowRuns(),
+            });
+            return;
+        }
+        const workflowRunMatch = pathname.match(/^\/api\/workflows\/([^/]+)\/run$/);
+        if (request.method === 'POST' && workflowRunMatch) {
+            this.sendJson(response, 200, { run: await this.runWorkflow(workflowRunMatch[1]) });
+            return;
+        }
+        // Deprecated HTTP aliases retained for paired clients from older builds.
         if (request.method === 'GET' && pathname === '/api/teams') {
             this.sendJson(response, 200, { teams: await this.listTeams(), runs: await this.listTeamRuns() });
             return;
@@ -1528,7 +1708,7 @@ class AutomationServiceBridge {
     </section>
     <section><h2>Pending Approvals</h2><div id="approvals"></div></section>
     <section><h2>Scheduled Tasks</h2><div id="tasks"></div></section>
-    <section><h2>Virtual Teams</h2><div id="teams"></div></section>
+    <section><h2>Workflows</h2><div id="workflows"></div></section>
   </main>
   <script>
     const tokenKey = 'codeAgentRemoteToken';
@@ -1564,8 +1744,8 @@ class AutomationServiceBridge {
       await api('/api/tasks/' + encodeURIComponent(id) + '/run', { method: 'POST', body: '{}' });
       await refresh();
     }
-    async function runTeam(id) {
-      await api('/api/teams/' + encodeURIComponent(id) + '/run', { method: 'POST', body: '{}' });
+    async function runWorkflow(id) {
+      await api('/api/workflows/' + encodeURIComponent(id) + '/run', { method: 'POST', body: '{}' });
       await refresh();
     }
     function renderList(target, items, render) {
@@ -1587,10 +1767,10 @@ class AutomationServiceBridge {
         '<article><strong>' + task.name + '</strong><p>' + task.prompt + '</p><p class="muted">' + (task.lastStatus || 'never run') + '</p>' +
         '<button onclick="runTask(\\'' + task.id + '\\')">Run</button></article>'
       );
-      const teams = await api('/api/teams');
-      renderList('teams', teams.teams || [], team =>
-        '<article><strong>' + team.name + '</strong><p>' + team.objective + '</p><p class="muted">' + team.status + '</p>' +
-        '<button onclick="runTeam(\\'' + team.id + '\\')">Run</button></article>'
+      const workflows = await api('/api/workflows');
+      renderList('workflows', workflows.workflows || [], workflow =>
+        '<article><strong>' + workflow.name + '</strong><p>' + workflow.objective + '</p><p class="muted">' + workflow.status + '</p>' +
+        '<button onclick="runWorkflow(\\'' + workflow.id + '\\')">Run</button></article>'
       );
     }
     refresh().catch(error => {
@@ -1629,76 +1809,16 @@ class AutomationServiceBridge {
     hashToken(token) {
         return crypto.createHash('sha256').update(token).digest('hex');
     }
-    async createFallbackTeamStep(team, member, previousSteps, assignment) {
-        const previous = previousSteps
-            .filter(step => step.output)
-            .map(step => `- ${step.assignmentTitle ?? step.role}: ${step.output}`)
-            .join('\n');
-        return {
-            content: [
-                `${member.role} assignment for "${team.name}"`,
-                assignment ? `Assignment: ${assignment.title}` : '',
-                `Objective: ${team.objective}`,
-                `Goal: ${assignment?.description ?? member.goal}`,
-                assignment?.workspacePath ? `Workspace: ${assignment.workspacePath}` : '',
-                assignment?.dependencies.length ? `Dependencies: ${assignment.dependencies.join(', ')}` : 'Dependencies: none',
-                previous ? `Previous team context:\n${previous}` : 'No previous team context.',
-                'No LLM executor was configured, so this run produced a deterministic planning artifact only.',
-            ].filter(Boolean).join('\n\n'),
-        };
-    }
     assertExecutionCompleted(content) {
         if (content.includes(TOOL_ROUND_LIMIT_MESSAGE)) {
-            throw new Error(`${TOOL_ROUND_LIMIT_MESSAGE} The automation step did not finish. Increase the desktop tool-call round limit or make the team objective more explicit.`);
+            throw new Error(`${TOOL_ROUND_LIMIT_MESSAGE} The automation step did not finish. Increase the desktop tool-call round limit or make the workflow objective more explicit.`);
         }
-    }
-    assertTeamGovernanceSatisfied(team, run) {
-        if (!team.requireQaSignoff) {
-            return;
-        }
-        const hasQaOrReviewerSignoff = run.steps.some(step => {
-            const role = step.role.toLowerCase();
-            return step.status === 'succeeded'
-                && (role.includes('qa') || role.includes('quality') || role.includes('review') || role.includes('test'));
-        });
-        if (!hasQaOrReviewerSignoff) {
-            throw new Error('Team requires QA/reviewer signoff, but no QA, reviewer, quality, or test role completed successfully.');
-        }
-    }
-    createTeamRunMilestones(team, maxIterations, createdAt) {
-        const milestones = [];
-        for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
-            for (const member of team.members) {
-                milestones.push({
-                    id: `iteration-${iteration}-${member.id}`,
-                    title: `${iteration > 1 ? `Iteration ${iteration}: ` : ''}${member.role} handoff`,
-                    ownerRole: member.role,
-                    memberId: member.id,
-                    memberName: member.name,
-                    iteration,
-                    status: 'pending',
-                    createdAt,
-                });
-            }
-        }
-        return milestones;
-    }
-    updateTeamRunMilestone(run, memberId, iteration, update) {
-        const milestone = run.milestones?.find(candidate => (candidate.memberId === memberId && candidate.iteration === iteration));
-        if (!milestone) {
-            return;
-        }
-        if (update.status) {
-            milestone.status = update.status;
-        }
-        if (update.startedAt) {
-            milestone.startedAt = update.startedAt;
-        }
-        if (update.completedAt) {
-            milestone.completedAt = update.completedAt;
-        }
-        if (update.summary) {
-            milestone.summary = update.summary.replace(/\s+/g, ' ').slice(0, 240);
+        const normalized = content.toLowerCase();
+        if (normalized.includes('the model did not produce a valid, verifiable completion')
+            || normalized.includes("couldn’t complete that request because the required tool access was not available")
+            || normalized.includes("couldn't complete that request because the required tool access was not available")
+            || normalized.includes('i could not complete the requested project action')) {
+            throw new IncompleteAutomationExecutionError(`Automation worker reported an incomplete outcome: ${content.trim()}`);
         }
     }
     async emitTaskNotification(task, run, status, message) {
@@ -1728,62 +1848,28 @@ class AutomationServiceBridge {
             console.warn('Automation notification delivery failed:', error);
         }
     }
-    summarizeTeamRun(run) {
+    summarizeWorkflowRun(run) {
         const succeeded = run.steps.filter(step => step.status === 'succeeded').length;
         const failed = run.steps.filter(step => step.status === 'failed').length;
         const assignments = run.assignments?.length ?? run.steps.length;
         const parallelGroups = new Set((run.assignments ?? []).map(assignment => assignment.parallelGroup)).size;
-        return `Team run ${run.id} completed ${succeeded}/${assignments} assignment(s) with ${failed} failed step(s) across ${parallelGroups || 1} execution group(s).`;
+        return `Workflow run ${run.id} completed ${succeeded}/${assignments} assignment(s) with ${failed} failed step(s) across ${parallelGroups || 1} execution group(s).`;
     }
-    async ensureTeamWorkspaceSeed(team) {
-        const runWorkspacePath = this.normalizeWorkspacePath(team.workspacePath) ?? this.workspacePath;
+    async prepareWorkflowWorkspace(provider, workflow, run) {
+        const runWorkspacePath = this.normalizeWorkspacePath(workflow.workspacePath) ?? this.workspacePath;
         await fs.mkdir(path.join(runWorkspacePath, '.code-agent'), { recursive: true });
-        const blueprint = [
-            `# ${team.name}`,
-            '',
-            '## Objective',
-            '',
-            team.objective,
-            '',
-            '## Execution',
-            '',
-            `- Permission mode: ${team.permissionMode ?? 'full-access'}`,
-            `- Supervisor: ${team.supervisorId}`,
-            '',
-            '## Members',
-            '',
-            ...team.members.map(member => `- ${member.name} (${member.role}): ${member.goal}`),
-            '',
-        ].join('\n');
-        await fs.writeFile(path.join(runWorkspacePath, '.code-agent', 'team-blueprint.md'), blueprint, 'utf-8');
-        const readmePath = path.join(runWorkspacePath, 'README.md');
-        try {
-            await fs.access(readmePath);
-        }
-        catch (error) {
-            if (error.code !== 'ENOENT') {
-                throw error;
-            }
-            await fs.writeFile(readmePath, [
-                `# ${team.name}`,
-                '',
-                team.objective,
-                '',
-                'This workspace was initialized by CodeAgent virtual team automation.',
-                '',
-            ].join('\n'), 'utf-8');
-        }
+        await provider.prepareRun?.(workflow, run, { workspacePath: runWorkspacePath });
     }
-    async writeTeamRunArtifact(run) {
+    async writeWorkflowRunArtifact(run) {
         const runWorkspacePath = this.normalizeWorkspacePath(run.workspacePath) ?? this.workspacePath;
-        const artifactDir = path.join(runWorkspacePath, '.code-agent', 'team-runs');
+        const artifactDir = path.join(runWorkspacePath, '.code-agent', 'workflow-runs');
         await fs.mkdir(artifactDir, { recursive: true });
         const artifactPath = path.join(artifactDir, `${run.id}.md`);
         const lines = [
-            `# ${run.teamName} Run`,
+            `# ${run.workflowName} Run`,
             '',
             `- Run ID: ${run.id}`,
-            `- Team ID: ${run.teamId}`,
+            `- Workflow ID: ${run.workflowId}`,
             `- Status: ${run.status}`,
             run.workspacePath ? `- Workspace: ${run.workspacePath}` : '',
             `- Started: ${new Date(run.startedAt).toISOString()}`,
@@ -1805,6 +1891,7 @@ class AutomationServiceBridge {
                 `  - Parallel group: ${assignment.parallelGroup}`,
                 `  - Dependencies: ${assignment.dependencies.join(', ') || 'none'}`,
                 assignment.workspacePath ? `  - Workspace: ${assignment.workspacePath}` : '',
+                assignment.producedArtifacts?.length ? `  - Produced: ${assignment.producedArtifacts.join(', ')}` : '',
             ].filter(Boolean).join('\n')),
             (run.assignments ?? []).length === 0 ? 'No assignment plan recorded.' : '',
             '',
@@ -1825,6 +1912,7 @@ class AutomationServiceBridge {
                 step.parallelGroup ? `Parallel group: ${step.parallelGroup}` : '',
                 step.dependencyIds?.length ? `Dependencies: ${step.dependencyIds.join(', ')}` : '',
                 step.workspacePath ? `Workspace: ${step.workspacePath}` : '',
+                step.producedArtifacts?.length ? `Produced artifacts: ${step.producedArtifacts.join(', ')}` : '',
                 '',
                 step.output ?? step.error ?? 'No output.',
                 '',
@@ -1836,27 +1924,27 @@ class AutomationServiceBridge {
             ? artifactPath
             : relative;
     }
-    async upsertTeamRun(run) {
+    async upsertWorkflowRun(run) {
         const store = await this.readStore();
-        store.teamRuns = [
+        store.workflowRuns = [
             run,
-            ...store.teamRuns.filter(candidate => candidate.id !== run.id),
+            ...store.workflowRuns.filter(candidate => candidate.id !== run.id),
         ].slice(0, MAX_RUN_HISTORY);
         await this.writeStore(store);
     }
-    async completeTeamRun(teamId, run, status, result) {
+    async completeWorkflowRun(workflowId, run, status, result) {
         const store = await this.readStore();
-        const team = store.teams.find(candidate => candidate.id === teamId);
-        if (team) {
-            team.status = status;
-            team.lastRunAt = run.startedAt;
-            team.lastStatus = run.status;
-            team.lastResult = result;
-            team.updatedAt = Date.now();
+        const workflow = store.workflows.find(candidate => candidate.id === workflowId);
+        if (workflow) {
+            workflow.status = status;
+            workflow.lastRunAt = run.startedAt;
+            workflow.lastStatus = run.status;
+            workflow.lastResult = result;
+            workflow.updatedAt = Date.now();
         }
-        store.teamRuns = [
+        store.workflowRuns = [
             run,
-            ...store.teamRuns.filter(candidate => candidate.id !== run.id),
+            ...store.workflowRuns.filter(candidate => candidate.id !== run.id),
         ].slice(0, MAX_RUN_HISTORY);
         await this.writeStore(store);
     }
@@ -1916,38 +2004,6 @@ class AutomationServiceBridge {
             throw error;
         }
     }
-    createDefaultMembers() {
-        return [
-            {
-                id: 'supervisor',
-                name: 'Supervisor',
-                role: 'Supervisor',
-                goal: 'Coordinate the virtual team, split work, review progress, and decide when human approval is needed.',
-                tools: ['tasks', 'review', 'approval'],
-            },
-            {
-                id: 'project-manager',
-                name: 'Project Manager',
-                role: 'Project Manager',
-                goal: 'Turn the human blueprint into milestones, risks, and acceptance criteria.',
-                tools: ['planning', 'tasks'],
-            },
-            {
-                id: 'developer',
-                name: 'Developer',
-                role: 'Developer',
-                goal: 'Implement scoped changes and keep the workspace buildable.',
-                tools: ['filesystem', 'bash', 'git'],
-            },
-            {
-                id: 'qa',
-                name: 'QA',
-                role: 'QA',
-                goal: 'Design and run validation, report defects, and confirm acceptance criteria.',
-                tools: ['bash', 'test', 'review'],
-            },
-        ];
-    }
     async readStore() {
         const hasProjectManifest = await this.exists(this.projectManifestPath);
         if (!hasProjectManifest && await this.exists(this.legacyStorePath)) {
@@ -1958,8 +2014,10 @@ class AutomationServiceBridge {
         const skillPolicies = await this.readJsonFile(this.skillPoliciesPath, {});
         const tasks = await this.readJsonDirectory(this.tasksDir);
         const taskRuns = await this.readJsonDirectory(this.taskRunsDir);
-        const teams = await this.readJsonDirectory(this.teamsDir);
-        const teamRuns = await this.readJsonDirectory(this.teamRunsDir);
+        const workflows = await this.readJsonDirectory(this.workflowsDir);
+        const legacyTeams = await this.readJsonDirectory(this.legacyTeamsDir);
+        const workflowRuns = await this.readJsonDirectory(this.workflowRunsDir);
+        const legacyTeamRuns = await this.readJsonDirectory(this.legacyTeamRunsDir);
         const remoteControl = await this.readJsonFile(this.remoteControlPath, undefined);
         return {
             version: 1,
@@ -1967,8 +2025,8 @@ class AutomationServiceBridge {
             tasks: tasks.filter(this.isScheduledTask).map(task => this.normalizeScheduledTask(task)),
             taskRuns: taskRuns.filter(this.isTaskRun),
             remoteControl: this.normalizeRemoteControl(remoteControl),
-            teams: teams.filter(this.isVirtualTeam).map(team => this.normalizeVirtualTeam(team)),
-            teamRuns: teamRuns.filter(this.isTeamRun),
+            workflows: this.mergeRecords(legacyTeams.filter(this.isWorkflow).map(workflow => this.normalizeLegacyWorkflow(workflow)), workflows.filter(this.isWorkflow).map(workflow => this.normalizeLegacyWorkflow(workflow))),
+            workflowRuns: this.mergeRecords(legacyTeamRuns.filter(this.isWorkflowRun).map(run => this.normalizeLegacyWorkflowRun(run)), workflowRuns.filter(this.isWorkflowRun).map(run => this.normalizeLegacyWorkflowRun(run))),
         };
     }
     async writeStore(store) {
@@ -1982,8 +2040,8 @@ class AutomationServiceBridge {
         await this.writeJsonFile(this.skillPoliciesPath, store.skillPolicies ?? {});
         await this.syncJsonDirectory(this.tasksDir, store.tasks.map(task => this.normalizeScheduledTask(task)), task => task.id);
         await this.syncJsonDirectory(this.taskRunsDir, store.taskRuns, run => run.id);
-        await this.syncJsonDirectory(this.teamsDir, store.teams.map(team => this.normalizeVirtualTeam(team)), team => team.id);
-        await this.syncJsonDirectory(this.teamRunsDir, store.teamRuns, run => run.id);
+        await this.syncJsonDirectory(this.workflowsDir, store.workflows.map(workflow => this.normalizeLegacyWorkflow(workflow)), workflow => workflow.id);
+        await this.syncJsonDirectory(this.workflowRunsDir, store.workflowRuns, run => run.id);
         await this.writeJsonFile(this.remoteControlPath, this.normalizeRemoteControl(store.remoteControl));
     }
     createDefaultStore() {
@@ -1993,8 +2051,8 @@ class AutomationServiceBridge {
             tasks: [],
             taskRuns: [],
             remoteControl: this.normalizeRemoteControl(undefined),
-            teams: [],
-            teamRuns: [],
+            workflows: [],
+            workflowRuns: [],
         };
     }
     async readLegacyStore() {
@@ -2011,10 +2069,14 @@ class AutomationServiceBridge {
                     : [],
                 taskRuns: Array.isArray(parsed.taskRuns) ? parsed.taskRuns.filter(this.isTaskRun) : [],
                 remoteControl: this.normalizeRemoteControl(parsed.remoteControl),
-                teams: Array.isArray(parsed.teams)
-                    ? parsed.teams.filter(this.isVirtualTeam).map(team => this.normalizeVirtualTeam(team))
+                workflows: Array.isArray(parsed.workflows ?? parsed.teams)
+                    ? (parsed.workflows ?? parsed.teams).filter(this.isWorkflow).map(workflow => this.normalizeLegacyWorkflow(workflow))
                     : [],
-                teamRuns: Array.isArray(parsed.teamRuns) ? parsed.teamRuns.filter(this.isTeamRun) : [],
+                workflowRuns: Array.isArray(parsed.workflowRuns ?? parsed.teamRuns)
+                    ? (parsed.workflowRuns ?? parsed.teamRuns)
+                        .filter(this.isWorkflowRun)
+                        .map(run => this.normalizeLegacyWorkflowRun(run))
+                    : [],
             };
         }
         catch (error) {
@@ -2126,10 +2188,10 @@ class AutomationServiceBridge {
     isTaskRun(value) {
         return Boolean(value && typeof value === 'object' && typeof value.id === 'string');
     }
-    isVirtualTeam(value) {
+    isWorkflow(value) {
         return Boolean(value && typeof value === 'object' && typeof value.id === 'string');
     }
-    isTeamRun(value) {
+    isWorkflowRun(value) {
         return Boolean(value && typeof value === 'object' && typeof value.id === 'string');
     }
     normalizeRemoteControl(value) {
@@ -2279,29 +2341,50 @@ class AutomationServiceBridge {
         }
         return normalizeAutomationWorkspacePath(value);
     }
-    normalizeTeamPermissionMode(value) {
+    normalizeWorkflowPermissionMode(value) {
         return value === 'supervised' ? 'supervised' : 'full-access';
     }
-    normalizeTeamMaxIterations(value) {
+    normalizeWorkflowMaxIterations(value) {
         const parsed = Number(value ?? 1);
         if (!Number.isFinite(parsed) || parsed < 1) {
             return 1;
         }
-        return Math.min(Math.floor(parsed), MAX_TEAM_ITERATIONS);
+        return Math.min(Math.floor(parsed), MAX_WORKFLOW_ITERATIONS);
     }
-    normalizeVirtualTeam(team) {
+    normalizeProviderConfig(value) {
+        if (!value || typeof value !== 'object' || Array.isArray(value)) {
+            return undefined;
+        }
+        return { ...value };
+    }
+    normalizeLegacyWorkflow(team) {
         return {
             ...team,
             workspacePath: this.normalizeWorkspacePath(team.workspacePath),
-            permissionMode: this.normalizeTeamPermissionMode(team.permissionMode),
-            maxIterations: this.normalizeTeamMaxIterations(team.maxIterations),
-            requireQaSignoff: Boolean(team.requireQaSignoff),
-            members: Array.isArray(team.members) && team.members.length > 0
+            permissionMode: this.normalizeWorkflowPermissionMode(team.permissionMode),
+            maxIterations: this.normalizeWorkflowMaxIterations(team.maxIterations),
+            providerConfig: this.normalizeProviderConfig(team.providerConfig),
+            members: Array.isArray(team.members)
                 ? team.members.map(member => ({
                     ...member,
                     tools: Array.isArray(member.tools) ? member.tools.map(String) : [],
                 }))
-                : this.createDefaultMembers(),
+                : [],
+        };
+    }
+    normalizeLegacyWorkflowRun(run) {
+        const workflowId = typeof run.workflowId === 'string' && run.workflowId.trim()
+            ? run.workflowId
+            : run.teamId;
+        const workflowName = typeof run.workflowName === 'string' && run.workflowName.trim()
+            ? run.workflowName
+            : run.teamName;
+        return {
+            ...run,
+            workflowId,
+            workflowName,
+            teamId: typeof run.teamId === 'string' && run.teamId.trim() ? run.teamId : workflowId,
+            teamName: typeof run.teamName === 'string' && run.teamName.trim() ? run.teamName : workflowName,
         };
     }
     createId(prefix) {

@@ -68,9 +68,14 @@ interface ToolExecutionSummary {
   executedCount: number;
   successfulMutations: number;
   failedCount: number;
+  invalidArgumentsCount: number;
 }
 
 const FINISH_PROJECT_TURN = 'codeagent.finish_project_turn';
+const SUBMIT_WORKFLOW_PLAN = 'codeagent.submit_workflow_plan';
+const MAX_COMPLETED_TOOL_ARGUMENT_STRING_CHARS = 600;
+const MAX_COMPLETED_TOOL_RESULT_CHARS = 4_000;
+const COMPACTED_TOOL_ARGUMENT_MARKER = /\[(?:content omitted after successful tool execution|tool arguments omitted after execution);\s*\d+\s+characters\]/i;
 
 interface OpenAiChatMessage {
   role: string;
@@ -116,6 +121,13 @@ const IMMEDIATE_TOOL_NAMES = new Set([
   'fs.write',
   'fs.list',
 ]);
+
+class InvalidToolArgumentsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidToolArgumentsError';
+  }
+}
 
 /**
  * API Service Bridge - bridges API operations to IPC.
@@ -236,6 +248,7 @@ Tool use policy:
 - For current time or date questions, use time.now. Do not create scripts or files to answer time/date questions.
 - For stock, ETF, index, crypto, or market price questions, use finance.quote first. Answer with the returned price, currency, symbol, exchange, change, and market timestamp when available. Mention that quotes may be delayed and are informational only.
 - For current public facts, external documentation, product facts, news, policies, schedules, or other external questions without a structured tool, use web.research. If you use web.search and the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Do not answer with only a list of links unless the user explicitly asks for links.
+- For URL, endpoint, or service reachability questions, use web.probe. Keep transport reachability separate from route validity: receiving any HTTP response, including 404 or another 4xx/5xx response, proves that the server was reached. A 404 means that specific route is unavailable, not that the host is unreachable. For an OpenAI-compatible base URL ending in /v1, a successful probe of /v1/models can verify the API even when GET /v1 itself returns 404.
 - If configured MCP tools may be relevant, use mcp.listTools to inspect executable MCP tools, then use mcp.callTool with the reported serverName and toolName. Do not assume an MCP server is executable until it appears in mcp.listTools.
 - Use fs.write only when the user explicitly asks to create or modify files.
 - Use bash.run for workspace inspection, tests, builds, and simple non-interactive commands. Do not use bash.run for simple time/date or web lookup questions.
@@ -318,12 +331,20 @@ Always be helpful, thorough, and provide clear explanations.`;
       };
     }
     const messages = this.toOpenAiMessages(request);
-    const toolSet = await this.getOpenAiToolSet(config);
+    const toolSet: OpenAiToolSet = request.workflowPlanning
+      ? { tools: [], nameMap: new Map<string, string>(), toolsByName: new Map(), deferredTools: [], usedNames: new Set<string>() }
+      : await this.getOpenAiToolSet(config);
     let inputTokens = 0;
     let outputTokens = 0;
     let lastModel = config.model;
 
-    const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true);
+    const planning = await this.runModelToolLoop(
+      config,
+      messages,
+      toolSet,
+      request.structuredAgentLoop === true,
+      request.workflowPlanning === true,
+    );
     inputTokens += planning.inputTokens;
     outputTokens += planning.outputTokens;
     lastModel = planning.model || lastModel;
@@ -339,6 +360,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         content: this.resolveGroundedAnswer(planning.content, messages),
         model: lastModel,
         usage: { inputTokens, outputTokens },
+        completionRecord: planning.completionRecord,
       };
     }
     const answerMessages = this.buildGroundedAnswerMessages(messages);
@@ -402,14 +424,22 @@ Always be helpful, thorough, and provide clear explanations.`;
       };
     }
     const messages = this.toOpenAiMessages(request);
-    const toolSet = await this.getOpenAiToolSet(config);
+    const toolSet: OpenAiToolSet = request.workflowPlanning
+      ? { tools: [], nameMap: new Map<string, string>(), toolsByName: new Map(), deferredTools: [], usedNames: new Set<string>() }
+      : await this.getOpenAiToolSet(config);
     const preparationMs = runtimeConfigMs + (Date.now() - preparationStartedAt);
     let content = '';
     let inputTokens = 0;
     let outputTokens = 0;
     let lastModel = config.model;
 
-    const planning = await this.runModelToolLoop(config, messages, toolSet, request.structuredAgentLoop === true);
+    const planning = await this.runModelToolLoop(
+      config,
+      messages,
+      toolSet,
+      request.structuredAgentLoop === true,
+      request.workflowPlanning === true,
+    );
     inputTokens += planning.inputTokens;
     outputTokens += planning.outputTokens;
     lastModel = planning.model || lastModel;
@@ -432,6 +462,7 @@ Always be helpful, thorough, and provide clear explanations.`;
         content,
         model: lastModel,
         usage: { inputTokens, outputTokens },
+        completionRecord: planning.completionRecord,
         performance: this.buildPerformanceMetrics(backendMs, firstTokenAt, startedAt, preparationMs, planning),
       };
     }
@@ -734,8 +765,89 @@ Always be helpful, thorough, and provide clear explanations.`;
               type: 'string',
               description: 'The concise final response shown to the human. Never claim work was done unless tool observations prove it.',
             },
+            completionRecord: {
+              type: 'object',
+              description: 'Machine-readable assignment completion evidence when the assignment prompt requires it. Do not put this record in response prose.',
+              properties: {
+                status: { type: 'string', enum: ['completed', 'blocked'] },
+                summary: { type: 'string' },
+                changedFiles: { type: 'array', items: { type: 'string' } },
+                criteria: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      index: { type: 'integer' },
+                      status: { type: 'string', enum: ['passed', 'failed'] },
+                      evidence: { type: 'array', items: { type: 'string' } },
+                    },
+                    required: ['index', 'status', 'evidence'],
+                    additionalProperties: false,
+                  },
+                },
+                verification: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      status: { type: 'string', enum: ['passed', 'failed'] },
+                      evidence: { type: 'string' },
+                    },
+                    required: ['name', 'status', 'evidence'],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ['status', 'summary', 'changedFiles', 'criteria', 'verification'],
+              additionalProperties: false,
+            },
           },
           required: ['requestRequiresWorkspaceChanges', 'outcome', 'response'],
+          additionalProperties: false,
+        },
+      },
+    });
+  }
+
+  private addWorkflowPlanTool(toolSet: OpenAiToolSet): void {
+    if (Array.from(toolSet.nameMap.values()).includes(SUBMIT_WORKFLOW_PLAN)) return;
+    const safeName = this.toOpenAiToolName(SUBMIT_WORKFLOW_PLAN, toolSet.usedNames);
+    toolSet.nameMap.set(safeName, SUBMIT_WORKFLOW_PLAN);
+    toolSet.tools.push({
+      type: 'function',
+      function: {
+        name: safeName,
+        description: 'Submit the complete executable workflow plan. Every project goal must be covered by concrete artifact-producing assignments.',
+        parameters: {
+          type: 'object',
+          properties: {
+            assignments: {
+              type: 'array',
+              minItems: 1,
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  memberId: { type: 'string', description: 'ID of a member listed in the planning prompt.' },
+                  dependencies: { type: 'array', items: { type: 'string' } },
+                  requiresArtifact: { type: 'boolean' },
+                  requiresNonDocumentationArtifact: { type: 'boolean' },
+                  goalIds: { type: 'array', items: { type: 'string' } },
+                  acceptanceCriteria: { type: 'array', minItems: 1, items: { type: 'string' } },
+                  expectedArtifacts: { type: 'array', minItems: 1, items: { type: 'string' } },
+                },
+                required: [
+                  'id', 'title', 'description', 'memberId', 'dependencies',
+                  'requiresArtifact', 'goalIds', 'acceptanceCriteria', 'expectedArtifacts',
+                ],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['assignments'],
           additionalProperties: false,
         },
       },
@@ -791,7 +903,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     messages: OpenAiChatMessage[],
     toolSet: OpenAiToolSet,
     structuredAgentLoop = false,
-    executionRequired = false,
+    syntheticToolsOnly = false,
   ): Promise<{
     toolCalls: OpenAiToolCall[];
     content: string;
@@ -799,7 +911,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     outputTokens: number;
     model?: string;
   }> {
-    if (!config.enableTools || !this.toolExecutor || toolSet.tools.length === 0) {
+    if (!config.enableTools || (!this.toolExecutor && !syntheticToolsOnly) || toolSet.tools.length === 0) {
       return { toolCalls: [], content: '', inputTokens: 0, outputTokens: 0 };
     }
     const response = await fetch(this.getOpenAiChatCompletionsUrl(config.baseUrl), {
@@ -813,8 +925,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         structuredAgentLoop ? 'required' : 'auto',
         {
           maxTokens: Math.min(
-            config.maxTokens,
-            structuredAgentLoop ? (executionRequired ? 1_024 : 512) : 256,
+            config.contextTokens,
+            structuredAgentLoop ? config.maxTokens : 256,
           ),
           temperature: 0,
           disableThinking: true,
@@ -841,6 +953,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     messages: OpenAiChatMessage[],
     toolSet: OpenAiToolSet,
     structuredAgentLoop = false,
+    workflowPlanning = false,
   ): Promise<{
     inputTokens: number;
     outputTokens: number;
@@ -850,10 +963,25 @@ Always be helpful, thorough, and provide clear explanations.`;
     executionMs: number;
     toolRounds: number;
     toolCalls: number;
+    completionRecord?: Record<string, unknown>;
   }> {
+    if (workflowPlanning) {
+      this.addWorkflowPlanTool(toolSet);
+      messages.push({
+        role: 'system',
+        content: [
+          'WORKFLOW PLANNING PROTOCOL:',
+          'Return the execution graph only by calling codeagent.submit_workflow_plan.',
+          'Do not answer with prose or JSON text.',
+          'Use only member IDs, goal IDs, requirements, and facts supplied in the planning request.',
+          'Every goal must be covered by bounded implementation work with observable acceptance criteria and concrete relative artifact paths.',
+        ].join('\n'),
+      });
+    }
+
     // A request without usable tools does not need a separate structured
     // tool-selection pass. Continue directly to the normal answer request.
-    if (!config.enableTools || toolSet.tools.length === 0 || !this.toolExecutor) {
+    if (!config.enableTools || toolSet.tools.length === 0 || (!this.toolExecutor && !workflowPlanning)) {
       return { inputTokens: 0, outputTokens: 0, selectionMs: 0, executionMs: 0, toolRounds: 0, toolCalls: 0 };
     }
 
@@ -868,6 +996,7 @@ Always be helpful, thorough, and provide clear explanations.`;
           'Do not call the finish function with a promise such as "I will proceed" or "the next step is".',
           'Use "." only when a tool expects the active project directory (for example fs.list or bash.run cwd). For fs.write, path must name a file such as "main.py" or "src/app.py"; never pass "." as the file path.',
           'If the workspace is empty, create the required project files with fs.write or an appropriate write-capable tool.',
+          'When the assignment prompt requires a machine-readable completion record, put it in finish_project_turn.completionRecord. Keep response as concise human-facing prose.',
         ].join('\n'),
       });
     }
@@ -885,7 +1014,6 @@ Always be helpful, thorough, and provide clear explanations.`;
     let recoverableErrorRetryRequested = false;
     let successfulMutations = 0;
     let observedToolFailure = false;
-    let executionRequired = false;
 
     let roundLimit = this.isLimitedStarterModel(config)
       ? Math.min(config.maxToolRounds, 1)
@@ -896,8 +1024,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         config,
         messages,
         toolSet,
-        structuredAgentLoop,
-        executionRequired,
+        structuredAgentLoop || workflowPlanning,
+        workflowPlanning,
       );
       selectionMs += Date.now() - selectionStartedAt;
       toolRounds += 1;
@@ -906,6 +1034,13 @@ Always be helpful, thorough, and provide clear explanations.`;
       model = decision.model || model;
       if (decision.toolCalls.length === 0) {
         const directAnswer = decision.content.trim();
+        if (workflowPlanning) {
+          messages.push({
+            role: 'system',
+            content: 'Planning output must be a codeagent.submit_workflow_plan function call. Correct the response and submit the complete plan now.',
+          });
+          continue;
+        }
         if (structuredAgentLoop) {
           messages.push({
             role: 'system',
@@ -947,6 +1082,30 @@ Always be helpful, thorough, and provide clear explanations.`;
       const finishCall = decision.toolCalls.find(candidate => (
         (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) === FINISH_PROJECT_TURN
       ));
+      const planCall = decision.toolCalls.find(candidate => (
+        (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) === SUBMIT_WORKFLOW_PLAN
+      ));
+      if (workflowPlanning && planCall) {
+        const submitted = this.parseToolArguments(planCall.function.arguments);
+        const assignments = Array.isArray(submitted.assignments) ? submitted.assignments : [];
+        if (assignments.length > 0) {
+          return {
+            inputTokens,
+            outputTokens,
+            model,
+            content: JSON.stringify({ assignments }),
+            selectionMs,
+            executionMs,
+            toolRounds,
+            toolCalls,
+          };
+        }
+        messages.push({
+          role: 'system',
+          content: 'The submitted workflow plan contained no assignments. Submit a non-empty plan covering every supplied goal.',
+        });
+        continue;
+      }
       const executableCalls = decision.toolCalls.filter(candidate => (
         (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) !== FINISH_PROJECT_TURN
       ));
@@ -956,9 +1115,11 @@ Always be helpful, thorough, and provide clear explanations.`;
         const response = typeof finish.response === 'string' ? finish.response.trim() : '';
         const requiresChanges = finish.requestRequiresWorkspaceChanges === true;
         const outcome = String(finish.outcome ?? '');
+        const completionRecord = finish.completionRecord && typeof finish.completionRecord === 'object' && !Array.isArray(finish.completionRecord)
+          ? finish.completionRecord as Record<string, unknown>
+          : undefined;
         if (!recoverableErrorRetryRequested && this.hasRecoverableToolError(messages)) {
           recoverableErrorRetryRequested = true;
-          executionRequired = true;
           messages.push({
             role: 'system',
             content: [
@@ -970,7 +1131,6 @@ Always be helpful, thorough, and provide clear explanations.`;
           continue;
         }
         if (requiresChanges && successfulMutations === 0) {
-          executionRequired = true;
           messages.push({
             role: 'system',
             content: [
@@ -988,7 +1148,7 @@ Always be helpful, thorough, and provide clear explanations.`;
           continue;
         }
         if (response) {
-          return { inputTokens, outputTokens, model, content: response, selectionMs, executionMs, toolRounds, toolCalls };
+          return { inputTokens, outputTokens, model, content: response, completionRecord, selectionMs, executionMs, toolRounds, toolCalls };
         }
         messages.push({
           role: 'system',
@@ -1020,15 +1180,25 @@ Always be helpful, thorough, and provide clear explanations.`;
       });
       const executionStartedAt = Date.now();
       const execution = await this.appendToolResults(messages, executableCalls, toolSet);
+      this.compactCompletedToolContext(messages, executableCalls);
       executionMs += Date.now() - executionStartedAt;
       toolCalls += executableCalls.length;
       successfulMutations += execution.successfulMutations;
-      executionRequired ||= execution.successfulMutations > 0;
       observedToolFailure ||= execution.failedCount > 0;
       producedToolObservation = true;
+      if (structuredAgentLoop && execution.invalidArgumentsCount > 0) {
+        messages.push({
+          role: 'system',
+          content: [
+            'The preceding tool call was not executed because its arguments were invalid.',
+            'Retry the tool with one valid JSON object matching its schema. Do not wrap the arguments in an input string.',
+            'For large files, keep each file focused and use separate fs.write calls rather than one oversized tool call that may be truncated.',
+          ].join('\n'),
+        });
+        continue;
+      }
       if (structuredAgentLoop && execution.failedCount > 0 && !recoverableErrorRetryRequested && this.hasRecoverableCommandError(messages)) {
         recoverableErrorRetryRequested = true;
-        executionRequired = true;
         messages.push({
           role: 'system',
           content: [
@@ -1143,6 +1313,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       'A successful directory-list observation with zero entries proves that the directory exists and is empty; a missing or inaccessible directory would produce an error observation.',
       'Attribute a filesystem result only to the exact resolved path reported by the tool. Never describe a different requested path using an observation from the workspace root or another location.',
       'Do not speculate about permissions, failures, or possible causes unless a tool observation explicitly reports them.',
+      'For HTTP observations, keep transport reachability separate from route validity. If the server returned any HTTP status, including 404 or another 4xx/5xx response, the server was reached. Describe the route error separately.',
     ].join('\n');
 
     if (observations.length === 0) {
@@ -1372,12 +1543,19 @@ Always be helpful, thorough, and provide clear explanations.`;
     let executedCount = 0;
     let successfulMutations = 0;
     let failedCount = 0;
+    let invalidArgumentsCount = 0;
     for (const toolCall of toolCalls) {
       const requestedName = toolCall.function.name;
       const toolName = toolSet.nameMap.get(requestedName) ?? requestedName;
-      const args = this.parseToolArguments(toolCall.function.arguments);
 
       try {
+        const args = this.parseToolArguments(toolCall.function.arguments);
+        if (COMPACTED_TOOL_ARGUMENT_MARKER.test(toolCall.function.arguments)) {
+          throw new InvalidToolArgumentsError(
+            `Tool ${toolName} arguments contain internal transcript-compaction metadata. Reconstruct the real argument value instead of copying an omitted-content marker.`,
+          );
+        }
+        this.validateToolArguments(toolName, args, toolSet.toolsByName.get(toolName));
         if (toolName === SEARCH_TOOLS) {
           const discovered = this.discoverDeferredTools(toolSet, String(args.query ?? ''), args.limit);
           for (const tool of discovered) {
@@ -1418,6 +1596,9 @@ Always be helpful, thorough, and provide clear explanations.`;
         });
       } catch (error) {
         failedCount += 1;
+        if (error instanceof InvalidToolArgumentsError) {
+          invalidArgumentsCount += 1;
+        }
         messages.push({
           role: 'tool',
           tool_call_id: toolCall.id,
@@ -1428,7 +1609,72 @@ Always be helpful, thorough, and provide clear explanations.`;
       }
     }
 
-    return { executedCount, successfulMutations, failedCount };
+    return { executedCount, successfulMutations, failedCount, invalidArgumentsCount };
+  }
+
+  /**
+   * Completed tool payloads are observations, not durable file storage. Keeping
+   * an entire fs.write body in every subsequent model request causes a worker
+   * that creates several files to exhaust a local model's context window. Keep
+   * identifiers, paths, compact arguments, and bounded results so later rounds
+   * can reason about what happened without resending complete source files.
+   */
+  private compactCompletedToolContext(
+    messages: OpenAiChatMessage[],
+    completedCalls: OpenAiToolCall[],
+  ): void {
+    const completedIds = new Set(completedCalls.map(call => call.id));
+    for (const message of messages) {
+      if (message.role === 'assistant' && message.tool_calls) {
+        message.tool_calls = message.tool_calls.map(call => {
+          if (!completedIds.has(call.id)) {
+            return call;
+          }
+          return {
+            ...call,
+            function: {
+              ...call.function,
+              arguments: this.compactToolArguments(call.function.arguments),
+            },
+          };
+        });
+      }
+      if (message.role === 'tool' && message.tool_call_id && completedIds.has(message.tool_call_id)) {
+        const content = this.chatContentToText(message.content);
+        if (content.length > MAX_COMPLETED_TOOL_RESULT_CHARS) {
+          message.content = `${content.slice(0, MAX_COMPLETED_TOOL_RESULT_CHARS)}\n[tool result truncated after execution]`;
+        }
+      }
+    }
+  }
+
+  private compactToolArguments(argumentsJson: string): string {
+    try {
+      const compactValue = (value: unknown, key = ''): unknown => {
+        if (typeof value === 'string') {
+          if (value.length <= MAX_COMPLETED_TOOL_ARGUMENT_STRING_CHARS) {
+            return value;
+          }
+          const label = /content|body|text|source|patch/i.test(key)
+            ? 'content omitted after successful tool execution'
+            : 'value truncated after tool execution';
+          return `[${label}; ${value.length} characters]`;
+        }
+        if (Array.isArray(value)) {
+          return value.map(item => compactValue(item));
+        }
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+            .map(([childKey, childValue]) => [childKey, compactValue(childValue, childKey)]));
+        }
+        return value;
+      };
+      return JSON.stringify(compactValue(JSON.parse(argumentsJson)));
+    } catch {
+      return argumentsJson.length <= MAX_COMPLETED_TOOL_ARGUMENT_STRING_CHARS
+        ? argumentsJson
+        : JSON.stringify({ summary: `Tool arguments omitted after execution; ${argumentsJson.length} characters` });
+    }
   }
 
   private normalizeOpenAiToolCalls(value: unknown): OpenAiToolCall[] {
@@ -1493,11 +1739,25 @@ Always be helpful, thorough, and provide clear explanations.`;
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
         return parsed;
       }
-    } catch {
-      // Fall through to a raw argument payload for models that stream malformed JSON.
+    } catch (error) {
+      throw new InvalidToolArgumentsError(
+        `Tool arguments are not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
-    return { input: rawArguments };
+    throw new InvalidToolArgumentsError('Tool arguments must be a JSON object.');
+  }
+
+  private validateToolArguments(toolName: string, args: Record<string, any>, tool: Tool | undefined): void {
+    const required = Array.isArray(tool?.inputSchema?.required) ? tool.inputSchema.required : [];
+    for (const field of required) {
+      const value = args[String(field)];
+      if (value === undefined || value === null || (typeof value === 'string' && !value.trim())) {
+        throw new InvalidToolArgumentsError(
+          `Tool ${toolName} is missing required argument "${String(field)}". Retry with arguments matching the tool schema.`,
+        );
+      }
+    }
   }
 
   private stringifyToolResult(result: unknown): string {
@@ -1596,7 +1856,12 @@ Always be helpful, thorough, and provide clear explanations.`;
     }
 
     const workspacePath = path.resolve(request.toolScope.workspacePath);
-    const candidates = this.chatContentToText(latestUserMessage.content)
+    // URL paths are application routes, not local filesystem paths. Remove HTTP(S)
+    // URLs before applying the absolute-path scope guard so project chat can probe
+    // endpoints such as http://127.0.0.1:14321/v1 without treating /v1 as a file.
+    const pathInspectionText = this.chatContentToText(latestUserMessage.content)
+      .replace(/\bhttps?:\/\/[^\s<>"'`]+/gi, ' ');
+    const candidates = pathInspectionText
       .match(/\/(?:[^/\s"'`<>|?*]+\/?)+/g) ?? [];
     for (const candidate of candidates) {
       const requestedPath = candidate.replace(/[.,;:!\])}]+$/g, '');

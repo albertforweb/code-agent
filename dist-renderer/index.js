@@ -2387,9 +2387,9 @@
           if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
             __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
           }
-          var React3 = require_react();
+          var React2 = require_react();
           var Scheduler = require_scheduler();
-          var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+          var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
           var suppressWarning = false;
           function setSuppressWarning(newSuppressWarning) {
             {
@@ -3996,7 +3996,7 @@
             {
               if (props.value == null) {
                 if (typeof props.children === "object" && props.children !== null) {
-                  React3.Children.forEach(props.children, function(child) {
+                  React2.Children.forEach(props.children, function(child) {
                     if (child == null) {
                       return;
                     }
@@ -23585,6 +23585,1936 @@
     }
   });
 
+  // node_modules/semver/internal/constants.js
+  var require_constants = __commonJS({
+    "node_modules/semver/internal/constants.js"(exports, module) {
+      "use strict";
+      var SEMVER_SPEC_VERSION = "2.0.0";
+      var MAX_LENGTH = 256;
+      var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
+      9007199254740991;
+      var MAX_SAFE_COMPONENT_LENGTH = 16;
+      var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
+      var RELEASE_TYPES = [
+        "major",
+        "premajor",
+        "minor",
+        "preminor",
+        "patch",
+        "prepatch",
+        "prerelease"
+      ];
+      module.exports = {
+        MAX_LENGTH,
+        MAX_SAFE_COMPONENT_LENGTH,
+        MAX_SAFE_BUILD_LENGTH,
+        MAX_SAFE_INTEGER,
+        RELEASE_TYPES,
+        SEMVER_SPEC_VERSION,
+        FLAG_INCLUDE_PRERELEASE: 1,
+        FLAG_LOOSE: 2
+      };
+    }
+  });
+
+  // node_modules/semver/internal/debug.js
+  var require_debug = __commonJS({
+    "node_modules/semver/internal/debug.js"(exports, module) {
+      "use strict";
+      var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+      };
+      module.exports = debug;
+    }
+  });
+
+  // node_modules/semver/internal/re.js
+  var require_re = __commonJS({
+    "node_modules/semver/internal/re.js"(exports, module) {
+      "use strict";
+      var {
+        MAX_SAFE_COMPONENT_LENGTH,
+        MAX_SAFE_BUILD_LENGTH,
+        MAX_LENGTH
+      } = require_constants();
+      var debug = require_debug();
+      exports = module.exports = {};
+      var re = exports.re = [];
+      var safeRe = exports.safeRe = [];
+      var src = exports.src = [];
+      var safeSrc = exports.safeSrc = [];
+      var t = exports.t = {};
+      var R = 0;
+      var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+      var safeRegexReplacements = [
+        ["\\s", 1],
+        ["\\d", MAX_LENGTH],
+        [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
+      ];
+      var makeSafeRegex = (value) => {
+        for (const [token, max] of safeRegexReplacements) {
+          value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
+        }
+        return value;
+      };
+      var createToken = (name, value, isGlobal) => {
+        const safe = makeSafeRegex(value);
+        const index = R++;
+        debug(name, index, value);
+        t[name] = index;
+        src[index] = value;
+        safeSrc[index] = safe;
+        re[index] = new RegExp(value, isGlobal ? "g" : void 0);
+        safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
+      };
+      createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
+      createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
+      createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
+      createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
+      createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
+      createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
+      createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIERLOOSE]})`);
+      createToken("PRERELEASE", `(?:-(${src[t.PRERELEASEIDENTIFIER]}(?:\\.${src[t.PRERELEASEIDENTIFIER]})*))`);
+      createToken("PRERELEASELOOSE", `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src[t.PRERELEASEIDENTIFIERLOOSE]})*))`);
+      createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
+      createToken("BUILD", `(?:\\+(${src[t.BUILDIDENTIFIER]}(?:\\.${src[t.BUILDIDENTIFIER]})*))`);
+      createToken("FULLPLAIN", `v?${src[t.MAINVERSION]}${src[t.PRERELEASE]}?${src[t.BUILD]}?`);
+      createToken("FULL", `^${src[t.FULLPLAIN]}$`);
+      createToken("LOOSEPLAIN", `[v=\\s]*${src[t.MAINVERSIONLOOSE]}${src[t.PRERELEASELOOSE]}?${src[t.BUILD]}?`);
+      createToken("LOOSE", `^${src[t.LOOSEPLAIN]}$`);
+      createToken("GTLT", "((?:<|>)?=?)");
+      createToken("XRANGEIDENTIFIERLOOSE", `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`);
+      createToken("XRANGEIDENTIFIER", `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`);
+      createToken("XRANGEPLAIN", `[v=\\s]*(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:${src[t.PRERELEASE]})?${src[t.BUILD]}?)?)?`);
+      createToken("XRANGEPLAINLOOSE", `[v=\\s]*(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:${src[t.PRERELEASELOOSE]})?${src[t.BUILD]}?)?)?`);
+      createToken("XRANGE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAIN]}$`);
+      createToken("XRANGELOOSE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`);
+      createToken("COERCEPLAIN", `${"(^|[^\\d])(\\d{1,"}${MAX_SAFE_COMPONENT_LENGTH}})(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`);
+      createToken("COERCE", `${src[t.COERCEPLAIN]}(?:$|[^\\d])`);
+      createToken("COERCEFULL", src[t.COERCEPLAIN] + `(?:${src[t.PRERELEASE]})?(?:${src[t.BUILD]})?(?:$|[^\\d])`);
+      createToken("COERCERTL", src[t.COERCE], true);
+      createToken("COERCERTLFULL", src[t.COERCEFULL], true);
+      createToken("LONETILDE", "(?:~>?)");
+      createToken("TILDETRIM", `(\\s*)${src[t.LONETILDE]}\\s+`, true);
+      exports.tildeTrimReplace = "$1~";
+      createToken("TILDE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAIN]}$`);
+      createToken("TILDELOOSE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAINLOOSE]}$`);
+      createToken("LONECARET", "(?:\\^)");
+      createToken("CARETTRIM", `(\\s*)${src[t.LONECARET]}\\s+`, true);
+      exports.caretTrimReplace = "$1^";
+      createToken("CARET", `^${src[t.LONECARET]}${src[t.XRANGEPLAIN]}$`);
+      createToken("CARETLOOSE", `^${src[t.LONECARET]}${src[t.XRANGEPLAINLOOSE]}$`);
+      createToken("COMPARATORLOOSE", `^${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]})$|^$`);
+      createToken("COMPARATOR", `^${src[t.GTLT]}\\s*(${src[t.FULLPLAIN]})$|^$`);
+      createToken("COMPARATORTRIM", `(\\s*)${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]}|${src[t.XRANGEPLAIN]})`, true);
+      exports.comparatorTrimReplace = "$1$2$3";
+      createToken("HYPHENRANGE", `^\\s*(${src[t.XRANGEPLAIN]})\\s+-\\s+(${src[t.XRANGEPLAIN]})\\s*$`);
+      createToken("HYPHENRANGELOOSE", `^\\s*(${src[t.XRANGEPLAINLOOSE]})\\s+-\\s+(${src[t.XRANGEPLAINLOOSE]})\\s*$`);
+      createToken("STAR", "(<|>)?=?\\s*\\*");
+      createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
+      createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
+    }
+  });
+
+  // node_modules/semver/internal/parse-options.js
+  var require_parse_options = __commonJS({
+    "node_modules/semver/internal/parse-options.js"(exports, module) {
+      "use strict";
+      var looseOption = Object.freeze({ loose: true });
+      var emptyOpts = Object.freeze({});
+      var parseOptions = (options) => {
+        if (!options) {
+          return emptyOpts;
+        }
+        if (typeof options !== "object") {
+          return looseOption;
+        }
+        return options;
+      };
+      module.exports = parseOptions;
+    }
+  });
+
+  // node_modules/semver/internal/identifiers.js
+  var require_identifiers = __commonJS({
+    "node_modules/semver/internal/identifiers.js"(exports, module) {
+      "use strict";
+      var numeric = /^[0-9]+$/;
+      var compareIdentifiers = (a, b) => {
+        if (typeof a === "number" && typeof b === "number") {
+          return a === b ? 0 : a < b ? -1 : 1;
+        }
+        const anum = numeric.test(a);
+        const bnum = numeric.test(b);
+        if (anum && bnum) {
+          a = +a;
+          b = +b;
+        }
+        return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
+      };
+      var rcompareIdentifiers = (a, b) => compareIdentifiers(b, a);
+      module.exports = {
+        compareIdentifiers,
+        rcompareIdentifiers
+      };
+    }
+  });
+
+  // node_modules/semver/classes/semver.js
+  var require_semver = __commonJS({
+    "node_modules/semver/classes/semver.js"(exports, module) {
+      "use strict";
+      var debug = require_debug();
+      var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
+      var { safeRe: re, t } = require_re();
+      var parseOptions = require_parse_options();
+      var { compareIdentifiers } = require_identifiers();
+      var SemVer = class _SemVer {
+        constructor(version2, options) {
+          options = parseOptions(options);
+          if (version2 instanceof _SemVer) {
+            if (version2.loose === !!options.loose && version2.includePrerelease === !!options.includePrerelease) {
+              return version2;
+            } else {
+              version2 = version2.version;
+            }
+          } else if (typeof version2 !== "string") {
+            throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version2}".`);
+          }
+          if (version2.length > MAX_LENGTH) {
+            throw new TypeError(
+              `version is longer than ${MAX_LENGTH} characters`
+            );
+          }
+          debug("SemVer", version2, options);
+          this.options = options;
+          this.loose = !!options.loose;
+          this.includePrerelease = !!options.includePrerelease;
+          const m = version2.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
+          if (!m) {
+            throw new TypeError(`Invalid Version: ${version2}`);
+          }
+          this.raw = version2;
+          this.major = +m[1];
+          this.minor = +m[2];
+          this.patch = +m[3];
+          if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+            throw new TypeError("Invalid major version");
+          }
+          if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+            throw new TypeError("Invalid minor version");
+          }
+          if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+            throw new TypeError("Invalid patch version");
+          }
+          if (!m[4]) {
+            this.prerelease = [];
+          } else {
+            this.prerelease = m[4].split(".").map((id) => {
+              if (/^[0-9]+$/.test(id)) {
+                const num = +id;
+                if (num >= 0 && num < MAX_SAFE_INTEGER) {
+                  return num;
+                }
+              }
+              return id;
+            });
+          }
+          this.build = m[5] ? m[5].split(".") : [];
+          this.format();
+        }
+        format() {
+          this.version = `${this.major}.${this.minor}.${this.patch}`;
+          if (this.prerelease.length) {
+            this.version += `-${this.prerelease.join(".")}`;
+          }
+          return this.version;
+        }
+        toString() {
+          return this.version;
+        }
+        compare(other) {
+          debug("SemVer.compare", this.version, this.options, other);
+          if (!(other instanceof _SemVer)) {
+            if (typeof other === "string" && other === this.version) {
+              return 0;
+            }
+            other = new _SemVer(other, this.options);
+          }
+          if (other.version === this.version) {
+            return 0;
+          }
+          return this.compareMain(other) || this.comparePre(other);
+        }
+        compareMain(other) {
+          if (!(other instanceof _SemVer)) {
+            other = new _SemVer(other, this.options);
+          }
+          if (this.major < other.major) {
+            return -1;
+          }
+          if (this.major > other.major) {
+            return 1;
+          }
+          if (this.minor < other.minor) {
+            return -1;
+          }
+          if (this.minor > other.minor) {
+            return 1;
+          }
+          if (this.patch < other.patch) {
+            return -1;
+          }
+          if (this.patch > other.patch) {
+            return 1;
+          }
+          return 0;
+        }
+        comparePre(other) {
+          if (!(other instanceof _SemVer)) {
+            other = new _SemVer(other, this.options);
+          }
+          if (this.prerelease.length && !other.prerelease.length) {
+            return -1;
+          } else if (!this.prerelease.length && other.prerelease.length) {
+            return 1;
+          } else if (!this.prerelease.length && !other.prerelease.length) {
+            return 0;
+          }
+          let i = 0;
+          do {
+            const a = this.prerelease[i];
+            const b = other.prerelease[i];
+            debug("prerelease compare", i, a, b);
+            if (a === void 0 && b === void 0) {
+              return 0;
+            } else if (b === void 0) {
+              return 1;
+            } else if (a === void 0) {
+              return -1;
+            } else if (a === b) {
+              continue;
+            } else {
+              return compareIdentifiers(a, b);
+            }
+          } while (++i);
+        }
+        compareBuild(other) {
+          if (!(other instanceof _SemVer)) {
+            other = new _SemVer(other, this.options);
+          }
+          let i = 0;
+          do {
+            const a = this.build[i];
+            const b = other.build[i];
+            debug("build compare", i, a, b);
+            if (a === void 0 && b === void 0) {
+              return 0;
+            } else if (b === void 0) {
+              return 1;
+            } else if (a === void 0) {
+              return -1;
+            } else if (a === b) {
+              continue;
+            } else {
+              return compareIdentifiers(a, b);
+            }
+          } while (++i);
+        }
+        // preminor will bump the version up to the next minor release, and immediately
+        // down to pre-release. premajor and prepatch work the same way.
+        inc(release, identifier, identifierBase) {
+          if (release.startsWith("pre")) {
+            if (!identifier && identifierBase === false) {
+              throw new Error("invalid increment argument: identifier is empty");
+            }
+            if (identifier) {
+              const match = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
+              if (!match || match[1] !== identifier) {
+                throw new Error(`invalid identifier: ${identifier}`);
+              }
+            }
+          }
+          switch (release) {
+            case "premajor":
+              this.prerelease.length = 0;
+              this.patch = 0;
+              this.minor = 0;
+              this.major++;
+              this.inc("pre", identifier, identifierBase);
+              break;
+            case "preminor":
+              this.prerelease.length = 0;
+              this.patch = 0;
+              this.minor++;
+              this.inc("pre", identifier, identifierBase);
+              break;
+            case "prepatch":
+              this.prerelease.length = 0;
+              this.inc("patch", identifier, identifierBase);
+              this.inc("pre", identifier, identifierBase);
+              break;
+            // If the input is a non-prerelease version, this acts the same as
+            // prepatch.
+            case "prerelease":
+              if (this.prerelease.length === 0) {
+                this.inc("patch", identifier, identifierBase);
+              }
+              this.inc("pre", identifier, identifierBase);
+              break;
+            case "release":
+              if (this.prerelease.length === 0) {
+                throw new Error(`version ${this.raw} is not a prerelease`);
+              }
+              this.prerelease.length = 0;
+              break;
+            case "major":
+              if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
+                this.major++;
+              }
+              this.minor = 0;
+              this.patch = 0;
+              this.prerelease = [];
+              break;
+            case "minor":
+              if (this.patch !== 0 || this.prerelease.length === 0) {
+                this.minor++;
+              }
+              this.patch = 0;
+              this.prerelease = [];
+              break;
+            case "patch":
+              if (this.prerelease.length === 0) {
+                this.patch++;
+              }
+              this.prerelease = [];
+              break;
+            // This probably shouldn't be used publicly.
+            // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
+            case "pre": {
+              const base = Number(identifierBase) ? 1 : 0;
+              if (this.prerelease.length === 0) {
+                this.prerelease = [base];
+              } else {
+                let i = this.prerelease.length;
+                while (--i >= 0) {
+                  if (typeof this.prerelease[i] === "number") {
+                    this.prerelease[i]++;
+                    i = -2;
+                  }
+                }
+                if (i === -1) {
+                  if (identifier === this.prerelease.join(".") && identifierBase === false) {
+                    throw new Error("invalid increment argument: identifier already exists");
+                  }
+                  this.prerelease.push(base);
+                }
+              }
+              if (identifier) {
+                let prerelease = [identifier, base];
+                if (identifierBase === false) {
+                  prerelease = [identifier];
+                }
+                if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
+                  if (isNaN(this.prerelease[1])) {
+                    this.prerelease = prerelease;
+                  }
+                } else {
+                  this.prerelease = prerelease;
+                }
+              }
+              break;
+            }
+            default:
+              throw new Error(`invalid increment argument: ${release}`);
+          }
+          this.raw = this.format();
+          if (this.build.length) {
+            this.raw += `+${this.build.join(".")}`;
+          }
+          return this;
+        }
+      };
+      module.exports = SemVer;
+    }
+  });
+
+  // node_modules/semver/functions/parse.js
+  var require_parse = __commonJS({
+    "node_modules/semver/functions/parse.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var parse = (version2, options, throwErrors = false) => {
+        if (version2 instanceof SemVer) {
+          return version2;
+        }
+        try {
+          return new SemVer(version2, options);
+        } catch (er) {
+          if (!throwErrors) {
+            return null;
+          }
+          throw er;
+        }
+      };
+      module.exports = parse;
+    }
+  });
+
+  // node_modules/semver/functions/valid.js
+  var require_valid = __commonJS({
+    "node_modules/semver/functions/valid.js"(exports, module) {
+      "use strict";
+      var parse = require_parse();
+      var valid = (version2, options) => {
+        const v = parse(version2, options);
+        return v ? v.version : null;
+      };
+      module.exports = valid;
+    }
+  });
+
+  // node_modules/semver/functions/clean.js
+  var require_clean = __commonJS({
+    "node_modules/semver/functions/clean.js"(exports, module) {
+      "use strict";
+      var parse = require_parse();
+      var clean = (version2, options) => {
+        const s = parse(version2.trim().replace(/^[=v]+/, ""), options);
+        return s ? s.version : null;
+      };
+      module.exports = clean;
+    }
+  });
+
+  // node_modules/semver/functions/inc.js
+  var require_inc = __commonJS({
+    "node_modules/semver/functions/inc.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var inc = (version2, release, options, identifier, identifierBase) => {
+        if (typeof options === "string") {
+          identifierBase = identifier;
+          identifier = options;
+          options = void 0;
+        }
+        try {
+          return new SemVer(
+            version2 instanceof SemVer ? version2.version : version2,
+            options
+          ).inc(release, identifier, identifierBase).version;
+        } catch (er) {
+          return null;
+        }
+      };
+      module.exports = inc;
+    }
+  });
+
+  // node_modules/semver/functions/diff.js
+  var require_diff = __commonJS({
+    "node_modules/semver/functions/diff.js"(exports, module) {
+      "use strict";
+      var parse = require_parse();
+      var diff = (version1, version2) => {
+        const v1 = parse(version1, null, true);
+        const v2 = parse(version2, null, true);
+        const comparison = v1.compare(v2);
+        if (comparison === 0) {
+          return null;
+        }
+        const v1Higher = comparison > 0;
+        const highVersion = v1Higher ? v1 : v2;
+        const lowVersion = v1Higher ? v2 : v1;
+        const highHasPre = !!highVersion.prerelease.length;
+        const lowHasPre = !!lowVersion.prerelease.length;
+        if (lowHasPre && !highHasPre) {
+          if (!lowVersion.patch && !lowVersion.minor) {
+            return "major";
+          }
+          if (lowVersion.compareMain(highVersion) === 0) {
+            if (lowVersion.minor && !lowVersion.patch) {
+              return "minor";
+            }
+            return "patch";
+          }
+        }
+        const prefix = highHasPre ? "pre" : "";
+        if (v1.major !== v2.major) {
+          return prefix + "major";
+        }
+        if (v1.minor !== v2.minor) {
+          return prefix + "minor";
+        }
+        if (v1.patch !== v2.patch) {
+          return prefix + "patch";
+        }
+        return "prerelease";
+      };
+      module.exports = diff;
+    }
+  });
+
+  // node_modules/semver/functions/major.js
+  var require_major = __commonJS({
+    "node_modules/semver/functions/major.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var major = (a, loose) => new SemVer(a, loose).major;
+      module.exports = major;
+    }
+  });
+
+  // node_modules/semver/functions/minor.js
+  var require_minor = __commonJS({
+    "node_modules/semver/functions/minor.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var minor = (a, loose) => new SemVer(a, loose).minor;
+      module.exports = minor;
+    }
+  });
+
+  // node_modules/semver/functions/patch.js
+  var require_patch = __commonJS({
+    "node_modules/semver/functions/patch.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var patch = (a, loose) => new SemVer(a, loose).patch;
+      module.exports = patch;
+    }
+  });
+
+  // node_modules/semver/functions/prerelease.js
+  var require_prerelease = __commonJS({
+    "node_modules/semver/functions/prerelease.js"(exports, module) {
+      "use strict";
+      var parse = require_parse();
+      var prerelease = (version2, options) => {
+        const parsed = parse(version2, options);
+        return parsed && parsed.prerelease.length ? parsed.prerelease : null;
+      };
+      module.exports = prerelease;
+    }
+  });
+
+  // node_modules/semver/functions/compare.js
+  var require_compare = __commonJS({
+    "node_modules/semver/functions/compare.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
+      module.exports = compare;
+    }
+  });
+
+  // node_modules/semver/functions/rcompare.js
+  var require_rcompare = __commonJS({
+    "node_modules/semver/functions/rcompare.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var rcompare = (a, b, loose) => compare(b, a, loose);
+      module.exports = rcompare;
+    }
+  });
+
+  // node_modules/semver/functions/compare-loose.js
+  var require_compare_loose = __commonJS({
+    "node_modules/semver/functions/compare-loose.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var compareLoose = (a, b) => compare(a, b, true);
+      module.exports = compareLoose;
+    }
+  });
+
+  // node_modules/semver/functions/compare-build.js
+  var require_compare_build = __commonJS({
+    "node_modules/semver/functions/compare-build.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var compareBuild = (a, b, loose) => {
+        const versionA = new SemVer(a, loose);
+        const versionB = new SemVer(b, loose);
+        return versionA.compare(versionB) || versionA.compareBuild(versionB);
+      };
+      module.exports = compareBuild;
+    }
+  });
+
+  // node_modules/semver/functions/sort.js
+  var require_sort = __commonJS({
+    "node_modules/semver/functions/sort.js"(exports, module) {
+      "use strict";
+      var compareBuild = require_compare_build();
+      var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
+      module.exports = sort;
+    }
+  });
+
+  // node_modules/semver/functions/rsort.js
+  var require_rsort = __commonJS({
+    "node_modules/semver/functions/rsort.js"(exports, module) {
+      "use strict";
+      var compareBuild = require_compare_build();
+      var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
+      module.exports = rsort;
+    }
+  });
+
+  // node_modules/semver/functions/gt.js
+  var require_gt = __commonJS({
+    "node_modules/semver/functions/gt.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var gt = (a, b, loose) => compare(a, b, loose) > 0;
+      module.exports = gt;
+    }
+  });
+
+  // node_modules/semver/functions/lt.js
+  var require_lt = __commonJS({
+    "node_modules/semver/functions/lt.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var lt = (a, b, loose) => compare(a, b, loose) < 0;
+      module.exports = lt;
+    }
+  });
+
+  // node_modules/semver/functions/eq.js
+  var require_eq = __commonJS({
+    "node_modules/semver/functions/eq.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var eq = (a, b, loose) => compare(a, b, loose) === 0;
+      module.exports = eq;
+    }
+  });
+
+  // node_modules/semver/functions/neq.js
+  var require_neq = __commonJS({
+    "node_modules/semver/functions/neq.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var neq = (a, b, loose) => compare(a, b, loose) !== 0;
+      module.exports = neq;
+    }
+  });
+
+  // node_modules/semver/functions/gte.js
+  var require_gte = __commonJS({
+    "node_modules/semver/functions/gte.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var gte = (a, b, loose) => compare(a, b, loose) >= 0;
+      module.exports = gte;
+    }
+  });
+
+  // node_modules/semver/functions/lte.js
+  var require_lte = __commonJS({
+    "node_modules/semver/functions/lte.js"(exports, module) {
+      "use strict";
+      var compare = require_compare();
+      var lte = (a, b, loose) => compare(a, b, loose) <= 0;
+      module.exports = lte;
+    }
+  });
+
+  // node_modules/semver/functions/cmp.js
+  var require_cmp = __commonJS({
+    "node_modules/semver/functions/cmp.js"(exports, module) {
+      "use strict";
+      var eq = require_eq();
+      var neq = require_neq();
+      var gt = require_gt();
+      var gte = require_gte();
+      var lt = require_lt();
+      var lte = require_lte();
+      var cmp = (a, op, b, loose) => {
+        switch (op) {
+          case "===":
+            if (typeof a === "object") {
+              a = a.version;
+            }
+            if (typeof b === "object") {
+              b = b.version;
+            }
+            return a === b;
+          case "!==":
+            if (typeof a === "object") {
+              a = a.version;
+            }
+            if (typeof b === "object") {
+              b = b.version;
+            }
+            return a !== b;
+          case "":
+          case "=":
+          case "==":
+            return eq(a, b, loose);
+          case "!=":
+            return neq(a, b, loose);
+          case ">":
+            return gt(a, b, loose);
+          case ">=":
+            return gte(a, b, loose);
+          case "<":
+            return lt(a, b, loose);
+          case "<=":
+            return lte(a, b, loose);
+          default:
+            throw new TypeError(`Invalid operator: ${op}`);
+        }
+      };
+      module.exports = cmp;
+    }
+  });
+
+  // node_modules/semver/functions/coerce.js
+  var require_coerce = __commonJS({
+    "node_modules/semver/functions/coerce.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var parse = require_parse();
+      var { safeRe: re, t } = require_re();
+      var coerce = (version2, options) => {
+        if (version2 instanceof SemVer) {
+          return version2;
+        }
+        if (typeof version2 === "number") {
+          version2 = String(version2);
+        }
+        if (typeof version2 !== "string") {
+          return null;
+        }
+        options = options || {};
+        let match = null;
+        if (!options.rtl) {
+          match = version2.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+        } else {
+          const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
+          let next;
+          while ((next = coerceRtlRegex.exec(version2)) && (!match || match.index + match[0].length !== version2.length)) {
+            if (!match || next.index + next[0].length !== match.index + match[0].length) {
+              match = next;
+            }
+            coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length;
+          }
+          coerceRtlRegex.lastIndex = -1;
+        }
+        if (match === null) {
+          return null;
+        }
+        const major = match[2];
+        const minor = match[3] || "0";
+        const patch = match[4] || "0";
+        const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : "";
+        const build = options.includePrerelease && match[6] ? `+${match[6]}` : "";
+        return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options);
+      };
+      module.exports = coerce;
+    }
+  });
+
+  // node_modules/semver/internal/lrucache.js
+  var require_lrucache = __commonJS({
+    "node_modules/semver/internal/lrucache.js"(exports, module) {
+      "use strict";
+      var LRUCache = class {
+        constructor() {
+          this.max = 1e3;
+          this.map = /* @__PURE__ */ new Map();
+        }
+        get(key) {
+          const value = this.map.get(key);
+          if (value === void 0) {
+            return void 0;
+          } else {
+            this.map.delete(key);
+            this.map.set(key, value);
+            return value;
+          }
+        }
+        delete(key) {
+          return this.map.delete(key);
+        }
+        set(key, value) {
+          const deleted = this.delete(key);
+          if (!deleted && value !== void 0) {
+            if (this.map.size >= this.max) {
+              const firstKey = this.map.keys().next().value;
+              this.delete(firstKey);
+            }
+            this.map.set(key, value);
+          }
+          return this;
+        }
+      };
+      module.exports = LRUCache;
+    }
+  });
+
+  // node_modules/semver/classes/range.js
+  var require_range = __commonJS({
+    "node_modules/semver/classes/range.js"(exports, module) {
+      "use strict";
+      var SPACE_CHARACTERS = /\s+/g;
+      var Range = class _Range {
+        constructor(range, options) {
+          options = parseOptions(options);
+          if (range instanceof _Range) {
+            if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) {
+              return range;
+            } else {
+              return new _Range(range.raw, options);
+            }
+          }
+          if (range instanceof Comparator) {
+            this.raw = range.value;
+            this.set = [[range]];
+            this.formatted = void 0;
+            return this;
+          }
+          this.options = options;
+          this.loose = !!options.loose;
+          this.includePrerelease = !!options.includePrerelease;
+          this.raw = range.trim().replace(SPACE_CHARACTERS, " ");
+          this.set = this.raw.split("||").map((r) => this.parseRange(r.trim())).filter((c) => c.length);
+          if (!this.set.length) {
+            throw new TypeError(`Invalid SemVer Range: ${this.raw}`);
+          }
+          if (this.set.length > 1) {
+            const first = this.set[0];
+            this.set = this.set.filter((c) => !isNullSet(c[0]));
+            if (this.set.length === 0) {
+              this.set = [first];
+            } else if (this.set.length > 1) {
+              for (const c of this.set) {
+                if (c.length === 1 && isAny(c[0])) {
+                  this.set = [c];
+                  break;
+                }
+              }
+            }
+          }
+          this.formatted = void 0;
+        }
+        get range() {
+          if (this.formatted === void 0) {
+            this.formatted = "";
+            for (let i = 0; i < this.set.length; i++) {
+              if (i > 0) {
+                this.formatted += "||";
+              }
+              const comps = this.set[i];
+              for (let k = 0; k < comps.length; k++) {
+                if (k > 0) {
+                  this.formatted += " ";
+                }
+                this.formatted += comps[k].toString().trim();
+              }
+            }
+          }
+          return this.formatted;
+        }
+        format() {
+          return this.range;
+        }
+        toString() {
+          return this.range;
+        }
+        parseRange(range) {
+          const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
+          const memoKey = memoOpts + ":" + range;
+          const cached = cache.get(memoKey);
+          if (cached) {
+            return cached;
+          }
+          const loose = this.options.loose;
+          const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
+          range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
+          debug("hyphen replace", range);
+          range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
+          debug("comparator trim", range);
+          range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
+          debug("tilde trim", range);
+          range = range.replace(re[t.CARETTRIM], caretTrimReplace);
+          debug("caret trim", range);
+          let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
+          if (loose) {
+            rangeList = rangeList.filter((comp) => {
+              debug("loose invalid filter", comp, this.options);
+              return !!comp.match(re[t.COMPARATORLOOSE]);
+            });
+          }
+          debug("range list", rangeList);
+          const rangeMap = /* @__PURE__ */ new Map();
+          const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
+          for (const comp of comparators) {
+            if (isNullSet(comp)) {
+              return [comp];
+            }
+            rangeMap.set(comp.value, comp);
+          }
+          if (rangeMap.size > 1 && rangeMap.has("")) {
+            rangeMap.delete("");
+          }
+          const result = [...rangeMap.values()];
+          cache.set(memoKey, result);
+          return result;
+        }
+        intersects(range, options) {
+          if (!(range instanceof _Range)) {
+            throw new TypeError("a Range is required");
+          }
+          return this.set.some((thisComparators) => {
+            return isSatisfiable(thisComparators, options) && range.set.some((rangeComparators) => {
+              return isSatisfiable(rangeComparators, options) && thisComparators.every((thisComparator) => {
+                return rangeComparators.every((rangeComparator) => {
+                  return thisComparator.intersects(rangeComparator, options);
+                });
+              });
+            });
+          });
+        }
+        // if ANY of the sets match ALL of its comparators, then pass
+        test(version2) {
+          if (!version2) {
+            return false;
+          }
+          if (typeof version2 === "string") {
+            try {
+              version2 = new SemVer(version2, this.options);
+            } catch (er) {
+              return false;
+            }
+          }
+          for (let i = 0; i < this.set.length; i++) {
+            if (testSet(this.set[i], version2, this.options)) {
+              return true;
+            }
+          }
+          return false;
+        }
+      };
+      module.exports = Range;
+      var LRU = require_lrucache();
+      var cache = new LRU();
+      var parseOptions = require_parse_options();
+      var Comparator = require_comparator();
+      var debug = require_debug();
+      var SemVer = require_semver();
+      var {
+        safeRe: re,
+        t,
+        comparatorTrimReplace,
+        tildeTrimReplace,
+        caretTrimReplace
+      } = require_re();
+      var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
+      var isNullSet = (c) => c.value === "<0.0.0-0";
+      var isAny = (c) => c.value === "";
+      var isSatisfiable = (comparators, options) => {
+        let result = true;
+        const remainingComparators = comparators.slice();
+        let testComparator = remainingComparators.pop();
+        while (result && remainingComparators.length) {
+          result = remainingComparators.every((otherComparator) => {
+            return testComparator.intersects(otherComparator, options);
+          });
+          testComparator = remainingComparators.pop();
+        }
+        return result;
+      };
+      var parseComparator = (comp, options) => {
+        comp = comp.replace(re[t.BUILD], "");
+        debug("comp", comp, options);
+        comp = replaceCarets(comp, options);
+        debug("caret", comp);
+        comp = replaceTildes(comp, options);
+        debug("tildes", comp);
+        comp = replaceXRanges(comp, options);
+        debug("xrange", comp);
+        comp = replaceStars(comp, options);
+        debug("stars", comp);
+        return comp;
+      };
+      var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
+      var replaceTildes = (comp, options) => {
+        return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options)).join(" ");
+      };
+      var replaceTilde = (comp, options) => {
+        const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE];
+        return comp.replace(r, (_, M, m, p, pr) => {
+          debug("tilde", comp, _, M, m, p, pr);
+          let ret;
+          if (isX(M)) {
+            ret = "";
+          } else if (isX(m)) {
+            ret = `>=${M}.0.0 <${+M + 1}.0.0-0`;
+          } else if (isX(p)) {
+            ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
+          } else if (pr) {
+            debug("replaceTilde pr", pr);
+            ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+          } else {
+            ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+          }
+          debug("tilde return", ret);
+          return ret;
+        });
+      };
+      var replaceCarets = (comp, options) => {
+        return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options)).join(" ");
+      };
+      var replaceCaret = (comp, options) => {
+        debug("caret", comp, options);
+        const r = options.loose ? re[t.CARETLOOSE] : re[t.CARET];
+        const z = options.includePrerelease ? "-0" : "";
+        return comp.replace(r, (_, M, m, p, pr) => {
+          debug("caret", comp, _, M, m, p, pr);
+          let ret;
+          if (isX(M)) {
+            ret = "";
+          } else if (isX(m)) {
+            ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
+          } else if (isX(p)) {
+            if (M === "0") {
+              ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
+            } else {
+              ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
+            }
+          } else if (pr) {
+            debug("replaceCaret pr", pr);
+            if (M === "0") {
+              if (m === "0") {
+                ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+              } else {
+                ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+              }
+            } else {
+              ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+            }
+          } else {
+            debug("no pr");
+            if (M === "0") {
+              if (m === "0") {
+                ret = `>=${M}.${m}.${p}${z} <${M}.${m}.${+p + 1}-0`;
+              } else {
+                ret = `>=${M}.${m}.${p}${z} <${M}.${+m + 1}.0-0`;
+              }
+            } else {
+              ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
+            }
+          }
+          debug("caret return", ret);
+          return ret;
+        });
+      };
+      var replaceXRanges = (comp, options) => {
+        debug("replaceXRanges", comp, options);
+        return comp.split(/\s+/).map((c) => replaceXRange(c, options)).join(" ");
+      };
+      var replaceXRange = (comp, options) => {
+        comp = comp.trim();
+        const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
+        return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
+          debug("xRange", comp, ret, gtlt, M, m, p, pr);
+          const xM = isX(M);
+          const xm = xM || isX(m);
+          const xp = xm || isX(p);
+          const anyX = xp;
+          if (gtlt === "=" && anyX) {
+            gtlt = "";
+          }
+          pr = options.includePrerelease ? "-0" : "";
+          if (xM) {
+            if (gtlt === ">" || gtlt === "<") {
+              ret = "<0.0.0-0";
+            } else {
+              ret = "*";
+            }
+          } else if (gtlt && anyX) {
+            if (xm) {
+              m = 0;
+            }
+            p = 0;
+            if (gtlt === ">") {
+              gtlt = ">=";
+              if (xm) {
+                M = +M + 1;
+                m = 0;
+                p = 0;
+              } else {
+                m = +m + 1;
+                p = 0;
+              }
+            } else if (gtlt === "<=") {
+              gtlt = "<";
+              if (xm) {
+                M = +M + 1;
+              } else {
+                m = +m + 1;
+              }
+            }
+            if (gtlt === "<") {
+              pr = "-0";
+            }
+            ret = `${gtlt + M}.${m}.${p}${pr}`;
+          } else if (xm) {
+            ret = `>=${M}.0.0${pr} <${+M + 1}.0.0-0`;
+          } else if (xp) {
+            ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
+          }
+          debug("xRange return", ret);
+          return ret;
+        });
+      };
+      var replaceStars = (comp, options) => {
+        debug("replaceStars", comp, options);
+        return comp.trim().replace(re[t.STAR], "");
+      };
+      var replaceGTE0 = (comp, options) => {
+        debug("replaceGTE0", comp, options);
+        return comp.trim().replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], "");
+      };
+      var hyphenReplace = (incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
+        if (isX(fM)) {
+          from = "";
+        } else if (isX(fm)) {
+          from = `>=${fM}.0.0${incPr ? "-0" : ""}`;
+        } else if (isX(fp)) {
+          from = `>=${fM}.${fm}.0${incPr ? "-0" : ""}`;
+        } else if (fpr) {
+          from = `>=${from}`;
+        } else {
+          from = `>=${from}${incPr ? "-0" : ""}`;
+        }
+        if (isX(tM)) {
+          to = "";
+        } else if (isX(tm)) {
+          to = `<${+tM + 1}.0.0-0`;
+        } else if (isX(tp)) {
+          to = `<${tM}.${+tm + 1}.0-0`;
+        } else if (tpr) {
+          to = `<=${tM}.${tm}.${tp}-${tpr}`;
+        } else if (incPr) {
+          to = `<${tM}.${tm}.${+tp + 1}-0`;
+        } else {
+          to = `<=${to}`;
+        }
+        return `${from} ${to}`.trim();
+      };
+      var testSet = (set, version2, options) => {
+        for (let i = 0; i < set.length; i++) {
+          if (!set[i].test(version2)) {
+            return false;
+          }
+        }
+        if (version2.prerelease.length && !options.includePrerelease) {
+          for (let i = 0; i < set.length; i++) {
+            debug(set[i].semver);
+            if (set[i].semver === Comparator.ANY) {
+              continue;
+            }
+            if (set[i].semver.prerelease.length > 0) {
+              const allowed = set[i].semver;
+              if (allowed.major === version2.major && allowed.minor === version2.minor && allowed.patch === version2.patch) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+        return true;
+      };
+    }
+  });
+
+  // node_modules/semver/classes/comparator.js
+  var require_comparator = __commonJS({
+    "node_modules/semver/classes/comparator.js"(exports, module) {
+      "use strict";
+      var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
+      var Comparator = class _Comparator {
+        static get ANY() {
+          return ANY;
+        }
+        constructor(comp, options) {
+          options = parseOptions(options);
+          if (comp instanceof _Comparator) {
+            if (comp.loose === !!options.loose) {
+              return comp;
+            } else {
+              comp = comp.value;
+            }
+          }
+          comp = comp.trim().split(/\s+/).join(" ");
+          debug("comparator", comp, options);
+          this.options = options;
+          this.loose = !!options.loose;
+          this.parse(comp);
+          if (this.semver === ANY) {
+            this.value = "";
+          } else {
+            this.value = this.operator + this.semver.version;
+          }
+          debug("comp", this);
+        }
+        parse(comp) {
+          const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
+          const m = comp.match(r);
+          if (!m) {
+            throw new TypeError(`Invalid comparator: ${comp}`);
+          }
+          this.operator = m[1] !== void 0 ? m[1] : "";
+          if (this.operator === "=") {
+            this.operator = "";
+          }
+          if (!m[2]) {
+            this.semver = ANY;
+          } else {
+            this.semver = new SemVer(m[2], this.options.loose);
+          }
+        }
+        toString() {
+          return this.value;
+        }
+        test(version2) {
+          debug("Comparator.test", version2, this.options.loose);
+          if (this.semver === ANY || version2 === ANY) {
+            return true;
+          }
+          if (typeof version2 === "string") {
+            try {
+              version2 = new SemVer(version2, this.options);
+            } catch (er) {
+              return false;
+            }
+          }
+          return cmp(version2, this.operator, this.semver, this.options);
+        }
+        intersects(comp, options) {
+          if (!(comp instanceof _Comparator)) {
+            throw new TypeError("a Comparator is required");
+          }
+          if (this.operator === "") {
+            if (this.value === "") {
+              return true;
+            }
+            return new Range(comp.value, options).test(this.value);
+          } else if (comp.operator === "") {
+            if (comp.value === "") {
+              return true;
+            }
+            return new Range(this.value, options).test(comp.semver);
+          }
+          options = parseOptions(options);
+          if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
+            return false;
+          }
+          if (!options.includePrerelease && (this.value.startsWith("<0.0.0") || comp.value.startsWith("<0.0.0"))) {
+            return false;
+          }
+          if (this.operator.startsWith(">") && comp.operator.startsWith(">")) {
+            return true;
+          }
+          if (this.operator.startsWith("<") && comp.operator.startsWith("<")) {
+            return true;
+          }
+          if (this.semver.version === comp.semver.version && this.operator.includes("=") && comp.operator.includes("=")) {
+            return true;
+          }
+          if (cmp(this.semver, "<", comp.semver, options) && this.operator.startsWith(">") && comp.operator.startsWith("<")) {
+            return true;
+          }
+          if (cmp(this.semver, ">", comp.semver, options) && this.operator.startsWith("<") && comp.operator.startsWith(">")) {
+            return true;
+          }
+          return false;
+        }
+      };
+      module.exports = Comparator;
+      var parseOptions = require_parse_options();
+      var { safeRe: re, t } = require_re();
+      var cmp = require_cmp();
+      var debug = require_debug();
+      var SemVer = require_semver();
+      var Range = require_range();
+    }
+  });
+
+  // node_modules/semver/functions/satisfies.js
+  var require_satisfies = __commonJS({
+    "node_modules/semver/functions/satisfies.js"(exports, module) {
+      "use strict";
+      var Range = require_range();
+      var satisfies = (version2, range, options) => {
+        try {
+          range = new Range(range, options);
+        } catch (er) {
+          return false;
+        }
+        return range.test(version2);
+      };
+      module.exports = satisfies;
+    }
+  });
+
+  // node_modules/semver/ranges/to-comparators.js
+  var require_to_comparators = __commonJS({
+    "node_modules/semver/ranges/to-comparators.js"(exports, module) {
+      "use strict";
+      var Range = require_range();
+      var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+      module.exports = toComparators;
+    }
+  });
+
+  // node_modules/semver/ranges/max-satisfying.js
+  var require_max_satisfying = __commonJS({
+    "node_modules/semver/ranges/max-satisfying.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var Range = require_range();
+      var maxSatisfying = (versions, range, options) => {
+        let max = null;
+        let maxSV = null;
+        let rangeObj = null;
+        try {
+          rangeObj = new Range(range, options);
+        } catch (er) {
+          return null;
+        }
+        versions.forEach((v) => {
+          if (rangeObj.test(v)) {
+            if (!max || maxSV.compare(v) === -1) {
+              max = v;
+              maxSV = new SemVer(max, options);
+            }
+          }
+        });
+        return max;
+      };
+      module.exports = maxSatisfying;
+    }
+  });
+
+  // node_modules/semver/ranges/min-satisfying.js
+  var require_min_satisfying = __commonJS({
+    "node_modules/semver/ranges/min-satisfying.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var Range = require_range();
+      var minSatisfying = (versions, range, options) => {
+        let min = null;
+        let minSV = null;
+        let rangeObj = null;
+        try {
+          rangeObj = new Range(range, options);
+        } catch (er) {
+          return null;
+        }
+        versions.forEach((v) => {
+          if (rangeObj.test(v)) {
+            if (!min || minSV.compare(v) === 1) {
+              min = v;
+              minSV = new SemVer(min, options);
+            }
+          }
+        });
+        return min;
+      };
+      module.exports = minSatisfying;
+    }
+  });
+
+  // node_modules/semver/ranges/min-version.js
+  var require_min_version = __commonJS({
+    "node_modules/semver/ranges/min-version.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var Range = require_range();
+      var gt = require_gt();
+      var minVersion = (range, loose) => {
+        range = new Range(range, loose);
+        let minver = new SemVer("0.0.0");
+        if (range.test(minver)) {
+          return minver;
+        }
+        minver = new SemVer("0.0.0-0");
+        if (range.test(minver)) {
+          return minver;
+        }
+        minver = null;
+        for (let i = 0; i < range.set.length; ++i) {
+          const comparators = range.set[i];
+          let setMin = null;
+          comparators.forEach((comparator) => {
+            const compver = new SemVer(comparator.semver.version);
+            switch (comparator.operator) {
+              case ">":
+                if (compver.prerelease.length === 0) {
+                  compver.patch++;
+                } else {
+                  compver.prerelease.push(0);
+                }
+                compver.raw = compver.format();
+              /* fallthrough */
+              case "":
+              case ">=":
+                if (!setMin || gt(compver, setMin)) {
+                  setMin = compver;
+                }
+                break;
+              case "<":
+              case "<=":
+                break;
+              /* istanbul ignore next */
+              default:
+                throw new Error(`Unexpected operation: ${comparator.operator}`);
+            }
+          });
+          if (setMin && (!minver || gt(minver, setMin))) {
+            minver = setMin;
+          }
+        }
+        if (minver && range.test(minver)) {
+          return minver;
+        }
+        return null;
+      };
+      module.exports = minVersion;
+    }
+  });
+
+  // node_modules/semver/ranges/valid.js
+  var require_valid2 = __commonJS({
+    "node_modules/semver/ranges/valid.js"(exports, module) {
+      "use strict";
+      var Range = require_range();
+      var validRange = (range, options) => {
+        try {
+          return new Range(range, options).range || "*";
+        } catch (er) {
+          return null;
+        }
+      };
+      module.exports = validRange;
+    }
+  });
+
+  // node_modules/semver/ranges/outside.js
+  var require_outside = __commonJS({
+    "node_modules/semver/ranges/outside.js"(exports, module) {
+      "use strict";
+      var SemVer = require_semver();
+      var Comparator = require_comparator();
+      var { ANY } = Comparator;
+      var Range = require_range();
+      var satisfies = require_satisfies();
+      var gt = require_gt();
+      var lt = require_lt();
+      var lte = require_lte();
+      var gte = require_gte();
+      var outside = (version2, range, hilo, options) => {
+        version2 = new SemVer(version2, options);
+        range = new Range(range, options);
+        let gtfn, ltefn, ltfn, comp, ecomp;
+        switch (hilo) {
+          case ">":
+            gtfn = gt;
+            ltefn = lte;
+            ltfn = lt;
+            comp = ">";
+            ecomp = ">=";
+            break;
+          case "<":
+            gtfn = lt;
+            ltefn = gte;
+            ltfn = gt;
+            comp = "<";
+            ecomp = "<=";
+            break;
+          default:
+            throw new TypeError('Must provide a hilo val of "<" or ">"');
+        }
+        if (satisfies(version2, range, options)) {
+          return false;
+        }
+        for (let i = 0; i < range.set.length; ++i) {
+          const comparators = range.set[i];
+          let high = null;
+          let low = null;
+          comparators.forEach((comparator) => {
+            if (comparator.semver === ANY) {
+              comparator = new Comparator(">=0.0.0");
+            }
+            high = high || comparator;
+            low = low || comparator;
+            if (gtfn(comparator.semver, high.semver, options)) {
+              high = comparator;
+            } else if (ltfn(comparator.semver, low.semver, options)) {
+              low = comparator;
+            }
+          });
+          if (high.operator === comp || high.operator === ecomp) {
+            return false;
+          }
+          if ((!low.operator || low.operator === comp) && ltefn(version2, low.semver)) {
+            return false;
+          } else if (low.operator === ecomp && ltfn(version2, low.semver)) {
+            return false;
+          }
+        }
+        return true;
+      };
+      module.exports = outside;
+    }
+  });
+
+  // node_modules/semver/ranges/gtr.js
+  var require_gtr = __commonJS({
+    "node_modules/semver/ranges/gtr.js"(exports, module) {
+      "use strict";
+      var outside = require_outside();
+      var gtr = (version2, range, options) => outside(version2, range, ">", options);
+      module.exports = gtr;
+    }
+  });
+
+  // node_modules/semver/ranges/ltr.js
+  var require_ltr = __commonJS({
+    "node_modules/semver/ranges/ltr.js"(exports, module) {
+      "use strict";
+      var outside = require_outside();
+      var ltr = (version2, range, options) => outside(version2, range, "<", options);
+      module.exports = ltr;
+    }
+  });
+
+  // node_modules/semver/ranges/intersects.js
+  var require_intersects = __commonJS({
+    "node_modules/semver/ranges/intersects.js"(exports, module) {
+      "use strict";
+      var Range = require_range();
+      var intersects = (r1, r2, options) => {
+        r1 = new Range(r1, options);
+        r2 = new Range(r2, options);
+        return r1.intersects(r2, options);
+      };
+      module.exports = intersects;
+    }
+  });
+
+  // node_modules/semver/ranges/simplify.js
+  var require_simplify = __commonJS({
+    "node_modules/semver/ranges/simplify.js"(exports, module) {
+      "use strict";
+      var satisfies = require_satisfies();
+      var compare = require_compare();
+      module.exports = (versions, range, options) => {
+        const set = [];
+        let first = null;
+        let prev = null;
+        const v = versions.sort((a, b) => compare(a, b, options));
+        for (const version2 of v) {
+          const included = satisfies(version2, range, options);
+          if (included) {
+            prev = version2;
+            if (!first) {
+              first = version2;
+            }
+          } else {
+            if (prev) {
+              set.push([first, prev]);
+            }
+            prev = null;
+            first = null;
+          }
+        }
+        if (first) {
+          set.push([first, null]);
+        }
+        const ranges = [];
+        for (const [min, max] of set) {
+          if (min === max) {
+            ranges.push(min);
+          } else if (!max && min === v[0]) {
+            ranges.push("*");
+          } else if (!max) {
+            ranges.push(`>=${min}`);
+          } else if (min === v[0]) {
+            ranges.push(`<=${max}`);
+          } else {
+            ranges.push(`${min} - ${max}`);
+          }
+        }
+        const simplified = ranges.join(" || ");
+        const original = typeof range.raw === "string" ? range.raw : String(range);
+        return simplified.length < original.length ? simplified : range;
+      };
+    }
+  });
+
+  // node_modules/semver/ranges/subset.js
+  var require_subset = __commonJS({
+    "node_modules/semver/ranges/subset.js"(exports, module) {
+      "use strict";
+      var Range = require_range();
+      var Comparator = require_comparator();
+      var { ANY } = Comparator;
+      var satisfies = require_satisfies();
+      var compare = require_compare();
+      var subset = (sub, dom, options = {}) => {
+        if (sub === dom) {
+          return true;
+        }
+        sub = new Range(sub, options);
+        dom = new Range(dom, options);
+        let sawNonNull = false;
+        OUTER: for (const simpleSub of sub.set) {
+          for (const simpleDom of dom.set) {
+            const isSub = simpleSubset(simpleSub, simpleDom, options);
+            sawNonNull = sawNonNull || isSub !== null;
+            if (isSub) {
+              continue OUTER;
+            }
+          }
+          if (sawNonNull) {
+            return false;
+          }
+        }
+        return true;
+      };
+      var minimumVersionWithPreRelease = [new Comparator(">=0.0.0-0")];
+      var minimumVersion = [new Comparator(">=0.0.0")];
+      var simpleSubset = (sub, dom, options) => {
+        if (sub === dom) {
+          return true;
+        }
+        if (sub.length === 1 && sub[0].semver === ANY) {
+          if (dom.length === 1 && dom[0].semver === ANY) {
+            return true;
+          } else if (options.includePrerelease) {
+            sub = minimumVersionWithPreRelease;
+          } else {
+            sub = minimumVersion;
+          }
+        }
+        if (dom.length === 1 && dom[0].semver === ANY) {
+          if (options.includePrerelease) {
+            return true;
+          } else {
+            dom = minimumVersion;
+          }
+        }
+        const eqSet = /* @__PURE__ */ new Set();
+        let gt, lt;
+        for (const c of sub) {
+          if (c.operator === ">" || c.operator === ">=") {
+            gt = higherGT(gt, c, options);
+          } else if (c.operator === "<" || c.operator === "<=") {
+            lt = lowerLT(lt, c, options);
+          } else {
+            eqSet.add(c.semver);
+          }
+        }
+        if (eqSet.size > 1) {
+          return null;
+        }
+        let gtltComp;
+        if (gt && lt) {
+          gtltComp = compare(gt.semver, lt.semver, options);
+          if (gtltComp > 0) {
+            return null;
+          } else if (gtltComp === 0 && (gt.operator !== ">=" || lt.operator !== "<=")) {
+            return null;
+          }
+        }
+        for (const eq of eqSet) {
+          if (gt && !satisfies(eq, String(gt), options)) {
+            return null;
+          }
+          if (lt && !satisfies(eq, String(lt), options)) {
+            return null;
+          }
+          for (const c of dom) {
+            if (!satisfies(eq, String(c), options)) {
+              return false;
+            }
+          }
+          return true;
+        }
+        let higher, lower;
+        let hasDomLT, hasDomGT;
+        let needDomLTPre = lt && !options.includePrerelease && lt.semver.prerelease.length ? lt.semver : false;
+        let needDomGTPre = gt && !options.includePrerelease && gt.semver.prerelease.length ? gt.semver : false;
+        if (needDomLTPre && needDomLTPre.prerelease.length === 1 && lt.operator === "<" && needDomLTPre.prerelease[0] === 0) {
+          needDomLTPre = false;
+        }
+        for (const c of dom) {
+          hasDomGT = hasDomGT || c.operator === ">" || c.operator === ">=";
+          hasDomLT = hasDomLT || c.operator === "<" || c.operator === "<=";
+          if (gt) {
+            if (needDomGTPre) {
+              if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomGTPre.major && c.semver.minor === needDomGTPre.minor && c.semver.patch === needDomGTPre.patch) {
+                needDomGTPre = false;
+              }
+            }
+            if (c.operator === ">" || c.operator === ">=") {
+              higher = higherGT(gt, c, options);
+              if (higher === c && higher !== gt) {
+                return false;
+              }
+            } else if (gt.operator === ">=" && !satisfies(gt.semver, String(c), options)) {
+              return false;
+            }
+          }
+          if (lt) {
+            if (needDomLTPre) {
+              if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomLTPre.major && c.semver.minor === needDomLTPre.minor && c.semver.patch === needDomLTPre.patch) {
+                needDomLTPre = false;
+              }
+            }
+            if (c.operator === "<" || c.operator === "<=") {
+              lower = lowerLT(lt, c, options);
+              if (lower === c && lower !== lt) {
+                return false;
+              }
+            } else if (lt.operator === "<=" && !satisfies(lt.semver, String(c), options)) {
+              return false;
+            }
+          }
+          if (!c.operator && (lt || gt) && gtltComp !== 0) {
+            return false;
+          }
+        }
+        if (gt && hasDomLT && !lt && gtltComp !== 0) {
+          return false;
+        }
+        if (lt && hasDomGT && !gt && gtltComp !== 0) {
+          return false;
+        }
+        if (needDomGTPre || needDomLTPre) {
+          return false;
+        }
+        return true;
+      };
+      var higherGT = (a, b, options) => {
+        if (!a) {
+          return b;
+        }
+        const comp = compare(a.semver, b.semver, options);
+        return comp > 0 ? a : comp < 0 ? b : b.operator === ">" && a.operator === ">=" ? b : a;
+      };
+      var lowerLT = (a, b, options) => {
+        if (!a) {
+          return b;
+        }
+        const comp = compare(a.semver, b.semver, options);
+        return comp < 0 ? a : comp > 0 ? b : b.operator === "<" && a.operator === "<=" ? b : a;
+      };
+      module.exports = subset;
+    }
+  });
+
+  // node_modules/semver/index.js
+  var require_semver2 = __commonJS({
+    "node_modules/semver/index.js"(exports, module) {
+      "use strict";
+      var internalRe = require_re();
+      var constants = require_constants();
+      var SemVer = require_semver();
+      var identifiers = require_identifiers();
+      var parse = require_parse();
+      var valid = require_valid();
+      var clean = require_clean();
+      var inc = require_inc();
+      var diff = require_diff();
+      var major = require_major();
+      var minor = require_minor();
+      var patch = require_patch();
+      var prerelease = require_prerelease();
+      var compare = require_compare();
+      var rcompare = require_rcompare();
+      var compareLoose = require_compare_loose();
+      var compareBuild = require_compare_build();
+      var sort = require_sort();
+      var rsort = require_rsort();
+      var gt = require_gt();
+      var lt = require_lt();
+      var eq = require_eq();
+      var neq = require_neq();
+      var gte = require_gte();
+      var lte = require_lte();
+      var cmp = require_cmp();
+      var coerce = require_coerce();
+      var Comparator = require_comparator();
+      var Range = require_range();
+      var satisfies = require_satisfies();
+      var toComparators = require_to_comparators();
+      var maxSatisfying = require_max_satisfying();
+      var minSatisfying = require_min_satisfying();
+      var minVersion = require_min_version();
+      var validRange = require_valid2();
+      var outside = require_outside();
+      var gtr = require_gtr();
+      var ltr = require_ltr();
+      var intersects = require_intersects();
+      var simplifyRange = require_simplify();
+      var subset = require_subset();
+      module.exports = {
+        parse,
+        valid,
+        clean,
+        inc,
+        diff,
+        major,
+        minor,
+        patch,
+        prerelease,
+        compare,
+        rcompare,
+        compareLoose,
+        compareBuild,
+        sort,
+        rsort,
+        gt,
+        lt,
+        eq,
+        neq,
+        gte,
+        lte,
+        cmp,
+        coerce,
+        Comparator,
+        Range,
+        satisfies,
+        toComparators,
+        maxSatisfying,
+        minSatisfying,
+        minVersion,
+        validRange,
+        outside,
+        gtr,
+        ltr,
+        intersects,
+        simplifyRange,
+        subset,
+        SemVer,
+        re: internalRe.re,
+        src: internalRe.src,
+        tokens: internalRe.t,
+        SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
+        RELEASE_TYPES: constants.RELEASE_TYPES,
+        compareIdentifiers: identifiers.compareIdentifiers,
+        rcompareIdentifiers: identifiers.rcompareIdentifiers
+      };
+    }
+  });
+
   // node_modules/highlight.js/lib/core.js
   var require_core = __commonJS({
     "node_modules/highlight.js/lib/core.js"(exports, module) {
@@ -28185,7 +30115,7 @@
   });
 
   // node_modules/highlight.js/lib/languages/diff.js
-  var require_diff = __commonJS({
+  var require_diff2 = __commonJS({
     "node_modules/highlight.js/lib/languages/diff.js"(exports, module) {
       function diff(hljs) {
         const regex = hljs.regex;
@@ -37629,7 +39559,7 @@
       hljs.registerLanguage("csharp", require_csharp());
       hljs.registerLanguage("css", require_css());
       hljs.registerLanguage("markdown", require_markdown());
-      hljs.registerLanguage("diff", require_diff());
+      hljs.registerLanguage("diff", require_diff2());
       hljs.registerLanguage("ruby", require_ruby());
       hljs.registerLanguage("go", require_go());
       hljs.registerLanguage("graphql", require_graphql());
@@ -37671,7 +39601,7 @@
       if (true) {
         (function() {
           "use strict";
-          var React3 = require_react();
+          var React2 = require_react();
           var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.element");
           var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
           var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -37697,7 +39627,7 @@
             }
             return null;
           }
-          var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+          var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
           function error(format) {
             {
               {
@@ -38577,6 +40507,7 @@
   var unsupported = (name) => () => {
     throw new Error(`${name} is unavailable in the installed React runtime`);
   };
+  var esm_wrapper_default = import_index.default;
   var Children = import_index.default.Children;
   var Component = import_index.default.Component;
   var Fragment = import_index.default.Fragment;
@@ -38615,6 +40546,2203 @@
   var useSyncExternalStore = import_index.default.useSyncExternalStore;
   var useTransition = import_index.default.useTransition;
   var version = import_index.default.version;
+
+  // src/renderer/App.tsx
+  var import_semver2 = __toESM(require_semver2(), 1);
+
+  // ../code-agent-packages/software-developer/src/project-defaults.ts
+  function getDefaultTeamGoal(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor")) {
+      return "Coordinate the team, keep work aligned to the project objective, and decide the next handoff.";
+    }
+    if (normalizedRole.includes("manager")) {
+      return "Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.";
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return "Validate the implementation plan, propose tests, and call out release blockers.";
+    }
+    if (normalizedRole.includes("review")) {
+      return "Review the work for correctness, maintainability, security, and missing verification.";
+    }
+    return "Implement the assigned work, use tools conservatively, and report concrete results.";
+  }
+  function getDefaultTeamTools(role) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole.includes("supervisor") || normalizedRole.includes("manager")) {
+      return ["automation.listTeams", "automation.listTeamRuns", "fs.read"];
+    }
+    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
+      return ["fs.read", "bash.run"];
+    }
+    return ["fs.read", "fs.write", "bash.run"];
+  }
+
+  // ../code-agent-packages/software-developer/src/renderer.tsx
+  function createSoftwareDeveloperRendererViews(host) {
+    const {
+      AUTOMATION_PERMISSION_TOOLS: AUTOMATION_PERMISSION_TOOLS2,
+      DEFAULT_AUTONOMOUS_ROLES: DEFAULT_AUTONOMOUS_ROLES2,
+      DEFAULT_EMPLOYEE_PERMISSIONS: DEFAULT_EMPLOYEE_PERMISSIONS2,
+      DEFAULT_PROJECT_ARTIFACTS: DEFAULT_PROJECT_ARTIFACTS2,
+      PROJECT_LIST_PAGE_SIZE: PROJECT_LIST_PAGE_SIZE2,
+      TOOL_PERMISSION_OPTIONS: TOOL_PERMISSION_OPTIONS2,
+      Icon: Icon2,
+      InlineApprovalQueue: InlineApprovalQueue2,
+      MessageItem: MessageItem2,
+      RecordViewToggle: RecordViewToggle2,
+      ToolActivityPanel: ToolActivityPanel2,
+      createDefaultProjectTeams: createDefaultProjectTeams2,
+      createProjectReadyMessages: createProjectReadyMessages2,
+      createProjectTeamId: createProjectTeamId2,
+      createSoftwareProjectDraft: createSoftwareProjectDraft2,
+      createVirtualEmployeeProfile: createVirtualEmployeeProfile2,
+      createVirtualRoleDefinition: createVirtualRoleDefinition2,
+      formatFileSize: formatFileSize2,
+      formatImageAttachmentSummary: formatImageAttachmentSummary2,
+      formatProjectOutputSource: formatProjectOutputSource2,
+      formatProjectStatus: formatProjectStatus2,
+      getDefaultRoleId: getDefaultRoleId2,
+      getEmployeeRoleDefinition: getEmployeeRoleDefinition2,
+      getHistoryRecordSummary: getHistoryRecordSummary2,
+      getHistoryRecordTitle: getHistoryRecordTitle2,
+      getHistoryRecordTypeLabel: getHistoryRecordTypeLabel2,
+      getPathBasename: getPathBasename2,
+      getProjectAssignedEmployees: getProjectAssignedEmployees2,
+      getProjectAutomationTeamId: getProjectAutomationTeamId2,
+      getProjectChatKey: getProjectChatKey2,
+      getProjectStaffingEmployees: getProjectStaffingEmployees2,
+      getProjectSupervisor: getProjectSupervisor2,
+      getProjectTeams: getProjectTeams2,
+      getProviderDefault: getProviderDefault2,
+      getRoleDefinitionById: getRoleDefinitionById2,
+      getTeamMembers: getTeamMembers2,
+      getTeamSupervisor: getTeamSupervisor2,
+      getToolPermissionPolicy: getToolPermissionPolicy2,
+      getToolResultPath: getToolResultPath2,
+      groupMessagesByAssistantRun: groupMessagesByAssistantRun2,
+      groupToolsByCategory: groupToolsByCategory2,
+      isProjectToolActivity: isProjectToolActivity2,
+      isReviewForProjectChat: isReviewForProjectChat2,
+      isSupervisorEmployee: isSupervisorEmployee2,
+      isToolExposedToModel: isToolExposedToModel2,
+      joinWorkspacePath: joinWorkspacePath2,
+      normalizeStringList: normalizeStringList3,
+      normalizeToolNameList: normalizeToolNameList2,
+      readCliOption: readCliOption2,
+      styles,
+      summarizeProjectGoals: summarizeProjectGoals2,
+      summarizeToolResult: summarizeToolResult2
+    } = host;
+    function SettingsSection2({
+      title,
+      children
+    }) {
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsSection }, title && /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, title), children);
+    }
+    function WorkbenchEditorPanel({
+      title,
+      subtitle,
+      children,
+      footer,
+      onClose,
+      wide = false,
+      bodyClassName
+    }) {
+      return /* @__PURE__ */ esm_wrapper_default.createElement("aside", { className: wide ? `${styles.workbenchEditorPanel} ${styles.workbenchEditorPanelWide}` : styles.workbenchEditorPanel, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchEditorHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, title), subtitle && /* @__PURE__ */ esm_wrapper_default.createElement("span", null, subtitle)), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onClose, title: "Close this panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Close")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: bodyClassName ? `${styles.workbenchEditorBody} ${bodyClassName}` : styles.workbenchEditorBody }, children), footer && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchEditorFooter }, footer));
+    }
+    function ProjectsView2({
+      activeSection,
+      appInfo,
+      appConfig,
+      appState,
+      activeProviderLabel,
+      activeProviderDefault,
+      viewportSize,
+      tokenUsage,
+      toolActivities,
+      teamRuns,
+      runningProjectIds,
+      currentSessionTitle,
+      sessionCount,
+      projects,
+      activeProjectId,
+      roles,
+      employees,
+      projectTeams,
+      projectChatMessages,
+      fileWriteReviews,
+      commandReviews,
+      toolPermissionReviews,
+      projectGeneratedOutputs,
+      projectChatSendingKeys,
+      workspacePath,
+      workspaceEntries,
+      workspaceBrowserError,
+      workspaceActionMessage,
+      isLoadingWorkspaceEntries,
+      onOpenWorkspaceEntry,
+      onOpenWorkspacePath,
+      onRevealWorkspacePath,
+      onGoToWorkspaceParent,
+      onRefreshWorkspace,
+      mcpServers,
+      mcpTools,
+      onSaveProject,
+      onSaveRole,
+      onDeleteRole,
+      onSaveEmployee,
+      onDeleteEmployee,
+      onSaveTeam,
+      onDeleteTeam,
+      onSelectProject,
+      onSetProjectStatus,
+      onDeleteProject,
+      onSendProjectChat,
+      onResolveFileWrite,
+      onResolveCommand,
+      onResolveToolPermission,
+      onChangeSection
+    }) {
+      const visibleActiveSection = ["studio", "roles", "employees", "teams"].includes(activeSection) ? activeSection : "studio";
+      const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
+      const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
+      const guidedProjects = projects.filter((project) => project.mode === "guided");
+      const autonomousProjects = projects.filter((project) => project.mode === "autonomous");
+      const selectedAutonomousProject = autonomousProjects.find((project) => project.id === activeProjectId) ?? autonomousProjects[0];
+      const selectedAutonomousSupervisor = selectedAutonomousProject ? getProjectSupervisor2(selectedAutonomousProject, employees, roles) : employees.find((employee) => isSupervisorEmployee2(employee, roles));
+      const selectedAutonomousTeams = selectedAutonomousProject ? getProjectTeams2(selectedAutonomousProject, projectTeams) : [];
+      const selectedAutonomousDirectEmployees = selectedAutonomousProject ? getProjectAssignedEmployees2(selectedAutonomousProject, employees, roles) : [];
+      const selectedAutonomousStaff = selectedAutonomousProject ? getProjectStaffingEmployees2(selectedAutonomousProject, employees, roles, projectTeams) : employees.filter((employee) => employee.id !== selectedAutonomousSupervisor?.id);
+      function getProjectLatestRun(project) {
+        if (project.mode !== "autonomous") {
+          return void 0;
+        }
+        const automationTeamId = getProjectAutomationTeamId2(project.id);
+        return teamRuns.filter((run) => run.teamId === automationTeamId).sort((left, right) => right.startedAt - left.startedAt)[0];
+      }
+      function getProjectEffectiveStatus(project) {
+        if (project.status === "stopped") {
+          return "stopped";
+        }
+        const latestRun = getProjectLatestRun(project);
+        if (project.mode === "autonomous" && (runningProjectIds.has(project.id) || latestRun?.status === "running")) {
+          return "active";
+        }
+        if (latestRun?.status === "succeeded") {
+          return "done";
+        }
+        if (latestRun?.status === "failed") {
+          return "blocked";
+        }
+        return project.status;
+      }
+      const activeProjects = projects.filter((project) => getProjectEffectiveStatus(project) === "active");
+      const staffedProjectCount = projects.filter((project) => project.mode === "guided" ? project.assignedEmployeeIds.length > 0 : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)).length;
+      const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
+      const projectModeMetrics = [
+        { label: "Standard", value: guidedProjects.length, className: styles.projectMetricGuided },
+        { label: "Fully autonomous", value: autonomousProjects.length, className: styles.projectMetricAutonomous }
+      ];
+      const projectStatusMetrics = [
+        ["Active", "active", styles.projectMetricActive],
+        ["Planning", "planning", styles.projectMetricPlanning],
+        ["Blocked", "blocked", styles.projectMetricBlocked],
+        ["Stopped", "stopped", styles.projectMetricStopped],
+        ["Done", "done", styles.projectMetricDone],
+        ["Idea", "idea", styles.projectMetricIdea]
+      ].map(([label, status, className]) => ({
+        label,
+        value: projects.filter((project) => getProjectEffectiveStatus(project) === status).length,
+        className
+      }));
+      const projectStaffingMetrics = [
+        { label: "Staffed", value: staffedProjectCount, className: styles.projectMetricStaffed },
+        { label: "Needs staffing", value: Math.max(0, projects.length - staffedProjectCount), className: styles.projectMetricNeedsStaffing }
+      ];
+      const [draft, setDraft] = useState(() => createSoftwareProjectDraft2(appInfo?.workspacePath));
+      const [roleDraft, setRoleDraft] = useState(() => createVirtualRoleDefinition2("Developer"));
+      const [employeeDraft, setEmployeeDraft] = useState(() => createVirtualEmployeeProfile2("Developer"));
+      const [teamDraft, setTeamDraft] = useState(() => createDefaultProjectTeams2()[0]);
+      const [profileEmployeeId, setProfileEmployeeId] = useState("");
+      const [projectEditorPanel, setProjectEditorPanel] = useState(null);
+      const [projectDeleteTarget, setProjectDeleteTarget] = useState(null);
+      const [projectActionProjectId, setProjectActionProjectId] = useState("");
+      const [projectChatDrafts, setProjectChatDrafts] = useState({});
+      const [activityRunSelections, setActivityRunSelections] = useState({});
+      const [copiedProjectMessageId, setCopiedProjectMessageId] = useState(null);
+      const [projectPortfolioView, setProjectPortfolioView] = useState("table");
+      const [roleListView, setRoleListView] = useState("table");
+      const [employeeListView, setEmployeeListView] = useState("table");
+      const [teamListView, setTeamListView] = useState("table");
+      const [projectPage, setProjectPage] = useState(1);
+      const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2));
+      const normalizedProjectPage = Math.min(projectPage, projectPageCount);
+      const projectPageStartIndex = (normalizedProjectPage - 1) * PROJECT_LIST_PAGE_SIZE2;
+      const visibleProjects = projects.slice(projectPageStartIndex, projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2);
+      const projectPageFirstRecord = projects.length === 0 ? 0 : projectPageStartIndex + 1;
+      const projectPageLastRecord = Math.min(projectPageStartIndex + PROJECT_LIST_PAGE_SIZE2, projects.length);
+      const projectChatTranscriptRef = useRef(null);
+      const profileEmployee = employees.find((employee) => employee.id === profileEmployeeId);
+      const projectActionProject = projects.find((project) => project.id === projectActionProjectId) ?? selectedProject;
+      const projectWidePanels = [
+        "project-chat",
+        "project-org",
+        "project-execution",
+        "project-board",
+        "project-team-chat",
+        "project-deliverables"
+      ];
+      const projectRailOpen = Boolean(projectEditorPanel);
+      const projectRailWide = Boolean(projectEditorPanel && projectWidePanels.includes(projectEditorPanel));
+      useEffect(() => {
+        setProjectPage((current) => Math.min(Math.max(1, current), Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE2))));
+      }, [projects.length]);
+      useEffect(() => {
+        if (projectEditorPanel !== "project-chat" && projectEditorPanel !== "project-team-chat") {
+          return;
+        }
+        const transcript = projectChatTranscriptRef.current;
+        if (transcript) {
+          transcript.scrollTop = transcript.scrollHeight;
+        }
+      }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
+      function startDraft() {
+        const supervisor = employees.find((employee) => isSupervisorEmployee2(employee, roles)) ?? employees[0];
+        setDraft({
+          ...createSoftwareProjectDraft2(appInfo?.workspacePath),
+          mode: "guided",
+          permissionMode: "supervised",
+          supervisorEmployeeId: supervisor?.id ?? "",
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+          assignedEmployeeIds: [],
+          assignedTeamIds: [],
+          teamRoles: []
+        });
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId("");
+        setProjectEditorPanel("project");
+      }
+      function editProject(project) {
+        setDraft({
+          ...project,
+          artifacts: [...project.artifacts],
+          teamRoles: [...project.teamRoles],
+          assignedTeamIds: [...project.assignedTeamIds],
+          assignedEmployeeIds: [...project.assignedEmployeeIds]
+        });
+        onSelectProject(project.id);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel("project");
+      }
+      function updateDraft(update) {
+        setDraft((current) => ({
+          ...current,
+          ...update,
+          updatedAt: Date.now()
+        }));
+      }
+      function saveDraft() {
+        const supervisor = employees.find((employee) => employee.id === draft.supervisorEmployeeId);
+        const assignedEmployees = employees.filter((employee) => draft.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = projectTeams.filter((team) => draft.assignedTeamIds.includes(team.id));
+        const next = {
+          ...draft,
+          name: draft.name.trim() || "Untitled software project",
+          workspacePath: draft.workspacePath || appInfo?.workspacePath,
+          artifacts: normalizeStringList3(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS2),
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
+          assignedTeamIds: assignedTeams.map((team) => team.id),
+          teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
+            ...assignedTeams.map((team) => team.name),
+            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+          ] : normalizeStringList3(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES2),
+          updatedAt: Date.now()
+        };
+        onSaveProject(next);
+        setDraft(next);
+        return next;
+      }
+      function saveDraftAndViewOrganization() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
+      }
+      function saveDraftAndOpenProjectChat() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel("project-chat");
+      }
+      function closeProjectEditorPanel() {
+        setProjectEditorPanel(null);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId("");
+      }
+      function openProjectDeleteConfirmation(target) {
+        setProfileEmployeeId("");
+        setProjectActionProjectId(target.kind === "project" ? target.id : "");
+        setProjectDeleteTarget(target);
+        setProjectEditorPanel("delete");
+      }
+      function openProjectActionPanel(project, panel) {
+        onSelectProject(project.id);
+        setProfileEmployeeId("");
+        setProjectDeleteTarget(null);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(panel);
+      }
+      function confirmProjectDelete() {
+        if (!projectDeleteTarget) {
+          return;
+        }
+        if (projectDeleteTarget.kind === "project") {
+          onDeleteProject(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "role") {
+          onDeleteRole(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "employee") {
+          onDeleteEmployee(projectDeleteTarget.id);
+        } else if (projectDeleteTarget.kind === "team") {
+          onDeleteTeam(projectDeleteTarget.id);
+        }
+        closeProjectEditorPanel();
+      }
+      function openNewRoleEditor() {
+        setRoleDraft(createVirtualRoleDefinition2("Developer"));
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("role");
+      }
+      function openRoleEditor(role) {
+        setRoleDraft({
+          ...role,
+          responsibilities: [...role.responsibilities],
+          defaultTools: [...role.defaultTools]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("role");
+      }
+      function openNewEmployeeEditor() {
+        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("employee");
+      }
+      function openEmployeeEditor(employee) {
+        setEmployeeDraft({
+          ...employee,
+          permissions: [...employee.permissions]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("employee");
+      }
+      function openEmployeeProfile(employeeId) {
+        setProjectDeleteTarget(null);
+        setProfileEmployeeId(employeeId);
+        setProjectEditorPanel("employee-profile");
+      }
+      function openNewProjectTeamEditor() {
+        setTeamDraft({
+          ...createDefaultProjectTeams2()[0],
+          id: createProjectTeamId2("Project team"),
+          name: "New Project Team",
+          memberEmployeeIds: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("team");
+      }
+      function openProjectTeamEditor(team) {
+        setTeamDraft({
+          ...team,
+          memberEmployeeIds: [...team.memberEmployeeIds]
+        });
+        setProjectDeleteTarget(null);
+        setProjectEditorPanel("team");
+      }
+      function saveRoleDraft() {
+        onSaveRole({
+          ...roleDraft,
+          title: roleDraft.title.trim() || "Contributor",
+          responsibilities: normalizeStringList3(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
+          defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
+          defaultTools: normalizeStringList3(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
+          updatedAt: Date.now()
+        });
+        setRoleDraft(createVirtualRoleDefinition2("Developer"));
+        closeProjectEditorPanel();
+      }
+      function selectEmployeeRole(roleId) {
+        const role = getRoleDefinitionById2(roles, roleId);
+        setEmployeeDraft((current) => ({
+          ...current,
+          roleId,
+          role: role?.title ?? current.role,
+          updatedAt: Date.now()
+        }));
+      }
+      function saveEmployeeDraft() {
+        const role = getRoleDefinitionById2(roles, employeeDraft.roleId, employeeDraft.role);
+        onSaveEmployee({
+          ...employeeDraft,
+          name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Employee",
+          roleId: role?.id ?? employeeDraft.roleId,
+          role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
+          permissions: normalizeStringList3(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS2),
+          updatedAt: Date.now()
+        });
+        setEmployeeDraft(createVirtualEmployeeProfile2("Developer"));
+        closeProjectEditorPanel();
+      }
+      function saveTeamDraft() {
+        onSaveTeam({
+          ...teamDraft,
+          name: teamDraft.name.trim() || "Project team",
+          mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
+          memberEmployeeIds: normalizeStringList3(teamDraft.memberEmployeeIds, []),
+          updatedAt: Date.now()
+        });
+        setTeamDraft({
+          ...createDefaultProjectTeams2()[0],
+          id: createProjectTeamId2("Project team"),
+          name: "New Project Team",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        closeProjectEditorPanel();
+      }
+      function selectTeamSupervisor(employeeId) {
+        setTeamDraft((current) => ({
+          ...current,
+          supervisorEmployeeId: employeeId,
+          memberEmployeeIds: current.memberEmployeeIds.filter((id) => id !== employeeId),
+          updatedAt: Date.now()
+        }));
+      }
+      function toggleTeamMember(employeeId) {
+        setTeamDraft((current) => {
+          const members = new Set(current.memberEmployeeIds);
+          if (members.has(employeeId)) {
+            members.delete(employeeId);
+          } else {
+            members.add(employeeId);
+          }
+          members.delete(current.supervisorEmployeeId);
+          return {
+            ...current,
+            memberEmployeeIds: Array.from(members),
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function toggleDraftEmployee(employeeId) {
+        setDraft((current) => {
+          const assigned = new Set(current.assignedEmployeeIds);
+          if (assigned.has(employeeId)) {
+            assigned.delete(employeeId);
+          } else {
+            assigned.add(employeeId);
+          }
+          assigned.delete(current.supervisorEmployeeId);
+          const assignedEmployees = employees.filter((employee) => assigned.has(employee.id));
+          const assignedTeams = projectTeams.filter((team) => current.assignedTeamIds.includes(team.id));
+          return {
+            ...current,
+            assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
+            teamRoles: [
+              ...assignedTeams.map((team) => team.name),
+              ...assignedEmployees.map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+            ],
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function selectDraftSupervisor(employeeId) {
+        const supervisor = employees.find((employee) => employee.id === employeeId);
+        updateDraft({
+          supervisorEmployeeId: employeeId,
+          supervisorRole: supervisor ? getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
+          assignedEmployeeIds: draft.assignedEmployeeIds.filter((id) => id !== employeeId)
+        });
+      }
+      function toggleDraftTeam(teamId) {
+        setDraft((current) => {
+          const assigned = new Set(current.assignedTeamIds);
+          if (assigned.has(teamId)) {
+            assigned.delete(teamId);
+          } else {
+            assigned.add(teamId);
+          }
+          const assignedTeams = projectTeams.filter((team) => assigned.has(team.id));
+          return {
+            ...current,
+            assignedTeamIds: assignedTeams.map((team) => team.id),
+            teamRoles: [
+              ...assignedTeams.map((team) => team.name),
+              ...employees.filter((employee) => current.assignedEmployeeIds.includes(employee.id)).map((employee) => getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)
+            ],
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function buildProjectDeleteTarget(project) {
+        return {
+          kind: "project",
+          id: project.id,
+          name: project.name,
+          detail: "Delete this saved software project from Project Studio.",
+          impact: [
+            `${formatProjectStatus2(getProjectEffectiveStatus(project))} ${project.mode} project record will be removed.`,
+            `${project.artifacts.length} planned artifact entry(ies) and project staffing selections will be removed from the local project list.`
+          ]
+        };
+      }
+      function buildRoleDeleteTarget(role) {
+        const affectedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        return {
+          kind: "role",
+          id: role.id,
+          name: role.title,
+          detail: "Delete this role definition from the shared project role library.",
+          impact: [
+            `${affectedEmployees.length} employee profile(s) currently reference this role and will be normalized by the existing delete handler.`,
+            `${role.responsibilities.length} responsibility entry(ies) and ${role.defaultTools.length} default tool entry(ies) will be removed.`
+          ]
+        };
+      }
+      function buildEmployeeDeleteTarget(employee) {
+        const assignedProjects = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id));
+        const assignedTeams = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        return {
+          kind: "employee",
+          id: employee.id,
+          name: employee.name,
+          detail: "Delete this employee profile from the shared staffing pool.",
+          impact: [
+            `${assignedProjects.length} project(s) reference this employee directly or as supervisor.`,
+            `${assignedTeams.length} project team(s) reference this employee as supervisor or member.`
+          ]
+        };
+      }
+      function buildProjectTeamDeleteTarget(team) {
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return {
+          kind: "team",
+          id: team.id,
+          name: team.name,
+          detail: "Delete this reusable project team.",
+          impact: [
+            `${assignedProjects.length} project(s) currently assign this team.`,
+            `${team.memberEmployeeIds.length} member assignment(s) and the team mission will be removed.`
+          ]
+        };
+      }
+      function renderRoleRow(role) {
+        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: role.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, role.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedEmployees.length, " employee profile(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, role.canSupervise ? "Supervisor-capable" : "Contributor"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, summary), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
+            disabled: roles.length <= 1,
+            title: `Delete role ${role.title}`
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderRoleCard(role) {
+        const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
+        const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: role.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, role.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedEmployees.length, " employee profile(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: role.defaultGoal }, role.defaultGoal), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, role.canSupervise ? "Supervisor-capable" : "Contributor")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, summary))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, role.responsibilities.slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility)), role.responsibilities.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", role.responsibilities.length - 4)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
+            disabled: roles.length <= 1,
+            title: `Delete role ${role.title}`
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderEmployeeRow(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projectsForEmployee.length, " project(s) / ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: role?.title ?? employee.role }, role?.title ?? employee.role), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, employee.status, " / ", employee.model), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: activeWork }, activeWork), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderEmployeeCard(employee, options = {}) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.employeeCard, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), !options.compact && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, role?.defaultGoal ?? employee.currentTask), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))));
+      }
+      function renderEmployeeManagementCard(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, employee.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, role?.title ?? employee.role, " / ", employee.status))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: activeWork }, activeWork), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Assignments"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectsForEmployee.length, " project(s), ", teamsForEmployee.length, " team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.model))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: responsibility }, responsibility))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "user", size: 14 }), "Profile"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderEmployeeProfile(employee) {
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
+        const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams2(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
+        return /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, teamsForEmployee.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectsForEmployee.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current task"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, employee.currentTask))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, (role?.responsibilities ?? employee.permissions).map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: item }, item))));
+      }
+      function renderProjectTeamRow(team) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedProjects.length, " assigned project(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: supervisor?.name ?? "Unassigned" }, supervisor?.name ?? "Unassigned"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, members.length, " member(s)"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: team.mission }, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectTeamEditor(team),
+            title: `Edit team ${team.name}`
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }),
+          "Edit"
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderProjectTeamCard(team, options = {}) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.employeeCard, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, team.name.slice(0, 2).toUpperCase()), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor: ", supervisor?.name ?? "Unassigned"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, members.slice(0, options.compact ? 3 : 6).map((member) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "No members")));
+      }
+      function renderProjectTeamManagementCard(team) {
+        const supervisor = getTeamSupervisor2(team, employees);
+        const members = getTeamMembers2(team, employees);
+        const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, assignedProjects.length, " assigned project(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: team.mission }, team.mission), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, supervisor?.name ?? "Unassigned")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, members.length, " member(s)"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, members.slice(0, 6).map((member) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: member.id }, member.name)), members.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "No members")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => openProjectTeamEditor(team),
+            title: `Edit team ${team.name}`
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }),
+          "Edit"
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function getBoardTasks(project) {
+        const latestRun = getProjectLatestRun(project);
+        const assignmentTasks = (latestRun?.assignments ?? []).map((assignment) => ({
+          title: assignment.title,
+          status: assignment.status === "pending" ? "todo" : assignment.status === "running" ? "doing" : assignment.status === "failed" ? "review" : "done",
+          employee: employees.find((employee) => employee.id === assignment.memberId),
+          detail: [
+            assignment.description,
+            assignment.dependencies.length > 0 ? `Depends on: ${assignment.dependencies.join(", ")}` : "",
+            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : ""
+          ].filter(Boolean).join("\n")
+        }));
+        if (assignmentTasks.length > 0) {
+          return assignmentTasks;
+        }
+        const stepTasks = (latestRun?.steps ?? []).map((step) => ({
+          title: step.assignmentTitle ?? `${step.role} work`,
+          status: step.status === "running" ? "doing" : step.status === "failed" ? "review" : "done",
+          employee: employees.find((employee) => employee.id === step.memberId),
+          detail: [
+            step.dependencyIds?.length ? `Depends on: ${step.dependencyIds.join(", ")}` : "",
+            step.workspacePath ? `Workspace: ${step.workspacePath}` : ""
+          ].filter(Boolean).join("\n")
+        }));
+        if (stepTasks.length > 0) {
+          return stepTasks;
+        }
+        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== project.supervisorEmployeeId);
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const employeePool = assigned.length > 0 ? assigned : employees;
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const baseTasks = [
+          { title: "Clarify requirements and acceptance criteria", status: "done", employee: supervisor },
+          ...project.artifacts.map((artifact, index) => ({
+            title: `Produce ${artifact}`,
+            status: effectiveStatus === "done" ? "done" : index === 0 ? "doing" : index === 1 ? "review" : "todo",
+            employee: employeePool[index % Math.max(employeePool.length, 1)]
+          })),
+          { title: "Final integration and release notes", status: effectiveStatus === "done" ? "done" : "todo", employee: supervisor }
+        ];
+        return baseTasks;
+      }
+      function renderTaskBoard(project) {
+        const tasks = getBoardTasks(project);
+        const columns = [
+          { id: "todo", title: "Todo" },
+          { id: "doing", title: "Doing" },
+          { id: "review", title: "Review" },
+          { id: "done", title: "Done" }
+        ];
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectBoard }, columns.map((column) => {
+          const columnTasks = tasks.filter((task) => task.status === column.id);
+          return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.projectBoardColumn, key: column.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectBoardColumnHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, column.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, columnTasks.length)), columnTasks.map((task) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectTaskCard, key: `${column.id}-${task.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.employee?.name ?? "Unassigned", " / ", task.employee ? getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role : "Contributor"), "detail" in task && typeof task.detail === "string" && task.detail && /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.detail))));
+        }));
+      }
+      function renderTeamChat(project) {
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assigned = getProjectStaffingEmployees2(project, employees, roles, projectTeams).filter((employee) => employee.id !== supervisor?.id);
+        const chatEmployees = [supervisor, ...assigned].filter((employee) => Boolean(employee));
+        const messages = [
+          { author: supervisor, text: `I will coordinate "${project.name}" and keep work aligned to the project goal.` },
+          ...assignedTeams.slice(0, 3).map((team) => ({
+            author: getTeamSupervisor2(team, employees) ?? supervisor,
+            text: `Team "${team.name}" is responsible for: ${team.mission}`
+          })),
+          ...assigned.slice(0, 4).map((employee, index) => ({
+            author: employee,
+            text: index === 0 ? `I am taking the first implementation task and will report blockers here.` : index === 1 ? `I will review architecture and integration risks before code changes fan out.` : index === 2 ? `I will prepare verification coverage for the planned deliverables.` : `I am available for the next queued task.`
+          }))
+        ];
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChatList }, messages.map((message, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectChatMessage, key: `${message.author?.id ?? "system"}-${index}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.employeeAvatar }, message.author?.name.slice(0, 2).toUpperCase() ?? "CA"), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, message.author?.name ?? "CodeAgent"), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, message.text)))), chatEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Assign employees to start team chat."));
+      }
+      function renderDeliverables(project) {
+        const latestRun = getProjectLatestRun(project);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const projectRootPath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
+        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
+        function resolveDeliverablePath(targetPath) {
+          if (!targetPath.trim()) {
+            return projectRootPath;
+          }
+          return targetPath.startsWith("/") ? targetPath : joinWorkspacePath2(projectRootPath, targetPath);
+        }
+        function getExpectedArtifactPath(artifact, index) {
+          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
+          return `artifacts/${slug}.md`;
+        }
+        function renderDeliverableActions(targetPath, label = "Open") {
+          const resolvedPath = resolveDeliverablePath(targetPath);
+          return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverableActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(resolvedPath), title: `Open ${resolvedPath}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), label), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(resolvedPath), title: `Reveal ${resolvedPath}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"));
+        }
+        const assignmentOutputs = (latestRun?.assignments ?? []).filter((assignment) => assignment.output || assignment.error || assignment.workspacePath).map((assignment) => ({
+          title: assignment.title,
+          status: assignment.status === "succeeded" ? "Completed" : assignment.status === "failed" ? "Needs review" : assignment.status === "running" ? "Running" : "Pending",
+          workspacePath: assignment.workspacePath,
+          detail: [
+            `${assignment.memberName} / ${assignment.role}`,
+            assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : "",
+            assignment.output ? assignment.output.slice(0, 240) : assignment.error ? assignment.error.slice(0, 240) : ""
+          ].filter(Boolean).join("\n")
+        }));
+        const activityOutputs = toolActivities.filter((activity) => activity.status === "succeeded" && isProjectToolActivity2(activity, project.id, projectAutomationTeamId)).map((activity) => {
+          const outputPath = getToolResultPath2(activity);
+          if (!outputPath) {
+            return null;
+          }
+          const absolutePath = activity.result && typeof activity.result === "object" && typeof activity.result.absolutePath === "string" ? String(activity.result.absolutePath) : void 0;
+          return {
+            id: `${project.id}:${absolutePath || outputPath}`,
+            projectId: project.id,
+            path: outputPath,
+            absolutePath,
+            toolName: activity.toolName,
+            source: activity.scope?.source === "virtual-team" ? "automation" : activity.scope?.channel === "team" ? "team-chat" : "guided-chat",
+            summary: activity.resultPreview,
+            createdAt: activity.startedAt,
+            updatedAt: activity.completedAt ?? activity.startedAt
+          };
+        }).filter((output) => Boolean(output));
+        const generatedOutputs = [
+          ...projectGeneratedOutputs[project.id] ?? [],
+          ...activityOutputs
+        ].reduce((outputs, output) => {
+          if (!outputs.some((candidate) => candidate.id === output.id || candidate.path === output.path || Boolean(candidate.absolutePath && output.absolutePath && candidate.absolutePath === output.absolutePath))) {
+            outputs.push(output);
+          }
+          return outputs;
+        }, []).sort((left, right) => right.updatedAt - left.updatedAt);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, generatedOutputs.length > 0 && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverableGroupHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Generated files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, generatedOutputs.length, " tracked output", generatedOutputs.length === 1 ? "" : "s")), generatedOutputs.map((output) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `generated-${output.id}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", { title: output.absolutePath ?? output.path }, output.path), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, formatProjectOutputSource2(output.source))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, output.summary || `${output.toolName} at ${new Date(output.updatedAt).toLocaleString()}`), renderDeliverableActions(output.absolutePath ?? output.path, "Open file"))), latestRun?.artifactPath && /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Automation run artifact"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, latestRun.status === "succeeded" ? "Completed" : latestRun.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, latestRun.artifactPath), renderDeliverableActions(latestRun.artifactPath, "Open artifact")), project.artifacts.map((artifact, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, artifact), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, effectiveStatus === "done" ? "Completed" : index < 2 ? "Draft planned" : "Queued")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, effectiveStatus === "done" ? latestRun?.summary ?? "Completed by the latest autonomous project run." : index < 2 ? "Ready to be produced by the assigned team." : "Will be generated after upstream work completes."), effectiveStatus === "done" && renderDeliverableActions(getExpectedArtifactPath(artifact, index), "Open expected file"))), assignmentOutputs.map((output) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `assignment-${output.title}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, output.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, output.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, output.detail), output.workspacePath && renderDeliverableActions(output.workspacePath, "Open workspace"))), project.artifacts.length === 0 && generatedOutputs.length === 0 && assignmentOutputs.length === 0 && !latestRun?.artifactPath && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No deliverables or run artifacts recorded yet."));
+      }
+      function getProjectPanelMessages(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        return projectChatMessages[projectChatKey] ?? createProjectReadyMessages2(project, channel);
+      }
+      function updateProjectChatDraft(project, channel, value) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        setProjectChatDrafts((current) => ({
+          ...current,
+          [projectChatKey]: value
+        }));
+      }
+      function submitProjectChatDraft(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        const draftValue = projectChatDrafts[projectChatKey] ?? "";
+        if (!draftValue.trim() || projectChatSendingKeys.has(projectChatKey)) {
+          return;
+        }
+        setProjectChatDrafts((current) => ({
+          ...current,
+          [projectChatKey]: ""
+        }));
+        onSendProjectChat(project, channel, draftValue);
+      }
+      function handleProjectChatKeyDown(event, project, channel) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          submitProjectChatDraft(project, channel);
+        }
+      }
+      async function copyProjectMessage(message) {
+        try {
+          const imageSummary = formatImageAttachmentSummary2(message.imageAttachments ?? []);
+          await navigator.clipboard.writeText(imageSummary ? `${message.content}
+
+Attached images: ${imageSummary}` : message.content);
+          setCopiedProjectMessageId(message.id);
+          window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
+        } catch {
+        }
+      }
+      function renderProjectChatSurface(project, channel) {
+        const projectChatKey = getProjectChatKey2(project.id, channel);
+        const panelMessages = getProjectPanelMessages(project, channel);
+        const draftValue = projectChatDrafts[projectChatKey] ?? "";
+        const isProjectSending = projectChatSendingKeys.has(projectChatKey);
+        const scopedFileWriteReviews = fileWriteReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        const scopedCommandReviews = commandReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        const scopedToolPermissionReviews = toolPermissionReviews.filter((review) => isReviewForProjectChat2(review, project.id, channel));
+        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.projectChatSurface }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChatTranscript, ref: projectChatTranscriptRef }, groupMessagesByAssistantRun2(panelMessages).map(({ message, activities }) => /* @__PURE__ */ esm_wrapper_default.createElement(
+          MessageItem2,
+          {
+            key: message.id,
+            message,
+            activities,
+            copied: copiedProjectMessageId === message.id,
+            onCopy: () => copyProjectMessage(message)
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement(
+          InlineApprovalQueue2,
+          {
+            fileWriteReviews: scopedFileWriteReviews,
+            commandReviews: scopedCommandReviews,
+            toolPermissionReviews: scopedToolPermissionReviews,
+            onResolveFileWrite,
+            onResolveCommand,
+            onResolveToolPermission
+          }
+        ), isProjectSending && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.typingIndicator, role: "status" }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null), /* @__PURE__ */ esm_wrapper_default.createElement("span", null), /* @__PURE__ */ esm_wrapper_default.createElement("span", null))), /* @__PURE__ */ esm_wrapper_default.createElement("form", { className: styles.projectChatComposer, onSubmit: (event) => {
+          event.preventDefault();
+          submitProjectChatDraft(project, channel);
+        } }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "textarea",
+          {
+            value: draftValue,
+            onChange: (event) => updateProjectChatDraft(project, channel, event.target.value),
+            onKeyDown: (event) => handleProjectChatKeyDown(event, project, channel),
+            placeholder: channel === "team" ? "Direct the supervisor or team\u2026" : "Ask about this project\u2026",
+            rows: 2,
+            disabled: isProjectSending,
+            "aria-label": channel === "team" ? "Team chat message" : "Project chat message"
+          }
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerToolbar }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectComposerIdentity, title: channel === "team" ? "Instructions are handled by this autonomous project\u2019s supervisor and team" : "This agent can use tools within the project working folder" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: channel === "team" ? "network" : "bot", size: 13 }), channel === "team" ? "Project supervisor" : "Project agent"), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.projectComposerPermission, title: "Permission level for this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 12 }), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.visuallyHidden }, "Project permissions"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "select",
+          {
+            value: project.permissionMode,
+            onChange: (event) => onSaveProject({
+              ...project,
+              permissionMode: event.target.value,
+              updatedAt: Date.now()
+            }),
+            disabled: isProjectSending,
+            "aria-label": "Project permissions"
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"),
+          /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full project access")
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: project.workspacePath }, getPathBasename2(project.workspacePath))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.composerActions }, draftValue && /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.composerClearButton,
+            type: "button",
+            onClick: () => updateProjectChatDraft(project, channel, ""),
+            disabled: isProjectSending,
+            title: "Clear the draft message"
+          },
+          "Clear input"
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message (Command+Enter)" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "send", size: 14 }), "Send", /* @__PURE__ */ esm_wrapper_default.createElement("kbd", null, "\u2318\u21B5"))))));
+      }
+      function renderAutonomousProjectSelector() {
+        if (autonomousProjects.length === 0) {
+          return /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create an autonomous project before using this view.");
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Autonomous project"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: selectedAutonomousProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, autonomousProjects.map((project) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: project.id, key: project.id }, project.name))));
+      }
+      function renderProjectSelector() {
+        if (projects.length === 0) {
+          return /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create a project before using this view.");
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: selectedProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value) }, projects.map((project) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: project.id, key: project.id }, project.name, " / ", project.mode === "autonomous" ? "autonomous" : "guided"))));
+      }
+      function renderProjectInsights(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const risks = [
+          !project.goals.trim() ? { title: "Goals missing", detail: "Project goals are empty or underspecified.", level: "Risk" } : null,
+          project.mode === "autonomous" && !supervisor ? { title: "Supervisor missing", detail: "Autonomous execution needs a supervisor employee.", level: "Risk" } : null,
+          project.mode === "autonomous" && assignedTeams.length === 0 && project.assignedEmployeeIds.length === 0 ? { title: "No staffing assigned", detail: "Assign at least one team or direct employee.", level: "Risk" } : null,
+          project.artifacts.length < 3 ? { title: "Artifact scope thin", detail: "Expected deliverables may not cover requirements, design, and verification.", level: "Watch" } : null,
+          effectiveStatus === "blocked" ? { title: "Project blocked", detail: "Resume requires resolving the active blocker.", level: "Risk" } : null
+        ].filter((item) => Boolean(item));
+        const signals = [
+          { title: "Staffing", detail: `${assignedTeams.length} team(s), ${assignedStaff.length} total employee(s)` },
+          { title: "Delivery shape", detail: `${project.artifacts.length} artifact(s), ${getBoardTasks(project).length} planned task(s)` },
+          { title: "Execution posture", detail: project.permissionMode === "full-access" ? "Supervisor has full project permission" : "Risky actions require approval" }
+        ];
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Risk Signals"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, risks.map((risk) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: risk.title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, risk.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, risk.level)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, risk.detail))), risks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No immediate project risks detected."))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Operational Signals"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, signals.map((signal) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: signal.title }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, signal.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, signal.detail))))));
+      }
+      function renderExecutionConsole(project) {
+        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
+        const projectAutomationTeamId = getProjectAutomationTeamId2(project.id);
+        const projectRunRecords = teamRuns.filter((run) => run.teamId === projectAutomationTeamId).sort((left, right) => right.startedAt - left.startedAt);
+        const latestRun = projectRunRecords[0];
+        const selectedRunId = activityRunSelections[project.id] ?? "";
+        const selectedRun = selectedRunId ? projectRunRecords.find((run) => run.id === selectedRunId) : void 0;
+        const visibleRun = selectedRun ?? latestRun;
+        const allProjectToolActivities = toolActivities.filter((activity) => isProjectToolActivity2(activity, project.id, projectAutomationTeamId));
+        const projectToolActivities = visibleRun ? allProjectToolActivities.filter((activity) => activity.scope?.runId === visibleRun.id) : allProjectToolActivities;
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const isProjectRunning = effectiveStatus === "active";
+        const activityEntries = [];
+        const pushActivity = (entry) => {
+          if (entry) {
+            activityEntries.push(entry);
+          }
+        };
+        if (!visibleRun) {
+          pushActivity({
+            id: `project-ready-${project.id}`,
+            timestamp: project.updatedAt,
+            employee: "Project Studio",
+            title: "Project ready",
+            summary: `${project.mode === "autonomous" ? "Fully autonomous" : "Standard"} project is ${formatProjectStatus2(effectiveStatus)} and has not started an automation run yet.`,
+            status: effectiveStatus
+          });
+        }
+        if (!visibleRun && projectSupervisor) {
+          pushActivity({
+            id: `project-supervisor-${project.id}`,
+            timestamp: project.updatedAt,
+            employee: projectSupervisor.name,
+            title: "Supervisor assigned",
+            summary: `${getEmployeeRoleDefinition2(projectSupervisor, roles)?.title ?? projectSupervisor.role} owns project coordination.`,
+            status: "ready"
+          });
+        }
+        for (const run of visibleRun ? [visibleRun] : []) {
+          pushActivity({
+            id: `${run.id}-started`,
+            timestamp: run.startedAt,
+            employee: run.teamName,
+            title: "Automation run started",
+            summary: `${run.objective.slice(0, 180)}${run.objective.length > 180 ? "..." : ""}`,
+            status: run.status === "running" ? "running" : "ready"
+          });
+          for (const assignment of run.assignments ?? []) {
+            pushActivity(assignment.startedAt ? {
+              id: `${run.id}-${assignment.id}-started`,
+              timestamp: assignment.startedAt,
+              employee: assignment.memberName,
+              title: assignment.title,
+              summary: [
+                assignment.description,
+                assignment.dependencies.length > 0 ? `Depends on ${assignment.dependencies.join(", ")}` : "No blocking dependencies",
+                `Parallel group ${assignment.parallelGroup}`
+              ].join(" / "),
+              status: "running"
+            } : null);
+            pushActivity(assignment.completedAt ? {
+              id: `${run.id}-${assignment.id}-completed`,
+              timestamp: assignment.completedAt,
+              employee: assignment.memberName,
+              title: `${assignment.title} ${assignment.status === "succeeded" ? "completed" : "finished"}`,
+              summary: assignment.output?.slice(0, 220) ?? assignment.error?.slice(0, 220) ?? assignment.workspacePath ?? "Assignment finished.",
+              status: assignment.status
+            } : null);
+          }
+          if (!run.assignments?.length) {
+            for (const step of run.steps) {
+              pushActivity({
+                id: `${run.id}-${step.memberId}-${step.startedAt}-started`,
+                timestamp: step.startedAt,
+                employee: step.memberName,
+                title: step.assignmentTitle ?? `${step.role} work started`,
+                summary: step.dependencyIds?.length ? `Depends on ${step.dependencyIds.join(", ")}` : step.workspacePath ?? "Worker started.",
+                status: "running"
+              });
+              pushActivity(step.completedAt ? {
+                id: `${run.id}-${step.memberId}-${step.completedAt}-completed`,
+                timestamp: step.completedAt,
+                employee: step.memberName,
+                title: step.assignmentTitle ? `${step.assignmentTitle} completed` : `${step.role} work completed`,
+                summary: step.output?.slice(0, 220) ?? step.error?.slice(0, 220) ?? "Worker finished.",
+                status: step.status
+              } : null);
+            }
+          }
+          pushActivity(run.completedAt ? {
+            id: `${run.id}-completed`,
+            timestamp: run.completedAt,
+            employee: run.teamName,
+            title: `Automation run ${run.status}`,
+            summary: run.summary ?? run.error ?? run.artifactPath ?? `Run ${run.status}.`,
+            status: run.status
+          } : null);
+        }
+        for (const activity of projectToolActivities) {
+          pushActivity({
+            id: `${activity.id}-tool-start`,
+            timestamp: activity.startedAt,
+            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
+            title: `Tool call: ${activity.toolName}`,
+            summary: activity.scope?.assignmentTitle ? `${activity.scope.assignmentTitle} / ${summarizeToolResult2(activity.args)}` : summarizeToolResult2(activity.args),
+            status: activity.status === "running" ? "running" : "ready"
+          });
+          pushActivity(activity.completedAt ? {
+            id: `${activity.id}-tool-complete`,
+            timestamp: activity.completedAt,
+            employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
+            title: `Tool ${activity.status}`,
+            summary: activity.error ?? activity.resultPreview ?? `${activity.toolName} finished${activity.duration ? ` in ${activity.duration} ms` : ""}.`,
+            status: activity.status
+          } : null);
+        }
+        if (isProjectRunning && !visibleRun) {
+          pushActivity({
+            id: `project-${project.id}-starting`,
+            timestamp: Date.now(),
+            employee: projectSupervisor?.name ?? "Supervisor",
+            title: "Automation run starting",
+            summary: "The project run has been requested and the planner is preparing assignments.",
+            status: "running"
+          });
+        }
+        const timelineEntries = activityEntries.sort((left, right) => left.timestamp - right.timestamp).slice(-160);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Activity Timeline"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, visibleRun ? `${visibleRun.id === latestRun?.id ? "Current run" : "Past run"}: ${visibleRun.status} / ${projectToolActivities.length} tool call(s)` : "No automation run yet")), projectRunRecords.length > 0 && /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.activityRunPicker }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Run"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "select",
+          {
+            value: visibleRun?.id ?? "",
+            onChange: (event) => setActivityRunSelections((current) => ({
+              ...current,
+              [project.id]: event.target.value
+            }))
+          },
+          projectRunRecords.map((run, index) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: run.id, key: run.id }, index === 0 ? "Current" : "Past", " / ", run.status, " / ", new Date(run.startedAt).toLocaleString()))
+        ))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimeline }, timelineEntries.map((entry) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectTimelineItem, key: entry.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineMarker }), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTimelineContentHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.title), /* @__PURE__ */ esm_wrapper_default.createElement("time", { dateTime: new Date(entry.timestamp).toISOString() }, new Date(entry.timestamp).toLocaleString())), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, entry.employee), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, entry.summary), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.status)))), timelineEntries.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, isProjectRunning ? "Automation run is starting." : "No activity recorded for this project yet.")));
+      }
+      function renderArtifactsExplorer(project) {
+        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Artifact Explorer"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, project.artifacts.map((artifact, index) => {
+          const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
+          return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: artifact }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, artifact), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, index < 2 ? "Planned" : "Queued")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, `artifacts/${slug}.md`));
+        }), project.artifacts.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No artifacts defined.")));
+      }
+      function renderProjectTimeline(project) {
+        const tasks = getBoardTasks(project);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Timeline"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectDeliverables }, tasks.map((task, index) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectDeliverableCard, key: `${task.title}-${index}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.title), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, task.employee ? `${task.employee.name} / ${getEmployeeRoleDefinition2(task.employee, roles)?.title ?? task.employee.role}` : "Unassigned")))));
+      }
+      function renderGovernance(project) {
+        const projectSupervisor = getProjectSupervisor2(project, employees, roles);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Approval Policy"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, project.permissionMode === "full-access" ? "Full supervisor permission" : "Supervised approvals")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectSupervisor?.name ?? "Unassigned")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, formatProjectStatus2(getProjectEffectiveStatus(project)))))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Tool Posture"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)))));
+      }
+      function renderProjectFormFields() {
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace path"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goals"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "textarea",
+          {
+            value: draft.artifacts.join("\n"),
+            onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
+            rows: 6
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.mode === "autonomous",
+            onChange: (event) => updateDraft({
+              mode: event.target.checked ? "autonomous" : "guided",
+              permissionMode: event.target.checked ? "full-access" : "supervised",
+              assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+              assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+              teamRoles: event.target.checked ? draft.teamRoles : []
+            })
+          }
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project.")), draft.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.assignedTeamIds.includes(team.id),
+            onChange: () => toggleDraftTeam(team.id)
+          }
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: draft.assignedEmployeeIds.includes(employee.id),
+            onChange: () => toggleDraftEmployee(employee.id)
+          }
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))))));
+      }
+      function saveProjectDraftAndClose() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        closeProjectEditorPanel();
+      }
+      function saveProjectDraftAndOpenPrimaryAction() {
+        const project = saveDraft();
+        onSelectProject(project.id);
+        setProjectActionProjectId(project.id);
+        setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
+      }
+      function renderProjectFormPanel() {
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: projects.some((project) => project.id === draft.id) ? "Edit Project" : "New Project",
+            subtitle: draft.mode === "autonomous" ? "Project details with autonomous staffing and execution" : "Project details, workspace, goals, and deliverables",
+            onClose: closeProjectEditorPanel,
+            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveProjectDraftAndClose, title: "Save this project and close the panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveProjectDraftAndOpenPrimaryAction, title: draft.mode === "autonomous" ? "Save this project and open its team view" : "Save this project and open its chat" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: draft.mode === "autonomous" ? "network" : "chat", size: 14 }), draft.mode === "autonomous" ? "Save And View Team" : "Save And Open Chat"))
+          },
+          renderProjectFormFields()
+        );
+      }
+      function renderProjectDeleteConfirmation() {
+        if (!projectDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: `Delete ${projectDeleteTarget.kind}`,
+            subtitle: projectDeleteTarget.name,
+            onClose: closeProjectEditorPanel,
+            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmProjectDelete, title: `Confirm deletion of ${projectDeleteTarget.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeProjectEditorPanel, title: "Cancel deletion and close the panel" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, projectDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local Project Studio state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, projectDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
+        );
+      }
+      function renderGuidedProjectChat(project) {
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "guided"));
+      }
+      function renderProjectOrganization(project) {
+        const supervisor = getProjectSupervisor2(project, employees, roles);
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const directEmployees = getProjectAssignedEmployees2(project, employees, roles);
+        return /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Team Organization"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.name)), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(project), title: "Edit project staffing and team assignments" }, "Edit Members")), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTeamDiagram }, supervisor ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, supervisor.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(supervisor, roles)?.title ?? supervisor.role, " / ", project.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, assignedTeams.map((team) => renderProjectTeamCard(team, { compact: true })), assignedTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, directEmployees.length), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, directEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), directEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams.")))));
+      }
+      function renderProjectActionPanel() {
+        const project = projectActionProject;
+        if (!project) {
+          return null;
+        }
+        if (projectEditorPanel === "project-chat") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(
+            WorkbenchEditorPanel,
+            {
+              title: "Project Chat",
+              subtitle: project.name,
+              onClose: closeProjectEditorPanel,
+              wide: true,
+              bodyClassName: styles.projectChatPanelBody
+            },
+            renderGuidedProjectChat(project)
+          );
+        }
+        if (projectEditorPanel === "project-org") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Team Organization", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderProjectOrganization(project));
+        }
+        if (projectEditorPanel === "project-board") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Task Board", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderTaskBoard(project));
+        }
+        if (projectEditorPanel === "project-execution") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Activity", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderExecutionConsole(project));
+        }
+        if (projectEditorPanel === "project-team-chat") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Team Chat", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectRailChatBody }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(project)), renderProjectChatSurface(project, "team")));
+        }
+        if (projectEditorPanel === "project-deliverables") {
+          return /* @__PURE__ */ esm_wrapper_default.createElement(WorkbenchEditorPanel, { title: "Deliverables", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true }, renderDeliverables(project));
+        }
+        return null;
+      }
+      function getLifecycleButton(project, showLabel = false) {
+        if (project.mode !== "autonomous") {
+          return null;
+        }
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+        const iconSize = showLabel ? 14 : 15;
+        const renderLifecycleButton = (status, icon, label, title) => /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => onSetProjectStatus(project.id, status), title, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
+        if (runningProjectIds.has(project.id)) {
+          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this running autonomous project");
+        }
+        if (effectiveStatus === "active") {
+          return renderLifecycleButton("stopped", "stop", "Stop", "Stop this autonomous project");
+        }
+        if (effectiveStatus === "stopped") {
+          return renderLifecycleButton("active", "play", "Resume", "Resume this autonomous project");
+        }
+        if (effectiveStatus === "blocked") {
+          return renderLifecycleButton("active", "rotate", "Retry", "Retry this blocked autonomous project");
+        }
+        if (effectiveStatus === "done") {
+          return renderLifecycleButton("active", "rotate", "Re-run", "Run this completed autonomous project again");
+        }
+        if (effectiveStatus === "idea" || effectiveStatus === "planning") {
+          return renderLifecycleButton("active", "play", "Start", "Start this autonomous project");
+        }
+        return null;
+      }
+      function renderProjectPortfolioActions(project, variant) {
+        const showLabel = variant === "expanded";
+        const buttonClassName = showLabel ? styles.secondaryButton : `${styles.secondaryButton} ${styles.projectIconButton}`;
+        const iconSize = showLabel ? 14 : 15;
+        const actionsClassName = showLabel ? styles.projectCardActions : `${styles.workbenchRecordActions} ${styles.projectRecordActions}`;
+        const renderActionButton = (panel, icon, label, title) => /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectActionPanel(project, panel), title, "aria-label": title }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: icon, size: iconSize }), showLabel && label);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: actionsClassName }, project.mode === "guided" ? /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, renderActionButton("project-chat", "chat", "Chat", "Open this project chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")) : /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, getLifecycleButton(project, showLabel), renderActionButton("project-org", "network", "Team", "View team organization for this project"), renderActionButton("project-board", "board", "Board", "Open this project task board"), renderActionButton("project-execution", "activity", "Activity", "Open this project activity"), renderActionButton("project-team-chat", "message", "Team Chat", "Open this autonomous team chat"), renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => editProject(project), title: "Edit this project", "aria-label": "Edit this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: iconSize }), showLabel && "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: buttonClassName, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project", "aria-label": "Delete this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: iconSize }), showLabel && "Delete"));
+      }
+      function renderProjectRow(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: `${styles.workbenchRecordRow} ${styles.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: project.workspacePath ?? appInfo?.workspacePath ?? void 0 }, project.workspacePath ?? workspaceTitle), renderProjectPortfolioActions(project, "compact"));
+      }
+      function renderProjectCard(project, action) {
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const cardClassName = [
+          styles.projectCard,
+          getProjectStatusCardClassName(effectiveStatus),
+          project.id === selectedProject?.id ? styles.projectCardSelected : ""
+        ].filter(Boolean).join(" ");
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => editProject(project), title: "Edit this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 13 }), "Edit")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), project.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.supervisorRole), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, project.permissionMode === "full-access" ? "Full permission" : "Supervised")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            title: action === "organization" ? "View this project team" : "Open this project chat",
+            onClick: () => {
+              if (action === "organization") {
+                openProjectActionPanel(project, "project-org");
+                return;
+              }
+              openProjectActionPanel(project, "project-chat");
+            }
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: action === "organization" ? "network" : "chat", size: 14 }),
+          action === "organization" ? "Team" : "Open Chat"
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSelectProject(project.id), title: "Select this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Select"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderProjectPortfolioCard(project) {
+        const assignedTeams = getProjectTeams2(project, projectTeams);
+        const assignedStaff = getProjectStaffingEmployees2(project, employees, roles, projectTeams);
+        const effectiveStatus = getProjectEffectiveStatus(project);
+        const workspace = project.workspacePath ?? workspaceTitle;
+        const cardClassName = [
+          styles.projectCard,
+          styles.projectPortfolioCard,
+          getProjectStatusCardClassName(effectiveStatus),
+          project.id === selectedProject?.id ? styles.projectCardSelected : ""
+        ].filter(Boolean).join(" ");
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: cardClassName, key: project.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, project.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, project.mode === "autonomous" ? "Fully autonomous" : "Standard project", " / ", formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: `${styles.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}` }, formatProjectStatus2(effectiveStatus))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: summarizeProjectGoals2(project) }, summarizeProjectGoals2(project)), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)`)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: workspace }, workspace))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip, key: artifact }, artifact)), project.artifacts.length > 4 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, "+", project.artifacts.length - 4)), renderProjectPortfolioActions(project, "expanded"));
+      }
+      function renderProjectMetricBar(segments, total) {
+        const visibleSegments = segments.filter((segment) => segment.value > 0);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricChart }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricBar, "aria-label": "Project metric distribution" }, visibleSegments.length > 0 ? visibleSegments.map((segment) => {
+          const width = total > 0 ? Math.max(8, segment.value / total * 100) : 0;
+          return /* @__PURE__ */ esm_wrapper_default.createElement(
+            "span",
+            {
+              className: `${styles.projectMetricSegment} ${segment.className}`,
+              key: segment.label,
+              style: { width: `${width}%` },
+              title: `${segment.label}: ${segment.value}`
+            }
+          );
+        }) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectMetricEmpty }, "No data")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricLegend }, segments.map((segment) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { key: segment.label }, /* @__PURE__ */ esm_wrapper_default.createElement("i", { className: segment.className }), segment.label, ": ", segment.value))));
+      }
+      function getProjectStatusRowClassName(status) {
+        if (status === "active") {
+          return styles.projectRecordRowActive;
+        }
+        if (status === "planning") {
+          return styles.projectRecordRowPlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectRecordRowBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectRecordRowStopped;
+        }
+        if (status === "done") {
+          return styles.projectRecordRowDone;
+        }
+        return styles.projectRecordRowIdea;
+      }
+      function getProjectStatusCardClassName(status) {
+        if (status === "active") {
+          return styles.projectStatusCardActive;
+        }
+        if (status === "planning") {
+          return styles.projectStatusCardPlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectStatusCardBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectStatusCardStopped;
+        }
+        if (status === "done") {
+          return styles.projectStatusCardDone;
+        }
+        return styles.projectStatusCardIdea;
+      }
+      function getProjectStatusBadgeClassName(status) {
+        if (status === "active") {
+          return styles.projectStatusBadgeActive;
+        }
+        if (status === "planning") {
+          return styles.projectStatusBadgePlanning;
+        }
+        if (status === "blocked") {
+          return styles.projectStatusBadgeBlocked;
+        }
+        if (status === "stopped") {
+          return styles.projectStatusBadgeStopped;
+        }
+        if (status === "done") {
+          return styles.projectStatusBadgeDone;
+        }
+        return styles.projectStatusBadgeIdea;
+      }
+      function renderProjectPagination() {
+        if (projects.length <= PROJECT_LIST_PAGE_SIZE2) {
+          return null;
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPager }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Showing ", projectPageFirstRecord, "-", projectPageLastRecord, " of ", projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPagerControls }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => setProjectPage((page) => Math.max(1, page - 1)),
+            disabled: normalizedProjectPage <= 1,
+            title: "Previous project page"
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chevron-left", size: 14 }),
+          "Previous"
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, "Page ", normalizedProjectPage, " / ", projectPageCount), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.secondaryButton,
+            type: "button",
+            onClick: () => setProjectPage((page) => Math.min(projectPageCount, page + 1)),
+            disabled: normalizedProjectPage >= projectPageCount,
+            title: "Next project page"
+          },
+          "Next",
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chevron-right", size: 14 })
+        )));
+      }
+      const projectDetailViewClassName = projectRailOpen ? `${styles.detailView} ${styles.detailViewWithRail} ${projectRailWide ? styles.detailViewWithWideRail : ""}` : styles.detailView;
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: projectDetailViewClassName, "aria-label": "Projects" }, projectEditorPanel === "project" && renderProjectFormPanel(), projectEditorPanel === "delete" && renderProjectDeleteConfirmation(), renderProjectActionPanel(), visibleActiveSection === "studio" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("h2", null, "Turn ideas into software projects"), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Portfolio"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Total project(s)")), renderProjectMetricBar(projectModeMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Use project row actions to open chat, team, board, or deliverables.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Status"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, activeProjects.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Active project(s)")), renderProjectMetricBar(projectStatusMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Fully autonomous projects can run in the background; the table below is the source of project navigation.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Staffing"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectMetricHeadline }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, employees.length), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Employee profile(s)")), renderProjectMetricBar(projectStaffingMetrics, projects.length), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Roles"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, roles.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectTeams.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Deliverables"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, deliverableCount))))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projects.length, " saved project(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: projectPortfolioView, onChange: setProjectPortfolioView, label: "Project list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: startDraft, title: "Create a software project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Project"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectStatusLegend, "aria-label": "Project status color legend" }, projectStatusMetrics.map((segment) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { key: segment.label, title: `${segment.label}: ${segment.value} project(s)` }, /* @__PURE__ */ esm_wrapper_default.createElement("i", { className: segment.className }), segment.label))), projectPortfolioView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordList} ${styles.projectRecordList}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader} ${styles.projectRecordRow}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goal"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), visibleProjects.map((project) => renderProjectRow(project)), projects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectPortfolioGrid }, visibleProjects.map((project) => renderProjectPortfolioCard(project)), projects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No software projects created yet.")), renderProjectPagination())), visibleActiveSection === "roles" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Roles"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, roles.length, " project role definition(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: roleListView, onChange: setRoleListView, label: "Role list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewRoleEditor, title: "Create a new role definition" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Role"))), roleListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Scope"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default goal"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), roles.map((role) => renderRoleRow(role)), roles.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No roles configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, roles.map((role) => renderRoleCard(role)), roles.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No roles configured."))), projectEditorPanel === "role" && /* @__PURE__ */ esm_wrapper_default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: roles.some((role) => role.id === roleDraft.id) ? "Edit Role" : "New Role",
+          subtitle: "Responsibilities, default goal, and tool expectations",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveRoleDraft, title: "Save this role definition" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Role"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewRoleEditor, title: "Reset the form for a new role" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role title"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: roleDraft.title, onChange: (event) => setRoleDraft((current) => ({ ...current, title: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Can supervise"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: roleDraft.canSupervise ? "yes" : "no", onChange: (event) => setRoleDraft((current) => ({ ...current, canSupervise: event.target.value === "yes", updatedAt: Date.now() })) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default goal"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: roleDraft.defaultGoal, onChange: (event) => setRoleDraft((current) => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() })), rows: 3 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Responsibilities"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "textarea",
+          {
+            value: roleDraft.responsibilities.join("\n"),
+            onChange: (event) => setRoleDraft((current) => ({
+              ...current,
+              responsibilities: normalizeStringList3(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
+              updatedAt: Date.now()
+            })),
+            rows: 7
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Default tools"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "textarea",
+          {
+            value: roleDraft.defaultTools.join("\n"),
+            onChange: (event) => setRoleDraft((current) => ({
+              ...current,
+              defaultTools: normalizeStringList3(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
+              updatedAt: Date.now()
+            })),
+            rows: 4
+          }
+        )))
+      )), visibleActiveSection === "employees" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Employees"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employees.length, " reusable employee profile(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: employeeListView, onChange: setEmployeeListView, label: "Employee list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Create a new employee profile" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Employee"))), employeeListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Employee"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Current work"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), employees.map((employee) => renderEmployeeRow(employee)), employees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, employees.map((employee) => renderEmployeeManagementCard(employee)), employees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No employees configured."))), projectEditorPanel === "employee-profile" && profileEmployee && /* @__PURE__ */ esm_wrapper_default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: profileEmployee.name,
+          subtitle: `${getEmployeeRoleDefinition2(profileEmployee, roles)?.title ?? profileEmployee.role} / ${profileEmployee.status}`,
+          onClose: closeProjectEditorPanel
+        },
+        renderEmployeeProfile(profileEmployee)
+      ), projectEditorPanel === "employee" && /* @__PURE__ */ esm_wrapper_default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: employees.some((employee) => employee.id === employeeDraft.id) ? "Edit Employee" : "New Employee",
+          subtitle: "Role, model, permissions, and current assignment",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveEmployeeDraft, title: "Save this employee profile" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Employee"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Reset the form for a new employee" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.name, onChange: (event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Role"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: employeeDraft.roleId || getDefaultRoleId2(employeeDraft.role), onChange: (event) => selectEmployeeRole(event.target.value) }, roles.map((role) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: role.id, key: role.id }, role.title)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.model, onChange: (event) => setEmployeeDraft((current) => ({ ...current, model: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: employeeDraft.status, onChange: (event) => setEmployeeDraft((current) => ({ ...current, status: event.target.value, updatedAt: Date.now() })) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idle" }, "Idle"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "working" }, "Working"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "approval" }, "Needs approval"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Current task"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: employeeDraft.currentTask, onChange: (event) => setEmployeeDraft((current) => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Permissions"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "textarea",
+          {
+            value: employeeDraft.permissions.join("\n"),
+            onChange: (event) => setEmployeeDraft((current) => ({
+              ...current,
+              permissions: normalizeStringList3(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS2),
+              updatedAt: Date.now()
+            })),
+            rows: 5
+          }
+        )))
+      )), visibleActiveSection === "teams" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: `${styles.detailPanel} ${styles.workbenchMain}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Teams"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, projectTeams.length, " reusable project team(s)")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: teamListView, onChange: setTeamListView, label: "Team list view" }), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Create a new reusable team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "plus", size: 14 }), "New Team"))), teamListView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Team"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Mission"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), projectTeams.map((team) => renderProjectTeamRow(team)), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, projectTeams.map((team) => renderProjectTeamManagementCard(team)), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No project teams configured."))), projectEditorPanel === "team" && /* @__PURE__ */ esm_wrapper_default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: projectTeams.some((team) => team.id === teamDraft.id) ? "Edit Team" : "New Team",
+          subtitle: "Mission, supervisor, and members",
+          onClose: closeProjectEditorPanel,
+          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTeamDraft, title: "Save this reusable team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Team"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Reset the form for a new team" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Team name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: teamDraft.name, onChange: (event) => setTeamDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: teamDraft.supervisorEmployeeId, onChange: (event) => selectTeamSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Mission"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: teamDraft.mission, onChange: (event) => setTeamDraft((current) => ({ ...current, mission: event.target.value, updatedAt: Date.now() })), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Members"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== teamDraft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "checkbox",
+            checked: teamDraft.memberEmployeeIds.includes(employee.id),
+            onChange: () => toggleTeamMember(employee.id)
+          }
+        ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))
+      )), visibleActiveSection === "new" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Project Definition"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, draft.mode === "autonomous" ? "Fully autonomous execution enabled" : "Standard project"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Project name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "idea" }, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "planning" }, "Planning"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "active" }, "Running"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "stopped" }, "Stopped"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "blocked" }, "Blocked"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "done" }, "Done"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Workspace path"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Idea"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Goals"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Software artifacts"), /* @__PURE__ */ esm_wrapper_default.createElement(
+        "textarea",
+        {
+          value: draft.artifacts.join("\n"),
+          onChange: (event) => updateDraft({ artifacts: normalizeStringList3(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS2) }),
+          rows: 6
+        }
+      )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.employeeAssignOption} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.mode === "autonomous",
+          onChange: (event) => updateDraft({
+            mode: event.target.checked ? "autonomous" : "guided",
+            permissionMode: event.target.checked ? "full-access" : "supervised",
+            assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
+            assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
+            teamRoles: event.target.checked ? draft.teamRoles : []
+          })
+        }
+      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Fully autonomous"), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "A supervisor and virtual team manage this project on your behalf.")), draft.mode === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor employee"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value) }, employees.map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: employee.id, key: employee.id }, employee.name, " / ", getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role)))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Execution permissions"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "full-access" }, "Full access supervisor"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "supervised" }, "Ask for risky actions"))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Assigned teams"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, projectTeams.map((team) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.assignedTeamIds.includes(team.id),
+          onChange: () => toggleDraftTeam(team.id)
+        }
+      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, team.mission))), projectTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Create teams before assigning them to a project."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeAssignGrid }, employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.employeeAssignOption, key: employee.id }, /* @__PURE__ */ esm_wrapper_default.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: draft.assignedEmployeeIds.includes(employee.id),
+          onChange: () => toggleDraftEmployee(employee.id)
+        }
+      ), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, employee.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, getEmployeeRoleDefinition2(employee, roles)?.title ?? employee.role))))))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveDraft, title: "Save this project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Project"), draft.mode === "autonomous" ? /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, title: "Save this autonomous project and view its team organization" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "network", size: 14 }), "Save And View Team") : /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this project and open chat" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "chat", size: 14 }), "Save And Open Chat"))), visibleActiveSection === "guided" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Standard Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectList }, guidedProjects.map((project) => renderProjectCard(project, "chat")), guidedProjects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No standard projects yet."))), visibleActiveSection === "autonomous" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Autonomous Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector()), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Autonomous Project Organization"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "Select or create an autonomous project")), selectedAutonomousProject && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => editProject(selectedAutonomousProject), title: "Edit project staffing and team assignments" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "users", size: 14 }), "Edit Project Members"))), selectedAutonomousProject ? /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, summarizeProjectGoals2(selectedAutonomousProject)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectTeamDiagram }, selectedAutonomousSupervisor ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorNode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Supervisor acting for human"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, selectedAutonomousSupervisor.name), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, selectedAutonomousSupervisor.role, " / ", selectedAutonomousProject.permissionMode === "full-access" ? "Full permission" : "Supervised")) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No supervisor assigned."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousTeams.map((team) => renderProjectTeamCard(team, { compact: true })), selectedAutonomousTeams.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No teams assigned to this project.")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectSupervisorRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Direct employees"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, selectedAutonomousDirectEmployees.length), /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Assigned outside teams")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.employeeGrid }, selectedAutonomousDirectEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })), selectedAutonomousDirectEmployees.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No direct employees assigned outside teams."))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("board"), title: "Open the task board for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "board", size: 14 }), "Task Board"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("chat"), title: "Open team chat for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "message", size: 14 }), "Team Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onChangeSection("deliverables"), title: "View deliverables for this autonomous project" }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "archive", size: 14 }), "Deliverables"))) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No autonomous project yet.")), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Autonomous Projects"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectList }, autonomousProjects.map((project) => renderProjectCard(project, "organization")), autonomousProjects.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No autonomous projects yet.")))), visibleActiveSection === "insights" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectInsights(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see insights.")), visibleActiveSection === "execution" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderExecutionConsole(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see execution state.")), visibleActiveSection === "artifacts" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderArtifactsExplorer(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see artifacts.")), visibleActiveSection === "timeline" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderProjectTimeline(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see timeline.")), visibleActiveSection === "governance" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Selected Project"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedProject?.name ?? "No project selected"))), renderProjectSelector()), selectedProject ? renderGovernance(selectedProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select a project to see governance.")), visibleActiveSection === "board" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Task Board"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTaskBoard(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see its task board.")), visibleActiveSection === "chat" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Team Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderTeamChat(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see employee chat.")), visibleActiveSection === "deliverables" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Deliverables"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, selectedAutonomousProject?.name ?? "No autonomous project selected"))), renderAutonomousProjectSelector(), selectedAutonomousProject ? renderDeliverables(selectedAutonomousProject) : /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Select an autonomous project to see deliverables.")), visibleActiveSection === "context" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          "div",
+          {
+            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
+            key: `${entry.type}-${entry.name}`,
+            title: entry.name
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(
+            "button",
+            {
+              className: styles.fileEntryMain,
+              type: "button",
+              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
+            },
+            /* @__PURE__ */ esm_wrapper_default.createElement("span", null, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
+            /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.name),
+            /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
+          ),
+          /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
+        );
+      }))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Base URL"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Context"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Session"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, sessionCount)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.outputTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Runtime"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "App"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Viewport"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)))))), visibleActiveSection === "overview" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailHero }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.detailEyebrow }, "Current workspace"), /* @__PURE__ */ esm_wrapper_default.createElement("h2", null, workspaceTitle), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: appInfo?.workspacePath || void 0 }, appInfo?.workspacePath || "Workspace path unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.detailGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Provider"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, activeProviderLabel)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Model"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.model || activeProviderDefault.model)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Base URL"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Context"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.contextTokens ?? activeProviderDefault.contextTokens)))), /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Workspace State"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tool calls"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)))))), visibleActiveSection === "files" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Files"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: appInfo?.workspacePath || void 0 }, workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.panelActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "arrow-left", size: 14 }), "Up"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh"))), workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineError }, workspaceBrowserError), workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.inlineSuccess }, workspaceActionMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileBrowser, "aria-label": "Workspace files" }, isLoadingWorkspaceEntries && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "Loading files..."), !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No files in this directory"), !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
+        const entryPath = joinWorkspacePath2(workspacePath, entry.name);
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          "div",
+          {
+            className: entry.type === "directory" ? styles.fileEntryDirectory : styles.fileEntry,
+            key: `${entry.type}-${entry.name}`,
+            title: entry.name
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(
+            "button",
+            {
+              className: styles.fileEntryMain,
+              type: "button",
+              onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath)
+            },
+            /* @__PURE__ */ esm_wrapper_default.createElement("span", null, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: entry.type === "directory" ? "folder" : "file", size: 13 }), entry.type === "directory" ? "Folder" : "File"),
+            /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, entry.name),
+            /* @__PURE__ */ esm_wrapper_default.createElement("em", null, entry.type === "directory" ? "Directory" : formatFileSize2(entry.size))
+          ),
+          /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.fileEntryActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "external", size: 13 }), "Open"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 13 }), "Reveal"))
+        );
+      }))), visibleActiveSection === "session" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Session"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Current"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: currentSessionTitle }, currentSessionTitle)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Saved chats"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, sessionCount)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Input tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.inputTokens)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Output tokens"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, tokenUsage.outputTokens)))), visibleActiveSection === "runtime" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Runtime"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "App"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, appInfo?.isDev ? "Development" : "Production")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Viewport"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, viewportSize.width, " x ", viewportSize.height)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "State keys"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Object.keys(appState).length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)))));
+    }
+    function ToolsView2({
+      activeSection,
+      tools,
+      mcpTools,
+      mcpServers,
+      appConfig,
+      routerMessage,
+      toolActivities,
+      onToggleModelTool,
+      onApplyToolPreset,
+      onSetToolPermission,
+      onApplyPermissionPreset,
+      onRunCommand,
+      onOpenWorkspacePath,
+      onRevealWorkspacePath,
+      onRefresh,
+      onClearActivities
+    }) {
+      const exposedToolCount = tools.filter((tool) => isToolExposedToModel2(tool, appConfig)).length;
+      const toolGroups = groupToolsByCategory2(tools);
+      const policyCounts = tools.reduce(
+        (counts, tool) => {
+          counts[getToolPermissionPolicy2(tool, appConfig)] += 1;
+          return counts;
+        },
+        { allow: 0, ask: 0, deny: 0 }
+      );
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailView, "aria-label": "Tools" }, (activeSection === "bridge" || activeSection === "mcp") && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), activeSection === "bridge" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Bridge Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterSummary }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Model exposure"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, exposedToolCount, " / ", tools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Tool calls"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, appConfig?.enableLlmTools ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Ask policy"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, policyCounts.ask)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Denied"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, policyCounts.deny))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Expose all"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Read-only only"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Hide mutating"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Allow all"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Ask mutating"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 14 }), "Deny mutating")), routerMessage && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.toolRouterMessage }, routerMessage), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, toolGroups.map((group) => /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.toolCatalogGroup, key: group.id }, /* @__PURE__ */ esm_wrapper_default.createElement("h4", null, group.label), group.tools.map((tool) => {
+        const exposed = isToolExposedToModel2(tool, appConfig);
+        const permission = getToolPermissionPolicy2(tool, appConfig);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: tool.name }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, tool.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, tool.readOnly ? "Read-only" : "Can change workspace")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, tool.description), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolExposureRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, exposed ? "Exposed to model" : "Hidden from model"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: exposed ? styles.toolExposureButton : styles.toolExposureButtonOff,
+            type: "button",
+            onClick: () => onToggleModelTool(tool.name, !exposed)
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: exposed ? "x" : "check", size: 13 }),
+          exposed ? "Hide" : "Expose"
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.toolPermissionRow }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Permission"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "select",
+          {
+            value: permission,
+            onChange: (event) => onSetToolPermission(tool.name, event.target.value)
+          },
+          TOOL_PERMISSION_OPTIONS2.map((option) => /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: option.value, key: option.value }, option.label))
+        )));
+      }))), tools.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No bridge tools available"))), activeSection === "mcp" && /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "MCP Registry"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Servers"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpServers.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, mcpTools.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Execution policy"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, getToolPermissionPolicy2({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig)))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, mcpServers.map((server) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: `${server.scope ?? "unknown"}-${server.name}` }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, server.name), /* @__PURE__ */ esm_wrapper_default.createElement(
+        "span",
+        {
+          className: [
+            styles.toolStatusBadge,
+            server.status === "connected" ? styles.toolStatusConnected : "",
+            server.status === "error" ? styles.toolStatusError : ""
+          ].filter(Boolean).join(" ")
+        },
+        server.status
+      )), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, server.type, server.scope ? ` / ${server.scope}` : "", server.error ? ` / ${server.error}` : ""))), mcpServers.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No MCP servers configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.tagList }, mcpTools.map((tool) => /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.tag, key: `${tool.serverKey ?? tool.serverName}-${tool.toolName}` }, tool.serverScope ? `${tool.serverScope}:` : "", tool.serverName, ".", tool.toolName)), mcpTools.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No executable stdio MCP tools discovered yet"))), activeSection === "command" && /* @__PURE__ */ esm_wrapper_default.createElement(RunCommandPanel, { onRunCommand }), activeSection === "activity" && /* @__PURE__ */ esm_wrapper_default.createElement(
+        ToolActivityPanel2,
+        {
+          activities: toolActivities,
+          onClear: onClearActivities,
+          onOpenWorkspacePath,
+          onRevealWorkspacePath
+        }
+      ), activeSection === "plugins" && /* @__PURE__ */ esm_wrapper_default.createElement(PluginSkillPanel, { appConfig }));
+    }
+    function HistoryView2({
+      activeSection,
+      records,
+      storageInfo,
+      message,
+      exportText,
+      onRefresh,
+      onDeleteRecord,
+      onRestoreChat,
+      onExportRecords
+    }) {
+      const automationRecords = records.filter((record) => record.type === "automation-run");
+      const projectEventRecords = records.filter((record) => record.type === "project-event");
+      const projectActivityRecords = records.filter((record) => record.type === "automation-run" || record.type === "project-event");
+      const visibleRecords = activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : projectActivityRecords;
+      const [historyDeleteTarget, setHistoryDeleteTarget] = useState(null);
+      function openHistoryDeleteConfirmation(record) {
+        setHistoryDeleteTarget({
+          kind: "record",
+          id: record.id,
+          name: getHistoryRecordTitle2(record),
+          detail: "Delete this local history record.",
+          impact: [
+            `${getHistoryRecordTypeLabel2(record.type)} record will be removed from local history storage.`,
+            record.workspacePath ? `Workspace: ${record.workspacePath}` : "This does not delete workspace files or project artifacts."
+          ]
+        });
+      }
+      function closeHistoryDeleteConfirmation() {
+        setHistoryDeleteTarget(null);
+      }
+      function confirmHistoryDelete() {
+        if (!historyDeleteTarget) {
+          return;
+        }
+        onDeleteRecord(historyDeleteTarget.id);
+        closeHistoryDeleteConfirmation();
+      }
+      function renderHistoryDeleteConfirmation() {
+        if (!historyDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: "Delete record",
+            subtitle: historyDeleteTarget.name,
+            onClose: closeHistoryDeleteConfirmation,
+            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmHistoryDelete }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeHistoryDeleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, historyDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local History state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, historyDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
+        );
+      }
+      async function copyExportText() {
+        if (exportText) {
+          await navigator.clipboard.writeText(exportText);
+        }
+      }
+      function downloadExportText() {
+        if (!exportText) {
+          return;
+        }
+        const blob = new Blob([exportText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `code-agent-history-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsView, "aria-label": "Project activity" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Project activity" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: historyDeleteTarget ? `${styles.settingsContent} ${styles.workbenchSplitWithRail}` : styles.settingsContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.inlineSuccess }, message), historyDeleteTarget && renderHistoryDeleteConfirmation(), activeSection === "overview" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Storage" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Records"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectActivityRecords.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Automation"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, automationRecords.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Project events"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, projectEventRecords.length))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText, title: storageInfo.storagePath }, "Storage path: ", storageInfo.storagePath || "Unavailable")), /* @__PURE__ */ esm_wrapper_default.createElement(
+        HistoryRecordList,
+        {
+          records: projectActivityRecords.slice(0, 12),
+          onRequestDeleteRecord: openHistoryDeleteConfirmation,
+          onRestoreChat
+        }
+      )), (activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ esm_wrapper_default.createElement(
+        HistoryRecordList,
+        {
+          records: visibleRecords,
+          onRequestDeleteRecord: openHistoryDeleteConfirmation,
+          onRestoreChat
+        }
+      ), activeSection === "export" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Export History" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Exports are local JSON snapshots. They do not include provider API keys."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "bot", size: 14 }), "Export Automation"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportRecords("project-event") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "activity", size: 14 }), "Export Project Events"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Export Data" }, /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: exportText, readOnly: true, rows: 14, placeholder: "Choose an export option above." }), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "file", size: 14 }), "Copy JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Download JSON")))))));
+    }
+    function HistoryRecordList({
+      records,
+      onRequestDeleteRecord,
+      onRestoreChat
+    }) {
+      return /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Records" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, records.map((record) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: record.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, getHistoryRecordTitle2(record)), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, getHistoryRecordTypeLabel2(record.type))), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, getHistoryRecordSummary2(record)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(record.updatedAt).toLocaleString()), record.workspacePath && /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: record.workspacePath }, "Workspace: ", record.workspacePath), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, record.type === "chat-session" && /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRestoreChat(record) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Restore Chat"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onRequestDeleteRecord(record) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")))), records.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No history records in this section.")));
+    }
+    function createAutomationDraftId(prefix) {
+      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    function createVirtualTeamMemberDraft(role = "Developer") {
+      return {
+        id: createAutomationDraftId("member"),
+        name: role,
+        role,
+        goal: getDefaultTeamGoal(role),
+        tools: getDefaultTeamTools(role)
+      };
+    }
+    function createVirtualTeamDraft(workspacePath, providerId) {
+      const members = [
+        createVirtualTeamMemberDraft("Supervisor"),
+        createVirtualTeamMemberDraft("Project Manager"),
+        createVirtualTeamMemberDraft("Developer"),
+        createVirtualTeamMemberDraft("QA")
+      ];
+      const now = Date.now();
+      return {
+        id: createAutomationDraftId("team"),
+        name: "Autonomous project team",
+        objective: "Build and validate the software project from the human blueprint.",
+        workspacePath,
+        permissionMode: "full-access",
+        maxIterations: 1,
+        providerId,
+        providerConfig: { requireQaSignoff: true },
+        supervisorId: members[0].id,
+        members,
+        status: "draft",
+        createdAt: now,
+        updatedAt: now
+      };
+    }
+    function cloneVirtualTeamForDraft(team, workspacePath) {
+      const members = team.members.map((member) => ({
+        ...member,
+        tools: [...member.tools]
+      }));
+      const supervisorId = members.some((member) => member.id === team.supervisorId) ? team.supervisorId : members[0]?.id ?? "";
+      return {
+        ...team,
+        workspacePath: team.workspacePath ?? workspacePath,
+        permissionMode: team.permissionMode ?? "full-access",
+        maxIterations: team.maxIterations ?? 1,
+        providerId: team.providerId,
+        providerConfig: team.providerConfig ? { ...team.providerConfig } : void 0,
+        supervisorId,
+        members
+      };
+    }
+    function getTeamPermissionLabel(mode) {
+      return mode === "supervised" ? "Supervised" : "Full access";
+    }
+    function formatTeamTools(tools) {
+      return tools.join(", ");
+    }
+    function createPermissionTool(toolName) {
+      const readOnly = !["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"].includes(toolName);
+      return {
+        name: toolName,
+        description: "",
+        inputSchema: {},
+        readOnly
+      };
+    }
+    function AutomationView2({
+      providerId,
+      activeSection,
+      skills,
+      tasks,
+      taskRuns,
+      schedulerStatus,
+      remoteControl,
+      teams,
+      teamRuns,
+      runningTeamIds,
+      roles,
+      employees,
+      appConfig,
+      workspacePath,
+      message,
+      exportText,
+      importText,
+      onRefresh,
+      onSetSkillEnabled,
+      onExportProject,
+      onImportTextChange,
+      onImportProject,
+      onSaveTask,
+      onRunTask,
+      onSetTaskEnabled,
+      onDeleteTask,
+      onUpdateRemoteControl,
+      onCreatePairingCode,
+      onRevokeRemoteDevice,
+      onCreateDefaultTeam,
+      onSaveTeam,
+      onRunTeam,
+      onDeleteTeam,
+      onSetToolPermission,
+      onApplyPermissionPreset
+    }) {
+      const [taskName, setTaskName] = useState("Daily project check");
+      const [taskPrompt, setTaskPrompt] = useState("Summarize git status, failing tests, and next actions for this workspace.");
+      const [taskInterval, setTaskInterval] = useState(1440);
+      const [taskRetryEnabled, setTaskRetryEnabled] = useState(false);
+      const [taskMaxRetries, setTaskMaxRetries] = useState(1);
+      const [taskRetryDelay, setTaskRetryDelay] = useState(15);
+      const [taskNotifySuccess, setTaskNotifySuccess] = useState(false);
+      const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
+      const [taskNotificationChannel, setTaskNotificationChannel] = useState("desktop");
+      const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState("run-once");
+      const [taskDraftId, setTaskDraftId] = useState("");
+      const [taskEnabled, setTaskEnabled] = useState(true);
+      const [deviceName, setDeviceName] = useState("Phone");
+      const [selectedTeamId, setSelectedTeamId] = useState("");
+      const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = useState("");
+      const [teamDraft, setTeamDraft] = useState(() => createVirtualTeamDraft(workspacePath, providerId));
+      const [automationEditorPanel, setAutomationEditorPanel] = useState(null);
+      const [automationDeleteTarget, setAutomationDeleteTarget] = useState(null);
+      const [scheduledTaskView, setScheduledTaskView] = useState("table");
+      const selectedTeam = teams.find((team) => team.id === selectedTeamId);
+      const recentTeamRuns = selectedTeamId ? teamRuns.filter((run) => run.teamId === selectedTeamId) : teamRuns;
+      const taskRailOpen = automationEditorPanel === "task" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task";
+      const teamRailOpen = automationEditorPanel === "team" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "team";
+      useEffect(() => {
+        if (!selectedTeamId && teams[0]) {
+          setSelectedTeamId(teams[0].id);
+          setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
+        }
+      }, [selectedTeamId, teams, workspacePath]);
+      function closeAutomationEditorPanel() {
+        setAutomationEditorPanel(null);
+        setAutomationDeleteTarget(null);
+      }
+      function openAutomationDeleteConfirmation(target) {
+        setAutomationDeleteTarget(target);
+        setAutomationEditorPanel("delete");
+      }
+      function confirmAutomationDelete() {
+        if (!automationDeleteTarget) {
+          return;
+        }
+        if (automationDeleteTarget.kind === "task") {
+          onDeleteTask(automationDeleteTarget.id);
+        } else if (automationDeleteTarget.kind === "team") {
+          onDeleteTeam(automationDeleteTarget.id);
+        } else if (automationDeleteTarget.kind === "device") {
+          onRevokeRemoteDevice(automationDeleteTarget.id);
+        }
+        closeAutomationEditorPanel();
+      }
+      function openNewTaskEditor() {
+        setAutomationDeleteTarget(null);
+        setTaskDraftId("");
+        setTaskName("Daily project check");
+        setTaskPrompt("Summarize git status, failing tests, and next actions for this workspace.");
+        setTaskInterval(1440);
+        setTaskRetryEnabled(false);
+        setTaskMaxRetries(1);
+        setTaskRetryDelay(15);
+        setTaskNotifySuccess(false);
+        setTaskNotifyFailure(true);
+        setTaskNotificationChannel("desktop");
+        setTaskMissedRunPolicy("run-once");
+        setTaskEnabled(true);
+        setAutomationEditorPanel("task");
+      }
+      function openTaskEditor(task) {
+        setAutomationDeleteTarget(null);
+        setTaskDraftId(task.id);
+        setTaskName(task.name);
+        setTaskPrompt(task.prompt);
+        setTaskInterval(task.intervalMinutes);
+        setTaskRetryEnabled(Boolean(task.retryPolicy?.enabled));
+        setTaskMaxRetries(task.retryPolicy?.maxRetries ?? 1);
+        setTaskRetryDelay(task.retryPolicy?.retryDelayMinutes ?? 15);
+        setTaskNotifySuccess(Boolean(task.notificationPolicy?.onSuccess));
+        setTaskNotifyFailure(task.notificationPolicy?.onFailure !== false);
+        setTaskNotificationChannel(task.notificationPolicy?.channel ?? "desktop");
+        setTaskMissedRunPolicy(task.missedRunPolicy ?? "run-once");
+        setTaskEnabled(task.enabled);
+        setAutomationEditorPanel("task");
+      }
+      function saveTaskDraft() {
+        onSaveTask({
+          id: taskDraftId || void 0,
+          name: taskName,
+          prompt: taskPrompt,
+          intervalMinutes: taskInterval,
+          enabled: taskEnabled,
+          retryPolicy: {
+            enabled: taskRetryEnabled,
+            maxRetries: taskMaxRetries,
+            retryDelayMinutes: taskRetryDelay
+          },
+          notificationPolicy: {
+            onSuccess: taskNotifySuccess,
+            onFailure: taskNotifyFailure,
+            channel: taskNotificationChannel
+          },
+          missedRunPolicy: taskMissedRunPolicy
+        });
+        closeAutomationEditorPanel();
+      }
+      function startNewTeamDraft() {
+        const draft = createVirtualTeamDraft(workspacePath, providerId);
+        setSelectedTeamId("");
+        setTeamDraft(draft);
+        setAutomationDeleteTarget(null);
+        setAutomationEditorPanel("team");
+      }
+      function selectTeam(team) {
+        setSelectedTeamId(team.id);
+        setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
+        setAutomationDeleteTarget(null);
+        setAutomationEditorPanel("team");
+      }
+      function updateTeamDraft(update) {
+        setTeamDraft((current) => ({
+          ...current,
+          ...update,
+          updatedAt: Date.now()
+        }));
+      }
+      function updateTeamMember(index, update) {
+        setTeamDraft((current) => {
+          const members = current.members.map((member, memberIndex) => memberIndex === index ? { ...member, ...update } : member);
+          const supervisorId = members.some((member) => member.id === current.supervisorId) ? current.supervisorId : members[0]?.id ?? "";
+          return {
+            ...current,
+            members,
+            supervisorId,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function addTeamMember(role = "Developer") {
+        setTeamDraft((current) => {
+          const member = createVirtualTeamMemberDraft(role);
+          return {
+            ...current,
+            members: [...current.members, member],
+            supervisorId: current.supervisorId || member.id,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function addSharedEmployeeToTeam(employeeId) {
+        const employee = employees.find((candidate) => candidate.id === employeeId);
+        if (!employee) {
+          return;
+        }
+        const role = getEmployeeRoleDefinition2(employee, roles);
+        const member = {
+          id: `member-${employee.id}`,
+          name: employee.name,
+          role: role?.title ?? employee.role,
+          goal: role?.defaultGoal ?? getDefaultTeamGoal(employee.role),
+          tools: role?.defaultTools ?? getDefaultTeamTools(employee.role)
+        };
+        setTeamDraft((current) => {
+          const members = [
+            member,
+            ...current.members.filter((candidate) => candidate.id !== member.id)
+          ];
+          return {
+            ...current,
+            members,
+            supervisorId: current.supervisorId || (role?.canSupervise ? member.id : members[0]?.id ?? ""),
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function deleteTeamMember(memberId) {
+        setTeamDraft((current) => {
+          const members = current.members.filter((member) => member.id !== memberId);
+          return {
+            ...current,
+            members,
+            supervisorId: current.supervisorId === memberId ? members[0]?.id ?? "" : current.supervisorId,
+            updatedAt: Date.now()
+          };
+        });
+      }
+      function saveTeamDraft() {
+        onSaveTeam({
+          ...teamDraft,
+          permissionMode: teamDraft.permissionMode ?? "full-access",
+          maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
+          providerId: teamDraft.providerId,
+          providerConfig: teamDraft.providerConfig ? { ...teamDraft.providerConfig } : void 0,
+          members: teamDraft.members.map((member) => ({
+            ...member,
+            name: member.name.trim() || member.role.trim() || "Team member",
+            role: member.role.trim() || "Contributor",
+            goal: member.goal.trim() || getDefaultTeamGoal(member.role),
+            tools: normalizeToolNameList2(member.tools)
+          }))
+        });
+        closeAutomationEditorPanel();
+      }
+      function buildScheduledTaskDeleteTarget(task) {
+        return {
+          kind: "task",
+          id: task.id,
+          name: task.name,
+          detail: "Delete this scheduled automation task.",
+          impact: [
+            `The ${task.enabled ? "enabled" : "disabled"} schedule running every ${task.intervalMinutes} minute(s) will be removed.`,
+            "Existing task run history remains visible until history retention removes it."
+          ]
+        };
+      }
+      function buildAutomationTeamDeleteTarget(team) {
+        return {
+          kind: "team",
+          id: team.id,
+          name: team.name,
+          detail: "Delete this automation team blueprint.",
+          impact: [
+            `${team.members.length} virtual team member definition(s) will be removed from this blueprint.`,
+            "Existing team run records are not deleted by this action."
+          ]
+        };
+      }
+      function buildRemoteDeviceDeleteTarget(device) {
+        return {
+          kind: "device",
+          id: device.id,
+          name: device.name,
+          detail: "Revoke this approved remote-control device.",
+          impact: [
+            "The device token will no longer be accepted for remote approvals.",
+            device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}.` : `Paired ${new Date(device.createdAt).toLocaleString()}.`
+          ]
+        };
+      }
+      function getScheduledTaskPolicyLabels(task) {
+        const retryLabel = task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} retry` : "Retry off";
+        const notifyLabel = `${task.notificationPolicy?.channel ?? "desktop"} notifications`;
+        return { retryLabel, notifyLabel };
+      }
+      function renderScheduledTaskRow(task) {
+        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.workbenchRecordRow, key: task.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run")), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, "Every ", task.intervalMinutes, " min"), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: new Date(task.nextRunAt).toLocaleString() }, "Next ", new Date(task.nextRunAt).toLocaleString()), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: `${task.prompt} / ${retryLabel} / ${notifyLabel}` }, retryLabel, " / ", notifyLabel), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderScheduledTaskCard(task) {
+        const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.projectCard, key: task.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardHeader }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, task.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, task.enabled ? "Enabled" : "Disabled", " / ", task.lastStatus ?? "never run"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: task.prompt }, task.prompt), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.projectCardMeta }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Cadence"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, "Every ", task.intervalMinutes, " min")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Next Run"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: new Date(task.nextRunAt).toLocaleString() }, new Date(task.nextRunAt).toLocaleString()))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectChipList }, /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, retryLabel), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, notifyLabel), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.projectChip }, task.missedRunPolicy ?? "run-once")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.projectCardActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openTaskEditor(task) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTask(task.id) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "play", size: 14 }), "Run Now"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: task.enabled ? "pause" : "play", size: 14 }), task.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Delete")));
+      }
+      function renderAutomationTeamRow(team) {
+        const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === "running";
+        const status = teamIsRunning ? "running" : team.status;
+        const governance = `${team.maxIterations ?? 1} iteration(s) / QA ${team.providerConfig?.requireQaSignoff === true ? "required" : "optional"}`;
+        const rowClassName = team.id === selectedTeamId ? `${styles.workbenchRecordRow} ${styles.workbenchRecordRowSelected}` : styles.workbenchRecordRow;
+        return /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: rowClassName, key: team.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordPrimary }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, team.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", { title: team.workspacePath ?? workspacePath }, team.workspacePath ?? workspacePath)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, status, " / ", getTeamPermissionLabel(team.permissionMode)), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell }, team.members.length, " member(s) / ", governance), /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchRecordCell, title: `${team.objective}${team.lastResult ? ` / ${team.lastResult}` : ""}` }, team.objective), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordActions} ${styles.workbenchRecordActionsWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => selectTeam(team), disabled: teamIsRunning }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "edit", size: 14 }), "Edit"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onRunTeam(team.id), disabled: teamIsRunning }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: teamIsRunning ? "activity" : "play", size: 14 }), teamIsRunning ? "Running..." : "Run Team"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "button",
+          {
+            className: styles.dangerButton,
+            type: "button",
+            onClick: () => openAutomationDeleteConfirmation(buildAutomationTeamDeleteTarget(team)),
+            disabled: teamIsRunning
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }),
+          "Delete"
+        )));
+      }
+      function renderAutomationDeleteConfirmation() {
+        if (!automationDeleteTarget) {
+          return null;
+        }
+        return /* @__PURE__ */ esm_wrapper_default.createElement(
+          WorkbenchEditorPanel,
+          {
+            title: `Delete ${automationDeleteTarget.kind}`,
+            subtitle: automationDeleteTarget.name,
+            onClose: closeAutomationEditorPanel,
+            footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: confirmAutomationDelete }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Confirm Delete"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: closeAutomationEditorPanel }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "x", size: 14 }), "Cancel"))
+          },
+          /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.deleteConfirmation }, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, automationDeleteTarget.detail), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "This action updates local Automation state immediately."), /* @__PURE__ */ esm_wrapper_default.createElement("ul", null, automationDeleteTarget.impact.map((item) => /* @__PURE__ */ esm_wrapper_default.createElement("li", { key: item }, item))))
+        );
+      }
+      async function copyAutomationExportText() {
+        if (exportText) {
+          await navigator.clipboard.writeText(exportText);
+        }
+      }
+      function downloadAutomationExportText() {
+        if (!exportText) {
+          return;
+        }
+        const blob = new Blob([exportText], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `code-agent-automation-${Date.now()}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.settingsView, "aria-label": "Automation" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.settingsDialog} ${styles.settingsPageForm}`, role: "region", "aria-label": "Automation" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsContent }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pageActionBar }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: onRefresh }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "refresh", size: 14 }), "Refresh")), message && /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.inlineSuccess }, message), activeSection === "skills" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Workspace Skills" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Workspace skills are discovered from `.code-agent/skills` and `skills`."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, skills.map((skill) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: skill.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, skill.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, skill.enabled ? "Enabled" : "Disabled", " / ", skill.source)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, skill.description || "No description provided."), /* @__PURE__ */ esm_wrapper_default.createElement("p", { title: skill.path }, skill.path), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onSetSkillEnabled(skill.id, !skill.enabled) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: skill.enabled ? "pause" : "play", size: 14 }), skill.enabled ? "Disable" : "Enable")))), skills.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No workspace skills found yet."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Shareable Project Bundle" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(false) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Export Config"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onExportProject(true) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "archive", size: 14 }), "Export With Runs"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: copyAutomationExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "file", size: 14 }), "Copy Export"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", disabled: !exportText, onClick: downloadAutomationExportText }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "download", size: 14 }), "Download Export"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: onImportProject, disabled: !importText.trim() }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "folder-open", size: 14 }), "Import JSON")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Export JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: exportText, readOnly: true, rows: 8, placeholder: "Exported automation JSON appears here." })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Import JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: importText, onChange: (event) => onImportTextChange(event.target.value), rows: 8, placeholder: "Paste a CodeAgent automation export JSON object." }))))), activeSection === "tasks" && /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: taskRailOpen ? `${styles.workbenchSplit} ${styles.workbenchSplitWithRail}` : styles.workbenchSplit }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchMainStack }, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Scheduler" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, schedulerStatus.running ? "Running" : "Stopped")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Tick"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, Math.round(schedulerStatus.intervalMs / 1e3), "s")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Active tasks"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, schedulerStatus.runningTaskIds.length))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the team panel when trusted autonomous work should not pause for approvals."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: openNewTaskEditor }, "New Task"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Configured Tasks" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordSectionToolbar }, /* @__PURE__ */ esm_wrapper_default.createElement(RecordViewToggle2, { view: scheduledTaskView, onChange: setScheduledTaskView, label: "Scheduled task list view" })), scheduledTaskView === "table" ? /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.workbenchRecordList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: `${styles.workbenchRecordRow} ${styles.workbenchRecordHeader}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Task"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Cadence"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Next run"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Policy"), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Actions")), tasks.map((task) => renderScheduledTaskRow(task)), tasks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured.")) : /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.recordCardGrid }, tasks.map((task) => renderScheduledTaskCard(task)), tasks.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.workbenchEmptyState }, "No scheduled tasks configured."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Recent Task Runs" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, taskRuns.slice(0, 8).map((run) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: run.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, run.taskName), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, run.status)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, run.result ?? run.error ?? "Running..."), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(run.startedAt).toLocaleString()))), taskRuns.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No task runs yet.")))), automationEditorPanel === "task" && /* @__PURE__ */ esm_wrapper_default.createElement(
+        WorkbenchEditorPanel,
+        {
+          title: taskDraftId ? "Edit Scheduled Task" : "New Scheduled Task",
+          subtitle: "Prompt, cadence, retries, notifications, and missed-run handling",
+          onClose: closeAutomationEditorPanel,
+          footer: /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: saveTaskDraft }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "save", size: 14 }), "Save Task"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: openNewTaskEditor }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "rotate", size: 14 }), "Reset New"))
+        },
+        /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: taskName, onChange: (event) => setTaskName(event.target.value) })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Enabled"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskEnabled ? "yes" : "no", onChange: (event) => setTaskEnabled(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Interval minutes"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 1,
+            value: taskInterval,
+            onChange: (event) => setTaskInterval(Math.max(1, Number(event.target.value) || 1))
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: `${styles.field} ${styles.fieldWide}` }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Prompt"), /* @__PURE__ */ esm_wrapper_default.createElement("textarea", { value: taskPrompt, onChange: (event) => setTaskPrompt(event.target.value), rows: 4 })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Retry failed runs"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskRetryEnabled ? "enabled" : "disabled", onChange: (event) => setTaskRetryEnabled(event.target.value === "enabled") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "disabled" }, "Disabled"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "enabled" }, "Enabled"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Max retries"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 0,
+            max: 10,
+            value: taskMaxRetries,
+            onChange: (event) => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Retry delay minutes"), /* @__PURE__ */ esm_wrapper_default.createElement(
+          "input",
+          {
+            type: "number",
+            min: 1,
+            max: 1440,
+            value: taskRetryDelay,
+            onChange: (event) => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))
+          }
+        )), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notify on success"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotifySuccess ? "yes" : "no", onChange: (event) => setTaskNotifySuccess(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notify on failure"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotifyFailure ? "yes" : "no", onChange: (event) => setTaskNotifyFailure(event.target.value === "yes") }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "yes" }, "Yes"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "no" }, "No"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Notification channel"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskNotificationChannel, onChange: (event) => setTaskNotificationChannel(event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "desktop" }, "Desktop"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "remote" }, "Remote"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "none" }, "None"))), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Missed runs"), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: taskMissedRunPolicy, onChange: (event) => setTaskMissedRunPolicy(event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "run-once" }, "Run once after restart"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "skip" }, "Skip and resume schedule"))))
+      ), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task" && renderAutomationDeleteConfirmation()), activeSection === "remote" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote Access" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.enabled ? "Enabled" : "Disabled")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Mode"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.mode)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Devices"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.approvedDevices.length)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Pending approvals"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.pendingActions?.length ?? 0))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.settingsGrid }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Device name"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: deviceName, onChange: (event) => setDeviceName(event.target.value) }))), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? "disabled" : "local-network" }) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: remoteControl.enabled ? "pause" : "play", size: 14 }), remoteControl.enabled ? "Disable" : "Enable"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onCreatePairingCode(deviceName) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "phone", size: 14 }), "Pair Device"))), remoteControl.pairingCode && /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Pairing Code" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Pairing code"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, remoteControl.pairingCode), remoteControl.pairingExpiresAt && /* @__PURE__ */ esm_wrapper_default.createElement("em", null, "Expires ", new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()))), (remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote URL" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.pairingCode }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Remote URL"), /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl), remoteControl.serverUrl && /* @__PURE__ */ esm_wrapper_default.createElement("em", null, remoteControl.serverUrl))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Managed Relay" }, /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Status"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.enrollmentStatus ?? "not-configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Broker"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.brokerUrl ?? "Not configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Account"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.accountId ?? "Not configured")), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Device"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", null, remoteControl.relay?.deviceId ?? "Not configured"))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Off-network relay control stays disabled until the managed relay implements identity, encryption, token rotation, audit propagation, and emergency revocation.")), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Approved Devices" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, remoteControl.approvedDevices.map((device) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: device.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, device.name), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, device.lastSeenAt ? "Seen recently" : "Paired")), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Paired ", new Date(device.createdAt).toLocaleString()), device.lastSeenAt && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Last seen ", new Date(device.lastSeenAt).toLocaleString()), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildRemoteDeviceDeleteTarget(device)) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "trash", size: 14 }), "Revoke")))), remoteControl.approvedDevices.length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No approved remote devices."))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Remote Audit Log" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, (remoteControl.auditLog ?? []).slice(0, 12).map((event) => /* @__PURE__ */ esm_wrapper_default.createElement("article", { className: styles.toolCatalogItem, key: event.id }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("strong", null, event.message), /* @__PURE__ */ esm_wrapper_default.createElement("span", null, event.type)), /* @__PURE__ */ esm_wrapper_default.createElement("p", null, new Date(event.createdAt).toLocaleString()), event.deviceName && /* @__PURE__ */ esm_wrapper_default.createElement("p", null, "Device: ", event.deviceName))), (remoteControl.auditLog ?? []).length === 0 && /* @__PURE__ */ esm_wrapper_default.createElement("span", { className: styles.mutedText }, "No remote-control audit events yet."))), automationEditorPanel === "delete" && automationDeleteTarget?.kind === "device" && renderAutomationDeleteConfirmation()), activeSection === "permissions" && /* @__PURE__ */ esm_wrapper_default.createElement(esm_wrapper_default.Fragment, null, /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Unattended Execution Policy" }, /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "check", size: 14 }), "Allow All Tools"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "shield", size: 14 }), "Ask Before Changes"), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.dangerButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating") }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "lock", size: 14 }), "Deny Mutating Tools"))), /* @__PURE__ */ esm_wrapper_default.createElement(SettingsSection2, { title: "Key Automation Tools" }, /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolCatalog }, AUTOMATION_PERMISSION_TOOLS2.map((toolName) => {
+        const permission = getToolPermissionPolicy2(createPermissionTool(toolName), appConfig);
+        return /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.toolPermissionRow, key: toolName }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, toolName), /* @__PURE__ */ esm_wrapper_default.createElement("select", { value: permission, onChange: (event) => onSetToolPermission(toolName, event.target.value) }, /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "allow" }, "Allow"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "ask" }, "Ask"), /* @__PURE__ */ esm_wrapper_default.createElement("option", { value: "deny" }, "Deny")));
+      })))))));
+    }
+    function RunCommandPanel({
+      onRunCommand
+    }) {
+      const [command, setCommand] = useState("");
+      const [cwd, setCwd] = useState(".");
+      const helperCommands = [
+        { label: "Git status", command: "git status --short --branch" },
+        { label: "Git diff", command: "git diff --stat" },
+        { label: "Branch", command: "git branch --show-current" },
+        { label: "NPM scripts", command: "npm run" },
+        { label: "Dev servers", command: "lsof -iTCP -sTCP:LISTEN -P -n" }
+      ];
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Run Command"), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Commands run through `bash.run`, stay inside the workspace, and require approval before execution."), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.commandRunner }, /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Command"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: command, onChange: (event) => setCommand(event.target.value), placeholder: "npm test" })), /* @__PURE__ */ esm_wrapper_default.createElement("label", { className: styles.field }, /* @__PURE__ */ esm_wrapper_default.createElement("span", null, "Working directory"), /* @__PURE__ */ esm_wrapper_default.createElement("input", { value: cwd, onChange: (event) => setCwd(event.target.value), placeholder: "." })), /* @__PURE__ */ esm_wrapper_default.createElement("button", { className: styles.primaryButton, type: "button", onClick: () => onRunCommand(command, cwd) }, /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "terminal", size: 14 }), "Review Run")), /* @__PURE__ */ esm_wrapper_default.createElement("div", { className: styles.toolRouterActions }, helperCommands.map((helper) => /* @__PURE__ */ esm_wrapper_default.createElement(
+        "button",
+        {
+          className: styles.secondaryButton,
+          type: "button",
+          key: helper.label,
+          onClick: () => setCommand(helper.command)
+        },
+        /* @__PURE__ */ esm_wrapper_default.createElement(Icon2, { name: "terminal", size: 14 }),
+        helper.label
+      ))));
+    }
+    function PluginSkillPanel({ appConfig }) {
+      const pluginDirs = readCliOption2(appConfig, "pluginDirs") || "Default plugin paths";
+      const agentsJson = readCliOption2(appConfig, "agentsJson") || "Not configured";
+      const mcpConfig = readCliOption2(appConfig, "mcpConfig") || "Default MCP config";
+      return /* @__PURE__ */ esm_wrapper_default.createElement("section", { className: styles.detailPanel }, /* @__PURE__ */ esm_wrapper_default.createElement("h3", null, "Plugins & Skills"), /* @__PURE__ */ esm_wrapper_default.createElement("dl", { className: styles.detailList }, /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Plugin dirs"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: pluginDirs }, pluginDirs)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "Agents JSON"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: agentsJson }, agentsJson)), /* @__PURE__ */ esm_wrapper_default.createElement("div", null, /* @__PURE__ */ esm_wrapper_default.createElement("dt", null, "MCP config"), /* @__PURE__ */ esm_wrapper_default.createElement("dd", { title: mcpConfig }, mcpConfig))), /* @__PURE__ */ esm_wrapper_default.createElement("p", { className: styles.mutedText }, "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above."));
+    }
+    return { ProjectsView: ProjectsView2, ToolsView: ToolsView2, AutomationView: AutomationView2, HistoryView: HistoryView2 };
+  }
 
   // node_modules/highlight.js/es/common.js
   var import_common = __toESM(require_common(), 1);
@@ -39031,6 +43159,7 @@
     packageStoreOwnedList: "App_packageStoreOwnedList",
     packageStoreOwnedItem: "App_packageStoreOwnedItem",
     packageStoreOwnedBody: "App_packageStoreOwnedBody",
+    packageStoreOwnedActions: "App_packageStoreOwnedActions",
     packageStoreIdentity: "App_packageStoreIdentity",
     packageBillingNote: "App_packageBillingNote",
     packageStateAvailable: "App_packageStateAvailable",
@@ -39214,7 +43343,8 @@
       setConfig: (config) => getApi().app.setConfig(config),
       getState: () => getApi().app.getState(),
       setState: (state) => getApi().app.setState(state),
-      installFeaturePackage: (request) => getApi().app.installFeaturePackage(request)
+      installFeaturePackage: (request) => getApi().app.installFeaturePackage(request),
+      uninstallFeaturePackage: (request) => getApi().app.uninstallFeaturePackage(request)
     },
     window: {
       minimize: () => getApi().window.minimize(),
@@ -39246,7 +43376,7 @@
       "displayName": "Software Developer",
       "domain": "software-development",
       "tier": "paid",
-      "version": "1.0.0",
+      "version": "1.0.9",
       "owner": "codeagent",
       "description": "Project Studio, autonomous software delivery, virtual teams, boards, and project activity workflows.",
       "pricing": {
@@ -39270,15 +43400,16 @@
         "versionRange": "^0.1.0"
       },
       "entrypoints": {
-        "runtime": "dist/index.js"
+        "runtime": "dist/index.js",
+        "cli": "dist/cli.js"
       },
       "distribution": {
         "mode": "installable",
         "artifact": {
           "artifactId": "codeagent.software-developer.bundle",
-          "version": "1.0.0",
+          "version": "1.0.9",
           "distributionMode": "installable",
-          "bundlePath": "codeagent-package://software-developer/1.0.0",
+          "bundlePath": "codeagent-package://software-developer/1.0.9",
           "downloadUrl": "/code-agent/packages/software-developer/artifact"
         },
         "installRequired": true,
@@ -39562,8 +43693,8 @@
             "automation.listTaskRuns",
             "automation.schedulerStatus",
             "automation.remoteStatus",
-            "automation.listTeams",
-            "automation.listTeamRuns"
+            "automation.listWorkflows",
+            "automation.listWorkflowRuns"
           ],
           "automationTemplates": [
             "scheduled-task",
@@ -40096,7 +44227,7 @@
             "employee",
             "team"
           ],
-          "entrypoint": "dist/index.js",
+          "entrypoint": "dist/cli.js",
           "order": 100
         },
         {
@@ -40110,7 +44241,7 @@
             "plugin",
             "plugins"
           ],
-          "entrypoint": "dist/index.js",
+          "entrypoint": "dist/cli.js",
           "order": 105
         },
         {
@@ -40120,7 +44251,7 @@
           "featureId": "mcp",
           "title": "MCP integration commands",
           "command": "mcp",
-          "entrypoint": "dist/index.js",
+          "entrypoint": "dist/cli.js",
           "order": 108
         },
         {
@@ -40133,7 +44264,7 @@
           "commandAliases": [
             "auto"
           ],
-          "entrypoint": "dist/index.js",
+          "entrypoint": "dist/cli.js",
           "order": 110
         },
         {
@@ -40163,6 +44294,7 @@
   ];
 
   // src/features/feature-packages.ts
+  var import_semver = __toESM(require_semver2(), 1);
   var DEFAULT_PROFILE = {
     accountStatus: "guest",
     accountId: "",
@@ -40264,7 +44396,7 @@
           ],
           requiredServices: ["tool-service", "filesystem", "command", "web", "finance", "mcp"],
           storageNamespaces: ["toolPermissionPolicies", "disabledLlmTools"],
-          toolSchemas: ["time.now", "web.search", "web.research", "web.fetch", "finance.quote", "bash.run", "fs.read", "fs.write", "fs.undoLastWrite", "fs.list", "api.chat", "app.getConfig", "mcp.listServers", "mcp.listTools", "mcp.callTool"],
+          toolSchemas: ["time.now", "web.probe", "web.search", "web.research", "web.fetch", "finance.quote", "bash.run", "fs.read", "fs.write", "fs.undoLastWrite", "fs.list", "api.chat", "app.getConfig", "mcp.listServers", "mcp.listTools", "mcp.callTool"],
           permissionPolicies: ["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"],
           historyEventTypes: ["tool-event"]
         }
@@ -40440,6 +44572,9 @@
   function isFeatureAvailable(resolution, featureId) {
     return resolution.features.some((feature) => feature.featureId === featureId);
   }
+  function getFeatureOwnerPackageId(resolution, featureId) {
+    return resolution.features.find((feature) => feature.featureId === featureId)?.packageId;
+  }
   function getFeaturePackageExtensions(resolution, point) {
     return resolution.extensions.filter((entry) => !point || entry.extension.point === point).sort((left, right) => {
       const leftOrder = left.extension.order ?? 0;
@@ -40535,9 +44670,11 @@
     }
     const latestRecord = [...profile.packageInstallRecords].reverse().find((record) => record.packageId === manifest.id);
     if (latestRecord?.state === "installed" || latestRecord?.state === "update-available" || latestRecord?.state === "install-failed") {
+      const catalogVersion = manifest.distribution.artifact.version || manifest.version;
+      const updateAvailable = latestRecord.state !== "install-failed" && import_semver.default.valid(catalogVersion) !== null && import_semver.default.valid(latestRecord.version) !== null && import_semver.default.gt(catalogVersion, latestRecord.version);
       return {
-        installState: latestRecord.state,
-        installReason: latestRecord.error || `Install registry state: ${latestRecord.state}.`
+        installState: updateAvailable ? "update-available" : latestRecord.state === "update-available" ? "installed" : latestRecord.state,
+        installReason: latestRecord.error || (updateAvailable ? `Version ${catalogVersion} is available; version ${latestRecord.version} is installed.` : `Version ${latestRecord.version} is installed.`)
       };
     }
     if (profile.installedPackageIds.includes(manifest.id)) {
@@ -40623,12 +44760,17 @@
         return [];
       }
       const record = item;
-      if (!record.packageId || !record.artifactId || !record.version) {
+      if (!record.packageId || !record.version) {
         return [];
       }
+      const packageId = String(record.packageId);
       return [{
-        packageId: String(record.packageId),
-        artifactId: String(record.artifactId),
+        packageId,
+        // Runtime discovery predates artifact metadata and persisted records
+        // containing only the package id, version, and installed path. Keep
+        // those records usable so update detection does not collapse to the
+        // less precise installedPackageIds fallback.
+        artifactId: record.artifactId ? String(record.artifactId) : `${packageId}.installed-runtime`,
         version: String(record.version),
         state: normalizeInstallState(record.state),
         installedPath: record.installedPath ? String(record.installedPath) : void 0,
@@ -42553,7 +46695,29 @@
     if (config?.platformCatalogSource !== "platform") {
       return void 0;
     }
-    return normalizePlatformFeatureCatalog(config.platformFeaturePackageCatalog);
+    const platformCatalog = normalizePlatformFeatureCatalog(config.platformFeaturePackageCatalog);
+    if (!platformCatalog) {
+      return void 0;
+    }
+    const merged = platformCatalog.map((platformManifest) => {
+      const bundledManifest = FEATURE_PACKAGE_MANIFESTS.find((candidate) => candidate.id === platformManifest.id);
+      const platformVersion = import_semver2.default.valid(platformManifest.version);
+      const bundledVersion = bundledManifest ? import_semver2.default.valid(bundledManifest.version) : null;
+      if (!bundledManifest || !platformVersion || !bundledVersion || !import_semver2.default.gt(bundledVersion, platformVersion)) {
+        return platformManifest;
+      }
+      return {
+        ...platformManifest,
+        ...bundledManifest,
+        pricing: platformManifest.pricing,
+        entitlement: platformManifest.entitlement
+      };
+    });
+    const knownIds = new Set(merged.map((manifest) => manifest.id));
+    return [
+      ...merged,
+      ...FEATURE_PACKAGE_MANIFESTS.filter((manifest) => !knownIds.has(manifest.id))
+    ];
   }
   async function createPlatformPaymentMethod(baseUrl, token, orgId, holderFallback, draft) {
     const expiry = parseCardExpiry(draft.expiry);
@@ -42681,6 +46845,23 @@
       return words[0].slice(0, 2).toUpperCase();
     }
     return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+  }
+  function getPackageAvailableVersion(manifest) {
+    return manifest.distribution.artifact.version || manifest.version;
+  }
+  function getInstalledPackageVersion(profile, packageId) {
+    return [...profile.packageInstallRecords].reverse().find((record) => record.packageId === packageId && (record.state === "installed" || record.state === "update-available"))?.version;
+  }
+  function getPackageVersionLabel(manifest, profile, installState) {
+    const availableVersion = getPackageAvailableVersion(manifest);
+    const installedVersion = getInstalledPackageVersion(profile, manifest.id);
+    if (installState === "update-available" && installedVersion) {
+      return `v${installedVersion} installed \xB7 v${availableVersion} available`;
+    }
+    if (installedVersion) {
+      return `Version ${installedVersion}`;
+    }
+    return `Version ${availableVersion}`;
   }
   function formatPackageCount(count) {
     return `${count} package${count === 1 ? "" : "s"}`;
@@ -42840,6 +47021,21 @@
       installedPackageIds: Array.from(/* @__PURE__ */ new Set([...profile.installedPackageIds, manifest.id])),
       packageInstallRecords: [...profile.packageInstallRecords, installRecord],
       updatedAt: now
+    };
+  }
+  function createUninstalledProfile(profile, packageId) {
+    return {
+      ...profile,
+      installedPackageIds: profile.installedPackageIds.filter((id) => id !== packageId),
+      packageInstallRecords: profile.packageInstallRecords.filter((record) => record.packageId !== packageId),
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+  function mergeLocalPackageInstallState(remoteProfile, localProfile) {
+    return {
+      ...remoteProfile,
+      installedPackageIds: [...localProfile.installedPackageIds],
+      packageInstallRecords: [...localProfile.packageInstallRecords]
     };
   }
   function truncateText(value, maxLength = 220) {
@@ -43427,6 +47623,92 @@
   function renderAnsiText(text) {
     return parseAnsiText(text).map((segment, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { style: segment.style, children: segment.text }, `${index}-${segment.text.slice(0, 8)}`));
   }
+  var { ProjectsView, ToolsView, AutomationView, HistoryView } = createSoftwareDeveloperRendererViews({
+    AUTOMATION_PERMISSION_TOOLS,
+    DEFAULT_AUTONOMOUS_ROLES,
+    DEFAULT_EMPLOYEE_PERMISSIONS,
+    DEFAULT_PROJECT_ARTIFACTS,
+    PROJECT_LIST_PAGE_SIZE,
+    TOOL_PERMISSION_OPTIONS,
+    Icon,
+    InlineApprovalQueue,
+    MessageItem,
+    RecordViewToggle,
+    ToolActivityPanel,
+    createDefaultProjectTeams,
+    createProjectReadyMessages,
+    createProjectTeamId,
+    createSoftwareProjectDraft,
+    createVirtualEmployeeProfile,
+    createVirtualRoleDefinition,
+    formatFileSize,
+    formatImageAttachmentSummary,
+    formatProjectOutputSource,
+    formatProjectStatus,
+    getDefaultRoleId,
+    getEmployeeRoleDefinition,
+    getHistoryRecordSummary,
+    getHistoryRecordTitle,
+    getHistoryRecordTypeLabel,
+    getPathBasename,
+    getProjectAssignedEmployees,
+    getProjectAutomationTeamId,
+    getProjectChatKey,
+    getProjectStaffingEmployees,
+    getProjectSupervisor,
+    getProjectTeams,
+    getProviderDefault,
+    getRoleDefinitionById,
+    getTeamMembers,
+    getTeamSupervisor,
+    getToolPermissionPolicy,
+    getToolResultPath,
+    groupMessagesByAssistantRun,
+    groupToolsByCategory,
+    isProjectToolActivity,
+    isReviewForProjectChat,
+    isSupervisorEmployee,
+    isToolExposedToModel,
+    joinWorkspacePath,
+    normalizeStringList: normalizeStringList2,
+    normalizeToolNameList,
+    readCliOption,
+    styles: App_default,
+    summarizeProjectGoals,
+    summarizeToolResult
+  });
+  var FeatureViewErrorBoundary = class extends esm_wrapper_default.Component {
+    constructor() {
+      super(...arguments);
+      this.state = { error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return {
+        error: error instanceof Error ? error : new Error(String(error))
+      };
+    }
+    componentDidCatch(error, info) {
+      console.error(`Feature view ${this.props.viewKey} failed`, error, info);
+    }
+    componentDidUpdate(previousProps) {
+      if (previousProps.viewKey !== this.props.viewKey && this.state.error) {
+        this.setState({ error: null });
+      }
+    }
+    render() {
+      if (!this.state.error) {
+        return this.props.children;
+      }
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.detailView, "aria-label": `${this.props.viewLabel} unavailable`, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("h3", { children: [
+          this.props.viewLabel,
+          " could not be displayed"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "The Software Developer package encountered a renderer error. You can switch to another section and try again." }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("pre", { className: App_default.codeBlock, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("code", { children: this.state.error.message }) })
+      ] }) });
+    }
+  };
   function App() {
     const [status, setStatus] = useState("Initializing");
     const [appInfo, setAppInfo] = useState(null);
@@ -43560,6 +47842,17 @@
         baseUrl,
         orgId: String(config?.platformOrgId || "").trim() || void 0,
         developerMode: config?.platformDeveloperMode === true
+      };
+    }
+    async function restorePlatformSessionOverlay(config) {
+      const session = platformSessionFromConfig(appConfig) ?? await ipcClient.auth.getPlatformSession().catch(() => null);
+      if (!session) return withDevelopmentPlatformSession(config);
+      return {
+        ...config,
+        platformDeveloperMode: session.developerMode === true,
+        platformBaseUrl: session.baseUrl,
+        platformOrgId: session.orgId || config.platformOrgId || "",
+        platformAccessToken: session.accessToken
       };
     }
     async function commitAuthenticatedPlatformConfig(nextConfig, session, persistSession = true) {
@@ -44536,7 +48829,8 @@
         workspacePath: project.workspacePath ?? workspacePath,
         permissionMode: project.permissionMode,
         maxIterations: 1,
-        requireQaSignoff: false,
+        providerId: getFeatureOwnerPackageId(featureResolution, "automation"),
+        providerConfig: { requireQaSignoff: false },
         supervisorId: supervisor?.id ?? members[0]?.id ?? "supervisor",
         members,
         status: "active"
@@ -45997,7 +50291,7 @@ Attached images: ${imageSummary}` : message.content);
         featureProfile: profile,
         featureAccounts: writeProfileToAccountStore(appConfig, profile)
       });
-      const config = await ipcClient.app.getConfig();
+      const config = await restorePlatformSessionOverlay(await ipcClient.app.getConfig());
       setAppConfig(config);
       setSettingsDraft((current) => ({
         ...createSettingsDraft(config),
@@ -46028,7 +50322,10 @@ Attached images: ${imageSummary}` : message.content);
           fetchPlatformFeatureCatalog(platformBaseUrl, platformToken, platformOrgId),
           fetchPlatformFeatureProfile(platformBaseUrl, platformToken, platformOrgId)
         ]);
-        const profile = normalizeFeatureProfile(platformProfile.profile);
+        const profile = mergeLocalPackageInstallState(
+          normalizeFeatureProfile(platformProfile.profile),
+          currentProfile
+        );
         const syncedOrgId = platformProfile.org_id || platformCatalog.org_id || platformOrgId;
         const syncedAt = (/* @__PURE__ */ new Date()).toISOString();
         const nextConfig = {
@@ -46337,23 +50634,62 @@ Attached images: ${imageSummary}` : message.content);
       setSettingsMessage("Signed out. Guest free tier is active.");
       setStatus("Ready");
     }
-    async function handleFeaturePackageAction(packageId) {
+    async function handleFeaturePackageAction(packageId, action = "default") {
       const packageEntry = featureResolution.packages.find((entry) => entry.manifest.id === packageId);
       if (!packageEntry) {
         setSettingsMessage(`Unknown feature package: ${packageId}`);
         return;
       }
       const isEntitled = packageEntry.state === "available" || packageEntry.state === "trial";
-      if (isEntitled && !isPackageRuntimeAvailable(packageEntry.installState)) {
+      const profile = getFeatureProfileFromConfig(appConfig);
+      if (packageEntry.manifest.id === BASE_FEATURE_PACKAGE_ID) {
+        return;
+      }
+      if (action === "uninstall") {
+        if (!isPackageRuntimeAvailable(packageEntry.installState)) {
+          setSettingsMessage(`${packageEntry.manifest.displayName} is not installed on this device.`);
+          return;
+        }
+        if (!window.confirm(`Uninstall ${packageEntry.manifest.displayName} from this device? Your purchase will remain in your account.`)) {
+          return;
+        }
+        try {
+          setStatus("Uninstalling package");
+          setSettingsMessage(`Uninstalling ${packageEntry.manifest.displayName} from this device...`);
+          await ipcClient.app.uninstallFeaturePackage({ manifest: packageEntry.manifest });
+          await persistFeatureProfile(
+            createUninstalledProfile(profile, packageEntry.manifest.id),
+            `${packageEntry.manifest.displayName} was uninstalled from this device. Your purchase is still owned.`
+          );
+          setPackageOperationError(null);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          setSettingsMessage(`Couldn\u2019t uninstall ${packageEntry.manifest.displayName}.`);
+          setPackageOperationError({
+            packageId: packageEntry.manifest.id,
+            packageName: packageEntry.manifest.displayName,
+            productSku: packageEntry.manifest.productSku,
+            version: packageEntry.manifest.version,
+            phase: "Local package removal",
+            message: errorMessage,
+            occurredAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
+          setStatus("Package uninstall error");
+        }
+        return;
+      }
+      if (isEntitled && (action === "update" || !isPackageRuntimeAvailable(packageEntry.installState))) {
         setPackageOperationError(null);
-        const profile = getFeatureProfileFromConfig(appConfig);
-        const platformBaseUrl = normalizePlatformBaseUrl(String(appConfig?.platformBaseUrl || ""));
-        const platformToken = typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "";
+        const storedPlatformSession = await ipcClient.auth.getPlatformSession().catch(() => null);
+        const platformBaseUrl = normalizePlatformBaseUrl(String(
+          storedPlatformSession?.baseUrl || appConfig?.platformBaseUrl || ""
+        ));
+        const platformToken = storedPlatformSession?.accessToken || (typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "");
         if (platformBaseUrl && platformToken) {
           try {
-            setSettingsMessage(`Installing and verifying ${packageEntry.manifest.displayName}...`);
-            setStatus("Installing package");
-            const platformOrgId = String(appConfig?.platformOrgId || profile.accountId || "");
+            setSettingsMessage(`${action === "update" ? "Downloading the latest" : "Installing and verifying"} ${packageEntry.manifest.displayName}...`);
+            setStatus(action === "update" ? "Updating package" : "Installing package");
+            const platformOrgId = String(storedPlatformSession?.orgId || appConfig?.platformOrgId || profile.accountId || "");
             const localInstall = packageEntry.manifest.distribution.securityBoundary === "signed-local-bundle" ? await ipcClient.app.installFeaturePackage({
               manifest: packageEntry.manifest,
               download: createPlatformPackageDownloadRequest(platformBaseUrl, platformToken, platformOrgId, packageEntry.manifest)
@@ -46365,9 +50701,10 @@ Attached images: ${imageSummary}` : message.content);
               packageEntry.manifest,
               localInstall
             );
+            const installedProfile = createInstalledProfile(normalizeFeatureProfile(result.profile), packageEntry.manifest, localInstall);
             const nextConfig = {
-              featureProfile: result.profile,
-              featureAccounts: writeProfileToAccountStore(appConfig, result.profile),
+              featureProfile: installedProfile,
+              featureAccounts: writeProfileToAccountStore(appConfig, installedProfile),
               platformOrgId: result.org_id || appConfig?.platformOrgId,
               platformCatalogSource: "platform",
               platformCatalogLastSyncedAt: (/* @__PURE__ */ new Date()).toISOString()
@@ -46384,9 +50721,7 @@ Attached images: ${imageSummary}` : message.content);
               apiKey: current.apiKey,
               accountPassword: ""
             }));
-            setSettingsMessage(
-              localInstall ? `${packageEntry.manifest.displayName} verified and installed through agent-platform.` : `${packageEntry.manifest.displayName} installed through agent-platform.`
-            );
+            setSettingsMessage(`${packageEntry.manifest.displayName} ${action === "update" ? "was updated" : "was installed"}, verified, and activated.`);
             setPackageOperationError(null);
             setStatus("Ready");
             return;
@@ -46406,14 +50741,29 @@ Attached images: ${imageSummary}` : message.content);
             return;
           }
         }
+        if (packageEntry.manifest.distribution.securityBoundary === "signed-local-bundle" && appConfig?.platformCatalogSource === "platform") {
+          const errorMessage = "Your package purchase is still owned, but the secure platform session is unavailable. Sign in again, then choose Install.";
+          setSettingsMessage(`Couldn\u2019t install ${packageEntry.manifest.displayName}. ${errorMessage}`);
+          setPackageOperationError({
+            packageId: packageEntry.manifest.id,
+            packageName: packageEntry.manifest.displayName,
+            productSku: packageEntry.manifest.productSku,
+            version: packageEntry.manifest.version,
+            phase: "Platform authentication",
+            message: errorMessage,
+            occurredAt: (/* @__PURE__ */ new Date()).toISOString()
+          });
+          setStatus("Platform sign-in required");
+          return;
+        }
         try {
-          setSettingsMessage(`Installing and verifying ${packageEntry.manifest.displayName}...`);
-          setStatus("Installing package");
+          setSettingsMessage(`${action === "update" ? "Reinstalling the latest" : "Installing and verifying"} ${packageEntry.manifest.displayName}...`);
+          setStatus(action === "update" ? "Updating package" : "Installing package");
           const localInstall = packageEntry.manifest.distribution.securityBoundary === "signed-local-bundle" ? await ipcClient.app.installFeaturePackage({ manifest: packageEntry.manifest }) : void 0;
           const nextProfile = createInstalledProfile(profile, packageEntry.manifest, localInstall);
           await persistFeatureProfile(
             nextProfile,
-            localInstall ? `${packageEntry.manifest.displayName} verified and installed locally. ${packageEntry.manifest.distribution.notes}` : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`
+            localInstall ? `${packageEntry.manifest.displayName} ${action === "update" ? "updated" : "verified and installed"} locally and activated.` : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`
           );
           setPackageOperationError(null);
         } catch (error) {
@@ -46433,7 +50783,13 @@ Attached images: ${imageSummary}` : message.content);
         return;
       }
       if (isEntitled) {
-        setSettingsMessage(`${packageEntry.manifest.displayName} is ${packageEntry.state} and ${packageEntry.installState}. SKU: ${packageEntry.manifest.productSku}.`);
+        const packageWorkspace = getDesktopPrimaryNavigation(featureResolution).find((item) => item.packageId === packageEntry.manifest.id);
+        if (packageWorkspace && isPackageRuntimeAvailable(packageEntry.installState)) {
+          setSettingsMessage("");
+          openPrimaryNavigationItem(packageWorkspace);
+          return;
+        }
+        setSettingsMessage(`${packageEntry.manifest.displayName} is installed but does not expose an app workspace.`);
         return;
       }
       if (featureResolution.profile.accountStatus !== "signed-in") {
@@ -47297,7 +51653,7 @@ Attached images: ${imageSummary}` : message.content);
                 ] })
               ] })
             ] }),
-            activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `projects:${activeProjectsSection}`, viewLabel: "Projects", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               ProjectsView,
               {
                 activeSection: activeProjectsSection,
@@ -47352,8 +51708,8 @@ Attached images: ${imageSummary}` : message.content);
                 onResolveToolPermission: resolveToolPermissionReview,
                 onChangeSection: setActiveProjectsSection
               }
-            ),
-            activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ) }),
+            activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `tools:${activeToolsSection}`, viewLabel: "Tools", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               ToolsView,
               {
                 activeSection: activeToolsSection,
@@ -47373,10 +51729,11 @@ Attached images: ${imageSummary}` : message.content);
                 onRefresh: refreshBridgeData,
                 onClearActivities: () => setToolActivities([])
               }
-            ),
-            activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ) }),
+            activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `automation:${activeAutomationSection}`, viewLabel: "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               AutomationView,
               {
+                providerId: getFeatureOwnerPackageId(featureResolution, "automation"),
                 activeSection: activeAutomationSection,
                 skills,
                 tasks: scheduledTasks,
@@ -47420,8 +51777,8 @@ Attached images: ${imageSummary}` : message.content);
                   );
                 }
               }
-            ),
-            activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+            ) }),
+            activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `history:${activeHistorySection}`, viewLabel: "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               HistoryView,
               {
                 activeSection: activeHistorySection,
@@ -47434,7 +51791,7 @@ Attached images: ${imageSummary}` : message.content);
                 onRestoreChat: restoreChatFromHistory,
                 onExportRecords: exportHistoryRecords
               }
-            ),
+            ) }),
             activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               SettingsView,
               {
@@ -47603,4407 +51960,6 @@ Attached images: ${imageSummary}` : message.content);
           }
         }
       )
-    ] });
-  }
-  function WorkbenchEditorPanel({
-    title,
-    subtitle,
-    children,
-    footer,
-    onClose,
-    wide = false,
-    bodyClassName
-  }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: wide ? `${App_default.workbenchEditorPanel} ${App_default.workbenchEditorPanelWide}` : App_default.workbenchEditorPanel, "aria-label": title, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchEditorHeader, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: title }),
-          subtitle && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: subtitle })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onClose, title: "Close this panel", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-          "Close"
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: bodyClassName ? `${App_default.workbenchEditorBody} ${bodyClassName}` : App_default.workbenchEditorBody, children }),
-      footer && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workbenchEditorFooter, children: footer })
-    ] });
-  }
-  function ProjectsView({
-    activeSection,
-    appInfo,
-    appConfig,
-    appState,
-    activeProviderLabel,
-    activeProviderDefault,
-    viewportSize,
-    tokenUsage,
-    toolActivities,
-    teamRuns,
-    runningProjectIds,
-    currentSessionTitle,
-    sessionCount,
-    projects,
-    activeProjectId,
-    roles,
-    employees,
-    projectTeams,
-    projectChatMessages,
-    fileWriteReviews,
-    commandReviews,
-    toolPermissionReviews,
-    projectGeneratedOutputs,
-    projectChatSendingKeys,
-    workspacePath,
-    workspaceEntries,
-    workspaceBrowserError,
-    workspaceActionMessage,
-    isLoadingWorkspaceEntries,
-    onOpenWorkspaceEntry,
-    onOpenWorkspacePath,
-    onRevealWorkspacePath,
-    onGoToWorkspaceParent,
-    onRefreshWorkspace,
-    mcpServers,
-    mcpTools,
-    onSaveProject,
-    onSaveRole,
-    onDeleteRole,
-    onSaveEmployee,
-    onDeleteEmployee,
-    onSaveTeam,
-    onDeleteTeam,
-    onSelectProject,
-    onSetProjectStatus,
-    onDeleteProject,
-    onSendProjectChat,
-    onResolveFileWrite,
-    onResolveCommand,
-    onResolveToolPermission,
-    onChangeSection
-  }) {
-    const visibleActiveSection = ["studio", "roles", "employees", "teams"].includes(activeSection) ? activeSection : "studio";
-    const workspaceTitle = appInfo?.workspacePath?.split("/").filter(Boolean).pop() || "Workspace";
-    const selectedProject = projects.find((project) => project.id === activeProjectId) ?? projects[0];
-    const guidedProjects = projects.filter((project) => project.mode === "guided");
-    const autonomousProjects = projects.filter((project) => project.mode === "autonomous");
-    const selectedAutonomousProject = autonomousProjects.find((project) => project.id === activeProjectId) ?? autonomousProjects[0];
-    const selectedAutonomousSupervisor = selectedAutonomousProject ? getProjectSupervisor(selectedAutonomousProject, employees, roles) : employees.find((employee) => isSupervisorEmployee(employee, roles));
-    const selectedAutonomousTeams = selectedAutonomousProject ? getProjectTeams(selectedAutonomousProject, projectTeams) : [];
-    const selectedAutonomousDirectEmployees = selectedAutonomousProject ? getProjectAssignedEmployees(selectedAutonomousProject, employees, roles) : [];
-    const selectedAutonomousStaff = selectedAutonomousProject ? getProjectStaffingEmployees(selectedAutonomousProject, employees, roles, projectTeams) : employees.filter((employee) => employee.id !== selectedAutonomousSupervisor?.id);
-    function getProjectLatestRun(project) {
-      if (project.mode !== "autonomous") {
-        return void 0;
-      }
-      const automationTeamId = getProjectAutomationTeamId(project.id);
-      return teamRuns.filter((run) => run.teamId === automationTeamId).sort((left, right) => right.startedAt - left.startedAt)[0];
-    }
-    function getProjectEffectiveStatus(project) {
-      if (project.status === "stopped") {
-        return "stopped";
-      }
-      const latestRun = getProjectLatestRun(project);
-      if (project.mode === "autonomous" && (runningProjectIds.has(project.id) || latestRun?.status === "running")) {
-        return "active";
-      }
-      if (latestRun?.status === "succeeded") {
-        return "done";
-      }
-      if (latestRun?.status === "failed") {
-        return "blocked";
-      }
-      return project.status;
-    }
-    const activeProjects = projects.filter((project) => getProjectEffectiveStatus(project) === "active");
-    const staffedProjectCount = projects.filter((project) => project.mode === "guided" ? project.assignedEmployeeIds.length > 0 : Boolean(project.supervisorEmployeeId || project.assignedEmployeeIds.length > 0 || project.assignedTeamIds.length > 0)).length;
-    const deliverableCount = projects.reduce((total, project) => total + project.artifacts.length, 0);
-    const projectModeMetrics = [
-      { label: "Standard", value: guidedProjects.length, className: App_default.projectMetricGuided },
-      { label: "Fully autonomous", value: autonomousProjects.length, className: App_default.projectMetricAutonomous }
-    ];
-    const projectStatusMetrics = [
-      ["Active", "active", App_default.projectMetricActive],
-      ["Planning", "planning", App_default.projectMetricPlanning],
-      ["Blocked", "blocked", App_default.projectMetricBlocked],
-      ["Stopped", "stopped", App_default.projectMetricStopped],
-      ["Done", "done", App_default.projectMetricDone],
-      ["Idea", "idea", App_default.projectMetricIdea]
-    ].map(([label, status, className]) => ({
-      label,
-      value: projects.filter((project) => getProjectEffectiveStatus(project) === status).length,
-      className
-    }));
-    const projectStaffingMetrics = [
-      { label: "Staffed", value: staffedProjectCount, className: App_default.projectMetricStaffed },
-      { label: "Needs staffing", value: Math.max(0, projects.length - staffedProjectCount), className: App_default.projectMetricNeedsStaffing }
-    ];
-    const [draft, setDraft] = useState(() => createSoftwareProjectDraft(appInfo?.workspacePath));
-    const [roleDraft, setRoleDraft] = useState(() => createVirtualRoleDefinition("Developer"));
-    const [employeeDraft, setEmployeeDraft] = useState(() => createVirtualEmployeeProfile("Developer"));
-    const [teamDraft, setTeamDraft] = useState(() => createDefaultProjectTeams()[0]);
-    const [profileEmployeeId, setProfileEmployeeId] = useState("");
-    const [projectEditorPanel, setProjectEditorPanel] = useState(null);
-    const [projectDeleteTarget, setProjectDeleteTarget] = useState(null);
-    const [projectActionProjectId, setProjectActionProjectId] = useState("");
-    const [projectChatDrafts, setProjectChatDrafts] = useState({});
-    const [activityRunSelections, setActivityRunSelections] = useState({});
-    const [copiedProjectMessageId, setCopiedProjectMessageId] = useState(null);
-    const [projectPortfolioView, setProjectPortfolioView] = useState("table");
-    const [roleListView, setRoleListView] = useState("table");
-    const [employeeListView, setEmployeeListView] = useState("table");
-    const [teamListView, setTeamListView] = useState("table");
-    const [projectPage, setProjectPage] = useState(1);
-    const projectPageCount = Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE));
-    const normalizedProjectPage = Math.min(projectPage, projectPageCount);
-    const projectPageStartIndex = (normalizedProjectPage - 1) * PROJECT_LIST_PAGE_SIZE;
-    const visibleProjects = projects.slice(projectPageStartIndex, projectPageStartIndex + PROJECT_LIST_PAGE_SIZE);
-    const projectPageFirstRecord = projects.length === 0 ? 0 : projectPageStartIndex + 1;
-    const projectPageLastRecord = Math.min(projectPageStartIndex + PROJECT_LIST_PAGE_SIZE, projects.length);
-    const projectChatTranscriptRef = useRef(null);
-    const profileEmployee = employees.find((employee) => employee.id === profileEmployeeId);
-    const projectActionProject = projects.find((project) => project.id === projectActionProjectId) ?? selectedProject;
-    const projectWidePanels = [
-      "project-chat",
-      "project-org",
-      "project-execution",
-      "project-board",
-      "project-team-chat",
-      "project-deliverables"
-    ];
-    const projectRailOpen = Boolean(projectEditorPanel);
-    const projectRailWide = Boolean(projectEditorPanel && projectWidePanels.includes(projectEditorPanel));
-    useEffect(() => {
-      setProjectPage((current) => Math.min(Math.max(1, current), Math.max(1, Math.ceil(projects.length / PROJECT_LIST_PAGE_SIZE))));
-    }, [projects.length]);
-    useEffect(() => {
-      if (projectEditorPanel !== "project-chat" && projectEditorPanel !== "project-team-chat") {
-        return;
-      }
-      const transcript = projectChatTranscriptRef.current;
-      if (transcript) {
-        transcript.scrollTop = transcript.scrollHeight;
-      }
-    }, [projectEditorPanel, projectActionProjectId, projectChatMessages, projectChatSendingKeys]);
-    function startDraft() {
-      const supervisor = employees.find((employee) => isSupervisorEmployee(employee, roles)) ?? employees[0];
-      setDraft({
-        ...createSoftwareProjectDraft(appInfo?.workspacePath),
-        mode: "guided",
-        permissionMode: "supervised",
-        supervisorEmployeeId: supervisor?.id ?? "",
-        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
-        assignedEmployeeIds: [],
-        assignedTeamIds: [],
-        teamRoles: []
-      });
-      setProfileEmployeeId("");
-      setProjectDeleteTarget(null);
-      setProjectActionProjectId("");
-      setProjectEditorPanel("project");
-    }
-    function editProject(project) {
-      setDraft({
-        ...project,
-        artifacts: [...project.artifacts],
-        teamRoles: [...project.teamRoles],
-        assignedTeamIds: [...project.assignedTeamIds],
-        assignedEmployeeIds: [...project.assignedEmployeeIds]
-      });
-      onSelectProject(project.id);
-      setProfileEmployeeId("");
-      setProjectDeleteTarget(null);
-      setProjectActionProjectId(project.id);
-      setProjectEditorPanel("project");
-    }
-    function updateDraft(update) {
-      setDraft((current) => ({
-        ...current,
-        ...update,
-        updatedAt: Date.now()
-      }));
-    }
-    function saveDraft() {
-      const supervisor = employees.find((employee) => employee.id === draft.supervisorEmployeeId);
-      const assignedEmployees = employees.filter((employee) => draft.assignedEmployeeIds.includes(employee.id));
-      const assignedTeams = projectTeams.filter((team) => draft.assignedTeamIds.includes(team.id));
-      const next = {
-        ...draft,
-        name: draft.name.trim() || "Untitled software project",
-        workspacePath: draft.workspacePath || appInfo?.workspacePath,
-        artifacts: normalizeStringList2(draft.artifacts, DEFAULT_PROJECT_ARTIFACTS),
-        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : draft.supervisorRole,
-        assignedTeamIds: assignedTeams.map((team) => team.id),
-        teamRoles: assignedEmployees.length > 0 || assignedTeams.length > 0 ? [
-          ...assignedTeams.map((team) => team.name),
-          ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
-        ] : normalizeStringList2(draft.teamRoles, DEFAULT_AUTONOMOUS_ROLES),
-        updatedAt: Date.now()
-      };
-      onSaveProject(next);
-      setDraft(next);
-      return next;
-    }
-    function saveDraftAndViewOrganization() {
-      const project = saveDraft();
-      onSelectProject(project.id);
-      setProjectActionProjectId(project.id);
-      setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
-    }
-    function saveDraftAndOpenProjectChat() {
-      const project = saveDraft();
-      onSelectProject(project.id);
-      setProjectActionProjectId(project.id);
-      setProjectEditorPanel("project-chat");
-    }
-    function closeProjectEditorPanel() {
-      setProjectEditorPanel(null);
-      setProfileEmployeeId("");
-      setProjectDeleteTarget(null);
-      setProjectActionProjectId("");
-    }
-    function openProjectDeleteConfirmation(target) {
-      setProfileEmployeeId("");
-      setProjectActionProjectId(target.kind === "project" ? target.id : "");
-      setProjectDeleteTarget(target);
-      setProjectEditorPanel("delete");
-    }
-    function openProjectActionPanel(project, panel) {
-      onSelectProject(project.id);
-      setProfileEmployeeId("");
-      setProjectDeleteTarget(null);
-      setProjectActionProjectId(project.id);
-      setProjectEditorPanel(panel);
-    }
-    function confirmProjectDelete() {
-      if (!projectDeleteTarget) {
-        return;
-      }
-      if (projectDeleteTarget.kind === "project") {
-        onDeleteProject(projectDeleteTarget.id);
-      } else if (projectDeleteTarget.kind === "role") {
-        onDeleteRole(projectDeleteTarget.id);
-      } else if (projectDeleteTarget.kind === "employee") {
-        onDeleteEmployee(projectDeleteTarget.id);
-      } else if (projectDeleteTarget.kind === "team") {
-        onDeleteTeam(projectDeleteTarget.id);
-      }
-      closeProjectEditorPanel();
-    }
-    function openNewRoleEditor() {
-      setRoleDraft(createVirtualRoleDefinition("Developer"));
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("role");
-    }
-    function openRoleEditor(role) {
-      setRoleDraft({
-        ...role,
-        responsibilities: [...role.responsibilities],
-        defaultTools: [...role.defaultTools]
-      });
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("role");
-    }
-    function openNewEmployeeEditor() {
-      setEmployeeDraft(createVirtualEmployeeProfile("Developer"));
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("employee");
-    }
-    function openEmployeeEditor(employee) {
-      setEmployeeDraft({
-        ...employee,
-        permissions: [...employee.permissions]
-      });
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("employee");
-    }
-    function openEmployeeProfile(employeeId) {
-      setProjectDeleteTarget(null);
-      setProfileEmployeeId(employeeId);
-      setProjectEditorPanel("employee-profile");
-    }
-    function openNewProjectTeamEditor() {
-      setTeamDraft({
-        ...createDefaultProjectTeams()[0],
-        id: createProjectTeamId("Project team"),
-        name: "New Project Team",
-        memberEmployeeIds: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("team");
-    }
-    function openProjectTeamEditor(team) {
-      setTeamDraft({
-        ...team,
-        memberEmployeeIds: [...team.memberEmployeeIds]
-      });
-      setProjectDeleteTarget(null);
-      setProjectEditorPanel("team");
-    }
-    function saveRoleDraft() {
-      onSaveRole({
-        ...roleDraft,
-        title: roleDraft.title.trim() || "Contributor",
-        responsibilities: normalizeStringList2(roleDraft.responsibilities, ["Deliver assigned project responsibilities."]),
-        defaultGoal: roleDraft.defaultGoal.trim() || getDefaultTeamGoal(roleDraft.title),
-        defaultTools: normalizeStringList2(roleDraft.defaultTools, getDefaultTeamTools(roleDraft.title)),
-        updatedAt: Date.now()
-      });
-      setRoleDraft(createVirtualRoleDefinition("Developer"));
-      closeProjectEditorPanel();
-    }
-    function selectEmployeeRole(roleId) {
-      const role = getRoleDefinitionById(roles, roleId);
-      setEmployeeDraft((current) => ({
-        ...current,
-        roleId,
-        role: role?.title ?? current.role,
-        updatedAt: Date.now()
-      }));
-    }
-    function saveEmployeeDraft() {
-      const role = getRoleDefinitionById(roles, employeeDraft.roleId, employeeDraft.role);
-      onSaveEmployee({
-        ...employeeDraft,
-        name: employeeDraft.name.trim() || role?.title || employeeDraft.role.trim() || "Employee",
-        roleId: role?.id ?? employeeDraft.roleId,
-        role: role?.title ?? (employeeDraft.role.trim() || "Contributor"),
-        permissions: normalizeStringList2(employeeDraft.permissions, DEFAULT_EMPLOYEE_PERMISSIONS),
-        updatedAt: Date.now()
-      });
-      setEmployeeDraft(createVirtualEmployeeProfile("Developer"));
-      closeProjectEditorPanel();
-    }
-    function saveTeamDraft() {
-      onSaveTeam({
-        ...teamDraft,
-        name: teamDraft.name.trim() || "Project team",
-        mission: teamDraft.mission.trim() || "Deliver a scoped portion of the project mission.",
-        memberEmployeeIds: normalizeStringList2(teamDraft.memberEmployeeIds, []),
-        updatedAt: Date.now()
-      });
-      setTeamDraft({
-        ...createDefaultProjectTeams()[0],
-        id: createProjectTeamId("Project team"),
-        name: "New Project Team",
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      });
-      closeProjectEditorPanel();
-    }
-    function selectTeamSupervisor(employeeId) {
-      setTeamDraft((current) => ({
-        ...current,
-        supervisorEmployeeId: employeeId,
-        memberEmployeeIds: current.memberEmployeeIds.filter((id) => id !== employeeId),
-        updatedAt: Date.now()
-      }));
-    }
-    function toggleTeamMember(employeeId) {
-      setTeamDraft((current) => {
-        const members = new Set(current.memberEmployeeIds);
-        if (members.has(employeeId)) {
-          members.delete(employeeId);
-        } else {
-          members.add(employeeId);
-        }
-        members.delete(current.supervisorEmployeeId);
-        return {
-          ...current,
-          memberEmployeeIds: Array.from(members),
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function toggleDraftEmployee(employeeId) {
-      setDraft((current) => {
-        const assigned = new Set(current.assignedEmployeeIds);
-        if (assigned.has(employeeId)) {
-          assigned.delete(employeeId);
-        } else {
-          assigned.add(employeeId);
-        }
-        assigned.delete(current.supervisorEmployeeId);
-        const assignedEmployees = employees.filter((employee) => assigned.has(employee.id));
-        const assignedTeams = projectTeams.filter((team) => current.assignedTeamIds.includes(team.id));
-        return {
-          ...current,
-          assignedEmployeeIds: assignedEmployees.map((employee) => employee.id),
-          teamRoles: [
-            ...assignedTeams.map((team) => team.name),
-            ...assignedEmployees.map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
-          ],
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function selectDraftSupervisor(employeeId) {
-      const supervisor = employees.find((employee) => employee.id === employeeId);
-      updateDraft({
-        supervisorEmployeeId: employeeId,
-        supervisorRole: supervisor ? getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role : "Supervisor",
-        assignedEmployeeIds: draft.assignedEmployeeIds.filter((id) => id !== employeeId)
-      });
-    }
-    function toggleDraftTeam(teamId) {
-      setDraft((current) => {
-        const assigned = new Set(current.assignedTeamIds);
-        if (assigned.has(teamId)) {
-          assigned.delete(teamId);
-        } else {
-          assigned.add(teamId);
-        }
-        const assignedTeams = projectTeams.filter((team) => assigned.has(team.id));
-        return {
-          ...current,
-          assignedTeamIds: assignedTeams.map((team) => team.id),
-          teamRoles: [
-            ...assignedTeams.map((team) => team.name),
-            ...employees.filter((employee) => current.assignedEmployeeIds.includes(employee.id)).map((employee) => getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role)
-          ],
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function buildProjectDeleteTarget(project) {
-      return {
-        kind: "project",
-        id: project.id,
-        name: project.name,
-        detail: "Delete this saved software project from Project Studio.",
-        impact: [
-          `${formatProjectStatus(getProjectEffectiveStatus(project))} ${project.mode} project record will be removed.`,
-          `${project.artifacts.length} planned artifact entry(ies) and project staffing selections will be removed from the local project list.`
-        ]
-      };
-    }
-    function buildRoleDeleteTarget(role) {
-      const affectedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-      return {
-        kind: "role",
-        id: role.id,
-        name: role.title,
-        detail: "Delete this role definition from the shared project role library.",
-        impact: [
-          `${affectedEmployees.length} employee profile(s) currently reference this role and will be normalized by the existing delete handler.`,
-          `${role.responsibilities.length} responsibility entry(ies) and ${role.defaultTools.length} default tool entry(ies) will be removed.`
-        ]
-      };
-    }
-    function buildEmployeeDeleteTarget(employee) {
-      const assignedProjects = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id));
-      const assignedTeams = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-      return {
-        kind: "employee",
-        id: employee.id,
-        name: employee.name,
-        detail: "Delete this employee profile from the shared staffing pool.",
-        impact: [
-          `${assignedProjects.length} project(s) reference this employee directly or as supervisor.`,
-          `${assignedTeams.length} project team(s) reference this employee as supervisor or member.`
-        ]
-      };
-    }
-    function buildProjectTeamDeleteTarget(team) {
-      const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-      return {
-        kind: "team",
-        id: team.id,
-        name: team.name,
-        detail: "Delete this reusable project team.",
-        impact: [
-          `${assignedProjects.length} project(s) currently assign this team.`,
-          `${team.memberEmployeeIds.length} member assignment(s) and the team mission will be removed.`
-        ]
-      };
-    }
-    function renderRoleRow(role) {
-      const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-      const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.workbenchRecordRow, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: role.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            assignedEmployees.length,
-            " employee profile(s)"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, children: role.canSupervise ? "Supervisor-capable" : "Contributor" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: role.defaultGoal, children: role.defaultGoal }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, children: summary }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
-              disabled: roles.length <= 1,
-              title: `Delete role ${role.title}`,
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-                "Delete"
-              ]
-            }
-          )
-        ] })
-      ] }, role.id);
-    }
-    function renderRoleCard(role) {
-      const assignedEmployees = employees.filter((employee) => employee.roleId === role.id || employee.role.toLowerCase() === role.title.toLowerCase());
-      const summary = `${role.responsibilities.length} responsibilities / ${role.defaultTools.length} tools`;
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectCardHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: role.title }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            assignedEmployees.length,
-            " employee profile(s)"
-          ] })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: role.defaultGoal, children: role.defaultGoal }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.projectCardMeta, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Scope" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: role.canSupervise ? "Supervisor-capable" : "Contributor" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Definition" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: summary })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          role.responsibilities.slice(0, 4).map((responsibility) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: responsibility }, responsibility)),
-          role.responsibilities.length > 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectChip, children: [
-            "+",
-            role.responsibilities.length - 4
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openRoleEditor(role), title: `Edit role ${role.title}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => openProjectDeleteConfirmation(buildRoleDeleteTarget(role)),
-              disabled: roles.length <= 1,
-              title: `Delete role ${role.title}`,
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-                "Delete"
-              ]
-            }
-          )
-        ] })
-      ] }, role.id);
-    }
-    function renderEmployeeRow(employee) {
-      const role = getEmployeeRoleDefinition(employee, roles);
-      const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-      const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-      const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.workbenchRecordRow, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: employee.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            projectsForEmployee.length,
-            " project(s) / ",
-            teamsForEmployee.length,
-            " team(s)"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: role?.title ?? employee.role, children: role?.title ?? employee.role }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, children: [
-          employee.status,
-          " / ",
-          employee.model
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: activeWork, children: activeWork }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordActions} ${App_default.workbenchRecordActionsWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }),
-            "Profile"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, employee.id);
-    }
-    function renderEmployeeCard(employee, options = {}) {
-      const role = getEmployeeRoleDefinition(employee, roles);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.employeeCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: employee.name.slice(0, 2).toUpperCase() }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: employee.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              role?.title ?? employee.role,
-              " / ",
-              employee.status
-            ] })
-          ] })
-        ] }),
-        !options.compact && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: role?.defaultGoal ?? employee.currentTask }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: responsibility }, responsibility)) })
-      ] }, employee.id);
-    }
-    function renderEmployeeManagementCard(employee) {
-      const role = getEmployeeRoleDefinition(employee, roles);
-      const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-      const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-      const activeWork = employee.currentTask || role?.defaultGoal || "No current task";
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: employee.name.slice(0, 2).toUpperCase() }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: employee.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              role?.title ?? employee.role,
-              " / ",
-              employee.status
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: activeWork, children: activeWork }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.projectCardMeta, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Assignments" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-              projectsForEmployee.length,
-              " project(s), ",
-              teamsForEmployee.length,
-              " team(s)"
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: employee.model })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: (role?.responsibilities ?? employee.permissions).slice(0, 4).map((responsibility) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: responsibility }, responsibility)) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openEmployeeProfile(employee.id), title: `View profile for ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }),
-            "Profile"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openEmployeeEditor(employee), title: `Edit employee ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildEmployeeDeleteTarget(employee)), title: `Delete employee ${employee.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, employee.id);
-    }
-    function renderEmployeeProfile(employee) {
-      const role = getEmployeeRoleDefinition(employee, roles);
-      const teamsForEmployee = projectTeams.filter((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id));
-      const projectsForEmployee = projects.filter((project) => project.supervisorEmployeeId === employee.id || project.assignedEmployeeIds.includes(employee.id) || getProjectTeams(project, projectTeams).some((team) => team.supervisorEmployeeId === employee.id || team.memberEmployeeIds.includes(employee.id)));
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: employee.model })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Teams" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: teamsForEmployee.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Projects" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectsForEmployee.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current task" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: employee.currentTask })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectChipList, children: (role?.responsibilities ?? employee.permissions).map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: item }, item)) })
-      ] });
-    }
-    function renderProjectTeamRow(team) {
-      const supervisor = getTeamSupervisor(team, employees);
-      const members = getTeamMembers(team, employees);
-      const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.workbenchRecordRow, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            assignedProjects.length,
-            " assigned project(s)"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: supervisor?.name ?? "Unassigned", children: supervisor?.name ?? "Unassigned" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, children: [
-          members.length,
-          " member(s)"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: team.mission, children: team.mission }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => openProjectTeamEditor(team),
-              title: `Edit team ${team.name}`,
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-                "Edit"
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, team.id);
-    }
-    function renderProjectTeamCard(team, options = {}) {
-      const supervisor = getTeamSupervisor(team, employees);
-      const members = getTeamMembers(team, employees);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.employeeCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeCardHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: team.name.slice(0, 2).toUpperCase() }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              "Supervisor: ",
-              supervisor?.name ?? "Unassigned"
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: team.mission }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          members.slice(0, options.compact ? 3 : 6).map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: member.name }, member.id)),
-          members.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: "No members" })
-        ] })
-      ] }, team.id);
-    }
-    function renderProjectTeamManagementCard(team) {
-      const supervisor = getTeamSupervisor(team, employees);
-      const members = getTeamMembers(team, employees);
-      const assignedProjects = projects.filter((project) => project.assignedTeamIds.includes(team.id));
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectCardHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            assignedProjects.length,
-            " assigned project(s)"
-          ] })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: team.mission, children: team.mission }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.projectCardMeta, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Supervisor" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: supervisor?.name ?? "Unassigned" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Members" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-              members.length,
-              " member(s)"
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          members.slice(0, 6).map((member) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: member.name }, member.id)),
-          members.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: "No members" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => openProjectTeamEditor(team),
-              title: `Edit team ${team.name}`,
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-                "Edit"
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectTeamDeleteTarget(team)), title: `Delete team ${team.name}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, team.id);
-    }
-    function getBoardTasks(project) {
-      const latestRun = getProjectLatestRun(project);
-      const assignmentTasks = (latestRun?.assignments ?? []).map((assignment) => ({
-        title: assignment.title,
-        status: assignment.status === "pending" ? "todo" : assignment.status === "running" ? "doing" : assignment.status === "failed" ? "review" : "done",
-        employee: employees.find((employee) => employee.id === assignment.memberId),
-        detail: [
-          assignment.description,
-          assignment.dependencies.length > 0 ? `Depends on: ${assignment.dependencies.join(", ")}` : "",
-          assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : ""
-        ].filter(Boolean).join("\n")
-      }));
-      if (assignmentTasks.length > 0) {
-        return assignmentTasks;
-      }
-      const stepTasks = (latestRun?.steps ?? []).map((step) => ({
-        title: step.assignmentTitle ?? `${step.role} work`,
-        status: step.status === "running" ? "doing" : step.status === "failed" ? "review" : "done",
-        employee: employees.find((employee) => employee.id === step.memberId),
-        detail: [
-          step.dependencyIds?.length ? `Depends on: ${step.dependencyIds.join(", ")}` : "",
-          step.workspacePath ? `Workspace: ${step.workspacePath}` : ""
-        ].filter(Boolean).join("\n")
-      }));
-      if (stepTasks.length > 0) {
-        return stepTasks;
-      }
-      const assigned = getProjectStaffingEmployees(project, employees, roles, projectTeams).filter((employee) => employee.id !== project.supervisorEmployeeId);
-      const supervisor = getProjectSupervisor(project, employees, roles);
-      const employeePool = assigned.length > 0 ? assigned : employees;
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const baseTasks = [
-        { title: "Clarify requirements and acceptance criteria", status: "done", employee: supervisor },
-        ...project.artifacts.map((artifact, index) => ({
-          title: `Produce ${artifact}`,
-          status: effectiveStatus === "done" ? "done" : index === 0 ? "doing" : index === 1 ? "review" : "todo",
-          employee: employeePool[index % Math.max(employeePool.length, 1)]
-        })),
-        { title: "Final integration and release notes", status: effectiveStatus === "done" ? "done" : "todo", employee: supervisor }
-      ];
-      return baseTasks;
-    }
-    function renderTaskBoard(project) {
-      const tasks = getBoardTasks(project);
-      const columns = [
-        { id: "todo", title: "Todo" },
-        { id: "doing", title: "Doing" },
-        { id: "review", title: "Review" },
-        { id: "done", title: "Done" }
-      ];
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectBoard, children: columns.map((column) => {
-        const columnTasks = tasks.filter((task) => task.status === column.id);
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.projectBoardColumn, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectBoardColumnHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: column.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: columnTasks.length })
-          ] }),
-          columnTasks.map((task) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectTaskCard, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              task.employee?.name ?? "Unassigned",
-              " / ",
-              task.employee ? getEmployeeRoleDefinition(task.employee, roles)?.title ?? task.employee.role : "Contributor"
-            ] }),
-            "detail" in task && typeof task.detail === "string" && task.detail && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: task.detail })
-          ] }, `${column.id}-${task.title}`))
-        ] }, column.id);
-      }) });
-    }
-    function renderTeamChat(project) {
-      const supervisor = getProjectSupervisor(project, employees, roles);
-      const assignedTeams = getProjectTeams(project, projectTeams);
-      const assigned = getProjectStaffingEmployees(project, employees, roles, projectTeams).filter((employee) => employee.id !== supervisor?.id);
-      const chatEmployees = [supervisor, ...assigned].filter((employee) => Boolean(employee));
-      const messages = [
-        { author: supervisor, text: `I will coordinate "${project.name}" and keep work aligned to the project goal.` },
-        ...assignedTeams.slice(0, 3).map((team) => ({
-          author: getTeamSupervisor(team, employees) ?? supervisor,
-          text: `Team "${team.name}" is responsible for: ${team.mission}`
-        })),
-        ...assigned.slice(0, 4).map((employee, index) => ({
-          author: employee,
-          text: index === 0 ? `I am taking the first implementation task and will report blockers here.` : index === 1 ? `I will review architecture and integration risks before code changes fan out.` : index === 2 ? `I will prepare verification coverage for the planned deliverables.` : `I am available for the next queued task.`
-        }))
-      ];
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChatList, children: [
-        messages.map((message, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectChatMessage, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.employeeAvatar, children: message.author?.name.slice(0, 2).toUpperCase() ?? "CA" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: message.author?.name ?? "CodeAgent" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: message.text })
-          ] })
-        ] }, `${message.author?.id ?? "system"}-${index}`)),
-        chatEmployees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Assign employees to start team chat." })
-      ] });
-    }
-    function renderDeliverables(project) {
-      const latestRun = getProjectLatestRun(project);
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const projectRootPath = project.workspacePath ?? appInfo?.workspacePath ?? workspacePath;
-      const projectAutomationTeamId = getProjectAutomationTeamId(project.id);
-      function resolveDeliverablePath(targetPath) {
-        if (!targetPath.trim()) {
-          return projectRootPath;
-        }
-        return targetPath.startsWith("/") ? targetPath : joinWorkspacePath(projectRootPath, targetPath);
-      }
-      function getExpectedArtifactPath(artifact, index) {
-        const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
-        return `artifacts/${slug}.md`;
-      }
-      function renderDeliverableActions(targetPath, label = "Open") {
-        const resolvedPath = resolveDeliverablePath(targetPath);
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectDeliverableActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(resolvedPath), title: `Open ${resolvedPath}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "external", size: 13 }),
-            label
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(resolvedPath), title: `Reveal ${resolvedPath}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-            "Reveal"
-          ] })
-        ] });
-      }
-      const assignmentOutputs = (latestRun?.assignments ?? []).filter((assignment) => assignment.output || assignment.error || assignment.workspacePath).map((assignment) => ({
-        title: assignment.title,
-        status: assignment.status === "succeeded" ? "Completed" : assignment.status === "failed" ? "Needs review" : assignment.status === "running" ? "Running" : "Pending",
-        workspacePath: assignment.workspacePath,
-        detail: [
-          `${assignment.memberName} / ${assignment.role}`,
-          assignment.workspacePath ? `Workspace: ${assignment.workspacePath}` : "",
-          assignment.output ? assignment.output.slice(0, 240) : assignment.error ? assignment.error.slice(0, 240) : ""
-        ].filter(Boolean).join("\n")
-      }));
-      const activityOutputs = toolActivities.filter((activity) => activity.status === "succeeded" && isProjectToolActivity(activity, project.id, projectAutomationTeamId)).map((activity) => {
-        const outputPath = getToolResultPath(activity);
-        if (!outputPath) {
-          return null;
-        }
-        const absolutePath = activity.result && typeof activity.result === "object" && typeof activity.result.absolutePath === "string" ? String(activity.result.absolutePath) : void 0;
-        return {
-          id: `${project.id}:${absolutePath || outputPath}`,
-          projectId: project.id,
-          path: outputPath,
-          absolutePath,
-          toolName: activity.toolName,
-          source: activity.scope?.source === "virtual-team" ? "automation" : activity.scope?.channel === "team" ? "team-chat" : "guided-chat",
-          summary: activity.resultPreview,
-          createdAt: activity.startedAt,
-          updatedAt: activity.completedAt ?? activity.startedAt
-        };
-      }).filter((output) => Boolean(output));
-      const generatedOutputs = [
-        ...projectGeneratedOutputs[project.id] ?? [],
-        ...activityOutputs
-      ].reduce((outputs, output) => {
-        if (!outputs.some((candidate) => candidate.id === output.id || candidate.path === output.path || Boolean(candidate.absolutePath && output.absolutePath && candidate.absolutePath === output.absolutePath))) {
-          outputs.push(output);
-        }
-        return outputs;
-      }, []).sort((left, right) => right.updatedAt - left.updatedAt);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectDeliverables, children: [
-        generatedOutputs.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectDeliverableGroupHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Generated files" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            generatedOutputs.length,
-            " tracked output",
-            generatedOutputs.length === 1 ? "" : "s"
-          ] })
-        ] }),
-        generatedOutputs.map((output) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: output.absolutePath ?? output.path, children: output.path }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: formatProjectOutputSource(output.source) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: output.summary || `${output.toolName} at ${new Date(output.updatedAt).toLocaleString()}` }),
-          renderDeliverableActions(output.absolutePath ?? output.path, "Open file")
-        ] }, `generated-${output.id}`)),
-        latestRun?.artifactPath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Automation run artifact" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: latestRun.status === "succeeded" ? "Completed" : latestRun.status })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: latestRun.artifactPath }),
-          renderDeliverableActions(latestRun.artifactPath, "Open artifact")
-        ] }),
-        project.artifacts.map((artifact, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: artifact }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: effectiveStatus === "done" ? "Completed" : index < 2 ? "Draft planned" : "Queued" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: effectiveStatus === "done" ? latestRun?.summary ?? "Completed by the latest autonomous project run." : index < 2 ? "Ready to be produced by the assigned team." : "Will be generated after upstream work completes." }),
-          effectiveStatus === "done" && renderDeliverableActions(getExpectedArtifactPath(artifact, index), "Open expected file")
-        ] }, artifact)),
-        assignmentOutputs.map((output) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: output.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: output.status })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: output.detail }),
-          output.workspacePath && renderDeliverableActions(output.workspacePath, "Open workspace")
-        ] }, `assignment-${output.title}`)),
-        project.artifacts.length === 0 && generatedOutputs.length === 0 && assignmentOutputs.length === 0 && !latestRun?.artifactPath && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No deliverables or run artifacts recorded yet." })
-      ] });
-    }
-    function getProjectPanelMessages(project, channel) {
-      const projectChatKey = getProjectChatKey(project.id, channel);
-      return projectChatMessages[projectChatKey] ?? createProjectReadyMessages(project, channel);
-    }
-    function updateProjectChatDraft(project, channel, value) {
-      const projectChatKey = getProjectChatKey(project.id, channel);
-      setProjectChatDrafts((current) => ({
-        ...current,
-        [projectChatKey]: value
-      }));
-    }
-    function submitProjectChatDraft(project, channel) {
-      const projectChatKey = getProjectChatKey(project.id, channel);
-      const draftValue = projectChatDrafts[projectChatKey] ?? "";
-      if (!draftValue.trim() || projectChatSendingKeys.has(projectChatKey)) {
-        return;
-      }
-      setProjectChatDrafts((current) => ({
-        ...current,
-        [projectChatKey]: ""
-      }));
-      onSendProjectChat(project, channel, draftValue);
-    }
-    function handleProjectChatKeyDown(event, project, channel) {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        submitProjectChatDraft(project, channel);
-      }
-    }
-    async function copyProjectMessage(message) {
-      try {
-        const imageSummary = formatImageAttachmentSummary(message.imageAttachments ?? []);
-        await navigator.clipboard.writeText(imageSummary ? `${message.content}
-
-Attached images: ${imageSummary}` : message.content);
-        setCopiedProjectMessageId(message.id);
-        window.setTimeout(() => setCopiedProjectMessageId(null), 1500);
-      } catch {
-      }
-    }
-    function renderProjectChatSurface(project, channel) {
-      const projectChatKey = getProjectChatKey(project.id, channel);
-      const panelMessages = getProjectPanelMessages(project, channel);
-      const draftValue = projectChatDrafts[projectChatKey] ?? "";
-      const isProjectSending = projectChatSendingKeys.has(projectChatKey);
-      const scopedFileWriteReviews = fileWriteReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
-      const scopedCommandReviews = commandReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
-      const scopedToolPermissionReviews = toolPermissionReviews.filter((review) => isReviewForProjectChat(review, project.id, channel));
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.projectChatSurface, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChatTranscript, ref: projectChatTranscriptRef, children: [
-          groupMessagesByAssistantRun(panelMessages).map(({ message, activities }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            MessageItem,
-            {
-              message,
-              activities,
-              copied: copiedProjectMessageId === message.id,
-              onCopy: () => copyProjectMessage(message)
-            },
-            message.id
-          )),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            InlineApprovalQueue,
-            {
-              fileWriteReviews: scopedFileWriteReviews,
-              commandReviews: scopedCommandReviews,
-              toolPermissionReviews: scopedToolPermissionReviews,
-              onResolveFileWrite,
-              onResolveCommand,
-              onResolveToolPermission
-            }
-          ),
-          isProjectSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.projectChatComposer, onSubmit: (event) => {
-          event.preventDefault();
-          submitProjectChatDraft(project, channel);
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "textarea",
-            {
-              value: draftValue,
-              onChange: (event) => updateProjectChatDraft(project, channel, event.target.value),
-              onKeyDown: (event) => handleProjectChatKeyDown(event, project, channel),
-              placeholder: channel === "team" ? "Direct the supervisor or team\u2026" : "Ask about this project\u2026",
-              rows: 2,
-              disabled: isProjectSending,
-              "aria-label": channel === "team" ? "Team chat message" : "Project chat message"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerToolbar, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerMeta, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectComposerIdentity, title: channel === "team" ? "Instructions are handled by this autonomous project\u2019s supervisor and team" : "This agent can use tools within the project working folder", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: channel === "team" ? "network" : "bot", size: 13 }),
-                channel === "team" ? "Project supervisor" : "Project agent"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.projectComposerPermission, title: "Permission level for this project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 12 }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.visuallyHidden, children: "Project permissions" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                  "select",
-                  {
-                    value: project.permissionMode,
-                    onChange: (event) => onSaveProject({
-                      ...project,
-                      permissionMode: event.target.value,
-                      updatedAt: Date.now()
-                    }),
-                    disabled: isProjectSending,
-                    "aria-label": "Project permissions",
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Ask for risky actions" }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full project access" })
-                    ]
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: project.workspacePath, children: getPathBasename(project.workspacePath) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
-              draftValue && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "button",
-                {
-                  className: App_default.composerClearButton,
-                  type: "button",
-                  onClick: () => updateProjectChatDraft(project, channel, ""),
-                  disabled: isProjectSending,
-                  title: "Clear the draft message",
-                  children: "Clear input"
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isProjectSending || !draftValue.trim(), title: "Send this project message (Command+Enter)", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
-                "Send",
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", { children: "\u2318\u21B5" })
-              ] })
-            ] })
-          ] })
-        ] })
-      ] });
-    }
-    function renderAutonomousProjectSelector() {
-      if (autonomousProjects.length === 0) {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create an autonomous project before using this view." });
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Autonomous project" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: selectedAutonomousProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value), children: autonomousProjects.map((project) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: project.id, children: project.name }, project.id)) })
-      ] });
-    }
-    function renderProjectSelector() {
-      if (projects.length === 0) {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create a project before using this view." });
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: selectedProject?.id ?? "", onChange: (event) => onSelectProject(event.target.value), children: projects.map((project) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: project.id, children: [
-          project.name,
-          " / ",
-          project.mode === "autonomous" ? "autonomous" : "guided"
-        ] }, project.id)) })
-      ] });
-    }
-    function renderProjectInsights(project) {
-      const assignedTeams = getProjectTeams(project, projectTeams);
-      const supervisor = getProjectSupervisor(project, employees, roles);
-      const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const risks = [
-        !project.goals.trim() ? { title: "Goals missing", detail: "Project goals are empty or underspecified.", level: "Risk" } : null,
-        project.mode === "autonomous" && !supervisor ? { title: "Supervisor missing", detail: "Autonomous execution needs a supervisor employee.", level: "Risk" } : null,
-        project.mode === "autonomous" && assignedTeams.length === 0 && project.assignedEmployeeIds.length === 0 ? { title: "No staffing assigned", detail: "Assign at least one team or direct employee.", level: "Risk" } : null,
-        project.artifacts.length < 3 ? { title: "Artifact scope thin", detail: "Expected deliverables may not cover requirements, design, and verification.", level: "Watch" } : null,
-        effectiveStatus === "blocked" ? { title: "Project blocked", detail: "Resume requires resolving the active blocker.", level: "Risk" } : null
-      ].filter((item) => Boolean(item));
-      const signals = [
-        { title: "Staffing", detail: `${assignedTeams.length} team(s), ${assignedStaff.length} total employee(s)` },
-        { title: "Delivery shape", detail: `${project.artifacts.length} artifact(s), ${getBoardTasks(project).length} planned task(s)` },
-        { title: "Execution posture", detail: project.permissionMode === "full-access" ? "Supervisor has full project permission" : "Risky actions require approval" }
-      ];
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Risk Signals" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectDeliverables, children: [
-            risks.map((risk) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: risk.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: risk.level })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: risk.detail })
-            ] }, risk.title)),
-            risks.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No immediate project risks detected." })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Operational Signals" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectDeliverables, children: signals.map((signal) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: signal.title }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: formatProjectStatus(effectiveStatus) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: signal.detail })
-          ] }, signal.title)) })
-        ] })
-      ] });
-    }
-    function renderExecutionConsole(project) {
-      const projectSupervisor = getProjectSupervisor(project, employees, roles);
-      const projectAutomationTeamId = getProjectAutomationTeamId(project.id);
-      const projectRunRecords = teamRuns.filter((run) => run.teamId === projectAutomationTeamId).sort((left, right) => right.startedAt - left.startedAt);
-      const latestRun = projectRunRecords[0];
-      const selectedRunId = activityRunSelections[project.id] ?? "";
-      const selectedRun = selectedRunId ? projectRunRecords.find((run) => run.id === selectedRunId) : void 0;
-      const visibleRun = selectedRun ?? latestRun;
-      const allProjectToolActivities = toolActivities.filter((activity) => isProjectToolActivity(activity, project.id, projectAutomationTeamId));
-      const projectToolActivities = visibleRun ? allProjectToolActivities.filter((activity) => activity.scope?.runId === visibleRun.id) : allProjectToolActivities;
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const isProjectRunning = effectiveStatus === "active";
-      const activityEntries = [];
-      const pushActivity = (entry) => {
-        if (entry) {
-          activityEntries.push(entry);
-        }
-      };
-      if (!visibleRun) {
-        pushActivity({
-          id: `project-ready-${project.id}`,
-          timestamp: project.updatedAt,
-          employee: "Project Studio",
-          title: "Project ready",
-          summary: `${project.mode === "autonomous" ? "Fully autonomous" : "Standard"} project is ${formatProjectStatus(effectiveStatus)} and has not started an automation run yet.`,
-          status: effectiveStatus
-        });
-      }
-      if (!visibleRun && projectSupervisor) {
-        pushActivity({
-          id: `project-supervisor-${project.id}`,
-          timestamp: project.updatedAt,
-          employee: projectSupervisor.name,
-          title: "Supervisor assigned",
-          summary: `${getEmployeeRoleDefinition(projectSupervisor, roles)?.title ?? projectSupervisor.role} owns project coordination.`,
-          status: "ready"
-        });
-      }
-      for (const run of visibleRun ? [visibleRun] : []) {
-        pushActivity({
-          id: `${run.id}-started`,
-          timestamp: run.startedAt,
-          employee: run.teamName,
-          title: "Automation run started",
-          summary: `${run.objective.slice(0, 180)}${run.objective.length > 180 ? "..." : ""}`,
-          status: run.status === "running" ? "running" : "ready"
-        });
-        for (const assignment of run.assignments ?? []) {
-          pushActivity(assignment.startedAt ? {
-            id: `${run.id}-${assignment.id}-started`,
-            timestamp: assignment.startedAt,
-            employee: assignment.memberName,
-            title: assignment.title,
-            summary: [
-              assignment.description,
-              assignment.dependencies.length > 0 ? `Depends on ${assignment.dependencies.join(", ")}` : "No blocking dependencies",
-              `Parallel group ${assignment.parallelGroup}`
-            ].join(" / "),
-            status: "running"
-          } : null);
-          pushActivity(assignment.completedAt ? {
-            id: `${run.id}-${assignment.id}-completed`,
-            timestamp: assignment.completedAt,
-            employee: assignment.memberName,
-            title: `${assignment.title} ${assignment.status === "succeeded" ? "completed" : "finished"}`,
-            summary: assignment.output?.slice(0, 220) ?? assignment.error?.slice(0, 220) ?? assignment.workspacePath ?? "Assignment finished.",
-            status: assignment.status
-          } : null);
-        }
-        if (!run.assignments?.length) {
-          for (const step of run.steps) {
-            pushActivity({
-              id: `${run.id}-${step.memberId}-${step.startedAt}-started`,
-              timestamp: step.startedAt,
-              employee: step.memberName,
-              title: step.assignmentTitle ?? `${step.role} work started`,
-              summary: step.dependencyIds?.length ? `Depends on ${step.dependencyIds.join(", ")}` : step.workspacePath ?? "Worker started.",
-              status: "running"
-            });
-            pushActivity(step.completedAt ? {
-              id: `${run.id}-${step.memberId}-${step.completedAt}-completed`,
-              timestamp: step.completedAt,
-              employee: step.memberName,
-              title: step.assignmentTitle ? `${step.assignmentTitle} completed` : `${step.role} work completed`,
-              summary: step.output?.slice(0, 220) ?? step.error?.slice(0, 220) ?? "Worker finished.",
-              status: step.status
-            } : null);
-          }
-        }
-        pushActivity(run.completedAt ? {
-          id: `${run.id}-completed`,
-          timestamp: run.completedAt,
-          employee: run.teamName,
-          title: `Automation run ${run.status}`,
-          summary: run.summary ?? run.error ?? run.artifactPath ?? `Run ${run.status}.`,
-          status: run.status
-        } : null);
-      }
-      for (const activity of projectToolActivities) {
-        pushActivity({
-          id: `${activity.id}-tool-start`,
-          timestamp: activity.startedAt,
-          employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
-          title: `Tool call: ${activity.toolName}`,
-          summary: activity.scope?.assignmentTitle ? `${activity.scope.assignmentTitle} / ${summarizeToolResult(activity.args)}` : summarizeToolResult(activity.args),
-          status: activity.status === "running" ? "running" : "ready"
-        });
-        pushActivity(activity.completedAt ? {
-          id: `${activity.id}-tool-complete`,
-          timestamp: activity.completedAt,
-          employee: activity.scope?.memberName ?? activity.scope?.teamName ?? "Automation",
-          title: `Tool ${activity.status}`,
-          summary: activity.error ?? activity.resultPreview ?? `${activity.toolName} finished${activity.duration ? ` in ${activity.duration} ms` : ""}.`,
-          status: activity.status
-        } : null);
-      }
-      if (isProjectRunning && !visibleRun) {
-        pushActivity({
-          id: `project-${project.id}-starting`,
-          timestamp: Date.now(),
-          employee: projectSupervisor?.name ?? "Supervisor",
-          title: "Automation run starting",
-          summary: "The project run has been requested and the planner is preparing assignments.",
-          status: "running"
-        });
-      }
-      const timelineEntries = activityEntries.sort((left, right) => left.timestamp - right.timestamp).slice(-160);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Activity Timeline" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: visibleRun ? `${visibleRun.id === latestRun?.id ? "Current run" : "Past run"}: ${visibleRun.status} / ${projectToolActivities.length} tool call(s)` : "No automation run yet" })
-          ] }),
-          projectRunRecords.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.activityRunPicker, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Run" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "select",
-              {
-                value: visibleRun?.id ?? "",
-                onChange: (event) => setActivityRunSelections((current) => ({
-                  ...current,
-                  [project.id]: event.target.value
-                })),
-                children: projectRunRecords.map((run, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: run.id, children: [
-                  index === 0 ? "Current" : "Past",
-                  " / ",
-                  run.status,
-                  " / ",
-                  new Date(run.startedAt).toLocaleString()
-                ] }, run.id))
-              }
-            )
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTimeline, children: [
-          timelineEntries.map((entry) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectTimelineItem, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectTimelineMarker }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTimelineContent, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTimelineContentHeader, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.title }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("time", { dateTime: new Date(entry.timestamp).toISOString(), children: new Date(entry.timestamp).toLocaleString() })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: entry.employee }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: entry.summary }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: entry.status })
-            ] })
-          ] }, entry.id)),
-          timelineEntries.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: isProjectRunning ? "Automation run is starting." : "No activity recorded for this project yet." })
-        ] })
-      ] });
-    }
-    function renderArtifactsExplorer(project) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Artifact Explorer" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectDeliverables, children: [
-          project.artifacts.map((artifact, index) => {
-            const slug = artifact.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || `artifact-${index + 1}`;
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: artifact }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: index < 2 ? "Planned" : "Queued" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: `artifacts/${slug}.md` })
-            ] }, artifact);
-          }),
-          project.artifacts.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No artifacts defined." })
-        ] })
-      ] });
-    }
-    function renderProjectTimeline(project) {
-      const tasks = getBoardTasks(project);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Timeline" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectDeliverables, children: tasks.map((task, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectDeliverableCard, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.title }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: task.status })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: task.employee ? `${task.employee.name} / ${getEmployeeRoleDefinition(task.employee, roles)?.title ?? task.employee.role}` : "Unassigned" })
-        ] }, `${task.title}-${index}`)) })
-      ] });
-    }
-    function renderGovernance(project) {
-      const projectSupervisor = getProjectSupervisor(project, employees, roles);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Approval Policy" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: project.permissionMode === "full-access" ? "Full supervisor permission" : "Supervised approvals" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Supervisor" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectSupervisor?.name ?? "Unassigned" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: formatProjectStatus(getProjectEffectiveStatus(project)) })
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Tool Posture" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-            ] })
-          ] })
-        ] })
-      ] });
-    }
-    function renderProjectFormFields() {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project name" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idea", children: "Idea" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "planning", children: "Planning" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "active", children: "Running" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "stopped", children: "Stopped" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "blocked", children: "Blocked" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "done", children: "Done" })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace path" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Idea" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Goals" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Software artifacts" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "textarea",
-            {
-              value: draft.artifacts.join("\n"),
-              onChange: (event) => updateDraft({ artifacts: normalizeStringList2(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
-              rows: 6
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.employeeAssignOption} ${App_default.fieldWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
-            {
-              type: "checkbox",
-              checked: draft.mode === "autonomous",
-              onChange: (event) => updateDraft({
-                mode: event.target.checked ? "autonomous" : "guided",
-                permissionMode: event.target.checked ? "full-access" : "supervised",
-                assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
-                assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
-                teamRoles: event.target.checked ? draft.teamRoles : []
-              })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Fully autonomous" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "A supervisor and virtual team manage planning and execution. You can start, pause, or rerun the project." })
-        ] }),
-        draft.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor employee" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
-              employee.name,
-              " / ",
-              getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
-            ] }, employee.id)) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Execution permissions" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full access supervisor" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Ask for risky actions" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Assigned teams" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeAssignGrid, children: [
-              projectTeams.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: draft.assignedTeamIds.includes(team.id),
-                    onChange: () => toggleDraftTeam(team.id)
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: team.name }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: team.mission })
-              ] }, team.id)),
-              projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create teams before assigning them to a project." })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct employees" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeAssignGrid, children: employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "input",
-                {
-                  type: "checkbox",
-                  checked: draft.assignedEmployeeIds.includes(employee.id),
-                  onChange: () => toggleDraftEmployee(employee.id)
-                }
-              ),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: employee.name }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role })
-            ] }, employee.id)) })
-          ] })
-        ] })
-      ] });
-    }
-    function saveProjectDraftAndClose() {
-      const project = saveDraft();
-      onSelectProject(project.id);
-      closeProjectEditorPanel();
-    }
-    function saveProjectDraftAndOpenPrimaryAction() {
-      const project = saveDraft();
-      onSelectProject(project.id);
-      setProjectActionProjectId(project.id);
-      setProjectEditorPanel(project.mode === "autonomous" ? "project-org" : "project-chat");
-    }
-    function renderProjectFormPanel() {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        WorkbenchEditorPanel,
-        {
-          title: projects.some((project) => project.id === draft.id) ? "Edit Project" : "New Project",
-          subtitle: draft.mode === "autonomous" ? "Project details with autonomous staffing and execution" : "Project details, workspace, goals, and deliverables",
-          onClose: closeProjectEditorPanel,
-          footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveProjectDraftAndClose, title: "Save this project and close the panel", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-              "Save Project"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveProjectDraftAndOpenPrimaryAction, title: draft.mode === "autonomous" ? "Save this project and open its team view" : "Save this project and open its chat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: draft.mode === "autonomous" ? "network" : "chat", size: 14 }),
-              draft.mode === "autonomous" ? "Save And View Team" : "Save And Open Chat"
-            ] })
-          ] }),
-          children: renderProjectFormFields()
-        }
-      );
-    }
-    function renderProjectDeleteConfirmation() {
-      if (!projectDeleteTarget) {
-        return null;
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        WorkbenchEditorPanel,
-        {
-          title: `Delete ${projectDeleteTarget.kind}`,
-          subtitle: projectDeleteTarget.name,
-          onClose: closeProjectEditorPanel,
-          footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: confirmProjectDelete, title: `Confirm deletion of ${projectDeleteTarget.name}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-              "Confirm Delete"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: closeProjectEditorPanel, title: "Cancel deletion and close the panel", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-              "Cancel"
-            ] })
-          ] }),
-          children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.deleteConfirmation, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: projectDeleteTarget.detail }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "This action updates local Project Studio state immediately." }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { children: projectDeleteTarget.impact.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: item }, item)) })
-          ] })
-        }
-      );
-    }
-    function renderGuidedProjectChat(project) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectRailChatBody, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(project) }),
-        renderProjectChatSurface(project, "guided")
-      ] });
-    }
-    function renderProjectOrganization(project) {
-      const supervisor = getProjectSupervisor(project, employees, roles);
-      const assignedTeams = getProjectTeams(project, projectTeams);
-      const directEmployees = getProjectAssignedEmployees(project, employees, roles);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Team Organization" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: project.name })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.secondaryButton, type: "button", onClick: () => editProject(project), title: "Edit project staffing and team assignments", children: "Edit Members" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(project) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTeamDiagram, children: [
-          supervisor ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorNode, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor acting for human" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: supervisor.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("em", { children: [
-              getEmployeeRoleDefinition(supervisor, roles)?.title ?? supervisor.role,
-              " / ",
-              project.permissionMode === "full-access" ? "Full permission" : "Supervised"
-            ] })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No supervisor assigned." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
-            assignedTeams.map((team) => renderProjectTeamCard(team, { compact: true })),
-            assignedTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No teams assigned to this project." })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorRow, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct employees" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: directEmployees.length }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "Assigned outside teams" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
-            directEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })),
-            directEmployees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No direct employees assigned outside teams." })
-          ] })
-        ] })
-      ] }) });
-    }
-    function renderProjectActionPanel() {
-      const project = projectActionProject;
-      if (!project) {
-        return null;
-      }
-      if (projectEditorPanel === "project-chat") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: "Project Chat",
-            subtitle: project.name,
-            onClose: closeProjectEditorPanel,
-            wide: true,
-            bodyClassName: App_default.projectChatPanelBody,
-            children: renderGuidedProjectChat(project)
-          }
-        );
-      }
-      if (projectEditorPanel === "project-org") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Team Organization", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderProjectOrganization(project) });
-      }
-      if (projectEditorPanel === "project-board") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Task Board", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderTaskBoard(project) });
-      }
-      if (projectEditorPanel === "project-execution") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Activity", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderExecutionConsole(project) });
-      }
-      if (projectEditorPanel === "project-team-chat") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Team Chat", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectRailChatBody, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(project) }),
-          renderProjectChatSurface(project, "team")
-        ] }) });
-      }
-      if (projectEditorPanel === "project-deliverables") {
-        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(WorkbenchEditorPanel, { title: "Deliverables", subtitle: project.name, onClose: closeProjectEditorPanel, wide: true, children: renderDeliverables(project) });
-      }
-      return null;
-    }
-    function getLifecycleButton(project, showLabel = false) {
-      if (project.mode !== "autonomous") {
-        return null;
-      }
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const buttonClassName = showLabel ? App_default.secondaryButton : `${App_default.secondaryButton} ${App_default.projectIconButton}`;
-      const iconSize = showLabel ? 14 : 15;
-      const renderLifecycleButton = (status, icon, label, title) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: buttonClassName, type: "button", onClick: () => onSetProjectStatus(project.id, status), title, "aria-label": title, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: icon, size: iconSize }),
-        showLabel && label
-      ] });
-      if (runningProjectIds.has(project.id)) {
-        return renderLifecycleButton("stopped", "stop", "Stop", "Stop this running autonomous project");
-      }
-      if (effectiveStatus === "active") {
-        return renderLifecycleButton("stopped", "stop", "Stop", "Stop this autonomous project");
-      }
-      if (effectiveStatus === "stopped") {
-        return renderLifecycleButton("active", "play", "Resume", "Resume this autonomous project");
-      }
-      if (effectiveStatus === "blocked") {
-        return renderLifecycleButton("active", "rotate", "Retry", "Retry this blocked autonomous project");
-      }
-      if (effectiveStatus === "done") {
-        return renderLifecycleButton("active", "rotate", "Re-run", "Run this completed autonomous project again");
-      }
-      if (effectiveStatus === "idea" || effectiveStatus === "planning") {
-        return renderLifecycleButton("active", "play", "Start", "Start this autonomous project");
-      }
-      return null;
-    }
-    function renderProjectPortfolioActions(project, variant) {
-      const showLabel = variant === "expanded";
-      const buttonClassName = showLabel ? App_default.secondaryButton : `${App_default.secondaryButton} ${App_default.projectIconButton}`;
-      const iconSize = showLabel ? 14 : 15;
-      const actionsClassName = showLabel ? App_default.projectCardActions : `${App_default.workbenchRecordActions} ${App_default.projectRecordActions}`;
-      const renderActionButton = (panel, icon, label, title) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: buttonClassName, type: "button", onClick: () => openProjectActionPanel(project, panel), title, "aria-label": title, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: icon, size: iconSize }),
-        showLabel && label
-      ] });
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: actionsClassName, children: [
-        project.mode === "guided" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          renderActionButton("project-chat", "chat", "Chat", "Open this project chat"),
-          renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")
-        ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-          getLifecycleButton(project, showLabel),
-          renderActionButton("project-org", "network", "Team", "View team organization for this project"),
-          renderActionButton("project-board", "board", "Board", "Open this project task board"),
-          renderActionButton("project-execution", "activity", "Activity", "Open this project activity"),
-          renderActionButton("project-team-chat", "message", "Team Chat", "Open this autonomous team chat"),
-          renderActionButton("project-deliverables", "archive", "Deliverables", "View project deliverables")
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: buttonClassName, type: "button", onClick: () => editProject(project), title: "Edit this project", "aria-label": "Edit this project", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: iconSize }),
-          showLabel && "Edit"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: buttonClassName, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project", "aria-label": "Delete this project", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: iconSize }),
-          showLabel && "Delete"
-        ] })
-      ] });
-    }
-    function renderProjectRow(project) {
-      const assignedTeams = getProjectTeams(project, projectTeams);
-      const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: `${App_default.workbenchRecordRow} ${App_default.projectRecordRow} ${getProjectStatusRowClassName(effectiveStatus)}`, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            project.mode === "autonomous" ? "Fully autonomous" : "Standard",
-            " / ",
-            formatProjectStatus(effectiveStatus)
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: summarizeProjectGoals(project), children: summarizeProjectGoals(project) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, children: project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)` }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: project.workspacePath ?? appInfo?.workspacePath ?? void 0, children: project.workspacePath ?? workspaceTitle }),
-        renderProjectPortfolioActions(project, "compact")
-      ] }, project.id);
-    }
-    function renderProjectCard(project, action) {
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const cardClassName = [
-        App_default.projectCard,
-        getProjectStatusCardClassName(effectiveStatus),
-        project.id === selectedProject?.id ? App_default.projectCardSelected : ""
-      ].filter(Boolean).join(" ");
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: cardClassName, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              project.mode === "autonomous" ? "Fully autonomous" : "Standard project",
-              " / ",
-              formatProjectStatus(effectiveStatus)
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => editProject(project), title: "Edit this project", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 13 }),
-            "Edit"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: summarizeProjectGoals(project) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: artifact }, artifact)),
-          project.artifacts.length > 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectChip, children: [
-            "+",
-            project.artifacts.length - 4
-          ] })
-        ] }),
-        project.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorRow, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.supervisorRole }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: project.permissionMode === "full-access" ? "Full permission" : "Supervised" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              title: action === "organization" ? "View this project team" : "Open this project chat",
-              onClick: () => {
-                if (action === "organization") {
-                  openProjectActionPanel(project, "project-org");
-                  return;
-                }
-                openProjectActionPanel(project, "project-chat");
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: action === "organization" ? "network" : "chat", size: 14 }),
-                action === "organization" ? "Team" : "Open Chat"
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSelectProject(project.id), title: "Select this project", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 }),
-            "Select"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openProjectDeleteConfirmation(buildProjectDeleteTarget(project)), title: "Delete this project", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, project.id);
-    }
-    function renderProjectPortfolioCard(project) {
-      const assignedTeams = getProjectTeams(project, projectTeams);
-      const assignedStaff = getProjectStaffingEmployees(project, employees, roles, projectTeams);
-      const effectiveStatus = getProjectEffectiveStatus(project);
-      const workspace = project.workspacePath ?? workspaceTitle;
-      const cardClassName = [
-        App_default.projectCard,
-        App_default.projectPortfolioCard,
-        getProjectStatusCardClassName(effectiveStatus),
-        project.id === selectedProject?.id ? App_default.projectCardSelected : ""
-      ].filter(Boolean).join(" ");
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: cardClassName, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: project.name }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-              project.mode === "autonomous" ? "Fully autonomous" : "Standard project",
-              " / ",
-              formatProjectStatus(effectiveStatus)
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: `${App_default.projectStatusBadge} ${getProjectStatusBadgeClassName(effectiveStatus)}`, children: formatProjectStatus(effectiveStatus) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: summarizeProjectGoals(project), children: summarizeProjectGoals(project) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.projectCardMeta, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Scope" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: project.mode === "autonomous" ? `${assignedTeams.length} team(s), ${assignedStaff.length} employee(s)` : `${project.artifacts.length} deliverable(s)` })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Workspace" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: workspace, children: workspace })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          project.artifacts.slice(0, 4).map((artifact) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: artifact }, artifact)),
-          project.artifacts.length > 4 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.projectChip, children: [
-            "+",
-            project.artifacts.length - 4
-          ] })
-        ] }),
-        renderProjectPortfolioActions(project, "expanded")
-      ] }, project.id);
-    }
-    function renderProjectMetricBar(segments, total) {
-      const visibleSegments = segments.filter((segment) => segment.value > 0);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectMetricChart, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectMetricBar, "aria-label": "Project metric distribution", children: visibleSegments.length > 0 ? visibleSegments.map((segment) => {
-          const width = total > 0 ? Math.max(8, segment.value / total * 100) : 0;
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "span",
-            {
-              className: `${App_default.projectMetricSegment} ${segment.className}`,
-              style: { width: `${width}%` },
-              title: `${segment.label}: ${segment.value}`
-            },
-            segment.label
-          );
-        }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectMetricEmpty, children: "No data" }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectMetricLegend, children: segments.map((segment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: segment.className }),
-          segment.label,
-          ": ",
-          segment.value
-        ] }, segment.label)) })
-      ] });
-    }
-    function getProjectStatusRowClassName(status) {
-      if (status === "active") {
-        return App_default.projectRecordRowActive;
-      }
-      if (status === "planning") {
-        return App_default.projectRecordRowPlanning;
-      }
-      if (status === "blocked") {
-        return App_default.projectRecordRowBlocked;
-      }
-      if (status === "stopped") {
-        return App_default.projectRecordRowStopped;
-      }
-      if (status === "done") {
-        return App_default.projectRecordRowDone;
-      }
-      return App_default.projectRecordRowIdea;
-    }
-    function getProjectStatusCardClassName(status) {
-      if (status === "active") {
-        return App_default.projectStatusCardActive;
-      }
-      if (status === "planning") {
-        return App_default.projectStatusCardPlanning;
-      }
-      if (status === "blocked") {
-        return App_default.projectStatusCardBlocked;
-      }
-      if (status === "stopped") {
-        return App_default.projectStatusCardStopped;
-      }
-      if (status === "done") {
-        return App_default.projectStatusCardDone;
-      }
-      return App_default.projectStatusCardIdea;
-    }
-    function getProjectStatusBadgeClassName(status) {
-      if (status === "active") {
-        return App_default.projectStatusBadgeActive;
-      }
-      if (status === "planning") {
-        return App_default.projectStatusBadgePlanning;
-      }
-      if (status === "blocked") {
-        return App_default.projectStatusBadgeBlocked;
-      }
-      if (status === "stopped") {
-        return App_default.projectStatusBadgeStopped;
-      }
-      if (status === "done") {
-        return App_default.projectStatusBadgeDone;
-      }
-      return App_default.projectStatusBadgeIdea;
-    }
-    function renderProjectPagination() {
-      if (projects.length <= PROJECT_LIST_PAGE_SIZE) {
-        return null;
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectPager, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-          "Showing ",
-          projectPageFirstRecord,
-          "-",
-          projectPageLastRecord,
-          " of ",
-          projects.length
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectPagerControls, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => setProjectPage((page) => Math.max(1, page - 1)),
-              disabled: normalizedProjectPage <= 1,
-              title: "Previous project page",
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-left", size: 14 }),
-                "Previous"
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-            "Page ",
-            normalizedProjectPage,
-            " / ",
-            projectPageCount
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.secondaryButton,
-              type: "button",
-              onClick: () => setProjectPage((page) => Math.min(projectPageCount, page + 1)),
-              disabled: normalizedProjectPage >= projectPageCount,
-              title: "Next project page",
-              children: [
-                "Next",
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 14 })
-              ]
-            }
-          )
-        ] })
-      ] });
-    }
-    const projectDetailViewClassName = projectRailOpen ? `${App_default.detailView} ${App_default.detailViewWithRail} ${projectRailWide ? App_default.detailViewWithWideRail : ""}` : App_default.detailView;
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: projectDetailViewClassName, "aria-label": "Projects", children: [
-      projectEditorPanel === "project" && renderProjectFormPanel(),
-      projectEditorPanel === "delete" && renderProjectDeleteConfirmation(),
-      renderProjectActionPanel(),
-      visibleActiveSection === "studio" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Turn ideas into software projects" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Portfolio" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectMetricHeadline, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: projects.length }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Total project(s)" })
-            ] }),
-            renderProjectMetricBar(projectModeMetrics, projects.length),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Use project row actions to open chat, team, board, or deliverables." })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Status" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectMetricHeadline, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: activeProjects.length }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Active project(s)" })
-            ] }),
-            renderProjectMetricBar(projectStatusMetrics, projects.length),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Fully autonomous projects can run in the background; the table below is the source of project navigation." })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Staffing" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectMetricHeadline, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: employees.length }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Employee profile(s)" })
-            ] }),
-            renderProjectMetricBar(projectStaffingMetrics, projects.length),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Roles" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: roles.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Teams" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectTeams.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Deliverables" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: deliverableCount })
-              ] })
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Projects" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                projects.length,
-                " saved project(s)"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: projectPortfolioView, onChange: setProjectPortfolioView, label: "Project list view" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: startDraft, title: "Create a software project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
-                "New Project"
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectStatusLegend, "aria-label": "Project status color legend", children: projectStatusMetrics.map((segment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { title: `${segment.label}: ${segment.value} project(s)`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("i", { className: segment.className }),
-            segment.label
-          ] }, segment.label)) }),
-          projectPortfolioView === "table" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordList} ${App_default.projectRecordList}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordRow} ${App_default.workbenchRecordHeader} ${App_default.projectRecordRow}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Goal" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Scope" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Actions" })
-            ] }),
-            visibleProjects.map((project) => renderProjectRow(project)),
-            projects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No software projects created yet." })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectPortfolioGrid, children: [
-            visibleProjects.map((project) => renderProjectPortfolioCard(project)),
-            projects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No software projects created yet." })
-          ] }),
-          renderProjectPagination()
-        ] })
-      ] }),
-      visibleActiveSection === "roles" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchSplit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: `${App_default.detailPanel} ${App_default.workbenchMain}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Roles" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                roles.length,
-                " project role definition(s)"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: roleListView, onChange: setRoleListView, label: "Role list view" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: openNewRoleEditor, title: "Create a new role definition", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
-                "New Role"
-              ] })
-            ] })
-          ] }),
-          roleListView === "table" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordRow} ${App_default.workbenchRecordHeader}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Scope" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Default goal" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Definition" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Actions" })
-            ] }),
-            roles.map((role) => renderRoleRow(role)),
-            roles.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No roles configured." })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recordCardGrid, children: [
-            roles.map((role) => renderRoleCard(role)),
-            roles.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No roles configured." })
-          ] })
-        ] }),
-        projectEditorPanel === "role" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: roles.some((role) => role.id === roleDraft.id) ? "Edit Role" : "New Role",
-            subtitle: "Responsibilities, default goal, and tool expectations",
-            onClose: closeProjectEditorPanel,
-            footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveRoleDraft, title: "Save this role definition", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-                "Save Role"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: openNewRoleEditor, title: "Reset the form for a new role", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "rotate", size: 14 }),
-                "Reset New"
-              ] })
-            ] }),
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role title" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: roleDraft.title, onChange: (event) => setRoleDraft((current) => ({ ...current, title: event.target.value, updatedAt: Date.now() })) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Can supervise" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: roleDraft.canSupervise ? "yes" : "no", onChange: (event) => setRoleDraft((current) => ({ ...current, canSupervise: event.target.value === "yes", updatedAt: Date.now() })), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Default goal" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: roleDraft.defaultGoal, onChange: (event) => setRoleDraft((current) => ({ ...current, defaultGoal: event.target.value, updatedAt: Date.now() })), rows: 3 })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Responsibilities" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "textarea",
-                  {
-                    value: roleDraft.responsibilities.join("\n"),
-                    onChange: (event) => setRoleDraft((current) => ({
-                      ...current,
-                      responsibilities: normalizeStringList2(event.target.value.split("\n"), ["Deliver assigned project responsibilities."]),
-                      updatedAt: Date.now()
-                    })),
-                    rows: 7
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Default tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "textarea",
-                  {
-                    value: roleDraft.defaultTools.join("\n"),
-                    onChange: (event) => setRoleDraft((current) => ({
-                      ...current,
-                      defaultTools: normalizeStringList2(event.target.value.split("\n"), getDefaultTeamTools(current.title)),
-                      updatedAt: Date.now()
-                    })),
-                    rows: 4
-                  }
-                )
-              ] })
-            ] })
-          }
-        )
-      ] }),
-      visibleActiveSection === "employees" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchSplit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: `${App_default.detailPanel} ${App_default.workbenchMain}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Employees" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                employees.length,
-                " reusable employee profile(s)"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: employeeListView, onChange: setEmployeeListView, label: "Employee list view" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Create a new employee profile", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
-                "New Employee"
-              ] })
-            ] })
-          ] }),
-          employeeListView === "table" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordRow} ${App_default.workbenchRecordHeader}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Employee" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Current work" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Actions" })
-            ] }),
-            employees.map((employee) => renderEmployeeRow(employee)),
-            employees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No employees configured." })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recordCardGrid, children: [
-            employees.map((employee) => renderEmployeeManagementCard(employee)),
-            employees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No employees configured." })
-          ] })
-        ] }),
-        projectEditorPanel === "employee-profile" && profileEmployee && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: profileEmployee.name,
-            subtitle: `${getEmployeeRoleDefinition(profileEmployee, roles)?.title ?? profileEmployee.role} / ${profileEmployee.status}`,
-            onClose: closeProjectEditorPanel,
-            children: renderEmployeeProfile(profileEmployee)
-          }
-        ),
-        projectEditorPanel === "employee" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: employees.some((employee) => employee.id === employeeDraft.id) ? "Edit Employee" : "New Employee",
-            subtitle: "Role, model, permissions, and current assignment",
-            onClose: closeProjectEditorPanel,
-            footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveEmployeeDraft, title: "Save this employee profile", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-                "Save Employee"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: openNewEmployeeEditor, title: "Reset the form for a new employee", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "rotate", size: 14 }),
-                "Reset New"
-              ] })
-            ] }),
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.name, onChange: (event) => setEmployeeDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Role" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: employeeDraft.roleId || getDefaultRoleId(employeeDraft.role), onChange: (event) => selectEmployeeRole(event.target.value), children: roles.map((role) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: role.id, children: role.title }, role.id)) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.model, onChange: (event) => setEmployeeDraft((current) => ({ ...current, model: event.target.value, updatedAt: Date.now() })) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: employeeDraft.status, onChange: (event) => setEmployeeDraft((current) => ({ ...current, status: event.target.value, updatedAt: Date.now() })), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idle", children: "Idle" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "working", children: "Working" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "approval", children: "Needs approval" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Current task" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: employeeDraft.currentTask, onChange: (event) => setEmployeeDraft((current) => ({ ...current, currentTask: event.target.value, updatedAt: Date.now() })) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permissions" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "textarea",
-                  {
-                    value: employeeDraft.permissions.join("\n"),
-                    onChange: (event) => setEmployeeDraft((current) => ({
-                      ...current,
-                      permissions: normalizeStringList2(event.target.value.split("\n"), DEFAULT_EMPLOYEE_PERMISSIONS),
-                      updatedAt: Date.now()
-                    })),
-                    rows: 5
-                  }
-                )
-              ] })
-            ] })
-          }
-        )
-      ] }),
-      visibleActiveSection === "teams" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchSplit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: `${App_default.detailPanel} ${App_default.workbenchMain}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Teams" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                projectTeams.length,
-                " reusable project team(s)"
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: teamListView, onChange: setTeamListView, label: "Team list view" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Create a new reusable team", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }),
-                "New Team"
-              ] })
-            ] })
-          ] }),
-          teamListView === "table" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordRow} ${App_default.workbenchRecordHeader}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Members" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mission" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Actions" })
-            ] }),
-            projectTeams.map((team) => renderProjectTeamRow(team)),
-            projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No project teams configured." })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recordCardGrid, children: [
-            projectTeams.map((team) => renderProjectTeamManagementCard(team)),
-            projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No project teams configured." })
-          ] })
-        ] }),
-        projectEditorPanel === "team" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: projectTeams.some((team) => team.id === teamDraft.id) ? "Edit Team" : "New Team",
-            subtitle: "Mission, supervisor, and members",
-            onClose: closeProjectEditorPanel,
-            footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveTeamDraft, title: "Save this reusable team", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-                "Save Team"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: openNewProjectTeamEditor, title: "Reset the form for a new team", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "rotate", size: 14 }),
-                "Reset New"
-              ] })
-            ] }),
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Team name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: teamDraft.name, onChange: (event) => setTeamDraft((current) => ({ ...current, name: event.target.value, updatedAt: Date.now() })) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: teamDraft.supervisorEmployeeId, onChange: (event) => selectTeamSupervisor(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
-                  employee.name,
-                  " / ",
-                  getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
-                ] }, employee.id)) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mission" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: teamDraft.mission, onChange: (event) => setTeamDraft((current) => ({ ...current, mission: event.target.value, updatedAt: Date.now() })), rows: 4 })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Members" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeAssignGrid, children: employees.filter((employee) => employee.id !== teamDraft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "input",
-                    {
-                      type: "checkbox",
-                      checked: teamDraft.memberEmployeeIds.includes(employee.id),
-                      onChange: () => toggleTeamMember(employee.id)
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: employee.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role })
-                ] }, employee.id)) })
-              ] })
-            ] })
-          }
-        )
-      ] }),
-      visibleActiveSection === "new" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Project Definition" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: draft.mode === "autonomous" ? "Fully autonomous execution enabled" : "Standard project" })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Project name" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.name, onChange: (event) => updateDraft({ name: event.target.value }) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.status, onChange: (event) => updateDraft({ status: event.target.value }), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "idea", children: "Idea" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "planning", children: "Planning" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "active", children: "Running" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "stopped", children: "Stopped" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "blocked", children: "Blocked" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "done", children: "Done" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace path" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: draft.workspacePath ?? appInfo?.workspacePath ?? "", onChange: (event) => updateDraft({ workspacePath: event.target.value }) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Idea" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.idea, onChange: (event) => updateDraft({ idea: event.target.value }), rows: 4 })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Goals" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: draft.goals, onChange: (event) => updateDraft({ goals: event.target.value }), rows: 4 })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Software artifacts" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "textarea",
-              {
-                value: draft.artifacts.join("\n"),
-                onChange: (event) => updateDraft({ artifacts: normalizeStringList2(event.target.value.split("\n"), DEFAULT_PROJECT_ARTIFACTS) }),
-                rows: 6
-              }
-            )
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.employeeAssignOption} ${App_default.fieldWide}`, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              "input",
-              {
-                type: "checkbox",
-                checked: draft.mode === "autonomous",
-                onChange: (event) => updateDraft({
-                  mode: event.target.checked ? "autonomous" : "guided",
-                  permissionMode: event.target.checked ? "full-access" : "supervised",
-                  assignedEmployeeIds: event.target.checked ? draft.assignedEmployeeIds : [],
-                  assignedTeamIds: event.target.checked ? draft.assignedTeamIds : [],
-                  teamRoles: event.target.checked ? draft.teamRoles : []
-                })
-              }
-            ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Fully autonomous" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "A supervisor and virtual team manage this project on your behalf." })
-          ] }),
-          draft.mode === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor employee" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("select", { value: draft.supervisorEmployeeId, onChange: (event) => selectDraftSupervisor(event.target.value), children: employees.map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("option", { value: employee.id, children: [
-                employee.name,
-                " / ",
-                getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role
-              ] }, employee.id)) })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Execution permissions" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: draft.permissionMode, onChange: (event) => updateDraft({ permissionMode: event.target.value }), children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "full-access", children: "Full access supervisor" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "supervised", children: "Ask for risky actions" })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Assigned teams" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeAssignGrid, children: [
-                projectTeams.map((team) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "input",
-                    {
-                      type: "checkbox",
-                      checked: draft.assignedTeamIds.includes(team.id),
-                      onChange: () => toggleDraftTeam(team.id)
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: team.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: team.mission })
-                ] }, team.id)),
-                projectTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Create teams before assigning them to a project." })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct employees" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.employeeAssignGrid, children: employees.filter((employee) => employee.id !== draft.supervisorEmployeeId).map((employee) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.employeeAssignOption, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "checkbox",
-                    checked: draft.assignedEmployeeIds.includes(employee.id),
-                    onChange: () => toggleDraftEmployee(employee.id)
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: employee.name }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: getEmployeeRoleDefinition(employee, roles)?.title ?? employee.role })
-              ] }, employee.id)) })
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveDraft, title: "Save this project", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-            "Save Project"
-          ] }),
-          draft.mode === "autonomous" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndViewOrganization, title: "Save this autonomous project and view its team organization", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "network", size: 14 }),
-            "Save And View Team"
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: saveDraftAndOpenProjectChat, title: "Save this project and open chat", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 14 }),
-            "Save And Open Chat"
-          ] })
-        ] })
-      ] }),
-      visibleActiveSection === "guided" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Standard Projects" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
-          guidedProjects.map((project) => renderProjectCard(project, "chat")),
-          guidedProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No standard projects yet." })
-        ] })
-      ] }),
-      visibleActiveSection === "autonomous" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Autonomous Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
-          ] }) }),
-          renderAutonomousProjectSelector()
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Autonomous Project Organization" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "Select or create an autonomous project" })
-            ] }),
-            selectedAutonomousProject && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => editProject(selectedAutonomousProject), title: "Edit project staffing and team assignments", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "users", size: 14 }),
-              "Edit Project Members"
-            ] }) })
-          ] }),
-          selectedAutonomousProject ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: summarizeProjectGoals(selectedAutonomousProject) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectTeamDiagram, children: [
-              selectedAutonomousSupervisor ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorNode, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Supervisor acting for human" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: selectedAutonomousSupervisor.name }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("em", { children: [
-                  selectedAutonomousSupervisor.role,
-                  " / ",
-                  selectedAutonomousProject.permissionMode === "full-access" ? "Full permission" : "Supervised"
-                ] })
-              ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No supervisor assigned." }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
-                selectedAutonomousTeams.map((team) => renderProjectTeamCard(team, { compact: true })),
-                selectedAutonomousTeams.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No teams assigned to this project." })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectSupervisorRow, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Direct employees" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: selectedAutonomousDirectEmployees.length }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: "Assigned outside teams" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.employeeGrid, children: [
-                selectedAutonomousDirectEmployees.map((employee) => renderEmployeeCard(employee, { compact: true })),
-                selectedAutonomousDirectEmployees.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No direct employees assigned outside teams." })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("board"), title: "Open the task board for this autonomous project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "board", size: 14 }),
-                "Task Board"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("chat"), title: "Open team chat for this autonomous project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "message", size: 14 }),
-                "Team Chat"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onChangeSection("deliverables"), title: "View deliverables for this autonomous project", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "archive", size: 14 }),
-                "Deliverables"
-              ] })
-            ] })
-          ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No autonomous project yet." })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Autonomous Projects" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectList, children: [
-            autonomousProjects.map((project) => renderProjectCard(project, "organization")),
-            autonomousProjects.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No autonomous projects yet." })
-          ] })
-        ] })
-      ] }),
-      visibleActiveSection === "insights" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedProject?.name ?? "No project selected" })
-          ] }) }),
-          renderProjectSelector()
-        ] }),
-        selectedProject ? renderProjectInsights(selectedProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select a project to see insights." })
-      ] }),
-      visibleActiveSection === "execution" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedProject?.name ?? "No project selected" })
-          ] }) }),
-          renderProjectSelector()
-        ] }),
-        selectedProject ? renderExecutionConsole(selectedProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select a project to see execution state." })
-      ] }),
-      visibleActiveSection === "artifacts" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedProject?.name ?? "No project selected" })
-          ] }) }),
-          renderProjectSelector()
-        ] }),
-        selectedProject ? renderArtifactsExplorer(selectedProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select a project to see artifacts." })
-      ] }),
-      visibleActiveSection === "timeline" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedProject?.name ?? "No project selected" })
-          ] }) }),
-          renderProjectSelector()
-        ] }),
-        selectedProject ? renderProjectTimeline(selectedProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select a project to see timeline." })
-      ] }),
-      visibleActiveSection === "governance" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Selected Project" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedProject?.name ?? "No project selected" })
-          ] }) }),
-          renderProjectSelector()
-        ] }),
-        selectedProject ? renderGovernance(selectedProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select a project to see governance." })
-      ] }),
-      visibleActiveSection === "board" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Task Board" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
-        ] }) }),
-        renderAutonomousProjectSelector(),
-        selectedAutonomousProject ? renderTaskBoard(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see its task board." })
-      ] }),
-      visibleActiveSection === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Team Chat" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
-        ] }) }),
-        renderAutonomousProjectSelector(),
-        selectedAutonomousProject ? renderTeamChat(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see employee chat." })
-      ] }),
-      visibleActiveSection === "deliverables" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.panelHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Deliverables" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: selectedAutonomousProject?.name ?? "No autonomous project selected" })
-        ] }) }),
-        renderAutonomousProjectSelector(),
-        selectedAutonomousProject ? renderDeliverables(selectedAutonomousProject) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Select an autonomous project to see deliverables." })
-      ] }),
-      visibleActiveSection === "context" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Files" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: appInfo?.workspacePath || void 0, children: workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "arrow-left", size: 14 }),
-                "Up"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-                "Refresh"
-              ] })
-            ] })
-          ] }),
-          workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineError, children: workspaceBrowserError }),
-          workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineSuccess, children: workspaceActionMessage }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileBrowser, "aria-label": "Workspace files", children: [
-            isLoadingWorkspaceEntries && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Loading files..." }),
-            !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No files in this directory" }),
-            !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
-              const entryPath = joinWorkspacePath(workspacePath, entry.name);
-              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                "div",
-                {
-                  className: entry.type === "directory" ? App_default.fileEntryDirectory : App_default.fileEntry,
-                  title: entry.name,
-                  children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                      "button",
-                      {
-                        className: App_default.fileEntryMain,
-                        type: "button",
-                        onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath),
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: entry.type === "directory" ? "folder" : "file", size: 13 }),
-                            entry.type === "directory" ? "Folder" : "File"
-                          ] }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.name }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: entry.type === "directory" ? "Directory" : formatFileSize(entry.size) })
-                        ]
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileEntryActions, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath), children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "external", size: 13 }),
-                        "Open"
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath), children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                        "Reveal"
-                      ] })
-                    ] })
-                  ]
-                },
-                `${entry.type}-${entry.name}`
-              );
-            })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Runtime" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "App" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo?.isDev ? "Development" : "Production" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-                  viewportSize.width,
-                  " x ",
-                  viewportSize.height
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-              ] })
-            ] })
-          ] })
-        ] })
-      ] }),
-      visibleActiveSection === "overview" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailHero, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.detailEyebrow, children: "Current workspace" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: workspaceTitle }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath || "Workspace path unavailable" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.detailGrid, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Model" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Provider" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: activeProviderLabel })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Model" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.model || activeProviderDefault.model })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Base URL" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.baseUrl || activeProviderDefault.baseUrl || "Provider default" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Context" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.contextTokens ?? activeProviderDefault.contextTokens })
-              ] })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Workspace State" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tool calls" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
-              ] })
-            ] })
-          ] })
-        ] })
-      ] }),
-      visibleActiveSection === "files" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelHeader, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Files" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: appInfo?.workspacePath || void 0, children: workspacePath === "." ? appInfo?.workspacePath || "." : workspacePath })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.panelActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onGoToWorkspaceParent, disabled: workspacePath === "." || isLoadingWorkspaceEntries, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "arrow-left", size: 14 }),
-              "Up"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefreshWorkspace, disabled: isLoadingWorkspaceEntries, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-              "Refresh"
-            ] })
-          ] })
-        ] }),
-        workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineError, children: workspaceBrowserError }),
-        workspaceActionMessage && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.inlineSuccess, children: workspaceActionMessage }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileBrowser, "aria-label": "Workspace files", children: [
-          isLoadingWorkspaceEntries && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "Loading files..." }),
-          !isLoadingWorkspaceEntries && workspaceEntries.length === 0 && !workspaceBrowserError && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No files in this directory" }),
-          !isLoadingWorkspaceEntries && workspaceEntries.map((entry) => {
-            const entryPath = joinWorkspacePath(workspacePath, entry.name);
-            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "div",
-              {
-                className: entry.type === "directory" ? App_default.fileEntryDirectory : App_default.fileEntry,
-                title: entry.name,
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      className: App_default.fileEntryMain,
-                      type: "button",
-                      onClick: () => entry.type === "directory" ? onOpenWorkspaceEntry(entry) : onOpenWorkspacePath(entryPath),
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: entry.type === "directory" ? "folder" : "file", size: 13 }),
-                          entry.type === "directory" ? "Folder" : "File"
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.name }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: entry.type === "directory" ? "Directory" : formatFileSize(entry.size) })
-                      ]
-                    }
-                  ),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.fileEntryActions, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onOpenWorkspacePath(entryPath), children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "external", size: 13 }),
-                      "Open"
-                    ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.textButton, type: "button", onClick: () => onRevealWorkspacePath(entryPath), children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                      "Reveal"
-                    ] })
-                  ] })
-                ]
-              },
-              `${entry.type}-${entry.name}`
-            );
-          })
-        ] })
-      ] }),
-      visibleActiveSection === "session" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Session" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Current" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: currentSessionTitle, children: currentSessionTitle })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Saved chats" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: sessionCount })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Input tokens" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.inputTokens })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Output tokens" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: tokenUsage.outputTokens })
-          ] })
-        ] })
-      ] }),
-      visibleActiveSection === "runtime" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Runtime" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "App" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo ? `${appInfo.platform} ${appInfo.arch}` : "Unknown" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: appInfo?.isDev ? "Development" : "Production" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Viewport" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-              viewportSize.width,
-              " x ",
-              viewportSize.height
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "State keys" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: Object.keys(appState).length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP servers" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP tools" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-          ] })
-        ] })
-      ] })
-    ] });
-  }
-  function ToolsView({
-    activeSection,
-    tools,
-    mcpTools,
-    mcpServers,
-    appConfig,
-    routerMessage,
-    toolActivities,
-    onToggleModelTool,
-    onApplyToolPreset,
-    onSetToolPermission,
-    onApplyPermissionPreset,
-    onRunCommand,
-    onOpenWorkspacePath,
-    onRevealWorkspacePath,
-    onRefresh,
-    onClearActivities
-  }) {
-    const exposedToolCount = tools.filter((tool) => isToolExposedToModel(tool, appConfig)).length;
-    const toolGroups = groupToolsByCategory(tools);
-    const policyCounts = tools.reduce(
-      (counts, tool) => {
-        counts[getToolPermissionPolicy(tool, appConfig)] += 1;
-        return counts;
-      },
-      { allow: 0, ask: 0, deny: 0 }
-    );
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailView, "aria-label": "Tools", children: [
-      (activeSection === "bridge" || activeSection === "mcp") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.pageActionBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-        "Refresh"
-      ] }) }),
-      activeSection === "bridge" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Bridge Tools" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterSummary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Model exposure" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-              exposedToolCount,
-              " / ",
-              tools.length
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tool calls" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Enabled" : "Disabled" })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Ask policy" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.ask })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Denied" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: policyCounts.deny })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("all"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 }),
-            "Expose all"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("read-only"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "shield", size: 14 }),
-            "Read-only only"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyToolPreset("mutating-off"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-            "Hide mutating"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 }),
-            "Allow all"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "shield", size: 14 }),
-            "Ask mutating"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 14 }),
-            "Deny mutating"
-          ] })
-        ] }),
-        routerMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.toolRouterMessage, children: routerMessage }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-          toolGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.toolCatalogGroup, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: group.label }),
-            group.tools.map((tool) => {
-              const exposed = isToolExposedToModel(tool, appConfig);
-              const permission = getToolPermissionPolicy(tool, appConfig);
-              return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: tool.name }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: tool.readOnly ? "Read-only" : "Can change workspace" })
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: tool.description }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolExposureRow, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: exposed ? "Exposed to model" : "Hidden from model" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                    "button",
-                    {
-                      className: exposed ? App_default.toolExposureButton : App_default.toolExposureButtonOff,
-                      type: "button",
-                      onClick: () => onToggleModelTool(tool.name, !exposed),
-                      children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: exposed ? "x" : "check", size: 13 }),
-                        exposed ? "Hide" : "Expose"
-                      ]
-                    }
-                  )
-                ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Permission" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                    "select",
-                    {
-                      value: permission,
-                      onChange: (event) => onSetToolPermission(tool.name, event.target.value),
-                      children: TOOL_PERMISSION_OPTIONS.map((option) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: option.value, children: option.label }, option.value))
-                    }
-                  )
-                ] })
-              ] }, tool.name);
-            })
-          ] }, group.id)),
-          tools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No bridge tools available" })
-        ] })
-      ] }),
-      activeSection === "mcp" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "MCP Registry" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Servers" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpServers.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tools" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: mcpTools.length })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Execution policy" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getToolPermissionPolicy({ name: "mcp.callTool", description: "", inputSchema: {} }, appConfig) })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-          mcpServers.map((server) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: server.name }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                "span",
-                {
-                  className: [
-                    App_default.toolStatusBadge,
-                    server.status === "connected" ? App_default.toolStatusConnected : "",
-                    server.status === "error" ? App_default.toolStatusError : ""
-                  ].filter(Boolean).join(" "),
-                  children: server.status
-                }
-              )
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-              server.type,
-              server.scope ? ` / ${server.scope}` : "",
-              server.error ? ` / ${server.error}` : ""
-            ] })
-          ] }, `${server.scope ?? "unknown"}-${server.name}`)),
-          mcpServers.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No MCP servers configured" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.tagList, children: [
-          mcpTools.map((tool) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.tag, children: [
-            tool.serverScope ? `${tool.serverScope}:` : "",
-            tool.serverName,
-            ".",
-            tool.toolName
-          ] }, `${tool.serverKey ?? tool.serverName}-${tool.toolName}`)),
-          mcpTools.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No executable stdio MCP tools discovered yet" })
-        ] })
-      ] }),
-      activeSection === "command" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RunCommandPanel, { onRunCommand }),
-      activeSection === "activity" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        ToolActivityPanel,
-        {
-          activities: toolActivities,
-          onClear: onClearActivities,
-          onOpenWorkspacePath,
-          onRevealWorkspacePath
-        }
-      ),
-      activeSection === "plugins" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PluginSkillPanel, { appConfig })
-    ] });
-  }
-  function HistoryView({
-    activeSection,
-    records,
-    storageInfo,
-    message,
-    exportText,
-    onRefresh,
-    onDeleteRecord,
-    onRestoreChat,
-    onExportRecords
-  }) {
-    const automationRecords = records.filter((record) => record.type === "automation-run");
-    const projectEventRecords = records.filter((record) => record.type === "project-event");
-    const projectActivityRecords = records.filter((record) => record.type === "automation-run" || record.type === "project-event");
-    const visibleRecords = activeSection === "automation" ? automationRecords : activeSection === "events" ? projectEventRecords : projectActivityRecords;
-    const [historyDeleteTarget, setHistoryDeleteTarget] = useState(null);
-    function openHistoryDeleteConfirmation(record) {
-      setHistoryDeleteTarget({
-        kind: "record",
-        id: record.id,
-        name: getHistoryRecordTitle(record),
-        detail: "Delete this local history record.",
-        impact: [
-          `${getHistoryRecordTypeLabel(record.type)} record will be removed from local history storage.`,
-          record.workspacePath ? `Workspace: ${record.workspacePath}` : "This does not delete workspace files or project artifacts."
-        ]
-      });
-    }
-    function closeHistoryDeleteConfirmation() {
-      setHistoryDeleteTarget(null);
-    }
-    function confirmHistoryDelete() {
-      if (!historyDeleteTarget) {
-        return;
-      }
-      onDeleteRecord(historyDeleteTarget.id);
-      closeHistoryDeleteConfirmation();
-    }
-    function renderHistoryDeleteConfirmation() {
-      if (!historyDeleteTarget) {
-        return null;
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        WorkbenchEditorPanel,
-        {
-          title: "Delete record",
-          subtitle: historyDeleteTarget.name,
-          onClose: closeHistoryDeleteConfirmation,
-          footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: confirmHistoryDelete, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-              "Confirm Delete"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: closeHistoryDeleteConfirmation, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-              "Cancel"
-            ] })
-          ] }),
-          children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.deleteConfirmation, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: historyDeleteTarget.detail }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "This action updates local History state immediately." }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { children: historyDeleteTarget.impact.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: item }, item)) })
-          ] })
-        }
-      );
-    }
-    async function copyExportText() {
-      if (exportText) {
-        await navigator.clipboard.writeText(exportText);
-      }
-    }
-    function downloadExportText() {
-      if (!exportText) {
-        return;
-      }
-      const blob = new Blob([exportText], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `code-agent-history-${Date.now()}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Project activity", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-label": "Project activity", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: historyDeleteTarget ? `${App_default.settingsContent} ${App_default.workbenchSplitWithRail}` : App_default.settingsContent, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.pageActionBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-        "Refresh"
-      ] }) }),
-      message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: message }),
-      historyDeleteTarget && renderHistoryDeleteConfirmation(),
-      activeSection === "overview" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Storage", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Records" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectActivityRecords.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Automation" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: automationRecords.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Project events" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: projectEventRecords.length })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { className: App_default.mutedText, title: storageInfo.storagePath, children: [
-            "Storage path: ",
-            storageInfo.storagePath || "Unavailable"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          HistoryRecordList,
-          {
-            records: projectActivityRecords.slice(0, 12),
-            onRequestDeleteRecord: openHistoryDeleteConfirmation,
-            onRestoreChat
-          }
-        )
-      ] }),
-      (activeSection === "automation" || activeSection === "events") && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        HistoryRecordList,
-        {
-          records: visibleRecords,
-          onRequestDeleteRecord: openHistoryDeleteConfirmation,
-          onRestoreChat
-        }
-      ),
-      activeSection === "export" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Export History", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Exports are local JSON snapshots. They do not include provider API keys." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("automation-run"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 14 }),
-              "Export Automation"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportRecords("project-event"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "activity", size: 14 }),
-              "Export Project Events"
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Export Data", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: exportText, readOnly: true, rows: 14, placeholder: "Choose an export option above." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: copyExportText, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "file", size: 14 }),
-              "Copy JSON"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: downloadExportText, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
-              "Download JSON"
-            ] })
-          ] })
-        ] })
-      ] })
-    ] }) }) });
-  }
-  function HistoryRecordList({
-    records,
-    onRequestDeleteRecord,
-    onRestoreChat
-  }) {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Records", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-      records.map((record) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: getHistoryRecordTitle(record) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: getHistoryRecordTypeLabel(record.type) })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: getHistoryRecordSummary(record) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(record.updatedAt).toLocaleString() }),
-        record.workspacePath && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { title: record.workspacePath, children: [
-          "Workspace: ",
-          record.workspacePath
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-          record.type === "chat-session" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRestoreChat(record), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "rotate", size: 14 }),
-            "Restore Chat"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: () => onRequestDeleteRecord(record), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, record.id)),
-      records.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No history records in this section." })
-    ] }) });
-  }
-  function createAutomationDraftId(prefix) {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  }
-  function getDefaultTeamGoal(role) {
-    const normalizedRole = role.toLowerCase();
-    if (normalizedRole.includes("supervisor")) {
-      return "Coordinate the team, keep work aligned to the project objective, and decide the next handoff.";
-    }
-    if (normalizedRole.includes("manager")) {
-      return "Break the objective into milestones, clarify acceptance criteria, and identify sequencing risks.";
-    }
-    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
-      return "Validate the implementation plan, propose tests, and call out release blockers.";
-    }
-    if (normalizedRole.includes("review")) {
-      return "Review the work for correctness, maintainability, security, and missing verification.";
-    }
-    return "Implement the assigned work, use tools conservatively, and report concrete results.";
-  }
-  function getDefaultTeamTools(role) {
-    const normalizedRole = role.toLowerCase();
-    if (normalizedRole.includes("supervisor") || normalizedRole.includes("manager")) {
-      return ["automation.listTeams", "automation.listTeamRuns", "fs.read"];
-    }
-    if (normalizedRole.includes("qa") || normalizedRole.includes("test")) {
-      return ["fs.read", "bash.run"];
-    }
-    return ["fs.read", "fs.write", "bash.run"];
-  }
-  function createVirtualTeamMemberDraft(role = "Developer") {
-    return {
-      id: createAutomationDraftId("member"),
-      name: role,
-      role,
-      goal: getDefaultTeamGoal(role),
-      tools: getDefaultTeamTools(role)
-    };
-  }
-  function createVirtualTeamDraft(workspacePath) {
-    const members = [
-      createVirtualTeamMemberDraft("Supervisor"),
-      createVirtualTeamMemberDraft("Project Manager"),
-      createVirtualTeamMemberDraft("Developer"),
-      createVirtualTeamMemberDraft("QA")
-    ];
-    const now = Date.now();
-    return {
-      id: createAutomationDraftId("team"),
-      name: "Autonomous project team",
-      objective: "Build and validate the software project from the human blueprint.",
-      workspacePath,
-      permissionMode: "full-access",
-      maxIterations: 1,
-      requireQaSignoff: true,
-      supervisorId: members[0].id,
-      members,
-      status: "draft",
-      createdAt: now,
-      updatedAt: now
-    };
-  }
-  function cloneVirtualTeamForDraft(team, workspacePath) {
-    const members = team.members.map((member) => ({
-      ...member,
-      tools: [...member.tools]
-    }));
-    const supervisorId = members.some((member) => member.id === team.supervisorId) ? team.supervisorId : members[0]?.id ?? "";
-    return {
-      ...team,
-      workspacePath: team.workspacePath ?? workspacePath,
-      permissionMode: team.permissionMode ?? "full-access",
-      maxIterations: team.maxIterations ?? 1,
-      requireQaSignoff: Boolean(team.requireQaSignoff),
-      supervisorId,
-      members
-    };
-  }
-  function getTeamPermissionLabel(mode) {
-    return mode === "supervised" ? "Supervised" : "Full access";
-  }
-  function createPermissionTool(toolName) {
-    const readOnly = !["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"].includes(toolName);
-    return {
-      name: toolName,
-      description: "",
-      inputSchema: {},
-      readOnly
-    };
-  }
-  function AutomationView({
-    activeSection,
-    skills,
-    tasks,
-    taskRuns,
-    schedulerStatus,
-    remoteControl,
-    teams,
-    teamRuns,
-    runningTeamIds,
-    roles,
-    employees,
-    appConfig,
-    workspacePath,
-    message,
-    exportText,
-    importText,
-    onRefresh,
-    onSetSkillEnabled,
-    onExportProject,
-    onImportTextChange,
-    onImportProject,
-    onSaveTask,
-    onRunTask,
-    onSetTaskEnabled,
-    onDeleteTask,
-    onUpdateRemoteControl,
-    onCreatePairingCode,
-    onRevokeRemoteDevice,
-    onCreateDefaultTeam,
-    onSaveTeam,
-    onRunTeam,
-    onDeleteTeam,
-    onSetToolPermission,
-    onApplyPermissionPreset
-  }) {
-    const [taskName, setTaskName] = useState("Daily project check");
-    const [taskPrompt, setTaskPrompt] = useState("Summarize git status, failing tests, and next actions for this workspace.");
-    const [taskInterval, setTaskInterval] = useState(1440);
-    const [taskRetryEnabled, setTaskRetryEnabled] = useState(false);
-    const [taskMaxRetries, setTaskMaxRetries] = useState(1);
-    const [taskRetryDelay, setTaskRetryDelay] = useState(15);
-    const [taskNotifySuccess, setTaskNotifySuccess] = useState(false);
-    const [taskNotifyFailure, setTaskNotifyFailure] = useState(true);
-    const [taskNotificationChannel, setTaskNotificationChannel] = useState("desktop");
-    const [taskMissedRunPolicy, setTaskMissedRunPolicy] = useState("run-once");
-    const [taskDraftId, setTaskDraftId] = useState("");
-    const [taskEnabled, setTaskEnabled] = useState(true);
-    const [deviceName, setDeviceName] = useState("Phone");
-    const [selectedTeamId, setSelectedTeamId] = useState("");
-    const [selectedSharedEmployeeId, setSelectedSharedEmployeeId] = useState("");
-    const [teamDraft, setTeamDraft] = useState(() => createVirtualTeamDraft(workspacePath));
-    const [automationEditorPanel, setAutomationEditorPanel] = useState(null);
-    const [automationDeleteTarget, setAutomationDeleteTarget] = useState(null);
-    const [scheduledTaskView, setScheduledTaskView] = useState("table");
-    const selectedTeam = teams.find((team) => team.id === selectedTeamId);
-    const recentTeamRuns = selectedTeamId ? teamRuns.filter((run) => run.teamId === selectedTeamId) : teamRuns;
-    const taskRailOpen = automationEditorPanel === "task" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task";
-    const teamRailOpen = automationEditorPanel === "team" || automationEditorPanel === "delete" && automationDeleteTarget?.kind === "team";
-    useEffect(() => {
-      if (!selectedTeamId && teams[0]) {
-        setSelectedTeamId(teams[0].id);
-        setTeamDraft(cloneVirtualTeamForDraft(teams[0], workspacePath));
-      }
-    }, [selectedTeamId, teams, workspacePath]);
-    function closeAutomationEditorPanel() {
-      setAutomationEditorPanel(null);
-      setAutomationDeleteTarget(null);
-    }
-    function openAutomationDeleteConfirmation(target) {
-      setAutomationDeleteTarget(target);
-      setAutomationEditorPanel("delete");
-    }
-    function confirmAutomationDelete() {
-      if (!automationDeleteTarget) {
-        return;
-      }
-      if (automationDeleteTarget.kind === "task") {
-        onDeleteTask(automationDeleteTarget.id);
-      } else if (automationDeleteTarget.kind === "team") {
-        onDeleteTeam(automationDeleteTarget.id);
-      } else if (automationDeleteTarget.kind === "device") {
-        onRevokeRemoteDevice(automationDeleteTarget.id);
-      }
-      closeAutomationEditorPanel();
-    }
-    function openNewTaskEditor() {
-      setAutomationDeleteTarget(null);
-      setTaskDraftId("");
-      setTaskName("Daily project check");
-      setTaskPrompt("Summarize git status, failing tests, and next actions for this workspace.");
-      setTaskInterval(1440);
-      setTaskRetryEnabled(false);
-      setTaskMaxRetries(1);
-      setTaskRetryDelay(15);
-      setTaskNotifySuccess(false);
-      setTaskNotifyFailure(true);
-      setTaskNotificationChannel("desktop");
-      setTaskMissedRunPolicy("run-once");
-      setTaskEnabled(true);
-      setAutomationEditorPanel("task");
-    }
-    function openTaskEditor(task) {
-      setAutomationDeleteTarget(null);
-      setTaskDraftId(task.id);
-      setTaskName(task.name);
-      setTaskPrompt(task.prompt);
-      setTaskInterval(task.intervalMinutes);
-      setTaskRetryEnabled(Boolean(task.retryPolicy?.enabled));
-      setTaskMaxRetries(task.retryPolicy?.maxRetries ?? 1);
-      setTaskRetryDelay(task.retryPolicy?.retryDelayMinutes ?? 15);
-      setTaskNotifySuccess(Boolean(task.notificationPolicy?.onSuccess));
-      setTaskNotifyFailure(task.notificationPolicy?.onFailure !== false);
-      setTaskNotificationChannel(task.notificationPolicy?.channel ?? "desktop");
-      setTaskMissedRunPolicy(task.missedRunPolicy ?? "run-once");
-      setTaskEnabled(task.enabled);
-      setAutomationEditorPanel("task");
-    }
-    function saveTaskDraft() {
-      onSaveTask({
-        id: taskDraftId || void 0,
-        name: taskName,
-        prompt: taskPrompt,
-        intervalMinutes: taskInterval,
-        enabled: taskEnabled,
-        retryPolicy: {
-          enabled: taskRetryEnabled,
-          maxRetries: taskMaxRetries,
-          retryDelayMinutes: taskRetryDelay
-        },
-        notificationPolicy: {
-          onSuccess: taskNotifySuccess,
-          onFailure: taskNotifyFailure,
-          channel: taskNotificationChannel
-        },
-        missedRunPolicy: taskMissedRunPolicy
-      });
-      closeAutomationEditorPanel();
-    }
-    function startNewTeamDraft() {
-      const draft = createVirtualTeamDraft(workspacePath);
-      setSelectedTeamId("");
-      setTeamDraft(draft);
-      setAutomationDeleteTarget(null);
-      setAutomationEditorPanel("team");
-    }
-    function selectTeam(team) {
-      setSelectedTeamId(team.id);
-      setTeamDraft(cloneVirtualTeamForDraft(team, workspacePath));
-      setAutomationDeleteTarget(null);
-      setAutomationEditorPanel("team");
-    }
-    function updateTeamDraft(update) {
-      setTeamDraft((current) => ({
-        ...current,
-        ...update,
-        updatedAt: Date.now()
-      }));
-    }
-    function updateTeamMember(index, update) {
-      setTeamDraft((current) => {
-        const members = current.members.map((member, memberIndex) => memberIndex === index ? { ...member, ...update } : member);
-        const supervisorId = members.some((member) => member.id === current.supervisorId) ? current.supervisorId : members[0]?.id ?? "";
-        return {
-          ...current,
-          members,
-          supervisorId,
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function addTeamMember(role = "Developer") {
-      setTeamDraft((current) => {
-        const member = createVirtualTeamMemberDraft(role);
-        return {
-          ...current,
-          members: [...current.members, member],
-          supervisorId: current.supervisorId || member.id,
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function addSharedEmployeeToTeam(employeeId) {
-      const employee = employees.find((candidate) => candidate.id === employeeId);
-      if (!employee) {
-        return;
-      }
-      const role = getEmployeeRoleDefinition(employee, roles);
-      const member = {
-        id: `member-${employee.id}`,
-        name: employee.name,
-        role: role?.title ?? employee.role,
-        goal: role?.defaultGoal ?? getDefaultTeamGoal(employee.role),
-        tools: role?.defaultTools ?? getDefaultTeamTools(employee.role)
-      };
-      setTeamDraft((current) => {
-        const members = [
-          member,
-          ...current.members.filter((candidate) => candidate.id !== member.id)
-        ];
-        return {
-          ...current,
-          members,
-          supervisorId: current.supervisorId || (role?.canSupervise ? member.id : members[0]?.id ?? ""),
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function deleteTeamMember(memberId) {
-      setTeamDraft((current) => {
-        const members = current.members.filter((member) => member.id !== memberId);
-        return {
-          ...current,
-          members,
-          supervisorId: current.supervisorId === memberId ? members[0]?.id ?? "" : current.supervisorId,
-          updatedAt: Date.now()
-        };
-      });
-    }
-    function saveTeamDraft() {
-      onSaveTeam({
-        ...teamDraft,
-        permissionMode: teamDraft.permissionMode ?? "full-access",
-        maxIterations: Math.max(1, Math.min(5, Math.floor(Number(teamDraft.maxIterations ?? 1) || 1))),
-        requireQaSignoff: Boolean(teamDraft.requireQaSignoff),
-        members: teamDraft.members.map((member) => ({
-          ...member,
-          name: member.name.trim() || member.role.trim() || "Team member",
-          role: member.role.trim() || "Contributor",
-          goal: member.goal.trim() || getDefaultTeamGoal(member.role),
-          tools: normalizeToolNameList(member.tools)
-        }))
-      });
-      closeAutomationEditorPanel();
-    }
-    function buildScheduledTaskDeleteTarget(task) {
-      return {
-        kind: "task",
-        id: task.id,
-        name: task.name,
-        detail: "Delete this scheduled automation task.",
-        impact: [
-          `The ${task.enabled ? "enabled" : "disabled"} schedule running every ${task.intervalMinutes} minute(s) will be removed.`,
-          "Existing task run history remains visible until history retention removes it."
-        ]
-      };
-    }
-    function buildAutomationTeamDeleteTarget(team) {
-      return {
-        kind: "team",
-        id: team.id,
-        name: team.name,
-        detail: "Delete this automation team blueprint.",
-        impact: [
-          `${team.members.length} virtual team member definition(s) will be removed from this blueprint.`,
-          "Existing team run records are not deleted by this action."
-        ]
-      };
-    }
-    function buildRemoteDeviceDeleteTarget(device) {
-      return {
-        kind: "device",
-        id: device.id,
-        name: device.name,
-        detail: "Revoke this approved remote-control device.",
-        impact: [
-          "The device token will no longer be accepted for remote approvals.",
-          device.lastSeenAt ? `Last seen ${new Date(device.lastSeenAt).toLocaleString()}.` : `Paired ${new Date(device.createdAt).toLocaleString()}.`
-        ]
-      };
-    }
-    function getScheduledTaskPolicyLabels(task) {
-      const retryLabel = task.retryPolicy?.enabled ? `${task.retryAttempts ?? 0}/${task.retryPolicy.maxRetries} retry` : "Retry off";
-      const notifyLabel = `${task.notificationPolicy?.channel ?? "desktop"} notifications`;
-      return { retryLabel, notifyLabel };
-    }
-    function renderScheduledTaskRow(task) {
-      const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.workbenchRecordRow, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            task.enabled ? "Enabled" : "Disabled",
-            " / ",
-            task.lastStatus ?? "never run"
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, children: [
-          "Every ",
-          task.intervalMinutes,
-          " min"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, title: new Date(task.nextRunAt).toLocaleString(), children: [
-          "Next ",
-          new Date(task.nextRunAt).toLocaleString()
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, title: `${task.prompt} / ${retryLabel} / ${notifyLabel}`, children: [
-          retryLabel,
-          " / ",
-          notifyLabel
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordActions} ${App_default.workbenchRecordActionsWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openTaskEditor(task), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRunTask(task.id), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "play", size: 14 }),
-            "Run Now"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: task.enabled ? "pause" : "play", size: 14 }),
-            task.enabled ? "Disable" : "Enable"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, task.id);
-    }
-    function renderScheduledTaskCard(task) {
-      const { retryLabel, notifyLabel } = getScheduledTaskPolicyLabels(task);
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.projectCard, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.projectCardHeader, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: task.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-            task.enabled ? "Enabled" : "Disabled",
-            " / ",
-            task.lastStatus ?? "never run"
-          ] })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: task.prompt, children: task.prompt }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.projectCardMeta, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Cadence" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-              "Every ",
-              task.intervalMinutes,
-              " min"
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Next Run" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: new Date(task.nextRunAt).toLocaleString(), children: new Date(task.nextRunAt).toLocaleString() })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectChipList, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: retryLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: notifyLabel }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.projectChip, children: task.missedRunPolicy ?? "run-once" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectCardActions, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openTaskEditor(task), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRunTask(task.id), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "play", size: 14 }),
-            "Run Now"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSetTaskEnabled(task.id, !task.enabled), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: task.enabled ? "pause" : "play", size: 14 }),
-            task.enabled ? "Disable" : "Enable"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildScheduledTaskDeleteTarget(task)), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-            "Delete"
-          ] })
-        ] })
-      ] }, task.id);
-    }
-    function renderAutomationTeamRow(team) {
-      const teamIsRunning = runningTeamIds.has(team.id) || team.lastStatus === "running";
-      const status = teamIsRunning ? "running" : team.status;
-      const governance = `${team.maxIterations ?? 1} iteration(s) / QA ${team.requireQaSignoff ? "required" : "optional"}`;
-      const rowClassName = team.id === selectedTeamId ? `${App_default.workbenchRecordRow} ${App_default.workbenchRecordRowSelected}` : App_default.workbenchRecordRow;
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: rowClassName, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordPrimary, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: team.name }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: team.workspacePath ?? workspacePath, children: team.workspacePath ?? workspacePath })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, children: [
-          status,
-          " / ",
-          getTeamPermissionLabel(team.permissionMode)
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.workbenchRecordCell, children: [
-          team.members.length,
-          " member(s) / ",
-          governance
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchRecordCell, title: `${team.objective}${team.lastResult ? ` / ${team.lastResult}` : ""}`, children: team.objective }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordActions} ${App_default.workbenchRecordActionsWide}`, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => selectTeam(team), disabled: teamIsRunning, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "edit", size: 14 }),
-            "Edit"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onRunTeam(team.id), disabled: teamIsRunning, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: teamIsRunning ? "activity" : "play", size: 14 }),
-            teamIsRunning ? "Running..." : "Run Team"
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.dangerButton,
-              type: "button",
-              onClick: () => openAutomationDeleteConfirmation(buildAutomationTeamDeleteTarget(team)),
-              disabled: teamIsRunning,
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-                "Delete"
-              ]
-            }
-          )
-        ] })
-      ] }, team.id);
-    }
-    function renderAutomationDeleteConfirmation() {
-      if (!automationDeleteTarget) {
-        return null;
-      }
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        WorkbenchEditorPanel,
-        {
-          title: `Delete ${automationDeleteTarget.kind}`,
-          subtitle: automationDeleteTarget.name,
-          onClose: closeAutomationEditorPanel,
-          footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: confirmAutomationDelete, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-              "Confirm Delete"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: closeAutomationEditorPanel, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 }),
-              "Cancel"
-            ] })
-          ] }),
-          children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.deleteConfirmation, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: automationDeleteTarget.detail }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "This action updates local Automation state immediately." }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { children: automationDeleteTarget.impact.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: item }, item)) })
-          ] })
-        }
-      );
-    }
-    async function copyAutomationExportText() {
-      if (exportText) {
-        await navigator.clipboard.writeText(exportText);
-      }
-    }
-    function downloadAutomationExportText() {
-      if (!exportText) {
-        return;
-      }
-      const blob = new Blob([exportText], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `code-agent-automation-${Date.now()}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-    }
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", { className: App_default.settingsView, "aria-label": "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: `${App_default.settingsDialog} ${App_default.settingsPageForm}`, role: "region", "aria-label": "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsContent, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.pageActionBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: onRefresh, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "refresh", size: 14 }),
-        "Refresh"
-      ] }) }),
-      message && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.inlineSuccess, children: message }),
-      activeSection === "skills" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Workspace Skills", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Workspace skills are discovered from `.code-agent/skills` and `skills`." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-            skills.map((skill) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: skill.name }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                  skill.enabled ? "Enabled" : "Disabled",
-                  " / ",
-                  skill.source
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: skill.description || "No description provided." }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { title: skill.path, children: skill.path }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onSetSkillEnabled(skill.id, !skill.enabled), children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: skill.enabled ? "pause" : "play", size: 14 }),
-                skill.enabled ? "Disable" : "Enable"
-              ] }) })
-            ] }, skill.id)),
-            skills.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No workspace skills found yet." })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Shareable Project Bundle", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Export tasks, teams, and skill policies for this workspace. Local remote devices, API keys, and pairing secrets are not included." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportProject(false), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
-              "Export Config"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onExportProject(true), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "archive", size: 14 }),
-              "Export With Runs"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: copyAutomationExportText, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "file", size: 14 }),
-              "Copy Export"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", disabled: !exportText, onClick: downloadAutomationExportText, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
-              "Download Export"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: onImportProject, disabled: !importText.trim(), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 14 }),
-              "Import JSON"
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Export JSON" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: exportText, readOnly: true, rows: 8, placeholder: "Exported automation JSON appears here." })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Import JSON" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: importText, onChange: (event) => onImportTextChange(event.target.value), rows: 8, placeholder: "Paste a CodeAgent automation export JSON object." })
-            ] })
-          ] })
-        ] })
-      ] }),
-      activeSection === "tasks" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: taskRailOpen ? `${App_default.workbenchSplit} ${App_default.workbenchSplitWithRail}` : App_default.workbenchSplit, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchMainStack, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Scheduler", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: schedulerStatus.running ? "Running" : "Stopped" })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Tick" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dd", { children: [
-                  Math.round(schedulerStatus.intervalMs / 1e3),
-                  "s"
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Active tasks" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: schedulerStatus.runningTaskIds.length })
-              ] })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Scheduled tasks use the bridge tool permission policy below. Virtual teams can also be set to full access in the team panel when trusted autonomous work should not pause for approvals." }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.primaryButton, type: "button", onClick: openNewTaskEditor, children: "New Task" }) })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Configured Tasks", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.recordSectionToolbar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(RecordViewToggle, { view: scheduledTaskView, onChange: setScheduledTaskView, label: "Scheduled task list view" }) }),
-            scheduledTaskView === "table" ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workbenchRecordList, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.workbenchRecordRow} ${App_default.workbenchRecordHeader}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Task" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Cadence" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Next run" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Policy" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Actions" })
-              ] }),
-              tasks.map((task) => renderScheduledTaskRow(task)),
-              tasks.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No scheduled tasks configured." })
-            ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recordCardGrid, children: [
-              tasks.map((task) => renderScheduledTaskCard(task)),
-              tasks.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.workbenchEmptyState, children: "No scheduled tasks configured." })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Recent Task Runs", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-            taskRuns.slice(0, 8).map((run) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: run.taskName }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: run.status })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: run.result ?? run.error ?? "Running..." }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(run.startedAt).toLocaleString() })
-            ] }, run.id)),
-            taskRuns.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No task runs yet." })
-          ] }) })
-        ] }),
-        automationEditorPanel === "task" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          WorkbenchEditorPanel,
-          {
-            title: taskDraftId ? "Edit Scheduled Task" : "New Scheduled Task",
-            subtitle: "Prompt, cadence, retries, notifications, and missed-run handling",
-            onClose: closeAutomationEditorPanel,
-            footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: saveTaskDraft, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "save", size: 14 }),
-                "Save Task"
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: openNewTaskEditor, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "rotate", size: 14 }),
-                "Reset New"
-              ] })
-            ] }),
-            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.settingsGrid, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Name" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: taskName, onChange: (event) => setTaskName(event.target.value) })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Enabled" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskEnabled ? "yes" : "no", onChange: (event) => setTaskEnabled(event.target.value === "yes"), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Interval minutes" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "number",
-                    min: 1,
-                    value: taskInterval,
-                    onChange: (event) => setTaskInterval(Math.max(1, Number(event.target.value) || 1))
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: `${App_default.field} ${App_default.fieldWide}`, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Prompt" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("textarea", { value: taskPrompt, onChange: (event) => setTaskPrompt(event.target.value), rows: 4 })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Retry failed runs" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskRetryEnabled ? "enabled" : "disabled", onChange: (event) => setTaskRetryEnabled(event.target.value === "enabled"), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "disabled", children: "Disabled" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "enabled", children: "Enabled" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Max retries" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "number",
-                    min: 0,
-                    max: 10,
-                    value: taskMaxRetries,
-                    onChange: (event) => setTaskMaxRetries(Math.max(0, Math.min(10, Number(event.target.value) || 0)))
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Retry delay minutes" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "input",
-                  {
-                    type: "number",
-                    min: 1,
-                    max: 1440,
-                    value: taskRetryDelay,
-                    onChange: (event) => setTaskRetryDelay(Math.max(1, Math.min(1440, Number(event.target.value) || 1)))
-                  }
-                )
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notify on success" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotifySuccess ? "yes" : "no", onChange: (event) => setTaskNotifySuccess(event.target.value === "yes"), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notify on failure" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotifyFailure ? "yes" : "no", onChange: (event) => setTaskNotifyFailure(event.target.value === "yes"), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "yes", children: "Yes" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "no", children: "No" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Notification channel" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskNotificationChannel, onChange: (event) => setTaskNotificationChannel(event.target.value), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "desktop", children: "Desktop" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "remote", children: "Remote" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "none", children: "None" })
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Missed runs" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: taskMissedRunPolicy, onChange: (event) => setTaskMissedRunPolicy(event.target.value), children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "run-once", children: "Run once after restart" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "skip", children: "Skip and resume schedule" })
-                ] })
-              ] })
-            ] })
-          }
-        ),
-        automationEditorPanel === "delete" && automationDeleteTarget?.kind === "task" && renderAutomationDeleteConfirmation()
-      ] }),
-      activeSection === "remote" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Remote Access", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.enabled ? "Enabled" : "Disabled" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Mode" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.mode })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Devices" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.approvedDevices.length })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Pending approvals" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.pendingActions?.length ?? 0 })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.settingsGrid, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Device name" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: deviceName, onChange: (event) => setDeviceName(event.target.value) })
-          ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onUpdateRemoteControl({ enabled: !remoteControl.enabled, mode: remoteControl.enabled ? "disabled" : "local-network" }), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: remoteControl.enabled ? "pause" : "play", size: 14 }),
-              remoteControl.enabled ? "Disable" : "Enable"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: () => onCreatePairingCode(deviceName), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "phone", size: 14 }),
-              "Pair Device"
-            ] })
-          ] })
-        ] }),
-        remoteControl.pairingCode && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Pairing Code", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.pairingCode, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Pairing code" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: remoteControl.pairingCode }),
-          remoteControl.pairingExpiresAt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("em", { children: [
-            "Expires ",
-            new Date(remoteControl.pairingExpiresAt).toLocaleTimeString()
-          ] })
-        ] }) }),
-        (remoteControl.serverUrl || (remoteControl.localNetworkUrls?.length ?? 0) > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Remote URL", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.pairingCode, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Remote URL" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: remoteControl.localNetworkUrls?.[0] ?? remoteControl.serverUrl }),
-          remoteControl.serverUrl && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: remoteControl.serverUrl })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Managed Relay", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Status" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.enrollmentStatus ?? "not-configured" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Broker" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.brokerUrl ?? "Not configured" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Account" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.accountId ?? "Not configured" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Device" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: remoteControl.relay?.deviceId ?? "Not configured" })
-            ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Off-network relay control stays disabled until the managed relay implements identity, encryption, token rotation, audit propagation, and emergency revocation." })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Approved Devices", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-          remoteControl.approvedDevices.map((device) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: device.name }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: device.lastSeenAt ? "Seen recently" : "Paired" })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-              "Paired ",
-              new Date(device.createdAt).toLocaleString()
-            ] }),
-            device.lastSeenAt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-              "Last seen ",
-              new Date(device.lastSeenAt).toLocaleString()
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: () => openAutomationDeleteConfirmation(buildRemoteDeviceDeleteTarget(device)), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "trash", size: 14 }),
-              "Revoke"
-            ] }) })
-          ] }, device.id)),
-          remoteControl.approvedDevices.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No approved remote devices." })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Remote Audit Log", children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolCatalog, children: [
-          (remoteControl.auditLog ?? []).slice(0, 12).map((event) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.toolCatalogItem, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: event.message }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: event.type })
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: new Date(event.createdAt).toLocaleString() }),
-            event.deviceName && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", { children: [
-              "Device: ",
-              event.deviceName
-            ] })
-          ] }, event.id)),
-          (remoteControl.auditLog ?? []).length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.mutedText, children: "No remote-control audit events yet." })
-        ] }) }),
-        automationEditorPanel === "delete" && automationDeleteTarget?.kind === "device" && renderAutomationDeleteConfirmation()
-      ] }),
-      activeSection === "permissions" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(SettingsSection, { title: "Unattended Execution Policy", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Scheduled tasks and supervised virtual teams use these desktop tool policies. Full-access virtual teams skip approval popups but still stay inside workspace and command safety boundaries." }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.toolRouterActions, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("allow-all"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 }),
-              "Allow All Tools"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.secondaryButton, type: "button", onClick: () => onApplyPermissionPreset("ask-mutating"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "shield", size: 14 }),
-              "Ask Before Changes"
-            ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.dangerButton, type: "button", onClick: () => onApplyPermissionPreset("deny-mutating"), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 14 }),
-              "Deny Mutating Tools"
-            ] })
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsSection, { title: "Key Automation Tools", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolCatalog, children: AUTOMATION_PERMISSION_TOOLS.map((toolName) => {
-          const permission = getToolPermissionPolicy(createPermissionTool(toolName), appConfig);
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.toolPermissionRow, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: toolName }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("select", { value: permission, onChange: (event) => onSetToolPermission(toolName, event.target.value), children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "allow", children: "Allow" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "ask", children: "Ask" }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", { value: "deny", children: "Deny" })
-            ] })
-          ] }, toolName);
-        }) }) })
-      ] })
-    ] }) }) });
-  }
-  function RunCommandPanel({
-    onRunCommand
-  }) {
-    const [command, setCommand] = useState("");
-    const [cwd, setCwd] = useState(".");
-    const helperCommands = [
-      { label: "Git status", command: "git status --short --branch" },
-      { label: "Git diff", command: "git diff --stat" },
-      { label: "Branch", command: "git branch --show-current" },
-      { label: "NPM scripts", command: "npm run" },
-      { label: "Dev servers", command: "lsof -iTCP -sTCP:LISTEN -P -n" }
-    ];
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Run Command" }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Commands run through `bash.run`, stay inside the workspace, and require approval before execution." }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.commandRunner, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Command" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: command, onChange: (event) => setCommand(event.target.value), placeholder: "npm test" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", { className: App_default.field, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Working directory" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", { value: cwd, onChange: (event) => setCwd(event.target.value), placeholder: "." })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "button", onClick: () => onRunCommand(command, cwd), children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "terminal", size: 14 }),
-          "Review Run"
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.toolRouterActions, children: helperCommands.map((helper) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-        "button",
-        {
-          className: App_default.secondaryButton,
-          type: "button",
-          onClick: () => setCommand(helper.command),
-          children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "terminal", size: 14 }),
-            helper.label
-          ]
-        },
-        helper.label
-      )) })
-    ] });
-  }
-  function PluginSkillPanel({ appConfig }) {
-    const pluginDirs = readCliOption(appConfig, "pluginDirs") || "Default plugin paths";
-    const agentsJson = readCliOption(appConfig, "agentsJson") || "Not configured";
-    const mcpConfig = readCliOption(appConfig, "mcpConfig") || "Default MCP config";
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.detailPanel, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "Plugins & Skills" }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", { className: App_default.detailList, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Plugin dirs" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: pluginDirs, children: pluginDirs })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Agents JSON" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: agentsJson, children: agentsJson })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "MCP config" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { title: mcpConfig, children: mcpConfig })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.mutedText, children: "Manage plugin, skill, and MCP paths from Settings. Executable local MCP tools appear in the registry above." })
     ] });
   }
   function FileWriteReviewCard({
@@ -52896,6 +52852,9 @@ Attached images: ${imageSummary}` : message.content);
     const [catalogQuery, setCatalogQuery] = useState("");
     const [catalogFilter, setCatalogFilter] = useState("all");
     const [catalogView, setCatalogView] = useState("icon");
+    const openablePackageIds = new Set(
+      getDesktopPrimaryNavigation(resolution).map((item) => item.packageId)
+    );
     const normalizedQuery = catalogQuery.trim().toLowerCase();
     const visiblePackages = resolution.packages.filter((entry) => {
       const isPaid = entry.manifest.pricing.amountCents > 0;
@@ -52912,14 +52871,20 @@ Attached images: ${imageSummary}` : message.content);
     const catalogItems = visiblePackages.map((entry) => {
       const isEntitled = entry.state === "available" || entry.state === "trial";
       const isUsable = isEntitled && isPackageRuntimeAvailable(entry.installState);
+      const hasUpdate = entry.installState === "update-available";
       const isOwned = ownedPackages.some((owned) => owned.manifest.id === entry.manifest.id);
+      const isBundledCore = entry.manifest.id === BASE_FEATURE_PACKAGE_ID;
+      const canOpen = !isBundledCore && isUsable && openablePackageIds.has(entry.manifest.id);
       return {
         entry,
         isEntitled,
         isUsable,
+        hasUpdate,
         isOwned,
-        actionLabel: isUsable ? "Manage" : isEntitled ? "Install" : "Purchase",
-        statusLabel: isOwned ? `Owned \xB7 ${getPackageInstallStateLabel(entry.installState)}` : isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state),
+        isBundledCore,
+        canOpen,
+        actionLabel: isBundledCore ? null : hasUpdate ? "Update" : canOpen ? "Open" : isUsable ? null : isEntitled ? "Install" : "Purchase",
+        statusLabel: isBundledCore ? "Included with CodeAgent" : isOwned ? `Owned \xB7 ${getPackageInstallStateLabel(entry.installState)}` : isEntitled && !isUsable ? getPackageInstallStateLabel(entry.installState) : getPackageStateLabel(entry.state),
         purchase: getLatestPurchaseForPackage(profile, entry.manifest.id)
       };
     });
@@ -52963,7 +52928,7 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.packageInstallErrorIcon, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 16 }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { id: "package-install-error-title", children: [
-              "Couldn\u2019t install ",
+              "Package operation failed for ",
               operationError.packageName
             ] }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: operationError.phase })
@@ -52998,29 +52963,50 @@ Attached images: ${imageSummary}` : message.content);
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreOwnedList, children: ownedPackages.map((entry) => {
           const purchase = getLatestPurchaseForPackage(profile, entry.manifest.id);
+          const isInstalled = isPackageRuntimeAvailable(entry.installState);
+          const hasUpdate = entry.installState === "update-available";
+          const canOpen = isInstalled && openablePackageIds.has(entry.manifest.id);
+          const primaryActionLabel = hasUpdate ? "Update" : !isInstalled ? "Install" : canOpen ? "Open" : null;
+          const versionLabel = getPackageVersionLabel(entry.manifest, profile, entry.installState);
           return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedItem, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedBody, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
                 getPackagePriceLabel(entry.manifest),
+                " \xB7 ",
+                versionLabel,
                 " \xB7 Purchased ",
                 formatPackageDate(purchase?.purchasedAt)
               ] })
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isPackageRuntimeAvailable(entry.installState) ? App_default.packageStateAvailable : App_default.packageStatePending, children: getPackageInstallStateLabel(entry.installState) }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "button",
-              {
-                className: isPackageRuntimeAvailable(entry.installState) ? App_default.secondaryButton : App_default.primaryButton,
-                type: "button",
-                onClick: () => onPackageAction(entry.manifest.id),
-                children: [
-                  !isPackageRuntimeAvailable(entry.installState) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "download", size: 14 }),
-                  isPackageRuntimeAvailable(entry.installState) ? "Manage" : "Install"
-                ]
-              }
-            )
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isInstalled ? App_default.packageStateAvailable : App_default.packageStatePending, children: getPackageInstallStateLabel(entry.installState) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreOwnedActions, children: [
+              primaryActionLabel && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: hasUpdate || !isInstalled ? App_default.primaryButton : App_default.secondaryButton,
+                  type: "button",
+                  onClick: () => onPackageAction(
+                    entry.manifest.id,
+                    hasUpdate ? "update" : "default"
+                  ),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: hasUpdate ? "refresh" : isInstalled ? "external" : "download", size: 14 }),
+                    primaryActionLabel
+                  ]
+                }
+              ),
+              isInstalled && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                "button",
+                {
+                  className: App_default.textButton,
+                  type: "button",
+                  onClick: () => onPackageAction(entry.manifest.id, "uninstall"),
+                  children: "Uninstall"
+                }
+              )
+            ] })
           ] }, entry.manifest.id);
         }) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { className: App_default.packageBillingNote, children: "Need billing help? Self-service subscription changes and refunds aren\u2019t available in this desktop build." })
@@ -53077,26 +53063,26 @@ Attached images: ${imageSummary}` : message.content);
           )) })
         ] })
       ] }),
-      catalogView === "icon" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIconList, children: catalogItems.map(({ entry, isUsable, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreIconRow, children: [
+      catalogView === "icon" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIconList, children: catalogItems.map(({ entry, hasUpdate, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreIconRow, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIconBody, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: entry.manifest.displayName }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: entry.manifest.description, children: entry.manifest.description })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIconAction, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          actionLabel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "button",
             {
               className: App_default.packageStorePillAction,
               type: "button",
-              onClick: () => onPackageAction(entry.manifest.id),
+              onClick: () => onPackageAction(entry.manifest.id, hasUpdate ? "update" : "default"),
               children: actionLabel
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { title: statusLabel, children: actionLabel === "Purchase" ? getPackagePriceLabel(entry.manifest) : statusLabel })
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { title: statusLabel, children: actionLabel === "Purchase" ? `${getPackagePriceLabel(entry.manifest)} \xB7 v${getPackageAvailableVersion(entry.manifest)}` : `${statusLabel} \xB7 ${getPackageVersionLabel(entry.manifest, profile, entry.installState)}` })
         ] })
       ] }, entry.manifest.id)) }),
-      catalogView === "card" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreGrid, children: catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel, purchase }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreCard, children: [
+      catalogView === "card" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreGrid, children: catalogItems.map(({ entry, isUsable, hasUpdate, isOwned, actionLabel, statusLabel, purchase }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", { className: App_default.packageStoreCard, children: [
         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTopline, children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreIdentity, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
@@ -53123,6 +53109,10 @@ Attached images: ${imageSummary}` : message.content);
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageInstallStateLabel(entry.installState) })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Version" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: getPackageVersionLabel(entry.manifest, profile, entry.installState) })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", { children: "Purchase" }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", { children: purchase ? formatPackageDate(purchase.purchasedAt) : "Not purchased" })
           ] }),
@@ -53145,12 +53135,12 @@ Attached images: ${imageSummary}` : message.content);
             " ",
             entry.installReason
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          actionLabel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "button",
             {
               className: `${isUsable ? App_default.secondaryButton : App_default.primaryButton} ${App_default.packageStoreAction}`,
               type: "button",
-              onClick: () => onPackageAction(entry.manifest.id),
+              onClick: () => onPackageAction(entry.manifest.id, hasUpdate ? "update" : "default"),
               children: actionLabel
             }
           )
@@ -53162,11 +53152,12 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Package" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Tier" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Price" }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Version" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Runtime" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: "Status" }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { scope: "col", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.visuallyHidden, children: "Action" }) })
         ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: catalogItems.map(({ entry, isUsable, isOwned, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: catalogItems.map(({ entry, isUsable, hasUpdate, isOwned, actionLabel, statusLabel }) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", { children: [
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.packageStoreTableIdentity, children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.packageStoreIcon, "aria-hidden": "true", children: getPackageInitials(entry.manifest.displayName) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
@@ -53176,14 +53167,15 @@ Attached images: ${imageSummary}` : message.content);
           ] }) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: entry.manifest.tier }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: getPackagePriceLabel(entry.manifest) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: getPackageVersionLabel(entry.manifest, profile, entry.installState) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: getPackageInstallStateLabel(entry.installState) }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: isUsable ? App_default.packageStateAvailable : isOwned ? App_default.packageStatePending : App_default.packageStateLocked, children: statusLabel }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", { children: actionLabel && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
             "button",
             {
               className: isUsable ? App_default.secondaryButton : App_default.primaryButton,
               type: "button",
-              onClick: () => onPackageAction(entry.manifest.id),
+              onClick: () => onPackageAction(entry.manifest.id, hasUpdate ? "update" : "default"),
               children: actionLabel
             }
           ) })

@@ -81,13 +81,16 @@ function migrateFeatureProfile(config) {
     }
     const hasSignedInAccount = profile.accountStatus === 'signed-in' || Boolean(profile.email);
     const hasPurchaseRecords = Array.isArray(profile.purchases) && profile.purchases.length > 0;
-    const isLegacyDeveloperOverride = profile.localDeveloperOverride === true &&
+    // Old desktop builds could synthesize a paid local profile without a real
+    // account or purchase record. Treat that shape as invalid generically; the
+    // core must not know which feature package happened to create it.
+    const isLegacyLocalEntitlementOverride = profile.localDeveloperOverride === true &&
         profile.accountTier === 'paid' &&
         Array.isArray(profile.purchasedPackageIds) &&
-        profile.purchasedPackageIds.includes('software-developer') &&
+        profile.purchasedPackageIds.length > 0 &&
         !hasSignedInAccount &&
         !hasPurchaseRecords;
-    if (isLegacyDeveloperOverride) {
+    if (isLegacyLocalEntitlementOverride) {
         return {
             ...config,
             featureProfile: createGuestFeatureProfile(),
@@ -154,6 +157,67 @@ class AppStateServiceBridge {
      */
     async getConfig() {
         return { ...this.appConfig };
+    }
+    /** Reconciles account entitlement metadata with device-local package state. */
+    async reconcileInstalledFeaturePackages(runtimes) {
+        if (runtimes.length === 0)
+            return this.getConfig();
+        const reconcileProfile = (value) => {
+            const profile = value && typeof value === 'object' && !Array.isArray(value)
+                ? { ...createGuestFeatureProfile(), ...value }
+                : createGuestFeatureProfile();
+            const installedPackageIds = Array.isArray(profile.installedPackageIds)
+                ? profile.installedPackageIds.filter((item) => typeof item === 'string')
+                : [];
+            const records = Array.isArray(profile.packageInstallRecords)
+                ? profile.packageInstallRecords.filter((item) => item && typeof item === 'object')
+                : [];
+            for (const runtime of runtimes) {
+                if (!installedPackageIds.includes(runtime.packageId))
+                    installedPackageIds.push(runtime.packageId);
+                const existing = [...records].reverse().find(record => record.packageId === runtime.packageId);
+                const record = {
+                    ...(existing ?? {}),
+                    packageId: runtime.packageId,
+                    artifactId: existing?.artifactId || `${runtime.packageId}.installed-runtime`,
+                    version: runtime.version,
+                    state: 'installed',
+                    installedPath: runtime.installedPath,
+                    installedAt: existing?.installedAt || new Date().toISOString(),
+                };
+                // Device state is authoritative and has one current runtime version.
+                // Remove stale duplicate records so resolution cannot accidentally
+                // compare the catalog against an older or failed install entry.
+                const retainedRecords = records.filter(candidate => candidate.packageId !== runtime.packageId);
+                records.splice(0, records.length, ...retainedRecords, record);
+            }
+            return {
+                ...profile,
+                installedPackageIds,
+                packageInstallRecords: records,
+            };
+        };
+        const nextProfile = reconcileProfile(this.appConfig.featureProfile);
+        const accounts = normalizeFeatureAccounts(this.appConfig.featureAccounts);
+        const nextAccounts = Object.fromEntries(Object.entries(accounts).map(([key, profile]) => [
+            key,
+            reconcileProfile(profile),
+        ]));
+        const currentState = JSON.stringify({
+            featureProfile: this.appConfig.featureProfile,
+            featureAccounts: accounts,
+        });
+        const nextState = JSON.stringify({
+            featureProfile: nextProfile,
+            featureAccounts: nextAccounts,
+        });
+        if (currentState === nextState)
+            return this.getConfig();
+        const update = await this.setConfig({
+            featureProfile: nextProfile,
+            featureAccounts: nextAccounts,
+        });
+        return update.config;
     }
     /**
      * Update app configuration

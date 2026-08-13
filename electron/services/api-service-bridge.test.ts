@@ -134,6 +134,62 @@ test('the model can answer without selecting a tool', async () => {
   }
 });
 
+test('workflow planning requires and returns a native structured plan submission', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const requestBodies: any[] = [];
+  const assignments = [{
+    id: 'implement-goal-1',
+    title: 'Implement the application',
+    description: 'Create the application and verify the supplied acceptance criteria.',
+    memberId: 'developer-1',
+    dependencies: [],
+    requiresArtifact: true,
+    requiresNonDocumentationArtifact: true,
+    goalIds: ['goal-1'],
+    acceptanceCriteria: ['The application implements goal 1.'],
+    expectedArtifacts: ['src/main.ts'],
+  }];
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    requestBodies.push(body);
+    const planningTool = body.tools.find((tool: any) => tool.function.name.includes('submit_workflow_plan'));
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: 'submit-plan',
+        type: 'function',
+        function: {
+          name: planningTool.function.name,
+          arguments: JSON.stringify({ assignments }),
+        },
+      }] } }],
+      usage: { prompt_tokens: 30, completion_tokens: 10 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      messages: [{ role: 'user', content: 'Plan this workflow using developer-1 for goal-1.' }],
+      provider: 'codeagent',
+      model: 'test-model',
+      enableTools: true,
+      maxToolRounds: 2,
+      workflowPlanning: true,
+    });
+
+    assert.deepEqual(JSON.parse(response.content), { assignments });
+    assert.equal(requestBodies.length, 1);
+    assert.equal(requestBodies[0].tool_choice, 'required');
+    assert.equal(requestBodies[0].tools.length, 1);
+    assert.match(requestBodies[0].tools[0].function.name, /submit_workflow_plan/);
+    assert.match(requestBodies[0].messages.at(-1).content, /WORKFLOW PLANNING PROTOCOL/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('streaming responses report phase-level performance metrics', async () => {
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const originalFetch = globalThis.fetch;
@@ -475,6 +531,72 @@ test('the bundled agent returns directory observations to the model before answe
   }
 });
 
+test('the agent receives explicit transport and route semantics for an HTTP 404 probe', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const requestBodies: any[] = [];
+  service.setToolProvider(async () => [{
+    name: 'web.probe',
+    description: 'Check URL reachability separately from route validity.',
+    inputSchema: {
+      type: 'object',
+      properties: { url: { type: 'string' } },
+      required: ['url'],
+    },
+    source: 'bridge',
+    readOnly: true,
+  }], async () => ({
+    url: 'http://127.0.0.1:14321/v1',
+    finalUrl: 'http://127.0.0.1:14321/v1',
+    reachable: true,
+    httpOk: false,
+    routeAvailable: false,
+    status: 404,
+    statusText: 'Not Found',
+    latencyMs: 4,
+    explanation: 'The server responded with HTTP 404. The host is reachable, but this specific route is not available.',
+  }));
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)));
+    if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: {
+          content: '',
+          tool_calls: [{
+            id: 'call-http-probe',
+            type: 'function',
+            function: { name: 'web_probe', arguments: '{"url":"http://127.0.0.1:14321/v1"}' },
+          }],
+        } }],
+        usage: { prompt_tokens: 10, completion_tokens: 2 },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: {
+        content: 'Yes. The server is reachable; the specific `/v1` route returned HTTP 404.',
+      } }],
+      usage: { prompt_tokens: 12, completion_tokens: 8 },
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat(projectRequest('Is http://127.0.0.1:14321/v1 reachable?'));
+    assert.equal(requestBodies.length, 2);
+    assert.match(JSON.stringify(requestBodies[0].messages), /any HTTP response.*proves that the server was reached/i);
+    const observation = JSON.parse(requestBodies[1].messages.find((message: any) => message.role === 'tool').content);
+    assert.equal(observation.reachable, true);
+    assert.equal(observation.routeAvailable, false);
+    assert.match(response.content, /server is reachable/i);
+    assert.match(response.content, /404/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('a directory observation does not replace synthesis for a project assessment question', async () => {
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   service.setToolProvider(toolProvider(), async () => ({
@@ -673,6 +795,21 @@ test('a structured project turn cannot finish an action request before a mutatin
             requestRequiresWorkspaceChanges: true,
             outcome: 'completed',
             response: 'Created the FastAPI project entry point.',
+            completionRecord: {
+              status: 'completed',
+              summary: 'Created the FastAPI project entry point.',
+              changedFiles: ['main.py'],
+              criteria: [{
+                index: 1,
+                status: 'passed',
+                evidence: ['main.py was created by fs.write'],
+              }],
+              verification: [{
+                name: 'file write',
+                status: 'passed',
+                evidence: 'fs.write completed successfully',
+              }],
+            },
           }),
         },
       }] } }],
@@ -685,14 +822,266 @@ test('a structured project turn cannot finish an action request before a mutatin
       structuredAgentLoop: true,
     });
     assert.equal(response.content, 'Created the FastAPI project entry point.');
+    assert.deepEqual(response.completionRecord, {
+      status: 'completed',
+      summary: 'Created the FastAPI project entry point.',
+      changedFiles: ['main.py'],
+      criteria: [{
+        index: 1,
+        status: 'passed',
+        evidence: ['main.py was created by fs.write'],
+      }],
+      verification: [{
+        name: 'file write',
+        status: 'passed',
+        evidence: 'fs.write completed successfully',
+      }],
+    });
     assert.deepEqual(executions, [{
       name: 'fs.write',
       args: { path: 'main.py', content: 'from fastapi import FastAPI\n' },
     }]);
     assert.equal(requestBodies.length, 3);
     assert.equal(requestBodies[0].tool_choice, 'required');
-    assert.equal(requestBodies[1].max_tokens, 1024);
+    assert.equal(requestBodies[0].max_tokens, 2048);
+    assert.equal(requestBodies[1].max_tokens, 2048);
     assert.match(requestBodies[1].messages.at(-1).content, /no mutating tool has succeeded/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('a structured project turn rejects malformed tool JSON and retries without executing undefined arguments', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
+  service.setToolProvider(async () => [{
+    name: 'fs.write',
+    description: 'Write a file in the project workspace',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string' }, content: { type: 'string' } },
+      required: ['path', 'content'],
+    },
+    source: 'bridge',
+    readOnly: false,
+  }], async (name, args) => {
+    executions.push({ name, args });
+    return { ok: true, path: args.path };
+  });
+
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    requestBodies.push(body);
+    const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
+    if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'malformed-write',
+          type: 'function',
+          function: { name: writeTool.function.name, arguments: '{"path":"app.py","content":"unterminated' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'valid-write',
+          type: 'function',
+          function: {
+            name: writeTool.function.name,
+            arguments: JSON.stringify({ path: 'app.py', content: 'print("ready")\n' }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: 'finish-after-retry',
+        type: 'function',
+        function: {
+          name: finishTool.function.name,
+          arguments: JSON.stringify({
+            requestRequiresWorkspaceChanges: true,
+            outcome: 'completed',
+            response: 'Created app.py after correcting the tool arguments.',
+          }),
+        },
+      }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest('Create the application now.'),
+      structuredAgentLoop: true,
+    });
+    assert.equal(response.content, 'Created app.py after correcting the tool arguments.');
+    assert.deepEqual(executions, [{
+      name: 'fs.write',
+      args: { path: 'app.py', content: 'print("ready")\n' },
+    }]);
+    assert.match(requestBodies[1].messages.at(-1).content, /arguments were invalid/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('completed large file writes are compacted before the next autonomous model round', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const largeSource = `UNIQUE_SOURCE_SENTINEL_${'x'.repeat(8_000)}`;
+  service.setToolProvider(async () => [{
+    name: 'fs.write',
+    description: 'Write a file in the project workspace',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string' }, content: { type: 'string' } },
+      required: ['path', 'content'],
+    },
+    source: 'bridge',
+    readOnly: false,
+  }], async (_name, args) => ({ ok: true, path: args.path, bytesWritten: largeSource.length }));
+
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    requestBodies.push(body);
+    const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
+    if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'large-write',
+          type: 'function',
+          function: {
+            name: writeTool.function.name,
+            arguments: JSON.stringify({ path: 'src/app.py', content: largeSource }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: 'finish-large-write',
+        type: 'function',
+        function: {
+          name: finishTool.function.name,
+          arguments: JSON.stringify({
+            requestRequiresWorkspaceChanges: true,
+            outcome: 'completed',
+            response: 'Created src/app.py.',
+          }),
+        },
+      }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest('Create the application source file.'),
+      structuredAgentLoop: true,
+    });
+    assert.equal(response.content, 'Created src/app.py.');
+    assert.equal(requestBodies.length, 2);
+    const secondRequest = JSON.stringify(requestBodies[1]);
+    assert.doesNotMatch(secondRequest, /UNIQUE_SOURCE_SENTINEL/);
+    assert.match(secondRequest, /src\/app\.py/);
+    assert.match(secondRequest, /content omitted after successful tool execution/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('an autonomous model cannot materialize a compacted tool argument marker as file content', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
+  service.setToolProvider(async () => [{
+    name: 'fs.write',
+    description: 'Write a file in the project workspace',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string' }, content: { type: 'string' } },
+      required: ['path', 'content'],
+    },
+    source: 'bridge',
+    readOnly: false,
+  }], async (name, args) => {
+    executions.push({ name, args });
+    return { ok: true, path: args.path };
+  });
+
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    requestBodies.push(body);
+    const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
+    if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'invalid-compacted-write',
+          type: 'function',
+          function: {
+            name: writeTool.function.name,
+            arguments: JSON.stringify({
+              path: 'app_ui.html',
+              content: '[content omitted after successful tool execution; 864 characters]',
+            }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'corrected-write',
+          type: 'function',
+          function: {
+            name: writeTool.function.name,
+            arguments: JSON.stringify({ path: 'app_ui.html', content: '<!doctype html><title>Photo editor</title>\n' }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: 'finish-corrected-write',
+        type: 'function',
+        function: {
+          name: finishTool.function.name,
+          arguments: JSON.stringify({
+            requestRequiresWorkspaceChanges: true,
+            outcome: 'completed',
+            response: 'Created app_ui.html with usable content.',
+          }),
+        },
+      }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest('Create the photo upload interface.'),
+      structuredAgentLoop: true,
+    });
+    assert.equal(response.content, 'Created app_ui.html with usable content.');
+    assert.deepEqual(executions, [{
+      name: 'fs.write',
+      args: { path: 'app_ui.html', content: '<!doctype html><title>Photo editor</title>\n' },
+    }]);
+    assert.match(requestBodies[1].messages.at(-1).content, /arguments were invalid/i);
   } finally {
     globalThis.fetch = originalFetch;
   }

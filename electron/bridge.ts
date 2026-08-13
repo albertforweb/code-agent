@@ -29,6 +29,8 @@ import type {
   AppInfo,
   FeaturePackageInstallRequest,
   FeaturePackageInstallResult,
+  FeaturePackageUninstallRequest,
+  FeaturePackageUninstallResult,
   AuthToken,
   PlatformAuthSession,
   Tool,
@@ -160,6 +162,7 @@ export class IpcBridge {
     ipcMain.handle(IPC_CHANNELS['app:getState'], this.handleGetState.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:setState'], this.handleSetState.bind(this));
     ipcMain.handle(IPC_CHANNELS['app:installFeaturePackage'], this.handleInstallFeaturePackage.bind(this));
+    ipcMain.handle(IPC_CHANNELS['app:uninstallFeaturePackage'], this.handleUninstallFeaturePackage.bind(this));
 
     // Window channels
     ipcMain.handle(IPC_CHANNELS['window:minimize'], this.handleWindowMinimize.bind(this));
@@ -639,6 +642,17 @@ export class IpcBridge {
     const handler = this.appHandlers.get('installFeaturePackage');
     if (!handler) {
       throw new Error('Feature package installer handler not configured');
+    }
+    return handler(request);
+  }
+
+  private async handleUninstallFeaturePackage(
+    event: any,
+    request: FeaturePackageUninstallRequest,
+  ): Promise<FeaturePackageUninstallResult> {
+    const handler = this.appHandlers.get('uninstallFeaturePackage');
+    if (!handler) {
+      throw new Error('Feature package uninstaller handler not configured');
     }
     return handler(request);
   }

@@ -7013,6 +7013,13 @@ body.dark .packageStoreSummary dd {
   min-width: 0;
 }
 
+.packageStoreOwnedActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
 .packageStoreOwnedItem strong,
 .packageStoreIdentity strong {
   overflow: hidden;

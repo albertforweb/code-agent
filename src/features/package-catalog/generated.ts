@@ -9,7 +9,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
     "displayName": "Software Developer",
     "domain": "software-development",
     "tier": "paid",
-    "version": "1.0.0",
+    "version": "1.0.9",
     "owner": "codeagent",
     "description": "Project Studio, autonomous software delivery, virtual teams, boards, and project activity workflows.",
     "pricing": {
@@ -33,15 +33,16 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
       "versionRange": "^0.1.0"
     },
     "entrypoints": {
-      "runtime": "dist/index.js"
+      "runtime": "dist/index.js",
+      "cli": "dist/cli.js"
     },
     "distribution": {
       "mode": "installable",
       "artifact": {
         "artifactId": "codeagent.software-developer.bundle",
-        "version": "1.0.0",
+        "version": "1.0.9",
         "distributionMode": "installable",
-        "bundlePath": "codeagent-package://software-developer/1.0.0",
+        "bundlePath": "codeagent-package://software-developer/1.0.9",
         "downloadUrl": "/code-agent/packages/software-developer/artifact"
       },
       "installRequired": true,
@@ -325,8 +326,8 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           "automation.listTaskRuns",
           "automation.schedulerStatus",
           "automation.remoteStatus",
-          "automation.listTeams",
-          "automation.listTeamRuns"
+          "automation.listWorkflows",
+          "automation.listWorkflowRuns"
         ],
         "automationTemplates": [
           "scheduled-task",
@@ -859,7 +860,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           "employee",
           "team"
         ],
-        "entrypoint": "dist/index.js",
+        "entrypoint": "dist/cli.js",
         "order": 100
       },
       {
@@ -873,7 +874,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
           "plugin",
           "plugins"
         ],
-        "entrypoint": "dist/index.js",
+        "entrypoint": "dist/cli.js",
         "order": 105
       },
       {
@@ -883,7 +884,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "featureId": "mcp",
         "title": "MCP integration commands",
         "command": "mcp",
-        "entrypoint": "dist/index.js",
+        "entrypoint": "dist/cli.js",
         "order": 108
       },
       {
@@ -896,7 +897,7 @@ export const EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS: FeaturePackageManifest[
         "commandAliases": [
           "auto"
         ],
-        "entrypoint": "dist/index.js",
+        "entrypoint": "dist/cli.js",
         "order": 110
       },
       {

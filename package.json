@@ -38,17 +38,18 @@
     "dev:electron:debug": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_OPEN_DEVTOOLS=1 electron dist-electron",
     "dev:electron:gpu-off": "npm run build:electron && cross-env NODE_ENV=development ELECTRON_DISABLE_GPU=1 electron dist-electron",
     "dev:electron:watch": "concurrently \"tsc -p tsconfig.electron.json -w\" \"tsc -p tsconfig.renderer.json -w\" \"wait-on dist-electron/main.js && electron dist-electron\"",
-    "dist": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder",
-    "dist:win": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop:win && npm run bundle:model:desktop && electron-builder --win",
-    "dist:mac": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --mac",
-    "dist:linux": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --linux",
-    "pack": "npm run generate:feature-package-catalog && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --dir --publish never",
+    "dist": "npm run build:feature-packages && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder",
+    "dist:win": "npm run build:feature-packages && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop:win && npm run bundle:model:desktop && electron-builder --win",
+    "dist:mac": "npm run build:feature-packages && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --mac",
+    "dist:linux": "npm run build:feature-packages && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --linux",
+    "pack": "npm run build:feature-packages && npm run generate:brand-assets && npm run build:electron:prod && npm run bundle:llama:desktop && npm run bundle:model:desktop && electron-builder --dir --publish never",
     "pack:feature-packages": "npm run build:feature-packages && npm run verify:feature-package-boundaries",
     "pack:desktop:check": "npm run pack && npm run verify:desktop-package",
     "verify:desktop-package": "node scripts/verify-desktop-package.mjs",
     "verify:llama:windows": "node scripts/verify-llama-bundle.mjs --target win32-x64",
     "verify:model": "node scripts/verify-bundled-model.mjs",
     "verify:feature-package-boundaries": "node scripts/verify-feature-package-boundaries.mjs",
+    "verify:feature-package-boundaries:strict": "node scripts/verify-feature-package-boundaries.mjs --strict",
     "verify:desktop-release": "node scripts/verify-desktop-package.mjs --release",
     "pack:cli": "npm run build && npm run bundle:llama:cli && npm run bundle:model:cli && node scripts/pack-cli.mjs",
     "pack:cli:check": "npm run pack:cli && npm run verify:cli-package",
@@ -59,7 +60,7 @@
     "verify:remote-control-smoke": "tsx scripts/verify-remote-control-smoke.ts",
     "verify:release-workflow": "node scripts/verify-release-workflow.mjs",
     "test:local-models": "tsx --test electron/services/local-model-service.test.ts",
-    "test:agent-tools": "tsx --test electron/services/api-service-bridge.test.ts electron/services/app-state-service-bridge.test.ts electron/services/auth-service-bridge.test.ts electron/services/path-permission.test.ts electron/services/project-workspace-service.test.ts",
+    "test:agent-tools": "tsx --test src/features/feature-packages.test.ts electron/services/api-service-bridge.test.ts electron/services/app-state-service-bridge.test.ts electron/services/auth-service-bridge.test.ts electron/services/automation-service-bridge.test.ts electron/services/path-permission.test.ts electron/services/project-workspace-service.test.ts electron/services/web-service-bridge.test.ts",
     "verify:phase5": "node scripts/verify-phase5.mjs",
     "pack:phase5": "npm run pack:cli && npm run pack && npm run release:notes && npm run verify:phase5",
     "release:notes": "node scripts/generate-release-notes.mjs",
@@ -207,6 +208,13 @@
       "node_modules/**"
     ],
     "extraResources": [
+      {
+        "from": "../code-agent-packages/dist-feature-packages",
+        "to": "code-agent-packages/dist-feature-packages",
+        "filter": [
+          "**/*"
+        ]
+      },
       {
         "from": "electron/resources/llama.cpp",
         "to": "llama.cpp"

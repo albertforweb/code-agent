@@ -50,6 +50,7 @@ const sourceManifestPath = requireExternalFile(packageRoot, 'software-developer/
 const packageJsonPath = requireExternalFile(packageRoot, 'software-developer/package.json', 'software-developer package.json');
 const packageCliProjectPath = requireExternalFile(packageRoot, 'software-developer/src/cli/project-studio.ts', 'software-developer CLI project source');
 const packageCliAutomationPath = requireExternalFile(packageRoot, 'software-developer/src/cli/automation.ts', 'software-developer CLI automation source');
+const packageAutomationProviderPath = requireExternalFile(packageRoot, 'software-developer/src/automation-provider.ts', 'software-developer automation provider');
 const sdkPath = requireExternalFile(sdkRoot, 'src/index.ts', 'feature package SDK');
 const artifactManifestPath = requireExternalFile(packageDistRoot, 'software-developer/manifest.json', 'software-developer artifact manifest');
 const artifactSummaryPath = requireExternalFile(packageDistRoot, 'software-developer/build-summary.json', 'software-developer artifact summary');
@@ -74,6 +75,9 @@ if (failures.length === 0) {
   if (!sourceManifest.entrypoints?.runtime) {
     failures.push('software-developer manifest does not declare a runtime entrypoint.');
   }
+  if (!sourceManifest.entrypoints?.cli) {
+    failures.push('software-developer manifest does not declare a separate CLI entrypoint.');
+  }
   if (!Array.isArray(sourceManifest.extensions) || sourceManifest.extensions.length === 0) {
     failures.push('software-developer manifest does not declare any package extension points.');
   }
@@ -89,11 +93,12 @@ if (failures.length === 0) {
     } else if (statSync(archivePath).size === 0) {
       failures.push(`Package archive is empty: ${path.relative(repoRoot, archivePath)}`);
     } else {
-      const list = run('tar', ['-tzf', archivePath]);
+      // Separate flags for portability across BSD tar (macOS) and GNU tar.
+      const list = run('tar', ['-t', '-z', '-f', archivePath]);
       if (list.status !== 0) {
         failures.push(`Unable to list package archive: ${list.stderr || list.stdout}`);
       } else {
-        for (const requiredEntry of ['package.json', 'manifest.json', 'artifact.json', 'dist/index.js']) {
+        for (const requiredEntry of ['package.json', 'manifest.json', 'artifact.json', 'dist/index.js', 'dist/cli.js']) {
           if (!list.stdout.split('\n').includes(requiredEntry)) {
             failures.push(`Package archive is missing ${requiredEntry}`);
           }
@@ -148,6 +153,74 @@ const implementationMarkers = [
   ['src/renderer/App.tsx', 'function HistoryView('],
 ];
 
+const packagePolicyMarkers = [
+  ['electron/services/automation-service-bridge.ts', 'parseTeamAssignmentPlan'],
+  ['electron/services/automation-service-bridge.ts', 'createFallbackTeamAssignmentPlan'],
+  ['electron/services/automation-service-bridge.ts', 'extractConfiguredProjectGoals'],
+  ['electron/services/automation-service-bridge.ts', 'isPlanningRole'],
+  ['electron/services/automation-service-bridge.ts', 'isReviewRole'],
+  ['electron/services/automation-service-bridge.ts', 'software-developer'],
+  ['electron/services/automation-service-bridge.ts', 'ASSIGNMENT.md'],
+  ['electron/services-bridge.ts', 'local virtual software delivery team'],
+  ['electron/services/app-state-service-bridge.ts', 'software-developer'],
+  ['cli/feature-package-runtime.ts', 'SoftwareDeveloper'],
+  ['cli/feature-package-runtime.ts', 'software-developer'],
+  ['commands.ts', 'SOFTWARE_DEVELOPER_LOCAL_COMMANDS'],
+  ['commands.ts', 'runSoftwareDeveloper'],
+  ['main.tsx', 'registerSoftwareDeveloperCliCommand'],
+  ['main.tsx', 'runSoftwareDeveloper'],
+  ['src/renderer/App.tsx', "'software-developer'"],
+];
+
+const requiredProviderPolicyMarkers = [
+  'buildPlannerPrompt(',
+  'parseAssignmentPlan(',
+  'validateAssignmentPlan(',
+  'createFallbackAssignmentPlan(',
+  'validateCompletedRun(',
+];
+
+for (const [relativePath, marker] of packagePolicyMarkers) {
+  const filePath = path.join(repoRoot, relativePath);
+  if (existsSync(filePath) && readFileSync(filePath, 'utf8').includes(marker)) {
+    failures.push(`Core still owns package policy: ${relativePath} (${marker})`);
+  }
+}
+
+if (existsSync(packageAutomationProviderPath)) {
+  const providerSource = readFileSync(packageAutomationProviderPath, 'utf8');
+  for (const marker of requiredProviderPolicyMarkers) {
+    if (!providerSource.includes(marker)) {
+      failures.push(`Software Developer package does not own required automation policy: ${marker}`);
+    }
+  }
+}
+
+const automationHostPath = path.join(repoRoot, 'electron/services/automation-service-bridge.ts');
+if (existsSync(automationHostPath)) {
+  const hostSource = readFileSync(automationHostPath, 'utf8');
+  for (const delegation of [
+    'provider.buildPlannerPrompt(',
+    'provider.parseAssignmentPlan(',
+    'provider.validateAssignmentPlan(',
+    'provider.validateCompletedRun?.(',
+  ]) {
+    if (!hostSource.includes(delegation)) {
+      failures.push(`Core workflow host is missing package-policy delegation: ${delegation}`);
+    }
+  }
+  for (const forbidden of [
+    'function parseAssignmentPlan(',
+    'private parseAssignmentPlan(',
+    'function buildPlannerPrompt(',
+    'private buildPlannerPrompt(',
+  ]) {
+    if (hostSource.includes(forbidden)) {
+      failures.push(`Core workflow host implements package policy instead of delegating it: ${forbidden}`);
+    }
+  }
+}
+
 const packageNavigationMarkers = [
   'DeveloperNavigationGroupId',
   'DEVELOPER_NAVIGATION_GROUPS',
@@ -160,6 +233,9 @@ const packageNavigationMarkers = [
 const appRendererPath = path.join(repoRoot, 'src/renderer/App.tsx');
 const resolverSource = existsSync(resolverPath) ? readFileSync(resolverPath, 'utf8') : '';
 const rendererSource = existsSync(appRendererPath) ? readFileSync(appRendererPath, 'utf8') : '';
+if (!resolverSource.includes('getFeatureOwnerPackageId(')) {
+  failures.push('Core feature resolver is missing generic feature-owner discovery.');
+}
 for (const marker of packageNavigationMarkers) {
   if (rendererSource.includes(marker) || resolverSource.includes(marker)) {
     failures.push(`Core still owns Software Developer navigation metadata: ${marker}`);
@@ -202,6 +278,29 @@ if (existsSync(packageCliProjectPath) && !readFileSync(packageCliProjectPath, 'u
 }
 if (existsSync(packageCliAutomationPath) && !readFileSync(packageCliAutomationPath, 'utf8').includes('runAutomationCommand')) {
   failures.push('software-developer package CLI automation source is missing runAutomationCommand.');
+}
+
+const packageRuntimePath = path.join(packageRoot, 'software-developer/src/runtime.ts');
+const packageCliPath = path.join(packageRoot, 'software-developer/src/cli.ts');
+const packagedDesktopRuntimePath = path.join(packageDistRoot, 'software-developer/dist/index.js');
+if (existsSync(packageRuntimePath) && readFileSync(packageRuntimePath, 'utf8').includes('runCliCommand')) {
+  failures.push('software-developer desktop runtime must not import or expose CLI commands.');
+}
+if (!existsSync(packageCliPath) || !readFileSync(packageCliPath, 'utf8').includes('runCliCommand')) {
+  failures.push('software-developer package CLI entrypoint is missing the generic runCliCommand entrypoint.');
+}
+if (existsSync(packagedDesktopRuntimePath)) {
+  const packagedDesktopRuntime = readFileSync(packagedDesktopRuntimePath, 'utf8');
+  for (const privateCoreModule of [
+    'automation-service-bridge',
+    'app-state-service-bridge',
+    'services-bridge',
+    'CODEAGENT_CORE_RUNTIME_ROOT',
+  ]) {
+    if (packagedDesktopRuntime.includes(privateCoreModule)) {
+      failures.push(`Packaged desktop runtime imports private CodeAgent core module: ${privateCoreModule}`);
+    }
+  }
 }
 
 if (strict && warnings.length > 0) {

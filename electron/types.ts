@@ -194,6 +194,8 @@ export interface ChatRequest {
   messages: ChatMessage[];
   /** Require project-agent turns to end with a structured, verifiable outcome. */
   structuredAgentLoop?: boolean;
+  /** Require an automation planner to submit a typed workflow assignment graph. */
+  workflowPlanning?: boolean;
   /** Folder explicitly authorized for this chat through the desktop folder picker. */
   authorizedWorkspacePath?: string;
   permissionProfile?: DesktopPermissionProfile;
@@ -215,6 +217,8 @@ export interface ChatResponse {
     inputTokens: number;
     outputTokens: number;
   };
+  /** Machine-readable data supplied to codeagent.finish_project_turn. */
+  completionRecord?: Record<string, unknown>;
   performance?: ChatPerformanceMetrics;
 }
 
@@ -490,6 +494,15 @@ export interface FeaturePackageInstallResult {
   version: string;
 }
 
+export interface FeaturePackageUninstallRequest {
+  manifest: Record<string, any>;
+}
+
+export interface FeaturePackageUninstallResult {
+  packageId: string;
+  removedPath: string;
+}
+
 export interface AppConfigChangedMessage {
   config: AppConfig;
   version: number;
@@ -643,7 +656,8 @@ export interface VirtualTeamBlueprint {
   workspacePath?: string;
   permissionMode?: VirtualTeamPermissionMode;
   maxIterations?: number;
-  requireQaSignoff?: boolean;
+  providerId?: string;
+  providerConfig?: Record<string, unknown>;
   supervisorId: string;
   members: VirtualTeamMember[];
   status: 'draft' | 'active' | 'paused' | 'completed';
@@ -677,6 +691,14 @@ export interface VirtualTeamAssignmentPlan {
   role: string;
   dependencies: string[];
   parallelGroup: number;
+  kind?: string;
+  workspaceMode?: 'isolated' | 'shared';
+  requiresArtifact?: boolean;
+  requiresNonDocumentationArtifact?: boolean;
+  goalIds?: string[];
+  acceptanceCriteria?: string[];
+  expectedArtifacts?: string[];
+  producedArtifacts?: string[];
   workspacePath?: string;
   status: 'pending' | 'running' | 'succeeded' | 'failed';
   startedAt?: number;
@@ -695,6 +717,7 @@ export interface VirtualTeamRunStep {
   dependencyIds?: string[];
   parallelGroup?: number;
   workspacePath?: string;
+  producedArtifacts?: string[];
   status: 'running' | 'succeeded' | 'failed';
   startedAt: number;
   completedAt?: number;
@@ -704,6 +727,8 @@ export interface VirtualTeamRunStep {
 
 export interface VirtualTeamRunRecord {
   id: string;
+  workflowId?: string;
+  workflowName?: string;
   teamId: string;
   teamName: string;
   objective: string;
@@ -718,6 +743,18 @@ export interface VirtualTeamRunRecord {
   assignments?: VirtualTeamAssignmentPlan[];
   steps: VirtualTeamRunStep[];
 }
+
+/** Package-neutral names for the core automation framework contract. */
+export type AutomationWorkflowActor = VirtualTeamMember;
+export type AutomationWorkflowPermissionMode = VirtualTeamPermissionMode;
+export type AutomationWorkflow = VirtualTeamBlueprint;
+export type AutomationWorkflowMilestone = VirtualTeamMilestone;
+export type AutomationWorkflowAssignment = VirtualTeamAssignmentPlan;
+export type AutomationWorkflowRunStep = VirtualTeamRunStep;
+export type AutomationWorkflowRun = VirtualTeamRunRecord & {
+  workflowId: string;
+  workflowName: string;
+};
 
 export interface AutomationSchedulerStatus {
   running: boolean;
@@ -859,6 +896,13 @@ export const IPC_CHANNELS = {
   'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
   'automation:startRemoteControl': 'automation:startRemoteControl',
   'automation:stopRemoteControl': 'automation:stopRemoteControl',
+  'automation:listWorkflows': 'automation:listWorkflows',
+  'automation:listWorkflowRuns': 'automation:listWorkflowRuns',
+  'automation:saveWorkflow': 'automation:saveWorkflow',
+  'automation:deleteWorkflow': 'automation:deleteWorkflow',
+  'automation:createDefaultWorkflow': 'automation:createDefaultWorkflow',
+  'automation:runWorkflow': 'automation:runWorkflow',
+  // Deprecated compatibility channels for pre-workflow package builds.
   'automation:listTeams': 'automation:listTeams',
   'automation:listTeamRuns': 'automation:listTeamRuns',
   'automation:saveTeam': 'automation:saveTeam',
@@ -902,6 +946,7 @@ export const IPC_CHANNELS = {
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
   'app:installFeaturePackage': 'app:installFeaturePackage',
+  'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
 

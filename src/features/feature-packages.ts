@@ -1,4 +1,5 @@
 import { EXTERNAL_FEATURE_PACKAGE_CATALOG_MANIFESTS } from './package-catalog/generated.js';
+import semver from 'semver';
 import type {
   AccountPaymentMethod,
   AccountPurchaseRecord,
@@ -151,7 +152,7 @@ export const FEATURE_PACKAGE_MANIFESTS: FeaturePackageManifest[] = [
         ],
         requiredServices: ['tool-service', 'filesystem', 'command', 'web', 'finance', 'mcp'],
         storageNamespaces: ['toolPermissionPolicies', 'disabledLlmTools'],
-        toolSchemas: ['time.now', 'web.search', 'web.research', 'web.fetch', 'finance.quote', 'bash.run', 'fs.read', 'fs.write', 'fs.undoLastWrite', 'fs.list', 'api.chat', 'app.getConfig', 'mcp.listServers', 'mcp.listTools', 'mcp.callTool'],
+        toolSchemas: ['time.now', 'web.probe', 'web.search', 'web.research', 'web.fetch', 'finance.quote', 'bash.run', 'fs.read', 'fs.write', 'fs.undoLastWrite', 'fs.list', 'api.chat', 'app.getConfig', 'mcp.listServers', 'mcp.listTools', 'mcp.callTool'],
         permissionPolicies: ['bash.run', 'fs.write', 'fs.undoLastWrite', 'mcp.callTool'],
         historyEventTypes: ['tool-event'],
       },
@@ -364,6 +365,13 @@ export function isFeatureAvailable(resolution: FeaturePackageResolution, feature
   return resolution.features.some(feature => feature.featureId === featureId);
 }
 
+export function getFeatureOwnerPackageId(
+  resolution: FeaturePackageResolution,
+  featureId: string,
+): string | undefined {
+  return resolution.features.find(feature => feature.featureId === featureId)?.packageId;
+}
+
 export function isCommandAvailable(resolution: FeaturePackageResolution, command: string): boolean {
   const normalizedCommand = normalizeCommandName(command);
   return resolution.features.some(feature => feature.feature.adapters.some(adapter => (
@@ -514,9 +522,20 @@ function resolvePackageInstallState(
     .find(record => record.packageId === manifest.id);
 
   if (latestRecord?.state === 'installed' || latestRecord?.state === 'update-available' || latestRecord?.state === 'install-failed') {
+    const catalogVersion = manifest.distribution.artifact.version || manifest.version;
+    const updateAvailable = latestRecord.state !== 'install-failed' &&
+      semver.valid(catalogVersion) !== null &&
+      semver.valid(latestRecord.version) !== null &&
+      semver.gt(catalogVersion, latestRecord.version);
     return {
-      installState: latestRecord.state,
-      installReason: latestRecord.error || `Install registry state: ${latestRecord.state}.`,
+      installState: updateAvailable
+        ? 'update-available'
+        : latestRecord.state === 'update-available'
+          ? 'installed'
+          : latestRecord.state,
+      installReason: latestRecord.error || (updateAvailable
+        ? `Version ${catalogVersion} is available; version ${latestRecord.version} is installed.`
+        : `Version ${latestRecord.version} is installed.`),
     };
   }
 
@@ -624,12 +643,19 @@ function normalizeInstallRecords(value: unknown, fallback: FeaturePackageInstall
       return [];
     }
     const record = item as Partial<FeaturePackageInstallRecord>;
-    if (!record.packageId || !record.artifactId || !record.version) {
+    if (!record.packageId || !record.version) {
       return [];
     }
+    const packageId = String(record.packageId);
     return [{
-      packageId: String(record.packageId),
-      artifactId: String(record.artifactId),
+      packageId,
+      // Runtime discovery predates artifact metadata and persisted records
+      // containing only the package id, version, and installed path. Keep
+      // those records usable so update detection does not collapse to the
+      // less precise installedPackageIds fallback.
+      artifactId: record.artifactId
+        ? String(record.artifactId)
+        : `${packageId}.installed-runtime`,
       version: String(record.version),
       state: normalizeInstallState(record.state),
       installedPath: record.installedPath ? String(record.installedPath) : undefined,

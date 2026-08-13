@@ -74,8 +74,8 @@ requireText('automation service bridge', bridge, 'interface RemoteRelayConfig');
 requireText('automation service bridge', bridge, 'configureRemoteRelay');
 requireText('automation service bridge', bridge, 'disableRemoteRelay');
 requireText('CLI automation handler', cliAutomation, 'automationRemoteRelayConfigureHandler');
-requireText('CLI package command registration', main, 'runSoftwareDeveloperAutomationCommand');
-requireText('CLI package command registration', main, "name: 'automation'");
+requireText('CLI package command registration', main, 'runFeaturePackageCliCommand');
+requireText('CLI package command registration', main, "extension.point !== 'cli.command'");
 requireText('renderer IPC contract', rendererIpc, 'interface RemoteRelayConfig');
 requireText('iOS companion client', iosClient, 'struct RemoteRelayConfig');
 

@@ -47,6 +47,12 @@ for (let i = 0; i < args.length; i += 1) {
 const root = process.cwd();
 const packageJsonPath = path.join(root, 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+const softwareDeveloperManifestPath = path.resolve(
+  root,
+  '../code-agent-packages/software-developer/manifest.json',
+);
+const softwareDeveloperManifest = JSON.parse(readFileSync(softwareDeveloperManifestPath, 'utf8'));
+const softwareDeveloperArchiveName = `${softwareDeveloperManifest.productSku}-${softwareDeveloperManifest.version}.tgz`;
 const buildConfig = packageJson.build ?? {};
 const productName = buildConfig.productName ?? 'CodeAgent';
 const appId = buildConfig.appId ?? 'com.albertforweb.codeagent';
@@ -64,6 +70,7 @@ const updateConfigPath = path.join(resourcesPath, 'app-update.yml');
 const iconPath = path.join(resourcesPath, 'icon.icns');
 const inferenceEngineRoot = path.join(resourcesPath, 'llama.cpp');
 const bundledModelsRoot = path.join(resourcesPath, 'models');
+const bundledFeaturePackagesRoot = path.join(resourcesPath, 'code-agent-packages', 'dist-feature-packages');
 
 mustExist(appPath, 'packaged macOS app');
 mustExist(infoPlistPath, 'Info.plist');
@@ -74,6 +81,11 @@ mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp in
 mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
 mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
 mustContainFile(bundledModelsRoot, 'Qwen3-4B-Q4_K_M.gguf', 'bundled offline agent model');
+mustContainFile(
+  bundledFeaturePackagesRoot,
+  softwareDeveloperArchiveName,
+  'bundled Software Developer feature package',
+);
 
 if (existsSync(infoPlistPath)) {
   verifyInfoPlist(infoPlistPath, appAsarPath);
@@ -297,7 +309,7 @@ function verifyCodesign(targetPath) {
     warnings.push('App is not signed with a Developer ID Application certificate; this is acceptable for local packages only.');
   }
 
-  if (!details.output.includes('flags=0x10000(runtime)')) {
+  if (!/flags=0x[0-9a-f]+\([^)]*\bruntime\b[^)]*\)/i.test(details.output)) {
     failures.push('Code signature must enable the hardened runtime.');
   }
 

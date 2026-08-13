@@ -6017,6 +6017,12 @@ body.App_dark .App_packageStoreSummary dd {
   gap: 3px;
   min-width: 0;
 }
+.App_packageStoreOwnedActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
 .App_packageStoreOwnedItem strong,
 .App_packageStoreIdentity strong {
   overflow: hidden;

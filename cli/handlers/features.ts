@@ -69,9 +69,12 @@ export function resolveCliFeaturePackages(): FeaturePackageResolution {
 }
 
 export function formatFeatureGateMessage(resolution: FeaturePackageResolution, commandName: string): string {
-  const lockedDeveloper = resolution.packages.find(entry => entry.manifest.id === 'software-developer');
-  const reason = lockedDeveloper
-    ? `${lockedDeveloper.manifest.displayName}: entitlement=${lockedDeveloper.state}, install=${lockedDeveloper.installState} (${lockedDeveloper.reason}; ${lockedDeveloper.installReason})`
+  const owner = resolution.packages.find(entry => entry.manifest.extensions?.some(extension => (
+    extension.point === 'cli.command' &&
+    [extension.command, ...(extension.commandAliases ?? [])].includes(commandName)
+  )));
+  const reason = owner
+    ? `${owner.manifest.displayName}: entitlement=${owner.state}, install=${owner.installState} (${owner.reason}; ${owner.installReason})`
     : 'No package registered this command.';
 
   return [

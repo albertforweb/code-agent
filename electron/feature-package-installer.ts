@@ -1,7 +1,7 @@
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
 import { createHash, createPublicKey, verify } from 'crypto';
 import { existsSync } from 'fs';
-import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { homedir, tmpdir } from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -31,6 +31,63 @@ export interface FeaturePackageArtifactDownloadRequest {
 
 export interface FeaturePackageInstallOptions {
   download?: FeaturePackageArtifactDownloadRequest;
+}
+
+export interface FeaturePackageLocalUninstallResult {
+  packageId: string;
+  removedPath: string;
+}
+
+export interface InstalledFeaturePackageRuntime {
+  packageId: string;
+  version: string;
+  installedPath: string;
+}
+
+/**
+ * Returns the package runtimes that are actually installed on this device.
+ *
+ * Account profiles describe entitlement, but they are not authoritative for
+ * device installation. A platform sync or account switch must not make a
+ * verified runtime disappear while it still exists in the package store.
+ */
+export async function listInstalledFeaturePackageRuntimes(): Promise<InstalledFeaturePackageRuntime[]> {
+  const packageRoot = path.join(getCodeAgentConfigHomeDir(), 'feature-packages');
+  let packageEntries;
+  try {
+    packageEntries = await readdir(packageRoot, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  }
+
+  const runtimes: InstalledFeaturePackageRuntime[] = [];
+  for (const packageEntry of packageEntries.filter(entry => entry.isDirectory())) {
+    if (!/^[a-z0-9][a-z0-9._-]*$/i.test(packageEntry.name)) continue;
+    const packageDir = path.join(packageRoot, packageEntry.name);
+    const versionEntries = await readdir(packageDir, { withFileTypes: true }).catch(() => []);
+    for (const versionEntry of versionEntries.filter(entry => entry.isDirectory())) {
+      const installedPath = path.join(packageDir, versionEntry.name);
+      try {
+        const manifest = JSON.parse(await readFile(path.join(installedPath, 'manifest.json'), 'utf8')) as FeaturePackageManifest;
+        if (manifest.id !== packageEntry.name || String(manifest.version) !== versionEntry.name) continue;
+        const runtimeEntrypoint = manifest.entrypoints?.runtime;
+        if (runtimeEntrypoint && !existsSync(path.resolve(installedPath, runtimeEntrypoint))) continue;
+        runtimes.push({
+          packageId: manifest.id,
+          version: String(manifest.version),
+          installedPath,
+        });
+      } catch {
+        // Ignore incomplete or malformed directories left by interrupted installs.
+      }
+    }
+  }
+
+  return runtimes.sort((left, right) => (
+    left.packageId.localeCompare(right.packageId) ||
+    right.version.localeCompare(left.version, undefined, { numeric: true, sensitivity: 'base' })
+  ));
 }
 
 export async function installSignedPackageArtifact(
@@ -85,6 +142,24 @@ export async function installSignedPackageArtifact(
       await rm(resolvedArchive.cleanupDir, { recursive: true, force: true });
     }
   }
+}
+
+export async function uninstallPackageArtifact(
+  manifest: FeaturePackageManifest,
+): Promise<FeaturePackageLocalUninstallResult> {
+  if (!manifest.id || !/^[a-z0-9][a-z0-9._-]*$/i.test(manifest.id)) {
+    throw new Error(`Feature package ID is invalid: ${manifest.id || 'missing'}`);
+  }
+
+  const packageRoot = path.join(getCodeAgentConfigHomeDir(), 'feature-packages');
+  const removedPath = path.join(packageRoot, manifest.id);
+  const relativeTarget = path.relative(packageRoot, removedPath);
+  if (!relativeTarget || relativeTarget.startsWith('..') || path.isAbsolute(relativeTarget)) {
+    throw new Error(`Refusing to uninstall package outside the feature package directory: ${manifest.id}`);
+  }
+
+  await rm(removedPath, { recursive: true, force: true });
+  return { packageId: manifest.id, removedPath };
 }
 
 function getCodeAgentConfigHomeDir(): string {

@@ -26,7 +26,15 @@ import {
   type FileContextReadResult,
 } from './types';
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
-import { installSignedPackageArtifact } from './feature-package-installer';
+import {
+  installSignedPackageArtifact,
+  listInstalledFeaturePackageRuntimes,
+  uninstallPackageArtifact,
+} from './feature-package-installer';
+import {
+  activateInstalledFeaturePackageRuntime,
+  activateInstalledFeaturePackageRuntimes,
+} from './feature-package-runtime-host';
 import { CODEAGENT_LOCAL_BASE_URL, LocalModelManager } from './services/local-model-service';
 import {
   expandHomePath,
@@ -46,11 +54,7 @@ import {
   AutomationServiceBridge,
   type SkillDetail,
   type ScheduledTask,
-  type VirtualTeamBlueprint,
-  type VirtualTeamAssignmentPlan,
-  type VirtualTeamMember,
   type VirtualTeamPermissionMode,
-  type VirtualTeamRunRecord,
   FinanceServiceBridge,
   LocalHistoryServiceBridge,
   McpServiceBridge,
@@ -758,6 +762,13 @@ export function registerServiceBridges(
   const mcpService = new McpServiceBridge(workspacePath);
   const commandService = new CommandServiceBridge(workspacePath);
   const automationService = new AutomationServiceBridge(workspacePath);
+  const runtimeHostOptions = {
+    registerAutomationProvider: (provider: Parameters<AutomationServiceBridge['registerAutomationProvider']>[0], packageId: string) => {
+      automationService.registerAutomationProvider(provider, packageId);
+    },
+  };
+  const automationProvidersReady = activateInstalledFeaturePackageRuntimes(runtimeHostOptions);
+  automationService.setAutomationProvidersReady(automationProvidersReady);
   const historyService = new LocalHistoryServiceBridge(path.join(app.getPath('userData'), 'history'));
   const electronFetch: typeof fetch = (input, init) => net.fetch(
     input instanceof URL ? input.toString() : input,
@@ -882,27 +893,29 @@ export function registerServiceBridges(
     return {
       content: response.content,
       model: response.model,
+      completionRecord: response.completionRecord,
       usage: response.usage,
     };
   });
 
-  automationService.setVirtualTeamPlannerExecutor(async (team, context) => {
-    const teamWorkspacePath = path.resolve(context.workspacePath || workspacePath);
-    await fs.mkdir(teamWorkspacePath, { recursive: true });
+  automationService.setWorkflowPlannerExecutor(async (workflow, context) => {
+    const workflowWorkspacePath = path.resolve(context.workspacePath || workspacePath);
+    await fs.mkdir(workflowWorkspacePath, { recursive: true });
     const response = await automationExecutionScope.run({
       source: 'virtual-team',
       permissionMode: 'supervised',
-      workspacePath: teamWorkspacePath,
-      teamId: team.id,
-      teamName: team.name,
-      projectId: getProjectIdFromAutomationTeamId(team.id),
+      workspacePath: workflowWorkspacePath,
+      teamId: workflow.id,
+      teamName: workflow.name,
+      projectId: getProjectIdFromAutomationTeamId(workflow.id),
     }, () => apiService.chat({
       messages: [{
         role: 'user',
-        content: buildVirtualTeamPlannerPrompt(team, context.enabledSkills, teamWorkspacePath),
+        content: context.prompt,
       }],
-      enableTools: false,
-      maxToolRounds: 0,
+      workflowPlanning: true,
+      enableTools: true,
+      maxToolRounds: 2,
     }));
 
     return {
@@ -912,35 +925,28 @@ export function registerServiceBridges(
     };
   });
 
-  automationService.setVirtualTeamMemberExecutor(async (team, member, context) => {
-    const permissionMode = team.permissionMode === 'supervised' ? 'supervised' : 'full-access';
-    const teamWorkspacePath = path.resolve(context.workspacePath || workspacePath);
-    await fs.mkdir(teamWorkspacePath, { recursive: true });
+  automationService.setWorkflowActorExecutor(async (workflow, actor, context) => {
+    const permissionMode = workflow.permissionMode === 'supervised' ? 'supervised' : 'full-access';
+    const workflowWorkspacePath = path.resolve(context.workspacePath || workspacePath);
+    await fs.mkdir(workflowWorkspacePath, { recursive: true });
     const response = await automationExecutionScope.run({
       source: 'virtual-team',
       permissionMode,
-      workspacePath: teamWorkspacePath,
-      teamId: team.id,
-      teamName: team.name,
-      projectId: getProjectIdFromAutomationTeamId(team.id),
+      workspacePath: workflowWorkspacePath,
+      teamId: workflow.id,
+      teamName: workflow.name,
+      projectId: getProjectIdFromAutomationTeamId(workflow.id),
       runId: context.runId,
-      memberId: member.id,
-      memberName: member.name,
+      memberId: actor.id,
+      memberName: actor.name,
       assignmentId: context.assignment.id,
       assignmentTitle: context.assignment.title,
     }, () => apiService.chat({
       messages: [{
         role: 'user',
-        content: buildVirtualTeamMemberPrompt(
-          team,
-          member,
-          context.assignment,
-          context.previousSteps,
-          context.sharedSteps,
-          context.enabledSkills,
-          teamWorkspacePath,
-        ),
+        content: context.prompt,
       }],
+      structuredAgentLoop: true,
       enableTools: true,
       maxToolRounds: 12,
     }));
@@ -948,6 +954,7 @@ export function registerServiceBridges(
     return {
       content: response.content,
       model: response.model,
+      completionRecord: response.completionRecord,
       usage: response.usage,
     };
   });
@@ -1556,6 +1563,41 @@ export function registerServiceBridges(
     return remote;
   });
 
+  ipcBridge.registerAutomationHandler('listWorkflows', async () => {
+    return automationService.listWorkflows();
+  });
+
+  ipcBridge.registerAutomationHandler('listWorkflowRuns', async workflowId => {
+    return automationService.listWorkflowRuns(typeof workflowId === 'string' ? workflowId : undefined);
+  });
+
+  ipcBridge.registerAutomationHandler('saveWorkflow', async workflow => {
+    return automationService.saveWorkflow(workflow);
+  });
+
+  ipcBridge.registerAutomationHandler('deleteWorkflow', async workflowId => {
+    return automationService.deleteWorkflow(String(workflowId));
+  });
+
+  ipcBridge.registerAutomationHandler('createDefaultWorkflow', async objective => {
+    return automationService.createDefaultWorkflow(typeof objective === 'string' ? objective : undefined);
+  });
+
+  ipcBridge.registerAutomationHandler('runWorkflow', async workflowId => {
+    const run = await automationService.runWorkflow(String(workflowId));
+    await historyService.saveRecord({
+      id: `automation-run-${run.id}`,
+      type: 'automation-run',
+      workspacePath: run.workspacePath ?? workspacePath,
+      title: `${run.workflowName} run`,
+      data: run,
+      createdAt: run.startedAt,
+      updatedAt: run.completedAt ?? Date.now(),
+    });
+    return run;
+  });
+
+  // Deprecated IPC adapters for older installed package builds.
   ipcBridge.registerAutomationHandler('listTeams', async () => {
     return automationService.listTeams();
   });
@@ -1582,7 +1624,7 @@ export function registerServiceBridges(
       id: `automation-run-${run.id}`,
       type: 'automation-run',
       workspacePath: run.workspacePath ?? workspacePath,
-      title: `${run.teamName} run`,
+      title: `${run.workflowName} run`,
       data: run,
       createdAt: run.startedAt,
       updatedAt: run.completedAt ?? Date.now(),
@@ -1679,7 +1721,8 @@ export function registerServiceBridges(
   });
 
   ipcBridge.registerAppHandler('getConfig', async () => {
-    return appStateService.getConfig();
+    const runtimes = await listInstalledFeaturePackageRuntimes();
+    return appStateService.reconcileInstalledFeaturePackages(runtimes);
   });
 
   ipcBridge.registerAppHandler('setConfig', async config => {
@@ -1726,7 +1769,35 @@ export function registerServiceBridges(
     if (manifest.distribution?.securityBoundary !== 'signed-local-bundle') {
       throw new Error(`Unsupported feature package security boundary: ${String(manifest.distribution?.securityBoundary || 'missing')}`);
     }
-    return installSignedPackageArtifact(manifest, request.archivePath, { download: request.download });
+    let result;
+    try {
+      result = await installSignedPackageArtifact(manifest, request.archivePath, { download: request.download });
+    } catch (error) {
+      if (!request.download || request.archivePath) {
+        throw error;
+      }
+      // A desktop release can bundle a newer signed runtime before an older
+      // platform catalog/artifact has been republished. Prefer the verified
+      // bundled archive when the platform download cannot satisfy this
+      // manifest instead of leaving the entitled package unusable.
+      result = await installSignedPackageArtifact(manifest);
+    }
+    automationService.unregisterAutomationProvidersForPackage(manifest.id);
+    const activated = await activateInstalledFeaturePackageRuntime(manifest.id, runtimeHostOptions);
+    if (manifest.entrypoints?.runtime && manifest.supportedShells.includes('desktop') && !activated) {
+      throw new Error(`Installed feature package runtime could not be activated: ${manifest.id}`);
+    }
+    return result;
+  });
+
+  ipcBridge.registerAppHandler('uninstallFeaturePackage', async request => {
+    if (!request?.manifest || typeof request.manifest !== 'object') {
+      throw new Error('Feature package uninstall requires a manifest.');
+    }
+    const manifest = request.manifest as FeaturePackageManifest;
+    const result = await uninstallPackageArtifact(manifest);
+    automationService.unregisterAutomationProvidersForPackage(manifest.id);
+    return result;
   });
 
   return {
@@ -1808,6 +1879,20 @@ function createBridgeTools({
       execute: async args => formatCurrentTime(args.timezone as string | undefined, args.locale as string | undefined),
     },
     {
+      name: 'web.probe',
+      description: 'Check whether an http/https URL can be reached and distinguish network reachability from HTTP route validity. Use this for availability, connectivity, health, or "is this URL reachable" questions. Any returned HTTP status, including 4xx or 5xx, proves the server was reached; routeAvailable and httpOk describe the requested route separately. Read-only.',
+      source: 'bridge',
+      readOnly: true,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          url: { type: 'string' },
+        },
+        required: ['url'],
+      },
+      execute: args => webService.probe(args),
+    },
+    {
       name: 'web.search',
       description: 'Search the public web for current or external facts. This is a discovery tool that returns links/snippets. If the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Read-only.',
       source: 'bridge',
@@ -1840,7 +1925,7 @@ function createBridgeTools({
     },
     {
       name: 'web.fetch',
-      description: 'Fetch a public http/https URL and return readable text. Use after web.search when page details are needed, or use web.research to combine search and fetch. Read-only.',
+      description: 'Fetch an http/https URL and return its HTTP status and readable content. Use web.probe instead when the question is whether a URL or service is reachable. A returned 4xx or 5xx status still means the server was reached; it does not by itself mean a network failure. Read-only.',
       source: 'bridge',
       readOnly: true,
       inputSchema: {
@@ -1930,9 +2015,15 @@ function createBridgeTools({
         required: ['path', 'content'],
       },
       execute: async (args, context) => {
-        const targetPath = normalizeRequestedPath(String(args.path));
+        if (typeof args.path !== 'string' || !args.path.trim()) {
+          throw new Error('fs.write requires a non-empty string path.');
+        }
+        if (typeof args.content !== 'string') {
+          throw new Error('fs.write requires string content.');
+        }
+        const targetPath = normalizeRequestedPath(args.path);
         const scopedFilesService = await getFileServiceForPath(targetPath, 'fs.write', context.toolId, false);
-        const content = String(args.content ?? '');
+        const content = args.content;
         const encoding = args.encoding as BufferEncoding | undefined;
         const preview = await scopedFilesService.createWritePreview(targetPath, content, encoding);
 
@@ -2088,8 +2179,32 @@ function createBridgeTools({
       execute: () => automationService.getRemoteControl(),
     },
     {
+      name: 'automation.listWorkflows',
+      description: 'List package-defined automation workflows configured for this workspace. Read-only.',
+      source: 'bridge',
+      readOnly: true,
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+      execute: () => automationService.listWorkflows(),
+    },
+    {
+      name: 'automation.listWorkflowRuns',
+      description: 'List recent automation workflow runs and artifact paths. Read-only.',
+      source: 'bridge',
+      readOnly: true,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workflowId: { type: 'string' },
+        },
+      },
+      execute: args => automationService.listWorkflowRuns(typeof args.workflowId === 'string' ? args.workflowId : undefined),
+    },
+    {
       name: 'automation.listTeams',
-      description: 'List virtual autonomous team blueprints configured for this workspace. Read-only.',
+      description: 'Deprecated alias for automation.listWorkflows. Read-only.',
       source: 'bridge',
       readOnly: true,
       inputSchema: {
@@ -2100,7 +2215,7 @@ function createBridgeTools({
     },
     {
       name: 'automation.listTeamRuns',
-      description: 'List recent virtual team run history and artifact paths. Read-only.',
+      description: 'Deprecated alias for automation.listWorkflowRuns. Read-only.',
       source: 'bridge',
       readOnly: true,
       inputSchema: {
@@ -2241,122 +2356,5 @@ function buildScheduledTaskPrompt(task: ScheduledTask, skills: SkillDetail[], wo
     '- Use file writes, Bash, or MCP tools only when they are necessary for this task.',
     '- If a risky action needs approval, request it through the normal tool flow and wait.',
     '- Finish with a concise run summary, files changed, commands run, and any follow-up needed.',
-  ].join('\n');
-}
-
-function buildVirtualTeamPlannerPrompt(
-  team: VirtualTeamBlueprint,
-  skills: SkillDetail[],
-  workspacePath: string,
-): string {
-  const members = team.members.map(member => [
-    `- memberId: ${member.id}`,
-    `  name: ${member.name}`,
-    `  role: ${member.role}`,
-    `  goal: ${member.goal}`,
-    `  tools: ${member.tools.join(', ') || 'default tools'}`,
-  ].join('\n')).join('\n');
-
-  return [
-    'You are the supervisor/orchestrator for a local virtual software delivery team.',
-    '',
-    `Workspace: ${workspacePath}`,
-    `Team: ${team.name}`,
-    `Objective: ${team.objective}`,
-    '',
-    'Team members:',
-    members || 'No members were configured.',
-    '',
-    'Enabled workspace skills:',
-    buildSkillContext(skills),
-    '',
-    'Create an execution plan that mirrors a real software team:',
-    '- Break the objective into concrete assignments.',
-    '- Assign each assignment to exactly one listed memberId.',
-    '- Use dependencies only when an assignment truly needs another output first.',
-    '- Leave dependencies empty for work that can run in parallel.',
-    '- Include review, merge, or signoff assignments after implementation work when useful.',
-    '- Keep the plan small enough for one automation run.',
-    '',
-    'Return only JSON with this shape:',
-    '{',
-    '  "assignments": [',
-    '    {',
-    '      "id": "short-stable-id",',
-    '      "title": "Concrete assignment title",',
-    '      "description": "What this worker should produce or decide",',
-    '      "memberId": "one listed memberId",',
-    '      "dependencies": ["assignment-id-that-must-complete-first"]',
-    '    }',
-    '  ]',
-    '}',
-  ].join('\n');
-}
-
-function buildVirtualTeamMemberPrompt(
-  team: VirtualTeamBlueprint,
-  member: VirtualTeamMember,
-  assignment: VirtualTeamAssignmentPlan,
-  dependencySteps: VirtualTeamRunRecord['steps'],
-  sharedSteps: VirtualTeamRunRecord['steps'],
-  skills: SkillDetail[],
-  workspacePath: string,
-): string {
-  const dependencyContext = dependencySteps
-    .filter(step => step.status !== 'running' && (step.output || step.error))
-    .map(step => [
-      `## ${step.assignmentTitle ?? `${step.role} - ${step.memberName}`}`,
-      step.output ?? `Error: ${step.error}`,
-    ].join('\n'))
-    .join('\n\n');
-  const sharedContext = sharedSteps
-    .filter(step => !dependencySteps.some(dependencyStep => dependencyStep.assignmentId === step.assignmentId) && (step.output || step.error))
-    .map(step => [
-      `## ${step.assignmentTitle ?? `${step.role} - ${step.memberName}`}`,
-      step.output ?? `Error: ${step.error}`,
-    ].join('\n'))
-    .join('\n\n');
-  const permissionInstruction = team.permissionMode === 'supervised'
-    ? '- Risky tool calls must go through the normal permission review path.'
-    : '- This team run has full-access automation permission. Use tools responsibly and do not pause for approval unless blocked by workspace safety rules or missing information.';
-  const workspaceInstruction = assignment.workspacePath === team.workspacePath
-    ? '- This is a shared review/merge workspace. Inspect dependency outputs and merge only approved deliverables into the project workspace.'
-    : '- This is your private assignment workspace. Do not assume parallel workers can see your local draft until you publish a clear handoff.';
-
-  return [
-    'You are participating in a local virtual software delivery team.',
-    '',
-    `Workspace: ${workspacePath}`,
-    `Team: ${team.name}`,
-    `Team objective: ${team.objective}`,
-    '',
-    `Your role: ${member.role}`,
-    `Your name: ${member.name}`,
-    `Your goal: ${member.goal}`,
-    `Available role tool families: ${member.tools.join(', ') || 'default tools'}`,
-    '',
-    `Assignment ID: ${assignment.id}`,
-    `Assignment title: ${assignment.title}`,
-    `Assignment description: ${assignment.description}`,
-    `Dependency IDs: ${assignment.dependencies.join(', ') || 'none'}`,
-    `Parallel group: ${assignment.parallelGroup}`,
-    '',
-    'Enabled workspace skills:',
-    buildSkillContext(skills),
-    '',
-    'Required dependency outputs:',
-    dependencyContext || 'No required dependency outputs.',
-    '',
-    'Other completed shared team outputs:',
-    sharedContext || 'No other completed outputs yet.',
-    '',
-    'Execution rules:',
-    '- Stay within your role and produce concrete artifacts or decisions.',
-    '- If the objective asks to build or create an app/project, create the needed files in the workspace with fs.write; do not only describe the code.',
-    workspaceInstruction,
-    '- Use filesystem, Bash, web, finance, time, or MCP tools only when needed.',
-    permissionInstruction,
-    '- If this role cannot safely continue without human input, say exactly what approval or information is needed.',
-    '- End with a short handoff for dependent team members and mention any files you created or changed.',
   ].join('\n');
 }

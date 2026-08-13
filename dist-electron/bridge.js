@@ -105,6 +105,7 @@ class IpcBridge {
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:getState'], this.handleGetState.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:setState'], this.handleSetState.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:installFeaturePackage'], this.handleInstallFeaturePackage.bind(this));
+        electron_1.ipcMain.handle(types_1.IPC_CHANNELS['app:uninstallFeaturePackage'], this.handleUninstallFeaturePackage.bind(this));
         // Window channels
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['window:minimize'], this.handleWindowMinimize.bind(this));
         electron_1.ipcMain.handle(types_1.IPC_CHANNELS['window:maximize'], this.handleWindowMaximize.bind(this));
@@ -468,6 +469,13 @@ class IpcBridge {
         const handler = this.appHandlers.get('installFeaturePackage');
         if (!handler) {
             throw new Error('Feature package installer handler not configured');
+        }
+        return handler(request);
+    }
+    async handleUninstallFeaturePackage(event, request) {
+        const handler = this.appHandlers.get('uninstallFeaturePackage');
+        if (!handler) {
+            throw new Error('Feature package uninstaller handler not configured');
         }
         return handler(request);
     }

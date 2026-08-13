@@ -157,6 +157,8 @@ export interface ChatRequest {
   messages: ChatMessage[];
   /** Require project-agent turns to end with a structured, verifiable outcome. */
   structuredAgentLoop?: boolean;
+  /** Require an automation planner to submit a typed workflow assignment graph. */
+  workflowPlanning?: boolean;
   /** Folder explicitly authorized for this chat through the desktop folder picker. */
   authorizedWorkspacePath?: string;
   permissionProfile?: DesktopPermissionProfile;
@@ -408,6 +410,15 @@ export interface FeaturePackageInstallResult {
   version: string;
 }
 
+export interface FeaturePackageUninstallRequest {
+  manifest: Record<string, any>;
+}
+
+export interface FeaturePackageUninstallResult {
+  packageId: string;
+  removedPath: string;
+}
+
 export interface AppConfigChangedMessage {
   config: AppConfig;
   version: number;
@@ -598,7 +609,8 @@ export interface VirtualTeamBlueprint {
   workspacePath?: string;
   permissionMode?: VirtualTeamPermissionMode;
   maxIterations?: number;
-  requireQaSignoff?: boolean;
+  providerId?: string;
+  providerConfig?: Record<string, unknown>;
   supervisorId: string;
   members: VirtualTeamMember[];
   status: 'draft' | 'active' | 'paused' | 'completed';
@@ -838,6 +850,7 @@ export interface ElectronRendererApi {
     getState(): Promise<any>;
     setState(state: any): Promise<void>;
     installFeaturePackage(request: FeaturePackageInstallRequest): Promise<FeaturePackageInstallResult>;
+    uninstallFeaturePackage(request: FeaturePackageUninstallRequest): Promise<FeaturePackageUninstallResult>;
   };
   window: {
     minimize(): Promise<void>;
@@ -966,6 +979,7 @@ export const ipcClient: ElectronRendererApi = {
     getState: () => getApi().app.getState(),
     setState: state => getApi().app.setState(state),
     installFeaturePackage: request => getApi().app.installFeaturePackage(request),
+    uninstallFeaturePackage: request => getApi().app.uninstallFeaturePackage(request),
   },
   window: {
     minimize: () => getApi().window.minimize(),

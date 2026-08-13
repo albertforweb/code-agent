@@ -40,6 +40,8 @@ export {
   type AutomationExecutionResult,
   type RemoteControlState,
   type RemoteControlAuditEvent,
+  type AutomationWorkflow,
+  type AutomationWorkflowRun,
   type VirtualTeamBlueprint,
   type VirtualTeamAssignmentPlan,
   type VirtualTeamMember,

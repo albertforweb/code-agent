@@ -111,3 +111,54 @@ test('platform access tokens are removed without changing model preferences', as
     await rm(storeCwd, { recursive: true, force: true });
   }
 });
+
+test('installed feature package runtimes survive stale account-profile rehydration', async () => {
+  const storeCwd = await mkdtemp(path.join(tmpdir(), 'codeagent-config-'));
+  try {
+    const staleProfile = {
+      accountStatus: 'signed-in',
+      accountId: 'platform-account-1',
+      email: 'admin@example.com',
+      displayName: 'Admin',
+      purchasedPackageIds: ['software-developer'],
+      installedPackageIds: [],
+      packageInstallRecords: [],
+    };
+    const service = new AppStateServiceBridge({ storeCwd });
+    await service.setConfig({
+      featureProfile: staleProfile,
+      featureAccounts: {
+        'platform-account-1': staleProfile,
+        'admin@example.com': staleProfile,
+      },
+    });
+
+    await service.reconcileInstalledFeaturePackages([{
+      packageId: 'software-developer',
+      version: '1.0.0',
+      installedPath: '/tmp/codeagent/feature-packages/software-developer/1.0.0',
+    }]);
+
+    const restored = await new AppStateServiceBridge({ storeCwd }).getConfig();
+    const assertInstalled = (profile: Record<string, any>) => {
+      assert.deepEqual(profile.installedPackageIds, ['software-developer']);
+      assert.equal(profile.packageInstallRecords.length, 1);
+      assert.deepEqual(profile.packageInstallRecords[0], {
+        packageId: 'software-developer',
+        artifactId: 'software-developer.installed-runtime',
+        version: '1.0.0',
+        state: 'installed',
+        installedPath: '/tmp/codeagent/feature-packages/software-developer/1.0.0',
+        installedAt: profile.packageInstallRecords[0].installedAt,
+      });
+      assert.match(profile.packageInstallRecords[0].installedAt, /^\d{4}-\d{2}-\d{2}T/);
+    };
+
+    assertInstalled(restored.featureProfile as Record<string, any>);
+    const accounts = restored.featureAccounts as Record<string, Record<string, any>>;
+    assertInstalled(accounts['platform-account-1']);
+    assertInstalled(accounts['admin@example.com']);
+  } finally {
+    await rm(storeCwd, { recursive: true, force: true });
+  }
+});

@@ -213,8 +213,7 @@ import {
 } from './src/features/feature-packages.js'
 import { resolveCliFeaturePackages } from './cli/handlers/features.js'
 import {
-  runSoftwareDeveloperAutomationCommand,
-  runSoftwareDeveloperProjectCommand,
+  runFeaturePackageCliCommand,
 } from './cli/feature-package-runtime.js'
 
 // Re-export types from the centralized location
@@ -229,31 +228,12 @@ export type {
 } from './types/command.js'
 export { getCommandName, isCommandEnabled } from './types/command.js'
 
-const SOFTWARE_DEVELOPER_LOCAL_COMMANDS = new Set([
-  'project',
-  'projects',
-  'role',
-  'roles',
-  'employee',
-  'employees',
-  'people',
-  'team',
-  'teams',
-  'automation',
-  'auto',
-])
-
-function getSoftwareDeveloperLocalCommands(): Command[] {
+function getFeaturePackageLocalCommands(): Command[] {
   const resolution = resolveCliFeaturePackages()
   const commands = new Map<string, Command>()
 
-  for (const { extension } of getFeaturePackageExtensions(resolution, 'cli.command')) {
+  for (const { packageId, extension } of getFeaturePackageExtensions(resolution, 'cli.command')) {
     for (const commandName of [extension.command, ...(extension.commandAliases ?? [])].filter(Boolean)) {
-      if (!SOFTWARE_DEVELOPER_LOCAL_COMMANDS.has(commandName)) {
-        continue
-      }
-
-      const scope = getSoftwareDeveloperProjectScope(commandName)
       const command: Command = {
         type: 'local',
         name: commandName,
@@ -263,10 +243,7 @@ function getSoftwareDeveloperLocalCommands(): Command[] {
         load: async () => ({
           call: async args => ({
             type: 'text',
-            value:
-              commandName === 'automation' || commandName === 'auto'
-                ? await runSoftwareDeveloperAutomationCommand(args)
-                : await runSoftwareDeveloperProjectCommand(args, scope),
+            value: await runFeaturePackageCliCommand(packageId, commandName, args),
           }),
         }),
       }
@@ -275,13 +252,6 @@ function getSoftwareDeveloperLocalCommands(): Command[] {
   }
 
   return [...commands.values()]
-}
-
-function getSoftwareDeveloperProjectScope(commandName: string): string {
-  if (commandName === 'role' || commandName === 'roles') return 'role'
-  if (commandName === 'employee' || commandName === 'employees' || commandName === 'people') return 'employee'
-  if (commandName === 'team' || commandName === 'teams') return 'team'
-  return 'project'
 }
 
 // Commands that get eliminated from the external build
@@ -401,7 +371,7 @@ const COMMANDS = memoize((): Command[] => [
   passes,
   ...(peersCmd ? [peersCmd] : []),
   tasks,
-  ...getSoftwareDeveloperLocalCommands(),
+  ...getFeaturePackageLocalCommands(),
   ...(workflowsCmd ? [workflowsCmd] : []),
   ...(torch ? [torch] : []),
   ...(process.env.USER_TYPE === 'internal' && !process.env.IS_DEMO

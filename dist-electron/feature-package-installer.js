@@ -3,7 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.listInstalledFeaturePackageRuntimes = listInstalledFeaturePackageRuntimes;
 exports.installSignedPackageArtifact = installSignedPackageArtifact;
+exports.uninstallPackageArtifact = uninstallPackageArtifact;
 const crypto_1 = require("crypto");
 const fs_1 = require("fs");
 const promises_1 = require("fs/promises");
@@ -18,6 +20,53 @@ const TRUSTED_PACKAGE_SIGNING_KEYS = {
         '',
     ].join('\n'),
 };
+/**
+ * Returns the package runtimes that are actually installed on this device.
+ *
+ * Account profiles describe entitlement, but they are not authoritative for
+ * device installation. A platform sync or account switch must not make a
+ * verified runtime disappear while it still exists in the package store.
+ */
+async function listInstalledFeaturePackageRuntimes() {
+    const packageRoot = path_1.default.join(getCodeAgentConfigHomeDir(), 'feature-packages');
+    let packageEntries;
+    try {
+        packageEntries = await (0, promises_1.readdir)(packageRoot, { withFileTypes: true });
+    }
+    catch (error) {
+        if (error.code === 'ENOENT')
+            return [];
+        throw error;
+    }
+    const runtimes = [];
+    for (const packageEntry of packageEntries.filter(entry => entry.isDirectory())) {
+        if (!/^[a-z0-9][a-z0-9._-]*$/i.test(packageEntry.name))
+            continue;
+        const packageDir = path_1.default.join(packageRoot, packageEntry.name);
+        const versionEntries = await (0, promises_1.readdir)(packageDir, { withFileTypes: true }).catch(() => []);
+        for (const versionEntry of versionEntries.filter(entry => entry.isDirectory())) {
+            const installedPath = path_1.default.join(packageDir, versionEntry.name);
+            try {
+                const manifest = JSON.parse(await (0, promises_1.readFile)(path_1.default.join(installedPath, 'manifest.json'), 'utf8'));
+                if (manifest.id !== packageEntry.name || String(manifest.version) !== versionEntry.name)
+                    continue;
+                const runtimeEntrypoint = manifest.entrypoints?.runtime;
+                if (runtimeEntrypoint && !(0, fs_1.existsSync)(path_1.default.resolve(installedPath, runtimeEntrypoint)))
+                    continue;
+                runtimes.push({
+                    packageId: manifest.id,
+                    version: String(manifest.version),
+                    installedPath,
+                });
+            }
+            catch {
+                // Ignore incomplete or malformed directories left by interrupted installs.
+            }
+        }
+    }
+    return runtimes.sort((left, right) => (left.packageId.localeCompare(right.packageId) ||
+        right.version.localeCompare(left.version, undefined, { numeric: true, sensitivity: 'base' })));
+}
 async function installSignedPackageArtifact(manifest, explicitArchivePath, options = {}) {
     const artifact = manifest.distribution.artifact;
     const resolvedArchive = await resolvePackageArchivePath(manifest, explicitArchivePath, options.download);
@@ -55,6 +104,19 @@ async function installSignedPackageArtifact(manifest, explicitArchivePath, optio
             await (0, promises_1.rm)(resolvedArchive.cleanupDir, { recursive: true, force: true });
         }
     }
+}
+async function uninstallPackageArtifact(manifest) {
+    if (!manifest.id || !/^[a-z0-9][a-z0-9._-]*$/i.test(manifest.id)) {
+        throw new Error(`Feature package ID is invalid: ${manifest.id || 'missing'}`);
+    }
+    const packageRoot = path_1.default.join(getCodeAgentConfigHomeDir(), 'feature-packages');
+    const removedPath = path_1.default.join(packageRoot, manifest.id);
+    const relativeTarget = path_1.default.relative(packageRoot, removedPath);
+    if (!relativeTarget || relativeTarget.startsWith('..') || path_1.default.isAbsolute(relativeTarget)) {
+        throw new Error(`Refusing to uninstall package outside the feature package directory: ${manifest.id}`);
+    }
+    await (0, promises_1.rm)(removedPath, { recursive: true, force: true });
+    return { packageId: manifest.id, removedPath };
 }
 function getCodeAgentConfigHomeDir() {
     return (process.env.CODEAGENT_CONFIG_DIR ??

@@ -63,6 +63,13 @@ exports.IPC_CHANNELS = {
     'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
     'automation:startRemoteControl': 'automation:startRemoteControl',
     'automation:stopRemoteControl': 'automation:stopRemoteControl',
+    'automation:listWorkflows': 'automation:listWorkflows',
+    'automation:listWorkflowRuns': 'automation:listWorkflowRuns',
+    'automation:saveWorkflow': 'automation:saveWorkflow',
+    'automation:deleteWorkflow': 'automation:deleteWorkflow',
+    'automation:createDefaultWorkflow': 'automation:createDefaultWorkflow',
+    'automation:runWorkflow': 'automation:runWorkflow',
+    // Deprecated compatibility channels for pre-workflow package builds.
     'automation:listTeams': 'automation:listTeams',
     'automation:listTeamRuns': 'automation:listTeamRuns',
     'automation:saveTeam': 'automation:saveTeam',
@@ -102,6 +109,7 @@ exports.IPC_CHANNELS = {
     'app:getState': 'app:getState',
     'app:setState': 'app:setState',
     'app:installFeaturePackage': 'app:installFeaturePackage',
+    'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
     'app:configChanged': 'app:configChanged',
     'app:stateChanged': 'app:stateChanged',
     // Window channels

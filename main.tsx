@@ -976,29 +976,37 @@ async function run(): Promise<CommanderCommand> {
     process.stdout.write(`${output}${output.endsWith('\n') ? '' : '\n'}`);
     process.exit(0);
   };
-  const registerSoftwareDeveloperCliCommand = (options: {
+  const registeredPackageCommandNames = new Set<string>();
+  const registerFeaturePackageCliCommand = (options: {
     program: CommanderCommand;
+    packageId: string;
     name: string;
-    aliases: string[];
     featureId: string;
     description: string;
-    run: (args: string[]) => Promise<void>;
   }) => {
-    if (!hasCliFeature(options.featureId)) {
-      registerLockedFeatureCommand(options.name, options.aliases, options.description);
+    if (registeredPackageCommandNames.has(options.name) || options.program.commands.some(command => (
+      command.name() === options.name || command.aliases().includes(options.name)
+    ))) {
       return;
     }
-    const command = options.program
+    registeredPackageCommandNames.add(options.name);
+    if (!hasCliFeature(options.featureId)) {
+      registerLockedFeatureCommand(options.name, [], options.description);
+      return;
+    }
+    options.program
       .command(`${options.name} [args...]`)
       .description(options.description)
       .allowUnknownOption(true)
       .allowExcessArguments(true)
       .action(async (args: string[] = []) => {
-        await options.run(args);
+        const { runFeaturePackageCliCommand } = await import('./cli/feature-package-runtime.js');
+        await writePackageCommandOutput(await runFeaturePackageCliCommand(
+          options.packageId,
+          options.name,
+          args.join(' '),
+        ));
       });
-    for (const alias of options.aliases) {
-      command.alias(alias);
-    }
   };
   profileCheckpoint('run_commander_initialized');
 
@@ -4519,29 +4527,26 @@ async function run(): Promise<CommanderCommand> {
     process.exit(0);
   });
 
-  registerSoftwareDeveloperCliCommand({
-    program,
-    name: 'project',
-    aliases: ['projects'],
-    featureId: 'project-studio',
-    description: 'Manage Project Studio projects, roles, employees, teams, and deliverables',
-    run: async args => {
-      const { runSoftwareDeveloperProjectCommand } = await import('./cli/feature-package-runtime.js');
-      await writePackageCommandOutput(await runSoftwareDeveloperProjectCommand(args.join(' '), 'project'));
-    },
-  });
-
-  registerSoftwareDeveloperCliCommand({
-    program,
-    name: 'automation',
-    aliases: ['auto'],
-    featureId: 'automation',
-    description: 'Manage local skills, scheduled tasks, remote control, and virtual teams',
-    run: async args => {
-      const { runSoftwareDeveloperAutomationCommand } = await import('./cli/feature-package-runtime.js');
-      await writePackageCommandOutput(await runSoftwareDeveloperAutomationCommand(args.join(' ')));
-    },
-  });
+  for (const packageEntry of cliFeatureResolution.packages) {
+    const packageId = packageEntry.manifest.id;
+    for (const extension of packageEntry.manifest.extensions ?? []) {
+      if (extension.point !== 'cli.command' || extension.shell !== 'cli') {
+        continue;
+      }
+      if (!extension.featureId) {
+        continue;
+      }
+      for (const commandName of [extension.command, ...(extension.commandAliases ?? [])].filter(Boolean)) {
+        registerFeaturePackageCliCommand({
+          program,
+          packageId,
+          name: commandName,
+          featureId: extension.featureId,
+          description: extension.title || `Run ${commandName} from ${packageId}`,
+        });
+      }
+    }
+  }
 
   if (feature('TRANSCRIPT_CLASSIFIER')) {
     // Skip when tengu_auto_mode_config.enabled === 'disabled' (circuit breaker).

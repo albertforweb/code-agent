@@ -22,6 +22,193 @@
 
 ---
 
+## Architecture Hardening Roadmap (August 2026)
+
+**Status**: Proposed
+**Primary objective**: Eliminate behavioral drift between CodeAgent shells while making tool execution safer, feature boundaries enforceable, and local state recoverable.
+
+### Priority Summary
+
+The next architecture program should focus on three changes before expanding the product further:
+
+1. **Create one shared `AgentRuntime`** for CLI, desktop, automation, and future shells.
+2. **Create one shared policy engine** for every privileged tool operation.
+3. **Complete paid feature-package extraction** so install and entitlement boundaries correspond to real code boundaries.
+
+These changes reduce duplicate orchestration, inconsistent permissions, oversized modules, and shell-specific behavior. They also provide the foundation for transactional tools, stronger recovery, provider conformance, and durable multi-agent workflows.
+
+### Current Architectural Risks
+
+| Area | Current State | Risk |
+|------|---------------|------|
+| Agent loop | CLI uses `QueryEngine` and `services/api/llm.ts`; desktop uses `electron/services/api-service-bridge.ts` | Prompts, tool rounds, streaming, retries, and completion behavior can diverge |
+| Permissions | CLI Bash/sandbox policy and desktop tool/path policy are separate | The same operation can receive different security decisions in different shells |
+| Desktop composition | `src/renderer/App.tsx`, `electron/services-bridge.ts`, and automation services own many concerns | Changes are difficult to isolate, review, and test |
+| Feature packages | Paid package artifacts exist, but paid desktop implementation remains in core | Entitlement is not yet a reliable production security boundary |
+| Persistence | JSON, JSONL, `electron-store`, keychain, and `.code-agent` files have separate ownership rules | Migration, corruption recovery, querying, and backup behavior are inconsistent |
+| Providers | OpenAI-compatible services are treated as broadly interchangeable | Provider capability and streaming differences can cause runtime failures |
+| Multi-agent work | Agents, teams, and workflows use several execution and persistence paths | Ownership, cancellation, budgets, recovery, and result validation are difficult to reason about |
+
+### Workstream 1: Shared Agent Runtime
+
+**Target design**: A shell-independent `AgentRuntime` owns model turns and emits typed events. CLI, Electron, automation, and SDK entrypoints adapt user input and render runtime events without reimplementing the loop.
+
+**Runtime responsibilities**:
+
+- Message and system-context assembly
+- Provider capability resolution
+- Tool schema construction and deferred-tool discovery
+- Streaming text and tool-call parsing
+- Bounded model/tool iteration
+- Tool scheduling and cancellation
+- Structured completion protocols
+- Usage and phase timing
+- Retry and timeout policy
+- Session checkpoints and resumability
+
+**Proposed interfaces**:
+
+```typescript
+interface AgentRuntime {
+  runTurn(request: AgentTurnRequest): AsyncIterable<AgentRuntimeEvent>;
+  cancel(turnId: string, reason: string): Promise<void>;
+}
+
+type AgentRuntimeEvent =
+  | { type: 'text-delta'; text: string }
+  | { type: 'tool-proposed'; call: ToolCall }
+  | { type: 'approval-required'; request: ApprovalRequest }
+  | { type: 'tool-started'; call: ToolCall }
+  | { type: 'tool-completed'; result: ToolResult }
+  | { type: 'turn-completed'; outcome: TurnOutcome }
+  | { type: 'turn-failed'; error: RuntimeError };
+```
+
+**Implementation steps**:
+
+- [ ] Capture CLI and desktop behavior in parity fixtures before refactoring.
+- [ ] Extract provider-neutral request, tool, event, and completion contracts.
+- [ ] Move bounded tool-loop logic into the shared runtime.
+- [ ] Adapt the Electron IPC bridge to consume runtime events.
+- [ ] Adapt `QueryEngine` to use the same runtime or retire its duplicate loop.
+- [ ] Route scheduled tasks and virtual teams through the shared runtime.
+- [ ] Remove superseded desktop-specific orchestration after parity tests pass.
+
+**Exit criteria**:
+
+- The same fixture produces equivalent tool schemas, permission requests, tool results, and completion outcomes in CLI and desktop.
+- Tool-round limits, cancellation, retry rules, and usage accounting have one implementation.
+- Shell code contains presentation and transport adapters, not agent-loop policy.
+
+### Workstream 2: Unified Tool Policy Engine
+
+Every filesystem, shell, MCP, browser, network, automation, and package action should pass through one policy contract before execution.
+
+```typescript
+type PolicyDecision =
+  | { action: 'allow'; ruleId?: string }
+  | { action: 'ask'; reason: string; suggestions?: PermissionSuggestion[] }
+  | { action: 'deny'; reason: string; ruleId?: string };
+```
+
+**Implementation steps**:
+
+- [ ] Define canonical tool identities, resource scopes, mutation classes, and execution contexts.
+- [ ] Wrap existing CLI Bash, sandbox, path, and permission checks behind the common contract.
+- [ ] Wrap desktop `ToolServiceBridge` and path-permission checks behind the same contract.
+- [ ] Apply policy to MCP and feature-package tools using declared risk metadata.
+- [ ] Record the policy decision, user response, matched rule, and affected resource with every tool execution.
+- [ ] Add policy equivalence tests across CLI, desktop, automation, and subagents.
+
+**Exit criteria**:
+
+- A given normalized operation receives the same decision in every shell.
+- No privileged execution path bypasses policy evaluation.
+- Approval records are attributable and auditable without storing secrets or full sensitive payloads.
+
+### Workstream 3: Desktop and Feature Modularization
+
+- [ ] Split `src/renderer/App.tsx` into feature-owned routes and state modules for chat, projects, automation, tools, history, models, packages, and settings.
+- [ ] Split `electron/services-bridge.ts` into narrowly scoped service registrars with explicit dependencies.
+- [ ] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into `code-agent-packages/software-developer`.
+- [ ] Restrict the base application to package hosting, shared primitives, account/provider setup, entitlement resolution, and free features.
+- [ ] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI.
+- [ ] Add update, uninstall, rollback, revoked-signature, and signing-key rotation states to the package lifecycle.
+
+**Exit criteria**:
+
+- Paid implementation code is absent from the base application bundle.
+- Disabling or uninstalling a package removes its routes, commands, tools, settings, and runtime activation.
+- Renderer and Electron services can be tested without constructing the entire desktop application.
+
+### Workstream 4: Durable State and Transactional Tools
+
+**Persistence direction**:
+
+- Keep credentials and refresh tokens in the OS keychain.
+- Keep project-shareable definitions in workspace `.code-agent/` files.
+- Introduce versioned schemas and migrations for every durable record.
+- Use atomic writes, checksums, backups, and explicit corruption recovery for file-backed state.
+- Evaluate SQLite for indexed history, sessions, tool events, project records, task runs, and workflow runs.
+
+**Transactional tool journal**:
+
+- [ ] Record proposed operation, normalized target, policy decision, approval, start time, outcome, and affected paths.
+- [ ] Capture reversible file mutations as patches or before/after references.
+- [ ] Implement “undo last agent mutation” only for operations with verified rollback data.
+- [ ] Make interrupted tool runs distinguishable from failed and completed runs.
+- [ ] Add retention and redaction rules so journals do not become a secret store.
+
+### Workstream 5: Reliability, Performance, and Provider Compatibility
+
+- [ ] Define explicit connect, first-byte, stream-idle, tool, and whole-turn timeouts.
+- [ ] Add retry budgets with jitter and provider-aware retry classification.
+- [ ] Add circuit breakers for repeatedly failing remote providers and MCP servers.
+- [ ] Implement provider capability discovery for streaming, tool calls, images, context limits, usage fields, and template options.
+- [ ] Build conformance tests for OpenAI, the managed CodeAgent backend, and representative OpenAI-compatible servers.
+- [ ] Turn existing phase timing into regression budgets for startup, first token, tool selection, tool execution, and session loading.
+- [ ] Define measurable targets only after collecting representative baseline data; do not invent SLOs without evidence.
+
+### Workstream 6: Durable Multi-Agent Execution
+
+Represent teams and delegated work as a persisted task graph rather than only nested agent calls.
+
+- [ ] Give every task an owner, dependencies, input contract, output contract, token/time budget, and lifecycle state.
+- [ ] Persist parent/child relationships and checkpoints so work can resume after process restart.
+- [ ] Propagate cancellation and policy context through the task graph.
+- [ ] Validate child results before satisfying dependent tasks.
+- [ ] Surface per-agent tool activity, cost, failures, and final evidence in CLI and desktop.
+- [ ] Prevent concurrent agents from mutating the same resource without coordination or conflict detection.
+
+### Cross-Cutting Verification Matrix
+
+| Contract | CLI | Desktop | Automation | Multi-agent | Required Gate |
+|----------|-----|---------|------------|-------------|---------------|
+| Provider request translation | [ ] | [ ] | [ ] | [ ] | Conformance fixtures |
+| Tool schema generation | [ ] | [ ] | [ ] | [ ] | Snapshot and semantic tests |
+| Permission decision | [ ] | [ ] | [ ] | [ ] | Policy equivalence tests |
+| Streaming and cancellation | [ ] | [ ] | [ ] | [ ] | Deterministic integration tests |
+| State migration/recovery | [ ] | [ ] | [ ] | [ ] | Corruption and restart tests |
+| Feature entitlement/install | [ ] | [ ] | [ ] | N/A | Cross-client parity tests |
+| MCP failure handling | [ ] | [ ] | [ ] | [ ] | Transport lifecycle tests |
+
+### Recommended Delivery Sequence
+
+1. Freeze current CLI/desktop behavior in parity fixtures.
+2. Define shared runtime events and the unified policy contract.
+3. Move desktop and automation onto the shared runtime first, retaining adapters for current IPC payloads.
+4. Move CLI orchestration onto the runtime and remove duplicate loops.
+5. Add the transactional tool journal and persistence migrations.
+6. Split desktop modules and complete paid package extraction.
+7. Enforce provider conformance, performance budgets, and strict package-boundary checks in CI.
+8. Rebuild multi-agent/team workflows on the durable task graph.
+
+### Progress Recording Rule
+
+Update this roadmap in the same change that completes a milestone. Mark an item complete only when its implementation, migration path, tests, and operational documentation are all present. Add links to the relevant pull request or commit beside completed work so architectural progress remains traceable.
+
+---
+
 ## Platform Integration Program
 
 **Architecture decision**: CodeAgent is a client of the broader agent platform, not a standalone local-only product. Desktop, CLI, mobile, and web shells should present the same feature/package model and user experience at the capability level while `agent-platform` owns identity, catalog, billing, entitlements, package publishing, package installs, hosted LLM access, and activity synchronization. The UI can differ by shell, but account state, package availability, purchases, installs, LLM provider choices, projects, history, and activity should be aligned across the web browser client and local desktop client.

@@ -39,6 +39,8 @@ import type {
   AppInfo,
   FeaturePackageInstallRequest,
   FeaturePackageInstallResult,
+  FeaturePackageUninstallRequest,
+  FeaturePackageUninstallResult,
   AppConfigChangedMessage,
   AppStateChangedMessage,
   BootstrapData,
@@ -50,6 +52,8 @@ import type {
   AutomationRunRecord,
   AutomationSchedulerStatus,
   RemoteControlState,
+  AutomationWorkflow,
+  AutomationWorkflowRun,
   VirtualTeamBlueprint,
   VirtualTeamRunRecord,
   AutomationProjectExport,
@@ -121,6 +125,12 @@ const IPC_CHANNELS = {
   'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
   'automation:startRemoteControl': 'automation:startRemoteControl',
   'automation:stopRemoteControl': 'automation:stopRemoteControl',
+  'automation:listWorkflows': 'automation:listWorkflows',
+  'automation:listWorkflowRuns': 'automation:listWorkflowRuns',
+  'automation:saveWorkflow': 'automation:saveWorkflow',
+  'automation:deleteWorkflow': 'automation:deleteWorkflow',
+  'automation:createDefaultWorkflow': 'automation:createDefaultWorkflow',
+  'automation:runWorkflow': 'automation:runWorkflow',
   'automation:listTeams': 'automation:listTeams',
   'automation:listTeamRuns': 'automation:listTeamRuns',
   'automation:saveTeam': 'automation:saveTeam',
@@ -156,6 +166,7 @@ const IPC_CHANNELS = {
   'app:getState': 'app:getState',
   'app:setState': 'app:setState',
   'app:installFeaturePackage': 'app:installFeaturePackage',
+  'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
   'window:minimize': 'window:minimize',
@@ -333,6 +344,31 @@ const api = {
       return ipcRenderer.invoke(IPC_CHANNELS['automation:stopRemoteControl']);
     },
 
+    listWorkflows: (): Promise<AutomationWorkflow[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listWorkflows']);
+    },
+
+    listWorkflowRuns: (workflowId?: string): Promise<AutomationWorkflowRun[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:listWorkflowRuns'], workflowId);
+    },
+
+    saveWorkflow: (workflow: Partial<AutomationWorkflow>): Promise<AutomationWorkflow> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:saveWorkflow'], workflow);
+    },
+
+    deleteWorkflow: (workflowId: string): Promise<{ ok: true; id: string }> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:deleteWorkflow'], workflowId);
+    },
+
+    createDefaultWorkflow: (objective?: string): Promise<AutomationWorkflow> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:createDefaultWorkflow'], objective);
+    },
+
+    runWorkflow: (workflowId: string): Promise<AutomationWorkflowRun> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['automation:runWorkflow'], workflowId);
+    },
+
+    /** @deprecated Use the package-neutral workflow methods above. */
     listTeams: (): Promise<VirtualTeamBlueprint[]> => {
       return ipcRenderer.invoke(IPC_CHANNELS['automation:listTeams']);
     },
@@ -491,6 +527,9 @@ const api = {
 
     installFeaturePackage: (request: FeaturePackageInstallRequest): Promise<FeaturePackageInstallResult> => {
       return ipcRenderer.invoke(IPC_CHANNELS['app:installFeaturePackage'], request);
+    },
+    uninstallFeaturePackage: (request: FeaturePackageUninstallRequest): Promise<FeaturePackageUninstallResult> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['app:uninstallFeaturePackage'], request);
     },
   },
 

@@ -56,6 +56,12 @@ const IPC_CHANNELS = {
     'automation:createRemotePairingCode': 'automation:createRemotePairingCode',
     'automation:startRemoteControl': 'automation:startRemoteControl',
     'automation:stopRemoteControl': 'automation:stopRemoteControl',
+    'automation:listWorkflows': 'automation:listWorkflows',
+    'automation:listWorkflowRuns': 'automation:listWorkflowRuns',
+    'automation:saveWorkflow': 'automation:saveWorkflow',
+    'automation:deleteWorkflow': 'automation:deleteWorkflow',
+    'automation:createDefaultWorkflow': 'automation:createDefaultWorkflow',
+    'automation:runWorkflow': 'automation:runWorkflow',
     'automation:listTeams': 'automation:listTeams',
     'automation:listTeamRuns': 'automation:listTeamRuns',
     'automation:saveTeam': 'automation:saveTeam',
@@ -91,6 +97,7 @@ const IPC_CHANNELS = {
     'app:getState': 'app:getState',
     'app:setState': 'app:setState',
     'app:installFeaturePackage': 'app:installFeaturePackage',
+    'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
     'app:configChanged': 'app:configChanged',
     'app:stateChanged': 'app:stateChanged',
     'window:minimize': 'window:minimize',
@@ -239,6 +246,25 @@ const api = {
         stopRemoteControl: () => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:stopRemoteControl']);
         },
+        listWorkflows: () => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listWorkflows']);
+        },
+        listWorkflowRuns: (workflowId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listWorkflowRuns'], workflowId);
+        },
+        saveWorkflow: (workflow) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:saveWorkflow'], workflow);
+        },
+        deleteWorkflow: (workflowId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:deleteWorkflow'], workflowId);
+        },
+        createDefaultWorkflow: (objective) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:createDefaultWorkflow'], objective);
+        },
+        runWorkflow: (workflowId) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:runWorkflow'], workflowId);
+        },
+        /** @deprecated Use the package-neutral workflow methods above. */
         listTeams: () => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['automation:listTeams']);
         },
@@ -363,6 +389,9 @@ const api = {
         },
         installFeaturePackage: (request) => {
             return electron_1.ipcRenderer.invoke(IPC_CHANNELS['app:installFeaturePackage'], request);
+        },
+        uninstallFeaturePackage: (request) => {
+            return electron_1.ipcRenderer.invoke(IPC_CHANNELS['app:uninstallFeaturePackage'], request);
         },
     },
     // ============================================================================

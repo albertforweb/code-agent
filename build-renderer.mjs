@@ -18,6 +18,9 @@ await build({
   outfile: path.join(outDir, 'index.js'),
   platform: 'browser',
   format: 'iife',
+  // Feature renderer sources live beside the core repository. Resolve their
+  // framework imports from the host application's dependency installation.
+  nodePaths: [path.join(rootDir, 'node_modules')],
   sourcemap: !isProduction,
   target: ['chrome120'],
   loader: {

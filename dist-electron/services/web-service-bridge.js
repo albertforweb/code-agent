@@ -16,6 +16,40 @@ const MAX_RESEARCH_CHARS_PER_PAGE = 6000;
 const FETCH_TIMEOUT_MS = 15000;
 const USER_AGENT = 'CodeAgent/1.0 desktop web utility';
 class WebServiceBridge {
+    async probe(args) {
+        const url = this.normalizeUrl(String(args.url ?? '').trim());
+        const startedAt = Date.now();
+        try {
+            const response = await this.fetchWithTimeout(url);
+            const routeAvailable = response.status !== 404 && response.status !== 410;
+            return {
+                url,
+                finalUrl: response.url,
+                reachable: true,
+                httpOk: response.ok,
+                routeAvailable,
+                status: response.status,
+                statusText: response.statusText,
+                contentType: response.headers.get('content-type') ?? '',
+                latencyMs: Date.now() - startedAt,
+                explanation: routeAvailable
+                    ? `The server responded with HTTP ${response.status}. The host is reachable and this route returned a response.`
+                    : `The server responded with HTTP ${response.status}. The host is reachable, but this specific route is not available. A 404 or 410 is a route result, not a connection failure.`,
+            };
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            return {
+                url,
+                reachable: false,
+                httpOk: false,
+                routeAvailable: false,
+                latencyMs: Date.now() - startedAt,
+                explanation: 'No HTTP response was received from the requested URL, so reachability could not be established.',
+                error: message,
+            };
+        }
+    }
     async search(args) {
         const query = String(args.query ?? '').trim();
         if (!query) {
