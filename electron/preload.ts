@@ -39,6 +39,7 @@ import type {
   AppInfo,
   FeaturePackageInstallRequest,
   FeaturePackageInstallResult,
+  FeaturePackageRendererSource,
   FeaturePackageUninstallRequest,
   FeaturePackageUninstallResult,
   AppConfigChangedMessage,
@@ -167,6 +168,7 @@ const IPC_CHANNELS = {
   'app:setState': 'app:setState',
   'app:installFeaturePackage': 'app:installFeaturePackage',
   'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
+  'app:listFeaturePackageRenderers': 'app:listFeaturePackageRenderers',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
   'window:minimize': 'window:minimize',
@@ -530,6 +532,9 @@ const api = {
     },
     uninstallFeaturePackage: (request: FeaturePackageUninstallRequest): Promise<FeaturePackageUninstallResult> => {
       return ipcRenderer.invoke(IPC_CHANNELS['app:uninstallFeaturePackage'], request);
+    },
+    listFeaturePackageRenderers: (): Promise<FeaturePackageRendererSource[]> => {
+      return ipcRenderer.invoke(IPC_CHANNELS['app:listFeaturePackageRenderers']);
     },
   },
 

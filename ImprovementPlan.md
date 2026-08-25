@@ -131,6 +131,7 @@ type PolicyDecision =
 - [ ] Split `src/renderer/App.tsx` into feature-owned routes and state modules for chat, projects, automation, tools, history, models, packages, and settings.
 - [ ] Split `electron/services-bridge.ts` into narrowly scoped service registrars with explicit dependencies.
 - [~] Move paid desktop views, automation/project services, developer tools, history surfaces, and settings into feature packages. Package-owned renderer views are now loaded from built package artifacts through the generic `FeaturePackageRendererModule` SDK contract; host state helpers and several desktop services still need extraction. (2026-08-12)
+- [x] Remove static feature-package renderer imports and embedded package archives from the base desktop build. Electron now discovers installed renderer entrypoints, exposes their source through the preload bridge, and registers validated module identities through the SDK before loading the React app. (2026-08-12)
 - [ ] Restrict the base application to package hosting, shared primitives, account/provider setup, entitlement resolution, and free features.
 - [x] Make `verify:feature-package-boundaries:strict` pass and enforce it in CI. The strict boundary check, feature-package tests, and runtime architecture suite now gate pull requests/main pushes and CLI releases. (2026-08-12; `8bba38c`)
 - [ ] Add update, uninstall, rollback, revoked-signature, and signing-key rotation states to the package lifecycle.
@@ -219,7 +220,8 @@ Update this roadmap in the same change that completes a milestone. Mark an item 
 | 2026-08-12 | Shared provider profiles | Complete | CLI/profile resolution tests, desktop bridge tests, Electron TypeScript compilation, and the production CLI build pass |
 | 2026-08-12 | Durable task graph contract and validation | Complete | Legacy compatibility, dependency/cycle, budget, and active-resource conflict tests pass |
 | 2026-08-12 | Architecture CI gates | Complete | Local strict package-boundary check, 61 runtime tests, and 2 feature-package tests pass; equivalent commands added to PR/main and release workflows |
-| 2026-08-12 | SDK-only core/package renderer boundary | Complete | Core has no direct package identity/source imports; manifest-driven renderer registry loads built artifacts through SDK contracts; generic strict gate and renderer artifact contract tests pass |
+| 2026-08-12 | Runtime SDK-only renderer boundary | Complete | Static artifact registry deleted; installed renderers load through Electron/preload and `FeaturePackageRendererModule`; base renderer and desktop resources exclude feature-package implementation; strict gate, 62 core tests, 3 package tests, and production Electron build pass |
+| 2026-08-12 | CLI product-account login parity | Complete | Interactive `/login` signs in to `agent-platform`, synchronizes account/package state, labels LLM authentication separately, and passes production build plus PTY smoke verification |
 
 ---
 
@@ -1348,7 +1350,7 @@ window.api = {
 - [x] Add visible desktop Settings -> Account and Settings -> Packages flows showing guest/signed-in state, subscription tier, package state, product SKU, pricing, shell support, features, and purchase/management actions.
 - [x] Add a local credit-card checkout path that validates card details, stores only card summaries/receipts, and grants package entitlement in the local account profile.
 - [x] Split package entitlement from runtime installation state so paid packages can require purchase first and install second before shell adapters become active.
-- [x] Mark the current paid package distribution boundary honestly: the software-developer package now has installable-package metadata, but this build still bundles the implementation code and remains client-side enforcement only.
+- [x] Mark the initial paid package distribution boundary honestly; subsequently remove the package renderer and signed archive from the base desktop distribution while retaining server-side enforcement as required follow-up.
 - [x] Add the first separate paid package source/artifact boundary under `../code-agent-packages/software-developer` and build it into `../code-agent-packages/dist-feature-packages/codeagent.package.software-developer-1.0.0.tgz`.
 - [x] Extract feature package SDK contracts into the sibling `../code-agent-sdk` git repo so core and package code share a stable development contract instead of importing manifest types from the core resolver.
 - [x] Generate the core package catalog from `../code-agent-packages/<package-id>/manifest.json` rather than maintaining a package-specific TypeScript catalog file in core.
@@ -1357,7 +1359,7 @@ window.api = {
 - [x] Add a feature-package boundary verifier that passes for artifact creation, requires package-owned CLI implementation source, and keeps strict mode as the desktop implementation extraction gate.
 - [x] Connect desktop and CLI package purchase/install actions to `agent-platform` account, catalog, entitlement, payment-method summary, order, profile, and install-registry APIs for local Docker testing.
 - [~] Replace mock/local card handling with production payment-provider tokenization/charge flow, receipt/subscription validation, refund/cancel/past-due handling, and hosted checkout UX.
-- [~] Extract paid package implementation code out of the base desktop/CLI bundle so unpaid users do not receive the software-developer runtime by default. CLI Project Studio and Automation handlers now live in `../code-agent-packages/software-developer/src/cli`; desktop renderer views and shared desktop services still need extraction.
+- [~] Extract paid package implementation code out of the base desktop/CLI bundle so unpaid users do not receive the software-developer runtime by default. CLI handlers and desktop renderer views now load from installed package artifacts; shared desktop host helpers/services still need extraction.
 - [x] Move CLI Project Studio and Automation implementation from `main.tsx`, `commands.ts`, `commands/project`, `commands/role`, `commands/employee`, `commands/team`, `cli/handlers/project-studio.ts`, and `cli/handlers/automation.ts` into `../code-agent-packages/software-developer` package runtime entrypoints.
 - [ ] Move desktop Project Studio, Automation, developer tools, MCP paid surfaces, developer history, and developer settings from `src/renderer/App.tsx` and related desktop service wiring into package-owned desktop entrypoints.
 - [x] Add a signed package catalog with artifact version, compatibility, hash, signature, signing key id, and platform artifact download metadata.
@@ -1387,6 +1389,7 @@ window.api = {
 - [x] Automation CLI commands cover skills, tasks, remote control, relay metadata, teams, project export/import, and one-shot task/team runs over the shared automation service.
 - [x] The package exposes both `code-agent` and `codeagent` command aliases and has an isolated install smoke for the packaged CLI.
 - [x] `code-agent features` exposes package, feature, extension, and manifest inspection for the CLI shell.
+- [x] `/login` separates the CodeAgent product account from LLM-provider authentication and offers interactive `agent-platform` sign-in/profile/package synchronization using the same production endpoint as desktop. (2026-08-12)
 - [ ] Add a clean parity regression suite and clean typecheck gate for the newly added CLI surfaces.
 
 **Open Parity Gaps**:

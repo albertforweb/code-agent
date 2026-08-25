@@ -110,6 +110,7 @@ exports.IPC_CHANNELS = {
     'app:setState': 'app:setState',
     'app:installFeaturePackage': 'app:installFeaturePackage',
     'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
+    'app:listFeaturePackageRenderers': 'app:listFeaturePackageRenderers',
     'app:configChanged': 'app:configChanged',
     'app:stateChanged': 'app:stateChanged',
     // Window channels

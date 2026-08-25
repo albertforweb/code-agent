@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.listInstalledFeaturePackageRendererSources = listInstalledFeaturePackageRendererSources;
 exports.listInstalledFeaturePackageRuntimes = listInstalledFeaturePackageRuntimes;
 exports.installSignedPackageArtifact = installSignedPackageArtifact;
 exports.uninstallPackageArtifact = uninstallPackageArtifact;
@@ -20,6 +21,32 @@ const TRUSTED_PACKAGE_SIGNING_KEYS = {
         '',
     ].join('\n'),
 };
+async function listInstalledFeaturePackageRendererSources() {
+    const runtimes = await listInstalledFeaturePackageRuntimes();
+    const latestByPackage = new Map();
+    for (const runtime of runtimes) {
+        if (!latestByPackage.has(runtime.packageId))
+            latestByPackage.set(runtime.packageId, runtime);
+    }
+    const sources = [];
+    for (const runtime of latestByPackage.values()) {
+        const manifest = JSON.parse(await (0, promises_1.readFile)(path_1.default.join(runtime.installedPath, 'manifest.json'), 'utf8'));
+        const rendererEntrypoint = manifest.entrypoints?.renderer;
+        if (!rendererEntrypoint || !manifest.supportedShells.includes('desktop'))
+            continue;
+        const canonicalRoot = await (0, promises_1.realpath)(runtime.installedPath);
+        const canonicalRenderer = await (0, promises_1.realpath)(path_1.default.resolve(runtime.installedPath, rendererEntrypoint));
+        if (canonicalRenderer !== canonicalRoot && !canonicalRenderer.startsWith(`${canonicalRoot}${path_1.default.sep}`)) {
+            throw new Error(`Renderer entrypoint escapes its installed package: ${rendererEntrypoint}`);
+        }
+        sources.push({
+            packageId: manifest.id,
+            version: String(manifest.version),
+            source: await (0, promises_1.readFile)(canonicalRenderer, 'utf8'),
+        });
+    }
+    return sources.sort((left, right) => left.packageId.localeCompare(right.packageId));
+}
 /**
  * Returns the package runtimes that are actually installed on this device.
  *

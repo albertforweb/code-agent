@@ -1,12 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getBundledFeaturePackageRendererIds } from './feature-package-renderers';
-import { FEATURE_PACKAGE_MANIFESTS } from './feature-packages';
+import {
+  createFeaturePackageRendererContribution,
+  getRegisteredFeaturePackageRendererIds,
+  registerFeaturePackageRendererModule,
+} from './feature-package-renderers';
 
-test('every bundled renderer is declared through an SDK manifest entrypoint', () => {
-  const declaredRendererIds = FEATURE_PACKAGE_MANIFESTS
-    .filter(manifest => Boolean(manifest.entrypoints?.renderer))
-    .map(manifest => manifest.id)
-    .sort();
-  assert.deepEqual(getBundledFeaturePackageRendererIds(), declaredRendererIds);
+test('renderer modules register and resolve only through the SDK contract', () => {
+  registerFeaturePackageRendererModule({
+    packageId: 'test-package',
+    createContribution: () => ({ views: { test: 'view' } }),
+  });
+  assert.deepEqual(getRegisteredFeaturePackageRendererIds(), ['test-package']);
+  assert.deepEqual(createFeaturePackageRendererContribution('test-package', {}), {
+    views: { test: 'view' },
+  });
 });

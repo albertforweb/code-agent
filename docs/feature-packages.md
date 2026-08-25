@@ -126,15 +126,33 @@ Verify it with:
 npm run verify:feature-package-boundaries
 ```
 
-The verifier discovers every package manifest and validates its SDK declaration, generic runtime/CLI/renderer entrypoint contracts, signed artifact contents, generated catalog and renderer registries, and core-to-package separation. It rejects direct package-source imports and package identities in core runtime source:
+The verifier discovers every package manifest and validates its SDK declaration, generic runtime/CLI/renderer entrypoint contracts, signed artifact contents, generated development catalog, runtime renderer loader, and core-to-package separation. It rejects direct package-source imports, static renderer artifact registries, and package identities in core runtime source:
 
 ```sh
 node scripts/verify-feature-package-boundaries.mjs --strict
 ```
 
-Strict mode currently passes. Package renderer contributions are built into package artifacts and consumed through `FeaturePackageRendererModule`; core does not import a package-specific renderer contract. This gate verifies architectural contracts, but does not by itself prove that paid implementation is absent from every distributable bundle.
+Strict mode currently passes. Installed package renderer contributions are read by Electron main, transferred through the preload bridge, and registered before the React application loads through `FeaturePackageRendererModule`. Core does not import a package-specific renderer contract or artifact, and desktop packaging rejects embedded feature-package archives.
 
 ## CLI Platform Flow
+
+The CLI and desktop use the same persisted platform session, catalog, entitlement profile,
+signed-artifact verifier, and local package directory. Shell parity means that every durable
+core operation has a CLI command even when the desktop presents it as a visual workflow:
+
+| Capability | CLI surface | Desktop surface |
+| --- | --- | --- |
+| Agent sessions and workspace access | default command, `--resume`, `--continue`, permission flags | Chats and composer controls |
+| Models and providers | `models`, provider/model flags and settings | Model settings |
+| Permissions and built-in tools | permission/tool flags and settings | General permissions and tool controls |
+| MCP, plugins, and skills | `mcp`, `plugins`, slash skills | Package and tool workspaces |
+| Account and catalog sync | `platform login`, `sync`, `profile`, `catalog` | Account and Store |
+| Package ownership and runtime lifecycle | `store purchase`, `install`, `update`, `uninstall` | Store actions |
+| Package-provided commands | registered from the installed package CLI entrypoint | registered from installed runtime/renderer entrypoints |
+
+Desktop-only layout, dialogs, and visual workbenches do not need terminal replicas; their
+underlying durable operations and package lifecycle do. The packaged-CLI smoke test asserts
+the Store lifecycle commands so release builds fail if this contract regresses.
 
 The CLI now has a platform command group:
 
@@ -146,16 +164,18 @@ code-agent platform catalog
 code-agent platform profile
 code-agent platform purchase software-developer --card-last4 4444 --card-brand Mastercard --exp-month 12 --exp-year 2030
 code-agent platform install software-developer
+code-agent platform update software-developer
+code-agent platform uninstall software-developer
 code-agent features packages
 ```
 
-After sync, CLI feature resolution uses the platform profile/catalog cache before the generated local fallback. `code-agent platform install` downloads the signed artifact from `agent-platform` when the catalog provides an artifact URL. `--archive-path` and `CODEAGENT_FEATURE_PACKAGE_DIST_ROOT` still take precedence for explicit debug and test scenarios.
+`code-agent store ...` is an alias for the `platform` package lifecycle commands. After sync, CLI feature resolution uses the platform profile/catalog cache before the generated local fallback. `code-agent platform install` downloads the signed artifact from `agent-platform` when the catalog provides an artifact URL. `platform update` compares the installed and catalog versions before downloading; it exits without reinstalling when the installed runtime is current unless `--force` is supplied. `platform uninstall` removes the device runtime and platform install record while retaining the account purchase. `--archive-path` and `CODEAGENT_FEATURE_PACKAGE_DIST_ROOT` still take precedence for explicit debug and test scenarios.
 
 For packages marked `signed-local-bundle`, desktop and CLI install download or resolve the archive, verify its SHA-256 against the platform catalog, extract it to a temporary directory, verify the signed `artifact.json` descriptor against a trusted Ed25519 key, verify every file hash, install the package under the CodeAgent config home, persist the verified archive under `feature-package-archives`, and record the install with `agent-platform` when a platform session is active.
 
 ## Distribution And Security Model
 
-The current implementation now models app-store-style package states and builds `software-developer` as a separate signed package artifact with package-owned CLI and renderer entrypoints. It is not yet a production security boundary. Desktop and CLI both have platform purchase -> entitlement-gated artifact download -> signed artifact verify -> install -> enable flows. The desktop build currently compiles the built renderer artifact into its renderer bundle for startup compatibility, and some package-oriented host state/services remain in core, so a determined local user could still modify client state or code to bypass local gating.
+The current implementation models app-store-style package states and builds `software-developer` as a separate signed package artifact with package-owned CLI and renderer entrypoints. Desktop and CLI both have platform purchase -> entitlement-gated artifact download -> signed artifact verify -> install -> enable flows. Installed renderer artifacts load at runtime and are absent from the base desktop renderer bundle. This is not yet a complete production security boundary because package-oriented host state/services remain in core and paid remote services still require server-side enforcement.
 
 ## Platform Integration Direction
 
@@ -171,7 +191,7 @@ The local generated package catalog is now only a development fallback. The prod
 
 Platform web clients and CodeAgent local clients should be aligned at the feature level. The platform Marketplace page, CodeAgent desktop Packages page, CLI package commands, and future mobile package screens can have different layouts, but they should all reflect the same catalog item, entitlement status, install state, billing state, package manifest, and package management actions. Likewise, project workflows, chat/history, provider selection, account/profile, and package settings should be backed by the same platform service contracts and package extension metadata instead of shell-specific feature definitions.
 
-Current status: the extensibility model, separate SDK/package repos, platform catalog/profile/purchase/install API contract, local Docker platform seed, desktop platform login/register/startup sync, desktop platform catalog resolution, CLI platform sync, desktop platform-backed purchase/install scaffold, shared desktop/CLI signed artifact verification, entitlement-gated platform artifact download, and package-owned CLI Project Studio/Automation handlers are implemented. This is not yet a production app-store security boundary because paid desktop implementation code is still present in the base app and production signing-key rotation, revocation, update/uninstall lifecycle, and durable vendor artifact storage are still pending.
+Current status: the extensibility model, separate SDK/package repos, platform catalog/profile/purchase/install/uninstall API contract, local Docker platform seed, desktop platform login/register/startup sync, desktop platform catalog resolution, CLI platform sync, desktop and CLI purchase/install/update/uninstall flows, shared desktop/CLI signed artifact verification, entitlement-gated platform artifact download, and package-owned CLI Project Studio/Automation handlers are implemented. This is not yet a complete production app-store security boundary because production signing-key rotation, revocation, rollback/retry behavior, and durable vendor artifact storage are still pending.
 
 The first platform-side contract now exists in `agent-platform`:
 
@@ -180,6 +200,7 @@ The first platform-side contract now exists in `agent-platform`:
 - `GET /code-agent/packages/{package_id}/artifact`: entitlement-gated signed package artifact download.
 - `POST /code-agent/packages/{package_id}/purchase`: package purchase through platform billing/checkout.
 - `POST /code-agent/packages/{package_id}/install`: platform install registry for entitled packages.
+- `POST /code-agent/packages/{package_id}/uninstall`: removes a device install record without removing the account purchase.
 
 Initial CodeAgent client integration now includes:
 
@@ -194,6 +215,8 @@ Initial CodeAgent client integration now includes:
 - CLI register/login calls `/auth/register` and `/auth/login`, then syncs `/code-agent/catalog` and `/code-agent/profile` into CLI config.
 - CLI purchase creates a platform card summary when needed and calls `/code-agent/packages/{package_id}/purchase`.
 - CLI install downloads entitled signed artifacts, verifies them locally, and calls `/code-agent/packages/{package_id}/install` with the installed path, artifact SHA-256, and signature.
+- CLI update compares installed and catalog versions, then reuses the verified install pipeline only when a newer version is available (or when forced).
+- CLI and desktop uninstall remove the local runtime and call `/code-agent/packages/{package_id}/uninstall` while preserving ownership.
 
 Catalog unification status:
 
@@ -204,13 +227,12 @@ Catalog unification status:
 
 The next CodeAgent client changes are:
 
-- Add update, uninstall, retry, revoked-signature, and key-rotation states on top of the platform artifact download flow.
+- Add rollback, retry, revoked-signature, and key-rotation states on top of the platform artifact download flow.
 - Add cross-client parity tests that compare the platform Marketplace/catalog projection, CodeAgent desktop package view, and CLI package commands against the same catalog/profile fixtures.
 
 The production app-store model requires these remaining changes:
 
-- Ship the base app without paid package implementation code.
-- Load installed renderer artifacts at runtime after entitlement verification instead of compiling bundled renderer artifacts into the base renderer.
+- Continue extracting package-oriented host helpers and services so the base app contains no paid workflow implementation.
 - Move remaining package-oriented host state, bridge-tool registrations, automation/project services, and history surfaces out of core source into package runtime entrypoints built on the SDK.
 - Serve package manifests from a signed catalog with product SKU, version, artifact hash, signature, and compatibility metadata.
 - Process purchases through a backend account and billing service that returns signed receipts and entitlements.
@@ -218,9 +240,9 @@ The production app-store model requires these remaining changes:
 - Verify artifact hash and signature before installing into a package directory outside the base bundle.
 - Keep a local install registry for installed version, path, receipt id, signature, and update state.
 - Enforce paid remote services on the server, not in the client.
-- Support revoke, refund, cancel, past-due, uninstall, and update paths.
+- Support revoke, refund, cancel, past-due, rollback, and interrupted-install recovery paths.
 
-Until paid code is extracted from the base bundle and artifacts are signature-verified, package gating should be treated as UX and workflow scaffolding only.
+Until remaining paid workflow helpers are extracted and remote paid capabilities are enforced server-side, local package gating should not be treated as the sole security boundary.
 
 The CLI can override the profile with environment variables:
 

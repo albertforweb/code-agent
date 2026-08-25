@@ -4442,7 +4442,7 @@ async function run(): Promise<CommanderCommand> {
     process.exit(0);
   });
 
-  const platform = program.command('platform').description('Manage agent-platform account, catalog, purchase, and package install state');
+  const platform = program.command('platform').alias('store').description('Manage the CodeAgent Store account, catalog, purchases, and package lifecycle');
   platform.command('login').description('Sign in to agent-platform and sync CodeAgent entitlements').option('--base-url <url>', 'agent-platform base URL').option('--email <email>', 'Account email; can also use CODEAGENT_PLATFORM_EMAIL').option('--password <password>', 'Account password; can also use CODEAGENT_PLATFORM_PASSWORD').option('--org-id <id>', 'Tenant or organization id').action(async (options: {
     baseUrl?: string;
     email?: string;
@@ -4513,6 +4513,23 @@ async function run(): Promise<CommanderCommand> {
   }) => {
     const { platformInstallHandler } = await import('./cli/handlers/platform.js');
     await platformInstallHandler(packageId, options);
+    process.exit(0);
+  });
+  platform.command('update <packageId>').description('Update an installed CodeAgent feature package when a newer catalog version is available').option('--archive-path <path>', 'Signed package archive path').option('--installed-path <path>', 'Installed package path or package URI override').option('--version <version>', 'Installed package version override').option('--sha256 <hex>', 'Artifact SHA-256 digest').option('--signature <signature>', 'Artifact signature').option('--force', 'Reinstall even when the installed version is current').action(async (packageId: string, options: {
+    archivePath?: string;
+    installedPath?: string;
+    version?: string;
+    sha256?: string;
+    signature?: string;
+    force?: boolean;
+  }) => {
+    const { platformUpdateHandler } = await import('./cli/handlers/platform.js');
+    await platformUpdateHandler(packageId, options);
+    process.exit(0);
+  });
+  platform.command('uninstall <packageId>').description('Uninstall a feature package runtime from this device while retaining ownership').action(async (packageId: string) => {
+    const { platformUninstallHandler } = await import('./cli/handlers/platform.js');
+    await platformUninstallHandler(packageId);
     process.exit(0);
   });
   platform.command('logout').description('Clear cached agent-platform session and entitlement state').action(async () => {

@@ -28,6 +28,7 @@ import {
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
 import {
   installSignedPackageArtifact,
+  listInstalledFeaturePackageRendererSources,
   listInstalledFeaturePackageRuntimes,
   uninstallPackageArtifact,
 } from './feature-package-installer';
@@ -1769,19 +1770,12 @@ export function registerServiceBridges(
     if (manifest.distribution?.securityBoundary !== 'signed-local-bundle') {
       throw new Error(`Unsupported feature package security boundary: ${String(manifest.distribution?.securityBoundary || 'missing')}`);
     }
-    let result;
-    try {
-      result = await installSignedPackageArtifact(manifest, request.archivePath, { download: request.download });
-    } catch (error) {
-      if (!request.download || request.archivePath) {
-        throw error;
-      }
-      // A desktop release can bundle a newer signed runtime before an older
-      // platform catalog/artifact has been republished. Prefer the verified
-      // bundled archive when the platform download cannot satisfy this
-      // manifest instead of leaving the entitled package unusable.
-      result = await installSignedPackageArtifact(manifest);
-    }
+    // Separately distributed packages must be installed from the requested
+    // archive or platform artifact. Do not hide a platform download failure by
+    // retrying a bundled lookup: desktop releases intentionally do not embed
+    // paid feature-package archives, and that retry replaces the actionable
+    // HTTP/catalog error with a misleading "archive not found" message.
+    const result = await installSignedPackageArtifact(manifest, request.archivePath, { download: request.download });
     automationService.unregisterAutomationProvidersForPackage(manifest.id);
     const activated = await activateInstalledFeaturePackageRuntime(manifest.id, runtimeHostOptions);
     if (manifest.entrypoints?.runtime && manifest.supportedShells.includes('desktop') && !activated) {
@@ -1798,6 +1792,10 @@ export function registerServiceBridges(
     const result = await uninstallPackageArtifact(manifest);
     automationService.unregisterAutomationProvidersForPackage(manifest.id);
     return result;
+  });
+
+  ipcBridge.registerAppHandler('listFeaturePackageRenderers', async () => {
+    return listInstalledFeaturePackageRendererSources();
   });
 
   return {

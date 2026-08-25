@@ -47,12 +47,6 @@ for (let i = 0; i < args.length; i += 1) {
 const root = process.cwd();
 const packageJsonPath = path.join(root, 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
-const featurePackagesRoot = path.resolve(root, '../code-agent-packages');
-const featurePackageManifests = readdirSync(featurePackagesRoot, { withFileTypes: true })
-  .filter(entry => entry.isDirectory())
-  .map(entry => path.join(featurePackagesRoot, entry.name, 'manifest.json'))
-  .filter(manifestPath => existsSync(manifestPath))
-  .map(manifestPath => JSON.parse(readFileSync(manifestPath, 'utf8')));
 const buildConfig = packageJson.build ?? {};
 const productName = buildConfig.productName ?? 'CodeAgent';
 const appId = buildConfig.appId ?? 'com.albertforweb.codeagent';
@@ -70,7 +64,6 @@ const updateConfigPath = path.join(resourcesPath, 'app-update.yml');
 const iconPath = path.join(resourcesPath, 'icon.icns');
 const inferenceEngineRoot = path.join(resourcesPath, 'llama.cpp');
 const bundledModelsRoot = path.join(resourcesPath, 'models');
-const bundledFeaturePackagesRoot = path.join(resourcesPath, 'code-agent-packages', 'dist-feature-packages');
 
 mustExist(appPath, 'packaged macOS app');
 mustExist(infoPlistPath, 'Info.plist');
@@ -81,12 +74,9 @@ mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp in
 mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
 mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
 mustContainFile(bundledModelsRoot, 'Qwen3-4B-Q4_K_M.gguf', 'bundled offline agent model');
-for (const manifest of featurePackageManifests) {
-  mustContainFile(
-    bundledFeaturePackagesRoot,
-    `${manifest.productSku}-${manifest.version}.tgz`,
-    `bundled ${manifest.displayName || manifest.id} feature package`,
-  );
+const bundledFeaturePackagesRoot = path.join(resourcesPath, 'code-agent-packages', 'dist-feature-packages');
+if (existsSync(bundledFeaturePackagesRoot)) {
+  failures.push('Desktop core package must not embed separately distributed feature package artifacts.');
 }
 
 if (existsSync(infoPlistPath)) {

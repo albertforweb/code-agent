@@ -135,7 +135,7 @@ The default local repo layout is:
 - `../code-agent-packages`
 - `../code-agent`
 
-Feature package artifacts are written to `../code-agent-packages/dist-feature-packages/`. Runtime, CLI, and renderer entrypoints implement contracts from `code-agent-sdk`; the generated core registries consume manifests and built artifacts without importing package-specific source contracts. The strict package-boundary verifier enforces this separation. Runtime loading of entitled renderer artifacts and extraction of remaining package-oriented host services are tracked separately from the contract boundary.
+Feature package artifacts are written to `../code-agent-packages/dist-feature-packages/`. Runtime, CLI, and renderer entrypoints implement contracts from `code-agent-sdk`. The core generates only the development catalog projection; it discovers installed renderer entrypoints at runtime and registers them through `FeaturePackageRendererModule`. The base desktop bundle neither statically imports renderer artifacts nor embeds feature-package archives. The strict package-boundary verifier enforces this separation. Extraction of remaining package-oriented host services is tracked separately.
 
 ## CLI
 

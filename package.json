@@ -11,6 +11,9 @@
   },
   "files": [
     "dist",
+    "!dist/src/renderer/**",
+    "!dist/src/features/load-feature-package-renderers.js",
+    "!dist/src/features/feature-package-renderers.js",
     "docs/macos-cli-distribution.md",
     "README.md"
   ],
@@ -208,13 +211,6 @@
       "node_modules/**"
     ],
     "extraResources": [
-      {
-        "from": "../code-agent-packages/dist-feature-packages",
-        "to": "code-agent-packages/dist-feature-packages",
-        "filter": [
-          "**/*"
-        ]
-      },
       {
         "from": "electron/resources/llama.cpp",
         "to": "llama.cpp"

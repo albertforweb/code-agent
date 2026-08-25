@@ -91,7 +91,21 @@ export async function featuresSummaryHandler(): Promise<void> {
 export async function featuresPackagesHandler(): Promise<void> {
   const resolution = resolveCliFeaturePackages();
   for (const entry of resolution.packages) {
-    console.log(`${entry.manifest.id}\t${entry.state}\t${entry.installState}\t${entry.manifest.productSku}\t${entry.reason}\t${entry.installReason}`);
+    const profile = resolution.profile;
+    const install = [...profile.packageInstallRecords]
+      .reverse()
+      .find(record => record.packageId === entry.manifest.id);
+    const availableVersion = entry.manifest.distribution.artifact.version || entry.manifest.version;
+    console.log([
+      entry.manifest.id,
+      entry.state,
+      entry.installState,
+      install?.version ?? '-',
+      availableVersion,
+      entry.manifest.productSku,
+      entry.reason,
+      entry.installReason,
+    ].join('\t'));
   }
 }
 

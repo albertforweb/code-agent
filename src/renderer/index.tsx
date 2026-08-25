@@ -3,8 +3,9 @@
  * This is the UI layer that runs in the Electron renderer process
  */
 
+import * as React from 'react';
 import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import { loadInstalledFeaturePackageRenderers } from '../features/load-feature-package-renderers';
 import './styles/global.css';
 
 /**
@@ -12,6 +13,10 @@ import './styles/global.css';
  */
 async function initializeRenderer() {
   try {
+    await loadInstalledFeaturePackageRenderers(React).catch(error => {
+      console.error('Unable to load installed feature package renderers:', error);
+    });
+    const { App } = await import('./App');
     const root = ReactDOM.createRoot(document.getElementById('root')!);
     // Desktop startup performs real IPC, secure-session restoration, and
     // service hydration. React StrictMode intentionally replays mount effects

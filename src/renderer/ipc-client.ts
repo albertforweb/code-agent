@@ -410,6 +410,12 @@ export interface FeaturePackageInstallResult {
   version: string;
 }
 
+export interface FeaturePackageRendererSource {
+  packageId: string;
+  version: string;
+  source: string;
+}
+
 export interface FeaturePackageUninstallRequest {
   manifest: Record<string, any>;
 }
@@ -851,6 +857,7 @@ export interface ElectronRendererApi {
     setState(state: any): Promise<void>;
     installFeaturePackage(request: FeaturePackageInstallRequest): Promise<FeaturePackageInstallResult>;
     uninstallFeaturePackage(request: FeaturePackageUninstallRequest): Promise<FeaturePackageUninstallResult>;
+    listFeaturePackageRenderers(): Promise<FeaturePackageRendererSource[]>;
   };
   window: {
     minimize(): Promise<void>;
@@ -980,6 +987,7 @@ export const ipcClient: ElectronRendererApi = {
     setState: state => getApi().app.setState(state),
     installFeaturePackage: request => getApi().app.installFeaturePackage(request),
     uninstallFeaturePackage: request => getApi().app.uninstallFeaturePackage(request),
+    listFeaturePackageRenderers: () => getApi().app.listFeaturePackageRenderers(),
   },
   window: {
     minimize: () => getApi().window.minimize(),

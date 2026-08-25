@@ -4,11 +4,14 @@ import type {
   FeaturePackageRendererModule,
   FeaturePackageRendererView,
 } from '@codeagent/feature-package-sdk';
-import { EXTERNAL_FEATURE_PACKAGE_RENDERER_MODULES } from './package-renderers/generated';
+const modulesByPackageId = new Map<string, FeaturePackageRendererModule>();
 
-const modulesByPackageId = new Map<string, FeaturePackageRendererModule>(
-  EXTERNAL_FEATURE_PACKAGE_RENDERER_MODULES.map(module => [module.packageId, module]),
-);
+export function registerFeaturePackageRendererModule(module: FeaturePackageRendererModule): void {
+  if (!module.packageId || typeof module.createContribution !== 'function') {
+    throw new Error('Feature package renderer does not implement the SDK renderer contract.');
+  }
+  modulesByPackageId.set(module.packageId, module);
+}
 
 export function createFeaturePackageRendererContribution(
   packageId: string | undefined,
@@ -25,6 +28,6 @@ export function getFeaturePackageRendererView(
   return contribution?.views[viewId];
 }
 
-export function getBundledFeaturePackageRendererIds(): string[] {
+export function getRegisteredFeaturePackageRendererIds(): string[] {
   return [...modulesByPackageId.keys()].sort();
 }

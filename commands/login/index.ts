@@ -7,8 +7,8 @@ export default () =>
     type: 'local-jsx',
     name: 'login',
     description: hasLlmProviderApiKeyAuth()
-      ? 'Switch accounts or configure a local provider'
-      : 'Sign in or configure an LLM provider',
+      ? 'Switch CodeAgent accounts or configure an LLM provider'
+      : 'Sign in to CodeAgent or configure an LLM provider',
     immediate: true,
     isEnabled: () => !isEnvTruthy(process.env.DISABLE_LOGIN_COMMAND),
     load: () => import('./login.js'),

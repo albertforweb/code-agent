@@ -515,6 +515,12 @@ export interface FeaturePackageInstallResult {
   version: string;
 }
 
+export interface FeaturePackageRendererSource {
+  packageId: string;
+  version: string;
+  source: string;
+}
+
 export interface FeaturePackageUninstallRequest {
   manifest: Record<string, any>;
 }
@@ -968,6 +974,7 @@ export const IPC_CHANNELS = {
   'app:setState': 'app:setState',
   'app:installFeaturePackage': 'app:installFeaturePackage',
   'app:uninstallFeaturePackage': 'app:uninstallFeaturePackage',
+  'app:listFeaturePackageRenderers': 'app:listFeaturePackageRenderers',
   'app:configChanged': 'app:configChanged',
   'app:stateChanged': 'app:stateChanged',
 

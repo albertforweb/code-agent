@@ -1,7 +1,7 @@
 import type { FeaturePackageManifest } from '@codeagent/feature-package-sdk';
 import { createHash, createPublicKey, verify } from 'crypto';
 import { existsSync } from 'fs';
-import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
+import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'fs/promises';
 import { homedir, tmpdir } from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
@@ -42,6 +42,39 @@ export interface InstalledFeaturePackageRuntime {
   packageId: string;
   version: string;
   installedPath: string;
+}
+
+export interface InstalledFeaturePackageRendererSource {
+  packageId: string;
+  version: string;
+  source: string;
+}
+
+export async function listInstalledFeaturePackageRendererSources(): Promise<InstalledFeaturePackageRendererSource[]> {
+  const runtimes = await listInstalledFeaturePackageRuntimes();
+  const latestByPackage = new Map<string, InstalledFeaturePackageRuntime>();
+  for (const runtime of runtimes) {
+    if (!latestByPackage.has(runtime.packageId)) latestByPackage.set(runtime.packageId, runtime);
+  }
+
+  const sources: InstalledFeaturePackageRendererSource[] = [];
+  for (const runtime of latestByPackage.values()) {
+    const manifest = JSON.parse(await readFile(path.join(runtime.installedPath, 'manifest.json'), 'utf8')) as FeaturePackageManifest;
+    const rendererEntrypoint = manifest.entrypoints?.renderer;
+    if (!rendererEntrypoint || !manifest.supportedShells.includes('desktop')) continue;
+
+    const canonicalRoot = await realpath(runtime.installedPath);
+    const canonicalRenderer = await realpath(path.resolve(runtime.installedPath, rendererEntrypoint));
+    if (canonicalRenderer !== canonicalRoot && !canonicalRenderer.startsWith(`${canonicalRoot}${path.sep}`)) {
+      throw new Error(`Renderer entrypoint escapes its installed package: ${rendererEntrypoint}`);
+    }
+    sources.push({
+      packageId: manifest.id,
+      version: String(manifest.version),
+      source: await readFile(canonicalRenderer, 'utf8'),
+    });
+  }
+  return sources.sort((left, right) => left.packageId.localeCompare(right.packageId));
 }
 
 /**

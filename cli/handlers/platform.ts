@@ -3,7 +3,13 @@ import {
   type FeatureEntitlementProfile,
   type FeaturePackageManifest,
 } from '../../src/features/feature-packages.js';
-import { installSignedPackageArtifact } from '../../electron/feature-package-installer.js';
+import semver from 'semver';
+import {
+  installSignedPackageArtifact,
+  listInstalledFeaturePackageRuntimes,
+  uninstallPackageArtifact,
+  type FeaturePackageLocalInstallResult,
+} from '../../electron/feature-package-installer.js';
 import { getGlobalConfig, saveGlobalConfig } from '../../utils/config.js';
 
 export interface CliPlatformState {
@@ -48,6 +54,15 @@ interface PlatformPackageActionResponse {
   profile: FeatureEntitlementProfile;
   order?: Record<string, unknown>;
   install?: Record<string, unknown>;
+  uninstall?: Record<string, unknown>;
+}
+
+interface PlatformPackageInstallOptions {
+  installedPath?: string;
+  archivePath?: string;
+  version?: string;
+  sha256?: string;
+  signature?: string;
 }
 
 interface PlatformPaymentMethodResponse {
@@ -90,6 +105,24 @@ export async function platformLoginHandler(options: {
   password?: string;
   orgId?: string;
 }): Promise<void> {
+  const synced = await loginToAgentPlatform(options);
+  printJson({
+    ok: true,
+    action: 'login',
+    baseUrl: synced.baseUrl,
+    orgId: synced.orgId,
+    email: synced.email,
+    lastSyncedAt: synced.lastSyncedAt,
+    profile: synced.featureProfile,
+  });
+}
+
+export async function loginToAgentPlatform(options: {
+  baseUrl?: string;
+  email?: string;
+  password?: string;
+  orgId?: string;
+}): Promise<CliPlatformState> {
   const baseUrl = resolvePlatformBaseUrl(options.baseUrl);
   const email = requireValue(options.email ?? process.env.CODEAGENT_PLATFORM_EMAIL, 'platform login requires --email or CODEAGENT_PLATFORM_EMAIL');
   const password = requireValue(options.password ?? process.env.CODEAGENT_PLATFORM_PASSWORD, 'platform login requires --password or CODEAGENT_PLATFORM_PASSWORD');
@@ -111,16 +144,7 @@ export async function platformLoginHandler(options: {
     displayName: login.session?.name ?? email,
   });
 
-  const synced = await syncPlatformState();
-  printJson({
-    ok: true,
-    action: 'login',
-    baseUrl: synced.baseUrl,
-    orgId: synced.orgId,
-    email: synced.email,
-    lastSyncedAt: synced.lastSyncedAt,
-    profile: synced.featureProfile,
-  });
+  return syncPlatformState();
 }
 
 export async function platformRegisterHandler(options: {
@@ -244,52 +268,90 @@ export async function platformPurchaseHandler(packageId: string, options: {
   });
 }
 
-export async function platformInstallHandler(packageId: string, options: {
-  installedPath?: string;
-  archivePath?: string;
-  version?: string;
-  sha256?: string;
-  signature?: string;
+export async function platformInstallHandler(
+  packageId: string,
+  options: PlatformPackageInstallOptions = {},
+): Promise<void> {
+  const state = await syncPlatformState();
+  const installed = await installPlatformPackage(state, packageId, options);
+
+  printJson({
+    ok: true,
+    action: 'install',
+    packageId,
+    localInstall: installed.localInstall,
+    install: installed.result.install,
+    profile: normalizeFeatureProfile(installed.result.profile),
+  });
+}
+
+export async function platformUpdateHandler(packageId: string, options: PlatformPackageInstallOptions & {
+  force?: boolean;
 } = {}): Promise<void> {
   const state = await syncPlatformState();
-  const manifest = state.featurePackageCatalog?.find(entry => entry.id === packageId);
-  if (!manifest) {
-    throw new Error(`Package not found in platform catalog: ${packageId}`);
+  const manifest = requirePlatformPackageManifest(state, packageId);
+  assertInstallablePackage(manifest, 'update');
+  const runtimes = (await listInstalledFeaturePackageRuntimes())
+    .filter(runtime => runtime.packageId === packageId);
+  const installedVersion = runtimes[0]?.version;
+  if (!installedVersion) {
+    throw new Error(`Package ${packageId} is not installed on this device. Use \`code-agent store install ${packageId}\` first.`);
   }
-  const artifact = manifest.distribution.artifact;
-  const localInstall = manifest.distribution.securityBoundary === 'signed-local-bundle'
-    ? await installSignedPackageArtifact(manifest, options.archivePath, {
-        download: options.archivePath ? undefined : platformPackageArtifactDownload(state, manifest),
-      })
-    : undefined;
+  const availableVersion = String(manifest.distribution.artifact.version || manifest.version);
+  if (!options.force && !isNewerVersion(availableVersion, installedVersion)) {
+    printJson({
+      ok: true,
+      action: 'update',
+      packageId,
+      updated: false,
+      installedVersion,
+      availableVersion,
+      message: `Package ${packageId} is already up to date.`,
+    });
+    return;
+  }
+
+  const installed = await installPlatformPackage(state, packageId, options);
+  printJson({
+    ok: true,
+    action: 'update',
+    packageId,
+    updated: true,
+    previousVersion: installedVersion,
+    installedVersion: installed.localInstall?.version ?? availableVersion,
+    availableVersion,
+    localInstall: installed.localInstall,
+    install: installed.result.install,
+    profile: normalizeFeatureProfile(installed.result.profile),
+  });
+}
+
+export async function platformUninstallHandler(packageId: string): Promise<void> {
+  const state = await syncPlatformState();
+  const manifest = requirePlatformPackageManifest(state, packageId);
+  assertInstallablePackage(manifest, 'uninstall');
   const result = await readPlatformJson<PlatformPackageActionResponse>(
     state.baseUrl!,
-    `/code-agent/packages/${encodeURIComponent(packageId)}/install`,
+    `/code-agent/packages/${encodeURIComponent(packageId)}/uninstall`,
     state.accessToken,
     {
       method: 'POST',
-      body: JSON.stringify({
-        ...(state.orgId ? { org_id: state.orgId } : {}),
-        version: options.version ?? localInstall?.version ?? artifact.version,
-        installed_path: options.installedPath ?? localInstall?.installedPath ?? artifact.bundlePath,
-        sha256: options.sha256 ?? localInstall?.sha256 ?? artifact.sha256,
-        signature: options.signature ?? localInstall?.signature ?? artifact.signature,
-      }),
+      body: JSON.stringify(state.orgId ? { org_id: state.orgId } : {}),
     },
   );
+  const localUninstall = await uninstallPackageArtifact(manifest);
   saveCliPlatformState({
     ...state,
     orgId: result.org_id ?? state.orgId,
     featureProfile: normalizeFeatureProfile(result.profile),
     lastSyncedAt: new Date().toISOString(),
   });
-
   printJson({
     ok: true,
-    action: 'install',
+    action: 'uninstall',
     packageId,
-    localInstall,
-    install: result.install,
+    localUninstall,
+    uninstall: result.uninstall,
     profile: normalizeFeatureProfile(result.profile),
   });
 }
@@ -355,6 +417,70 @@ async function fetchPlatformFeatureCatalog(
     `/code-agent/catalog${platformOrgQuery(orgId)}`,
     token,
   );
+}
+
+async function installPlatformPackage(
+  state: CliPlatformState,
+  packageId: string,
+  options: PlatformPackageInstallOptions,
+): Promise<{
+  localInstall?: FeaturePackageLocalInstallResult;
+  result: PlatformPackageActionResponse;
+}> {
+  const manifest = requirePlatformPackageManifest(state, packageId);
+  assertInstallablePackage(manifest, 'install');
+  const artifact = manifest.distribution.artifact;
+  const localInstall = manifest.distribution.securityBoundary === 'signed-local-bundle'
+    ? await installSignedPackageArtifact(manifest, options.archivePath, {
+        download: options.archivePath ? undefined : platformPackageArtifactDownload(state, manifest),
+      })
+    : undefined;
+  const result = await readPlatformJson<PlatformPackageActionResponse>(
+    state.baseUrl!,
+    `/code-agent/packages/${encodeURIComponent(packageId)}/install`,
+    state.accessToken,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        ...(state.orgId ? { org_id: state.orgId } : {}),
+        version: options.version ?? localInstall?.version ?? artifact.version,
+        installed_path: options.installedPath ?? localInstall?.installedPath ?? artifact.bundlePath,
+        sha256: options.sha256 ?? localInstall?.sha256 ?? artifact.sha256,
+        signature: options.signature ?? localInstall?.signature ?? artifact.signature,
+      }),
+    },
+  );
+  saveCliPlatformState({
+    ...state,
+    orgId: result.org_id ?? state.orgId,
+    featureProfile: normalizeFeatureProfile(result.profile),
+    lastSyncedAt: new Date().toISOString(),
+  });
+  return { localInstall, result };
+}
+
+function requirePlatformPackageManifest(state: CliPlatformState, packageId: string): FeaturePackageManifest {
+  const manifest = state.featurePackageCatalog?.find(entry => entry.id === packageId);
+  if (!manifest) {
+    throw new Error(`Package not found in platform catalog: ${packageId}`);
+  }
+  return manifest;
+}
+
+function assertInstallablePackage(manifest: FeaturePackageManifest, action: string): void {
+  if (!manifest.distribution.installRequired || manifest.distribution.mode === 'bundled') {
+    throw new Error(`Package ${manifest.id} is bundled with CodeAgent and cannot be ${action}ed separately.`);
+  }
+}
+
+function isNewerVersion(availableVersion: string, installedVersion: string): boolean {
+  if (semver.valid(availableVersion) && semver.valid(installedVersion)) {
+    return semver.gt(availableVersion, installedVersion);
+  }
+  return availableVersion.localeCompare(installedVersion, undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  }) > 0;
 }
 
 function platformPackageArtifactDownload(
@@ -536,7 +662,7 @@ function resolvePlatformBaseUrl(explicit?: string): string {
     explicit ??
     process.env.CODEAGENT_PLATFORM_BASE_URL ??
     readCliPlatformState()?.baseUrl ??
-    'http://127.0.0.1:8000',
+    'https://app.crovyn.com',
   );
 }
 
@@ -557,6 +683,21 @@ function derivePlatformOrgId(login: PlatformLoginResponse, fallback?: string): s
 
 function platformStateSummary(state: CliPlatformState): Record<string, unknown> {
   const profile = state.featureProfile ? normalizeFeatureProfile(state.featureProfile) : undefined;
+  const packageInstallRecords = profile?.packageInstallRecords ?? [];
+  const packages = (state.featurePackageCatalog ?? []).map(manifest => {
+    const install = [...packageInstallRecords].reverse().find(record => record.packageId === manifest.id);
+    const installedVersion = install?.state === 'installed' || install?.state === 'update-available'
+      ? install.version
+      : undefined;
+    const availableVersion = String(manifest.distribution.artifact.version || manifest.version);
+    return {
+      id: manifest.id,
+      installedVersion,
+      availableVersion,
+      updateAvailable: Boolean(installedVersion && isNewerVersion(availableVersion, installedVersion)),
+      bundled: !manifest.distribution.installRequired || manifest.distribution.mode === 'bundled',
+    };
+  });
   return {
     configured: Boolean(state.accessToken),
     baseUrl: state.baseUrl,
@@ -570,6 +711,7 @@ function platformStateSummary(state: CliPlatformState): Record<string, unknown> 
     purchasedPackageIds: profile?.purchasedPackageIds ?? [],
     installedPackageIds: profile?.installedPackageIds ?? [],
     catalogPackages: state.featurePackageCatalog?.map(entry => entry.id) ?? [],
+    packages,
   };
 }
 

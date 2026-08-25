@@ -2,6 +2,7 @@ import { c as _c } from "react/compiler-runtime";
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { type AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS, logEvent } from 'src/services/analytics/index.js';
 import { installOAuthTokens } from '../cli/handlers/auth.js';
+import { loginToAgentPlatform, readCliPlatformState } from '../cli/handlers/platform.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import reconciler from '../ink/reconciler.js';
 import { setClipboard } from '../ink/termio/osc.js';
@@ -67,22 +68,26 @@ type OAuthStatus = {
   message: string;
   toRetry?: OAuthStatus;
 };
-type LoginMethod = 'subscription' | 'console' | 'platform' | 'local' | 'skip';
+type LoginMethod = 'agent-platform' | 'subscription' | 'console' | 'platform' | 'local' | 'skip';
 const LOGIN_METHOD_OPTIONS: {
   value: LoginMethod;
   title: string;
   detail: string;
 }[] = [{
+  value: 'agent-platform',
+  title: 'CodeAgent account',
+  detail: 'Sign in to agent-platform and sync packages'
+}, {
   value: 'subscription',
-  title: 'Subscription account',
+  title: 'LLM subscription account',
   detail: 'Pro, Max, Team, or Enterprise'
 }, {
   value: 'console',
-  title: 'API billing account',
+  title: 'LLM API billing account',
   detail: 'API usage billing'
 }, {
   value: 'platform',
-  title: '3rd-party platform',
+  title: '3rd-party LLM platform',
   detail: 'Amazon Bedrock, Microsoft Foundry, or Vertex AI'
 }, {
   value: 'local',
@@ -193,6 +198,7 @@ export function ConsoleOAuthFlow({
   const [pastedCode, setPastedCode] = useState('');
   const [cursorOffset, setCursorOffset] = useState(0);
   const [focusedLoginMethodIndex, setFocusedLoginMethodIndex] = useState(0);
+  const [showAgentPlatformLogin, setShowAgentPlatformLogin] = useState(false);
   const [oauthService] = useState(() => new OAuthService());
   const [loginWithSubscription, setLoginWithSubscription] = useState(() => {
     // Use subscription auth for setup-token mode to support user:inference scope
@@ -227,7 +233,7 @@ export function ConsoleOAuthFlow({
     }
   }, [oauthStatus]);
 
-  const localTextInputActive = oauthStatus.state === 'local_setup_base_url' || oauthStatus.state === 'local_setup_model';
+  const localTextInputActive = showAgentPlatformLogin || oauthStatus.state === 'local_setup_base_url' || oauthStatus.state === 'local_setup_model';
   useEffect(() => {
     onTextInputActiveChange?.(localTextInputActive);
   }, [localTextInputActive, onTextInputActiveChange]);
@@ -452,6 +458,11 @@ export function ConsoleOAuthFlow({
       onDone();
       return;
     }
+    if (value === 'agent-platform') {
+      logEvent('tengu_agent_platform_login_selected', {});
+      setShowAgentPlatformLogin(true);
+      return;
+    }
     if (value === 'platform') {
       logEvent('tengu_oauth_platform_selected', {});
       setOAuthStatus({
@@ -481,7 +492,7 @@ export function ConsoleOAuthFlow({
   }, [startOAuth, onDone]);
   useInput((input, key, event) => {
     if (oauthStatus.state !== 'idle') return;
-    const selectedDigit = input.match(/[1-5]/)?.[0];
+    const selectedDigit = input.match(/[1-6]/)?.[0];
     if (selectedDigit) {
       const index = Number(selectedDigit) - 1;
       setFocusedLoginMethodIndex(index);
@@ -510,7 +521,7 @@ export function ConsoleOAuthFlow({
       event.stopImmediatePropagation();
     }
   }, {
-    isActive: oauthStatus.state === 'idle'
+    isActive: oauthStatus.state === 'idle' && !showAgentPlatformLogin
   });
   useEffect(() => {
     if (oauthStatus.state === 'ready_to_start' && !pendingOAuthStartRef.current) {
@@ -541,6 +552,12 @@ export function ConsoleOAuthFlow({
       oauthService.cleanup();
     };
   }, [oauthService]);
+  if (showAgentPlatformLogin) {
+    return <AgentPlatformLoginFlow
+      onDone={onDone}
+      onBack={() => setShowAgentPlatformLogin(false)}
+    />;
+  }
   return <Box flexDirection="column" gap={1}>
       {oauthStatus.state === 'waiting_for_login' && showPastePrompt && <Box flexDirection="column" key="urlToCopy" gap={1} paddingBottom={1}>
           <Box paddingX={1}>
@@ -576,6 +593,80 @@ export function ConsoleOAuthFlow({
         <OAuthStatusMessage oauthStatus={oauthStatus} mode={mode} startingMessage={startingMessage} forcedMethodMessage={forcedMethodMessage} showPastePrompt={showPastePrompt} pastedCode={pastedCode} setPastedCode={setPastedCode} cursorOffset={cursorOffset} setCursorOffset={setCursorOffset} textInputColumns={textInputColumns} handleSubmitCode={handleSubmitCode} setOAuthStatus={setOAuthStatus} focusedLoginMethodIndex={focusedLoginMethodIndex} localBaseUrl={localBaseUrl} setLocalBaseUrl={setLocalBaseUrl} localBaseUrlCursorOffset={localBaseUrlCursorOffset} setLocalBaseUrlCursorOffset={setLocalBaseUrlCursorOffset} localModel={localModel} setLocalModel={setLocalModel} localModelCursorOffset={localModelCursorOffset} setLocalModelCursorOffset={setLocalModelCursorOffset} handleLocalBaseUrlSubmit={handleLocalBaseUrlSubmit} handleLocalModelSubmit={handleLocalModelSubmit} />
       </Box>
     </Box>;
+}
+
+function AgentPlatformLoginFlow({ onDone, onBack }: { onDone(): void; onBack(): void }): React.ReactNode {
+  const existing = readCliPlatformState();
+  const [step, setStep] = useState<'base-url' | 'email' | 'password' | 'submitting'>('base-url');
+  const [baseUrl, setBaseUrl] = useState(
+    process.env.CODEAGENT_PLATFORM_BASE_URL ?? existing?.baseUrl ?? 'https://app.crovyn.com',
+  );
+  const [email, setEmail] = useState(existing?.email ?? process.env.CODEAGENT_PLATFORM_EMAIL ?? '');
+  const [password, setPassword] = useState('');
+  const [baseUrlCursorOffset, setBaseUrlCursorOffset] = useState(baseUrl.length);
+  const [emailCursorOffset, setEmailCursorOffset] = useState(email.length);
+  const [passwordCursorOffset, setPasswordCursorOffset] = useState(0);
+  const [error, setError] = useState('');
+  const columns = Math.max(20, useTerminalSize().columns - 12);
+
+  useInput((_input, key) => {
+    if (key.escape && step !== 'submitting') {
+      onBack();
+    }
+  });
+
+  async function submitPassword(value: string): Promise<void> {
+    const nextPassword = value || password;
+    if (!nextPassword) {
+      setError('Password is required.');
+      return;
+    }
+    setPassword(nextPassword);
+    setError('');
+    setStep('submitting');
+    try {
+      await loginToAgentPlatform({ baseUrl, email, password: nextPassword });
+      onDone();
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : String(loginError));
+      setPassword('');
+      setPasswordCursorOffset(0);
+      setStep('password');
+    }
+  }
+
+  return <Box flexDirection="column" gap={1} marginTop={1}>
+    <Text bold>Sign in to your CodeAgent account</Text>
+    <Text dimColor>Authenticates with agent-platform and synchronizes your profile, entitlements, and packages.</Text>
+    {error && <Text color="error">{error}</Text>}
+    {step === 'base-url' && <Box flexDirection="column">
+      <Text>agent-platform URL</Text>
+      <Box><Text>URL {'>'} </Text><TextInput value={baseUrl} onChange={setBaseUrl} onSubmit={value => {
+        setBaseUrl(value.trim() || 'https://app.crovyn.com');
+        setStep('email');
+      }} columns={columns} cursorOffset={baseUrlCursorOffset} onChangeCursorOffset={setBaseUrlCursorOffset} focus showCursor /></Box>
+      <Text dimColor>Press Enter to continue. Use https://app.crovyn.com for production.</Text>
+    </Box>}
+    {step === 'email' && <Box flexDirection="column">
+      <Text>Email</Text>
+      <Box><Text>Email {'>'} </Text><TextInput value={email} onChange={setEmail} onSubmit={value => {
+        const nextEmail = value.trim();
+        if (!nextEmail) {
+          setError('Email is required.');
+          return;
+        }
+        setError('');
+        setEmail(nextEmail);
+        setStep('password');
+      }} columns={columns} cursorOffset={emailCursorOffset} onChangeCursorOffset={setEmailCursorOffset} focus showCursor /></Box>
+    </Box>}
+    {step === 'password' && <Box flexDirection="column">
+      <Text>Password</Text>
+      <Box><Text>Password {'>'} </Text><TextInput value={password} onChange={setPassword} onSubmit={value => void submitPassword(value)} columns={columns} cursorOffset={passwordCursorOffset} onChangeCursorOffset={setPasswordCursorOffset} mask="*" focus showCursor /></Box>
+    </Box>}
+    {step === 'submitting' && <Box><Spinner /> <Text>Signing in and synchronizing account…</Text></Box>}
+    <Text dimColor>Press Esc to cancel, or run `code-agent platform login` for non-interactive use.</Text>
+  </Box>;
 }
 type OAuthStatusMessageProps = {
   oauthStatus: OAuthStatus;
@@ -632,10 +723,10 @@ function OAuthStatusMessage(t0) {
   switch (oauthStatus.state) {
     case "idle":
       {
-        const t1 = startingMessage ? startingMessage : "CodeAgent can use a local LLM backend, an API key, or a supported subscription account.";
+        const t1 = startingMessage ? startingMessage : "Sign in to CodeAgent for account features, or configure an LLM provider for model access.";
         return <Box flexDirection="column" gap={1} marginTop={1}>
             <Text bold={true}>{t1}</Text>
-            <Text>Select login method or skip:</Text>
+            <Text>Select an account or provider setup:</Text>
             <Box flexDirection="column">
               {LOGIN_METHOD_OPTIONS.map((option, index) => {
               const focused = index === focusedLoginMethodIndex;
@@ -648,7 +739,7 @@ function OAuthStatusMessage(t0) {
                   </Box>;
             })}
             </Box>
-            <Text dimColor={true}>Use ↑/↓ or 1-5, then Enter.</Text>
+            <Text dimColor={true}>Use ↑/↓ or 1-6, then Enter.</Text>
           </Box>;
       }
     case "platform_setup":

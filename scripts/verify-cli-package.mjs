@@ -40,6 +40,9 @@ const forbiddenPackagePrefixes = [
   'package/dist-electron/',
   'package/dist-renderer/',
   'package/renderer/',
+  'package/dist/src/renderer/',
+  'package/dist/src/features/load-feature-package-renderers.js',
+  'package/dist/src/features/feature-package-renderers.js',
 ];
 
 const disallowedContentTerms = [
@@ -62,8 +65,7 @@ const textExtensions = new Set([
 ]);
 
 function fail(message) {
-  console.error(`ERROR: ${message}`);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function run(command, args, options = {}) {
@@ -79,13 +81,11 @@ function run(command, args, options = {}) {
   return result;
 }
 
-function parseNpmJson(stdout) {
-  const start = stdout.indexOf('[');
-  const end = stdout.lastIndexOf(']');
-  if (start === -1 || end === -1 || end < start) {
-    fail(`npm pack did not return JSON output:\n${stdout}`);
-  }
-  return JSON.parse(stdout.slice(start, end + 1));
+function parseNpmPackFilename(stdout) {
+  return stdout
+    .split('\n')
+    .map(line => line.trim())
+    .find(line => /^code-agent-.*\.tgz$/.test(line));
 }
 
 function listFiles(root) {
@@ -148,6 +148,30 @@ function assertCliSmoke() {
     fail(`unexpected CLI version output: ${result.stdout.trim()}`);
   }
 
+  const platformHelp = run(process.execPath, ['dist/entrypoints/cli.js', 'platform', '--help']);
+  for (const command of [
+    'register',
+    'login',
+    'sync',
+    'status',
+    'profile',
+    'catalog',
+    'purchase',
+    'install',
+    'update',
+    'uninstall',
+    'logout',
+  ]) {
+    if (!platformHelp.stdout.includes(command)) {
+      fail(`CLI platform help is missing ${command}: ${platformHelp.stdout.trim()}`);
+    }
+  }
+
+  const storeHelp = run(process.execPath, ['dist/entrypoints/cli.js', 'store', '--help']);
+  if (!storeHelp.stdout.includes('purchase') || !storeHelp.stdout.includes('uninstall')) {
+    fail(`CLI store alias does not expose package lifecycle commands: ${storeHelp.stdout.trim()}`);
+  }
+
   const featuresResult = run(process.execPath, ['dist/entrypoints/cli.js', 'features', 'packages']);
   for (const manifest of featurePackageManifests) {
     if (!featuresResult.stdout.includes(manifest.id) || !featuresResult.stdout.includes('locked')) {
@@ -204,8 +228,9 @@ function assertTarball(tarballPath) {
   }
 
   fs.mkdirSync(extractDir, { recursive: true });
-  run('tar', ['-xzf', tarballPath, '-C', extractDir]);
+  run('tar', ['-xzf', tarballPath, '-C', extractDir, '--exclude=package/dist/resources']);
   scanExtractedContent(path.join(extractDir, 'package'));
+  return entries.length;
 }
 
 function assertIsolatedInstall(tarballPath) {
@@ -265,24 +290,35 @@ try {
   assertBuildOutput();
   assertCliSmoke();
 
-  const packResult = run('npm', [
-    'pack',
-    '--json',
-    '--pack-destination',
-    tempDir,
-  ]);
-  const [packInfo] = parseNpmJson(packResult.stdout);
-  if (!packInfo?.filename) {
-    fail('npm pack output did not include a filename');
+  const releaseTarball = path.resolve(
+    process.env.CODEAGENT_CLI_PACKAGE
+      ?? path.join(repoRoot, 'dist-build', 'cli', `code-agent-${packageJson.version}.tgz`),
+  );
+  let tarballPath = releaseTarball;
+  if (!fs.existsSync(tarballPath)) {
+    const packResult = run('npm', [
+      'pack',
+      '--silent',
+      '--pack-destination',
+      tempDir,
+    ]);
+    const packedFilename = parseNpmPackFilename(packResult.stdout);
+    if (!packedFilename) {
+      fail('npm pack output did not include a filename');
+    }
+    tarballPath = path.join(tempDir, packedFilename);
   }
 
-  const tarballPath = path.join(tempDir, packInfo.filename);
-  assertTarball(tarballPath);
+  const filename = path.basename(tarballPath);
+  const entryCount = assertTarball(tarballPath);
   assertIsolatedInstall(tarballPath);
 
-  console.log(`CLI package verified: ${packInfo.filename}`);
-  console.log(`Entries: ${packInfo.entryCount}, size: ${packInfo.size} bytes`);
+  console.log(`CLI package verified: ${filename}`);
+  console.log(`Entries: ${entryCount}, size: ${fs.statSync(tarballPath).size} bytes`);
   console.log('Isolated install smoke passed');
+} catch (error) {
+  console.error(`ERROR: ${error instanceof Error ? error.message : String(error)}`);
+  process.exitCode = 1;
 } finally {
   fs.rmSync(tempDir, { recursive: true, force: true });
 }

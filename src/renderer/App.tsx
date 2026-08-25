@@ -2636,6 +2636,7 @@ interface PlatformPackageActionResponse {
   profile: FeatureEntitlementProfile;
   order?: Record<string, unknown>;
   install?: Record<string, unknown>;
+  uninstall?: Record<string, unknown>;
 }
 
 async function loginToPlatform(draft: SettingsDraft): Promise<PlatformLoginResponse> {
@@ -2842,6 +2843,20 @@ async function installPlatformPackage(
       installed_path: localInstall?.installedPath ?? manifest.distribution.artifact.bundlePath,
       sha256: localInstall?.sha256 ?? manifest.distribution.artifact.sha256,
       signature: localInstall?.signature ?? manifest.distribution.artifact.signature,
+    }),
+  });
+}
+
+async function uninstallPlatformPackage(
+  baseUrl: string,
+  token: string,
+  orgId: string,
+  packageId: string,
+): Promise<PlatformPackageActionResponse> {
+  return readPlatformJson<PlatformPackageActionResponse>(baseUrl, `/code-agent/packages/${encodeURIComponent(packageId)}/uninstall`, token, {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(orgId.trim() ? { org_id: orgId.trim() } : {}),
     }),
   });
 }
@@ -7598,9 +7613,29 @@ export function App() {
       try {
         setStatus('Uninstalling package');
         setSettingsMessage(`Uninstalling ${packageEntry.manifest.displayName} from this device...`);
+        const storedPlatformSession = await ipcClient.auth.getPlatformSession().catch(() => null);
+        const platformBaseUrl = normalizePlatformBaseUrl(String(
+          storedPlatformSession?.baseUrl || appConfig?.platformBaseUrl || '',
+        ));
+        const platformToken = storedPlatformSession?.accessToken
+          || (typeof appConfig?.platformAccessToken === 'string' ? appConfig.platformAccessToken : '');
+        let nextProfile = createUninstalledProfile(profile, packageEntry.manifest.id);
+        if (platformBaseUrl && platformToken) {
+          const platformOrgId = String(storedPlatformSession?.orgId || appConfig?.platformOrgId || profile.accountId || '');
+          const result = await uninstallPlatformPackage(
+            platformBaseUrl,
+            platformToken,
+            platformOrgId,
+            packageEntry.manifest.id,
+          );
+          nextProfile = createUninstalledProfile(
+            normalizeFeatureProfile(result.profile),
+            packageEntry.manifest.id,
+          );
+        }
         await ipcClient.app.uninstallFeaturePackage({ manifest: packageEntry.manifest as unknown as Record<string, any> });
         await persistFeatureProfile(
-          createUninstalledProfile(profile, packageEntry.manifest.id),
+          nextProfile,
           `${packageEntry.manifest.displayName} was uninstalled from this device. Your purchase is still owned.`,
         );
         setPackageOperationError(null);
@@ -7670,6 +7705,7 @@ export function App() {
           setSettingsMessage(`${packageEntry.manifest.displayName} ${action === 'update' ? 'was updated' : 'was installed'}, verified, and activated.`);
           setPackageOperationError(null);
           setStatus('Ready');
+          if (packageEntry.manifest.entrypoints?.renderer) window.location.reload();
           return;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -7718,6 +7754,7 @@ export function App() {
             : `${packageEntry.manifest.displayName} installed locally. ${packageEntry.manifest.distribution.notes}`,
         );
         setPackageOperationError(null);
+        if (packageEntry.manifest.entrypoints?.renderer) window.location.reload();
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         setSettingsMessage(`Couldn’t install ${packageEntry.manifest.displayName}. Open the error details in Store.`);
