@@ -3319,6 +3319,7 @@ function getChatToolActivityAction(toolName: string): string {
   const normalized = toolName.toLowerCase();
   if (normalized === 'fs.list' || normalized === 'fs_list') return 'List directory';
   if (normalized === 'fs.read' || normalized === 'fs_read') return 'Read file';
+  if (normalized === 'fs.edit' || normalized === 'fs_edit') return 'Edit file';
   if (normalized === 'fs.write' || normalized === 'fs_write') return 'Write file';
   if (normalized === 'bash.run' || normalized === 'bash_run') return 'Run command';
   if (normalized.includes('search')) return 'Search';
@@ -3351,6 +3352,80 @@ function formatChatToolActivityCopy(activity: ChatToolActivity): string {
   if (activity.result !== undefined) lines.push(`Result: ${formatJson(activity.result)}`);
   if (activity.error) lines.push(`Error: ${activity.error}`);
   return lines.join('\n');
+}
+
+type AgentProgressStep = {
+  id: string;
+  label: string;
+  phase: 'inspect' | 'change' | 'verify' | 'other';
+  status: string;
+};
+
+function getAgentProgressSteps(activities: ChatToolActivity[]): AgentProgressStep[] {
+  let hasSuccessfulChange = false;
+
+  return [...activities]
+    .sort((left, right) => left.startedAt - right.startedAt)
+    .map(activity => {
+      const toolName = activity.toolName.toLowerCase().replace(/_/g, '.');
+      const target = getChatToolActivityTarget(activity);
+      let phase: AgentProgressStep['phase'] = 'other';
+      let action = getChatToolActivityAction(activity.toolName);
+
+      if (toolName === 'fs.write' || toolName === 'fs.edit') {
+        phase = 'change';
+        action = toolName === 'fs.edit' ? 'Edit' : 'Create';
+      } else if (toolName === 'fs.read') {
+        phase = hasSuccessfulChange ? 'verify' : 'inspect';
+        action = phase === 'verify' ? 'Verify' : 'Inspect';
+      } else if (toolName === 'fs.search' || toolName === 'fs.list') {
+        phase = hasSuccessfulChange ? 'verify' : 'inspect';
+        action = toolName === 'fs.search'
+          ? (phase === 'verify' ? 'Check workspace for' : 'Search workspace for')
+          : (phase === 'verify' ? 'Check project files' : 'Inspect project files');
+      } else if (toolName === 'bash.run') {
+        phase = hasSuccessfulChange ? 'verify' : 'other';
+        action = hasSuccessfulChange ? 'Verify with command' : 'Run command';
+      } else if (toolName === 'web.search') {
+        action = 'Search the web for';
+      }
+
+      if (toolName === 'fs.write' && activity.status === 'succeeded') {
+        hasSuccessfulChange = true;
+      }
+
+      return {
+        id: activity.toolId,
+        label: `${action}${target ? ` ${target}` : ''}`,
+        phase,
+        status: getChatToolActivityStatusLabel(activity.status),
+      };
+    });
+}
+
+function getAgentProgressHeadline(steps: AgentProgressStep[]): string {
+  const pending = [...steps].reverse().find(step => (
+    step.status === 'Running' || step.status === 'Waiting for approval'
+  ));
+  if (pending) {
+    return `${pending.label} · ${pending.status.toLowerCase()}`;
+  }
+
+  const failed = [...steps].reverse().find(step => step.status === 'Failed' || step.status === 'Not approved');
+  if (failed) {
+    return `${failed.label} · needs attention`;
+  }
+
+  const phaseLabels = [
+    { phase: 'inspect', label: 'inspected' },
+    { phase: 'change', label: 'changed' },
+    { phase: 'verify', label: 'verified' },
+  ] as const;
+  const completedPhases = phaseLabels.flatMap(({ phase, label }) => {
+    const count = steps.filter(step => step.phase === phase && step.status === 'Completed').length;
+    return count > 0 ? [`${label} ${count}`] : [];
+  });
+  return completedPhases.join(' · ') || steps.at(-1)?.label || '';
 }
 
 function formatSidebarLabel(content: string, maxLength = 42): string {
@@ -4255,7 +4330,6 @@ export function App() {
   const [activeHistorySection, setActiveHistorySection] = useState<HistorySectionId>('overview');
   const [activeSettingsSection, setActiveSettingsSection] = useState<SettingsSectionId>('account');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
-  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const developmentPlatformSessionRef = useRef<Partial<AppConfig> | null>(null);
 
   const effectiveChatExecutionMode: ChatExecutionMode = chatExecutionModeOverride
@@ -4424,15 +4498,6 @@ export function App() {
       // Non-critical preference persistence.
     }
   }, [sidebarCollapsed]);
-
-  useEffect(() => {
-    if (!mobileNavigationOpen) return undefined;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMobileNavigationOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [mobileNavigationOpen]);
 
   useEffect(() => {
     softwareProjectsRef.current = softwareProjects;
@@ -5076,6 +5141,10 @@ export function App() {
     }));
   }
 
+  function toggleNavigation() {
+    setSidebarCollapsed(value => !value);
+  }
+
   function startNewChat() {
     const nextSession = createEmptySession(appInfo?.workspacePath);
     setSessions(current => {
@@ -5106,7 +5175,6 @@ export function App() {
     setInput('');
     setStatus('Ready');
     setActiveView('chat');
-    setMobileNavigationOpen(false);
     inputRef.current?.focus();
   }
 
@@ -6603,6 +6671,7 @@ export function App() {
 
       await ipcClient.api.chatStream({
         requestId,
+        structuredAgentLoop: chatToolsEnabled,
         authorizedWorkspacePath: scopedWorkspacePath || undefined,
         messages: getChatMessages(messages, requestContent),
         provider: activeProvider,
@@ -8008,7 +8077,6 @@ export function App() {
       setHistoryMessage('');
     }
     setActiveView(view);
-    setMobileNavigationOpen(false);
   }
 
   function openPrimaryNavigationItem(item: DesktopNavigationItem) {
@@ -8089,7 +8157,6 @@ export function App() {
       setSettingsMessage('');
     }
     setActiveView(view);
-    setMobileNavigationOpen(false);
   }
 
   const statusLabel = isSending ? 'Working' : status;
@@ -8152,12 +8219,39 @@ export function App() {
     : activePackagePage?.description || activeSettingsMenuItem.description;
   const skinStyle = getSkinStyle(appConfig?.accentColor);
   const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
-  const narrowNavigation = viewportSize.width <= 820;
-  const navigationCollapsed = narrowNavigation ? !mobileNavigationOpen : sidebarCollapsed;
+  const navigationCollapsed = sidebarCollapsed;
 
   return (
-    <div className={`${styles.container} ${navigationCollapsed ? styles.containerCollapsed : ''} ${narrowNavigation ? styles.containerNarrow : ''}`} style={skinStyle}>
-      <aside className={`${styles.navSidebar} ${navigationCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
+    <div className={styles.container} style={skinStyle}>
+      <div className={`${styles.desktopTitlebar} ${appInfo?.platform === 'darwin' ? styles.desktopTitlebarMac : ''}`}>
+        <div className={styles.desktopTitlebarBrand}>
+          <span className={styles.brandMark}><Icon name="bot" size={16} /></span>
+          <strong>CodeAgent</strong>
+        </div>
+        <div className={styles.desktopTitlebarActions}>
+          <button
+            type="button"
+            onClick={toggleNavigation}
+            title={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
+            aria-label={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
+            aria-controls="primary-navigation"
+            aria-expanded={!navigationCollapsed}
+          >
+            <Icon name="sidebar" size={15} />
+            <span>Navigation</span>
+          </button>
+          <button type="button" onClick={startNewChat} title="New chat" aria-label="New chat">
+            <Icon name="plus" size={15} />
+            <span>New chat</span>
+          </button>
+          <button type="button" onClick={() => setActiveView('settings')} title="Settings" aria-label="Settings">
+            <Icon name="settings" size={15} />
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+      <div className={`${styles.windowContent} ${navigationCollapsed ? styles.containerCollapsed : ''}`}>
+      <aside id="primary-navigation" className={`${styles.navSidebar} ${navigationCollapsed ? styles.navSidebarCollapsed : ''}`} aria-label="Navigation">
         <div className={styles.brandBlock}>
           <span className={styles.brandMark}><Icon name="bot" size={17} /></span>
           <div>
@@ -8284,15 +8378,6 @@ export function App() {
         </div>
       </aside>
 
-      {narrowNavigation && mobileNavigationOpen && (
-        <button
-          className={styles.mobileNavBackdrop}
-          type="button"
-          aria-label="Close navigation"
-          onClick={() => setMobileNavigationOpen(false)}
-        />
-      )}
-
       <div className={styles.appShell}>
         {projectActionMessage && (
           <div className={projectNotificationClassName} role="status">
@@ -8313,22 +8398,6 @@ export function App() {
         )}
         <header className={styles.header}>
           <div className={styles.headerLeading}>
-            <button
-              className={styles.headerNavButton}
-              type="button"
-              title={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
-              aria-label={navigationCollapsed ? 'Open navigation' : 'Close navigation'}
-              aria-pressed={navigationCollapsed}
-              onClick={() => {
-                if (narrowNavigation) {
-                  setMobileNavigationOpen(value => !value);
-                } else {
-                  setSidebarCollapsed(value => !value);
-                }
-              }}
-            >
-              <Icon name="sidebar" size={17} />
-            </button>
             <div className={styles.headerTitle}>
               <h1>{viewTitle}</h1>
               <span className={styles.subtitle}>
@@ -8941,9 +9010,10 @@ export function App() {
           </span>
           <span className={styles.statusPaneStatic}>
             <span>Mode</span>
-            <strong>{appConfig?.enableLlmTools ? 'Agent' : 'Chat'}</strong>
+            <strong>{effectiveChatExecutionMode === 'agent' ? 'Agent' : 'Chat'}</strong>
           </span>
         </footer>
+      </div>
       </div>
 
       {selectedPurchasePackage && (
@@ -9403,8 +9473,9 @@ function AssistantActivityDetails({
   const hasPendingActivity = activities.some(activity => activity.status === 'waiting-approval' || activity.status === 'running');
   const hasFailedActivity = activities.some(activity => activity.status === 'failed' || activity.status === 'rejected');
   const needsAttention = hasPendingActivity || hasFailedActivity;
-  const previousNeedsAttention = useRef(needsAttention);
   const [open, setOpen] = useState(needsAttention);
+  const progressSteps = getAgentProgressSteps(activities);
+  const progressHeadline = getAgentProgressHeadline(progressSteps);
   const totalMs = performance?.endToEndMs
     ?? performance?.backendMs
     ?? activities.reduce((sum, activity) => sum + (activity.duration ?? 0), 0);
@@ -9424,10 +9495,7 @@ function AssistantActivityDetails({
   useEffect(() => {
     if (needsAttention) {
       setOpen(true);
-    } else if (previousNeedsAttention.current) {
-      setOpen(false);
     }
-    previousNeedsAttention.current = needsAttention;
   }, [needsAttention]);
 
   return (
@@ -9439,11 +9507,31 @@ function AssistantActivityDetails({
       <summary>
         <span className={styles.assistantActivityTitle}>
           <Icon name={hasFailedActivity ? 'x' : hasPendingActivity ? 'activity' : 'check'} size={13} />
-          Activity
+          Agent progress
         </span>
-        <span>{activitySummary}</span>
+        <span className={styles.assistantActivityHeadline}>{progressHeadline || activitySummary}</span>
       </summary>
       <div className={styles.assistantActivityBody}>
+        {progressSteps.length > 0 && (
+          <section className={styles.agentProgress}>
+            <h4>Work summary</h4>
+            <ol>
+              {progressSteps.map(step => (
+                <li
+                  className={step.status === 'Failed' || step.status === 'Not approved'
+                    ? styles.agentProgressFailed
+                    : step.status === 'Running' || step.status === 'Waiting for approval'
+                      ? styles.agentProgressPending
+                      : ''}
+                  key={step.id}
+                >
+                  <span>{step.label}</span>
+                  <span>{step.status}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         {performance && <ChatPerformanceDetails performance={performance} />}
         {usage && (
           <div className={styles.assistantActivityUsage}>

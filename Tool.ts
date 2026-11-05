@@ -122,6 +122,8 @@ export type { ToolPermissionRulesBySource }
 // Apply DeepImmutable to the imported type
 export type ToolPermissionContext = DeepImmutable<{
   mode: PermissionMode
+  /** Workspace associated with the active conversation. */
+  workspaceDirectory?: string
   additionalWorkingDirectories: Map<string, AdditionalWorkingDirectory>
   alwaysAllowRules: ToolPermissionRulesBySource
   alwaysDenyRules: ToolPermissionRulesBySource

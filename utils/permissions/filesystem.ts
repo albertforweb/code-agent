@@ -669,6 +669,7 @@ export function allWorkingDirectories(
 ): Set<string> {
   return new Set([
     getOriginalCwd(),
+    ...(context.workspaceDirectory ? [context.workspaceDirectory] : []),
     ...context.additionalWorkingDirectories.keys(),
   ])
 }
@@ -1357,7 +1358,7 @@ export function checkWritePermissionForTool<Input extends AnyObject>(
     }
   }
 
-  // 3. If in acceptEdits or sandboxBashMode mode, allow all writes in original cwd
+  // 3. If in acceptEdits or sandboxBashMode mode, allow writes in working directories
   const isInWorkingDir = pathInAllowedWorkingPath(
     path,
     toolPermissionContext,

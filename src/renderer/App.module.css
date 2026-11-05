@@ -725,9 +725,10 @@ body.dark .dangerButton:hover {
 }
 
 .container {
+  --desktop-titlebar-height: 48px;
   --workbench-editor-width: clamp(360px, 32vw, 440px);
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   height: 100dvh;
   max-height: 100vh;
@@ -739,6 +740,74 @@ body.dark .dangerButton:hover {
   color: var(--color-text);
 }
 
+.desktopTitlebar {
+  position: relative;
+  z-index: 60;
+  display: flex;
+  flex: 0 0 var(--desktop-titlebar-height);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  height: var(--desktop-titlebar-height);
+  padding: 0 150px 0 12px;
+  background: #fbfaf7;
+  color: #2b2823;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.desktopTitlebarBrand,
+.desktopTitlebarActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktopTitlebarBrand {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.desktopTitlebarMac .desktopTitlebarBrand {
+  margin-left: 72px;
+}
+
+.desktopTitlebarActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #6d655b;
+  font: inherit;
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.desktopTitlebarActions button:hover {
+  border-color: var(--color-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-primary);
+}
+
+.desktopTitlebarActions button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.windowContent {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .containerCollapsed {
   grid-template-columns: 0 minmax(0, 1fr);
 }
@@ -746,6 +815,31 @@ body.dark .dangerButton:hover {
 body.dark .container {
   background: #191815;
   color: var(--color-text-dark);
+}
+
+body.dark .desktopTitlebar {
+  background: #1f1d1a;
+  color: var(--color-text-dark);
+}
+
+body.dark .desktopTitlebarActions button {
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .desktopTitlebarActions button:hover {
+  border-color: #4b4439;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e98456;
+}
+
+.desktopTitlebarBrand .brandMark {
+  border-color: transparent;
+  border-radius: 9px;
+}
+
+body.dark .desktopTitlebarBrand .brandMark {
+  background: rgba(233, 132, 86, 0.14);
+  color: #e98456;
 }
 
 .navSidebar {
@@ -760,10 +854,6 @@ body.dark .container {
 }
 
 .navSidebarCollapsed {
-  display: none;
-}
-
-.mobileNavBackdrop {
   display: none;
 }
 
@@ -1716,51 +1806,6 @@ body.dark .header {
   min-width: 0;
 }
 
-.headerNavButton {
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: #6d655b;
-}
-
-.headerNavButton:hover:not(:disabled) {
-  border-color: var(--color-border);
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--color-primary);
-}
-
-.headerNavButton[aria-pressed='true'] {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.headerNavButton:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.headerNavButton:disabled {
-  cursor: default;
-  opacity: 0.72;
-}
-
-body.dark .headerNavButton {
-  color: var(--color-text-dark-secondary);
-}
-
-body.dark .headerNavButton:hover:not(:disabled) {
-  border-color: #4b4439;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e98456;
-}
-
 .header h1 {
   max-width: min(620px, 50vw);
   overflow: hidden;
@@ -1966,6 +2011,15 @@ body.dark .message_error {
   font-weight: 750;
 }
 
+.assistantActivityHeadline {
+  min-width: 0;
+  overflow: hidden;
+  color: #5f574c;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .assistantActivityAttention {
   border-color: #e6b7ae;
   background: #fff8f6;
@@ -1976,6 +2030,49 @@ body.dark .message_error {
   gap: 12px;
   padding: 0 12px 12px;
   border-top: 1px solid #ebe6dd;
+}
+
+.agentProgress h4 {
+  margin: 0 0 7px;
+  color: #494239;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.agentProgress ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.agentProgress li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #494239;
+}
+
+.agentProgress li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.agentProgress li > span:last-child {
+  flex: 0 0 auto;
+  color: #81786c;
+  font-size: 11px;
+}
+
+.agentProgress .agentProgressPending > span:last-child {
+  color: #9a6416;
+}
+
+.agentProgress .agentProgressFailed > span:last-child {
+  color: #a13d2e;
 }
 
 .messagePerformance {
@@ -2069,9 +2166,24 @@ body.dark .assistantActivity {
 }
 
 body.dark .assistantActivityTitle,
+body.dark .assistantActivityHeadline,
+body.dark .agentProgress h4,
+body.dark .agentProgress li,
 body.dark .messagePerformance h4,
 body.dark .assistantActivityUsage strong {
   color: var(--color-text-dark);
+}
+
+body.dark .agentProgress li > span:last-child {
+  color: var(--color-text-dark-secondary);
+}
+
+body.dark .agentProgress .agentProgressPending > span:last-child {
+  color: #e6b85f;
+}
+
+body.dark .agentProgress .agentProgressFailed > span:last-child {
+  color: #ef978b;
 }
 
 body.dark .assistantActivityBody {
@@ -8250,40 +8362,31 @@ body.dark .settingsMessage {
 }
 
 @media (max-width: 820px) {
-  .container,
-  .containerCollapsed {
-    grid-template-columns: minmax(0, 1fr);
+  .windowContent {
+    grid-template-columns: clamp(180px, 40vw, 260px) minmax(0, 1fr);
   }
 
-  .containerNarrow .appShell {
-    grid-column: 1;
+  .windowContent.containerCollapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .desktopTitlebar {
+    padding-right: 140px;
+  }
+
+  .desktopTitlebarActions button span {
+    display: none;
   }
 
   .navSidebar {
-    position: fixed;
-    z-index: 50;
-    top: 0;
-    bottom: 0;
-    left: 0;
+    position: relative;
     display: flex;
-    width: min(300px, 86vw);
-    box-shadow: 12px 0 32px rgba(25, 29, 36, 0.2);
+    width: auto;
+    box-shadow: none;
   }
 
   .navSidebarCollapsed {
     display: none;
-  }
-
-  .mobileNavBackdrop {
-    position: fixed;
-    z-index: 40;
-    inset: 0;
-    display: block;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: rgba(28, 31, 36, 0.28);
-    backdrop-filter: blur(1px);
   }
 
   .header h1,

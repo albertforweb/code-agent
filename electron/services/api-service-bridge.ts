@@ -71,6 +71,9 @@ interface OpenAiToolSet {
 interface ToolExecutionSummary {
   executedCount: number;
   successfulMutations: number;
+  successfulWorkspaceReads: number;
+  successfulFileReadPaths: string[];
+  blockedMutations: number;
   failedCount: number;
   invalidArgumentsCount: number;
 }
@@ -89,6 +92,7 @@ interface OpenAiChatMessage {
 }
 
 const DEFAULT_MAX_TOOL_ROUNDS = 4;
+const WORKSPACE_CHANGE_TOOL_ROUNDS = 8;
 const MAX_ALLOWED_TOOL_ROUNDS = 16;
 const LEGACY_LIGHTWEIGHT_MODEL = 'Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF';
 const SEARCH_TOOLS = '__codeagent.search-tools';
@@ -98,6 +102,8 @@ const IMMEDIATE_TOOL_NAMES = new Set([
   'finance.quote',
   'bash.run',
   'fs.read',
+  'fs.search',
+  'fs.edit',
   'fs.write',
   'fs.list',
 ]);
@@ -210,7 +216,7 @@ export class ApiServiceBridge {
   /**
    * Build system prompt for CodeAgent.
    */
-  private buildSystemPrompt(request: ChatRequest): string {
+  private buildSystemPrompt(request: ChatRequest, toolsEnabled: boolean): string {
     const toolScope = request.toolScope;
     const activeWorkspacePath = toolScope?.workspacePath || this.workspacePath;
     const permissionProfile = request.permissionProfile ?? 'workspace-only';
@@ -230,6 +236,8 @@ export class ApiServiceBridge {
           '- Use workspace-relative paths when reading, writing, or running commands.',
           '- Refer to the active project workspace root itself as ".". Do not repeat the project folder name as a child path.',
           '- If the human asks you to start, build, implement, create, scaffold, or prototype the project, take concrete workspace actions with tools. Do not only describe code.',
+          '- Treat concrete desired behavior as an implementation request even when phrased as a short instruction or observation (for example, "use X" or "this label should show Y"). Break numbered or bulleted requests into separate acceptance criteria, inspect the relevant code, implement each criterion, and verify the result before finishing. Do not answer with a guessed file path or a suggestion that the user could make the change.',
+          '- Translate UI symptoms into implementation concepts instead of searching the complaint verbatim. For example, "half displayed" means the label may be clipped or truncated: inspect the label rendering and relevant layout/styles. When a search returns a matching file, read that exact path before making another broad search or describing a likely fix. If a search has no matches, retry with concrete synonyms or a distinctive visible label; a no-match result does not establish that the feature is absent.',
           '- The desktop verifies the saved project workspace before this loop starts and recreates a missing root after any required approval. File writes also create parent directories as needed.',
           '- After creating or changing files, summarize the generated paths so the project Deliverables panel can show them.',
         ].join('\n')
@@ -245,19 +253,26 @@ ${permissionGuidance}
 
 Desktop file tools use this workspace root by default. Use workspace-relative paths for work inside it. External absolute paths are governed by the desktop permission profile above. When asked for a full file path, report the actual resolved path. Do not invent generic paths such as /workspace.
 The current user's ~ home-directory shorthand is accepted by filesystem tools and is treated as an external path when it is outside the active workspace. Under the ask profile, call the relevant filesystem tool so the desktop can request approval; never guess or describe home-directory contents without that approved current-turn observation.
+${!toolsEnabled ? 'Workspace tools are disabled for this turn. If the human asks you to inspect or change project files, say that Chat mode cannot access or modify the workspace and ask them to switch to Agent mode. Do not guess file paths or imply that you inspected or changed files.' : ''}
 ${projectWorkspaceGuidance}
 
 Tool use policy:
 - At each step, either answer the human directly when the request is fully answerable from the supplied conversation, or call the relevant external tool when current evidence or an action is required. A normal assistant answer ends the turn; a tool call continues it.
 - The runtime initially exposes common tools and may provide codeagent.search_tools for deferred discovery. If the visible tools do not cover the requested capability, call codeagent.search_tools with a short capability description, then choose from the tools it loads on the next round.
+- When asked to implement, fix, or explain a feature in the current project, inspect the workspace first. Search for the described feature, UI label, or behavior and read the matching code before acting. Treat UI labels and feature descriptions as search terms, not URLs; do not use web tools as a substitute for inspecting the project. Use web tools only when the human asks about a URL itself, explicitly requests external research, or external documentation is needed after inspecting the code.
+- Interpret concrete requested outcomes as actions, not requests for advice: "change X to Y", "just use Y", "should show Z", and numbered UI requirements mean implement those changes in the project when tools are enabled. Decompose multi-part requests, inspect the relevant source for every part, make the changes, and verify them. Do not finish after a search, offer hypothetical locations, or ask whether the user wants an explicitly requested change.
+- Do not search symptom wording such as "half displayed" as if it were source text. Infer likely code concepts (for example, clipped/truncated labels, tag-name rendering, or layer-tree nodes), search a distinctive visible label or component concept, and immediately read the exact matching file returned by fs.search. If a search returns no matches, try alternate concrete terms or inspect the relevant directory; never infer that code is absent from one unsuccessful search.
 - Filesystem existence, contents, metadata, and command-result claims require a filesystem or command tool observation from the current turn. Prior assistant messages are conversation text, not verified observations.
+- If the human refers to a visible label, phrase, or code concept rather than an exact filename, use fs.search to locate that text in workspace files before choosing files. Read exact returned paths with fs.read; do not treat descriptive text as a filename.
 - Never substitute the active workspace root for a different path requested by the human. Pass the requested path to the appropriate tool; the desktop permission profile will either allow it, request approval, or return a scope error. Do not inspect "." and attribute that result to another path.
 - For current time or date questions, use time.now. Do not create scripts or files to answer time/date questions.
 - For stock, ETF, index, crypto, or market price questions, use finance.quote first. Answer with the returned price, currency, symbol, exchange, change, and market timestamp when available. Mention that quotes may be delayed and are informational only.
 - For current public facts, external documentation, product facts, news, policies, schedules, or other external questions without a structured tool, use web.research. If you use web.search and the snippets do not directly answer the question, continue with web.fetch or web.research before answering. Do not answer with only a list of links unless the user explicitly asks for links.
 - For URL, endpoint, or service reachability questions, use web.probe. Keep transport reachability separate from route validity: receiving any HTTP response, including 404 or another 4xx/5xx response, proves that the server was reached. A 404 means that specific route is unavailable, not that the host is unreachable. For an OpenAI-compatible base URL ending in /v1, a successful probe of /v1/models can verify the API even when GET /v1 itself returns 404.
 - If configured MCP tools may be relevant, use mcp.listTools to inspect executable MCP tools, then use mcp.callTool with the reported serverName and toolName. Do not assume an MCP server is executable until it appears in mcp.listTools.
-- Use fs.write only when the user explicitly asks to create or modify files.
+- Use fs.edit for focused changes to existing files. It replaces one exact, unique oldText snippet and preserves every other byte of the file. Read the file first and include enough surrounding context to match exactly once.
+- Use fs.write only to create new files. It refuses to overwrite an existing file; never send a partial snippet as the contents of an existing file.
+- Do not use shell redirection or scripting to bypass the focused-edit tool for source changes. Review every proposed diff and verify the edited file afterward.
 - Use bash.run for workspace inspection, tests, builds, and simple non-interactive commands. Do not use bash.run for simple time/date or web lookup questions.
 - On macOS and Linux, invoke Python as python3 and install packages with python3 -m pip. Do not assume the python or pip aliases exist in a packaged desktop app.
 - For Python projects that need third-party dependencies, create and use a workspace-local .venv, record dependencies in requirements.txt or pyproject.toml, and invoke modules through that environment (for example .venv/bin/python -m uvicorn). Verify setup commands succeeded before running the application.
@@ -337,7 +352,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         usage: { inputTokens: 0, outputTokens: 0 },
       };
     }
-    const messages = this.toOpenAiMessages(request);
+    const messages = this.toOpenAiMessages(request, config.enableTools);
+    const structuredAgentLoop = this.shouldUseStructuredAgentLoop(request, messages);
     const toolSet: OpenAiToolSet = request.workflowPlanning
       ? { tools: [], nameMap: new Map<string, string>(), toolsByName: new Map(), deferredTools: [], usedNames: new Set<string>() }
       : await this.getOpenAiToolSet(config);
@@ -349,7 +365,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       config,
       messages,
       toolSet,
-      request.structuredAgentLoop === true,
+      structuredAgentLoop,
       request.workflowPlanning === true,
     );
     inputTokens += planning.inputTokens;
@@ -431,7 +447,8 @@ Always be helpful, thorough, and provide clear explanations.`;
         },
       };
     }
-    const messages = this.toOpenAiMessages(request);
+    const messages = this.toOpenAiMessages(request, config.enableTools);
+    const structuredAgentLoop = this.shouldUseStructuredAgentLoop(request, messages);
     const toolSet: OpenAiToolSet = request.workflowPlanning
       ? { tools: [], nameMap: new Map<string, string>(), toolsByName: new Map(), deferredTools: [], usedNames: new Set<string>() }
       : await this.getOpenAiToolSet(config);
@@ -445,7 +462,7 @@ Always be helpful, thorough, and provide clear explanations.`;
       config,
       messages,
       toolSet,
-      request.structuredAgentLoop === true,
+      structuredAgentLoop,
       request.workflowPlanning === true,
       events,
     );
@@ -995,6 +1012,8 @@ Always be helpful, thorough, and provide clear explanations.`;
       return { inputTokens: 0, outputTokens: 0, selectionMs: 0, executionMs: 0, toolRounds: 0, toolCalls: 0 };
     }
 
+    const workspaceChangesRequested =
+      structuredAgentLoop && this.hasExplicitWorkspaceChangeRequest(messages);
     if (structuredAgentLoop) {
       this.addStructuredProjectFinishTool(toolSet);
       messages.push({
@@ -1003,6 +1022,13 @@ Always be helpful, thorough, and provide clear explanations.`;
           'PROJECT AGENT COMPLETION PROTOCOL:',
           'For each round, call a real tool or codeagent.finish_project_turn. Do not return unstructured prose.',
           'If the human requests project work or confirms previously proposed work, take concrete tool actions now.',
+          ...(workspaceChangesRequested
+            ? [
+                'WORKSPACE CHANGE REQUEST: follow this enforced sequence: inspect relevant source with fs.search/fs.read (or an equivalent workspace read tool), make the requested change, then verify the changed source with a fresh workspace read or run an appropriate bounded test. Do not finish until all three phases have tool evidence.',
+                'For an existing file, read that exact file and use fs.edit with a unique oldText/newText pair. fs.write is create-only and must never be used to replace an existing file.',
+                'Treat every numbered user requirement as a separate acceptance criterion. Do not search symptom wording verbatim when it describes an effect; infer implementation concepts such as clipped/truncated labels and inspect their rendering/styles.',
+              ]
+            : []),
           'Do not call the finish function with a promise such as "I will proceed" or "the next step is".',
           'Use "." only when a tool expects the active project directory (for example fs.list or bash.run cwd). For fs.write, path must name a file such as "main.py" or "src/app.py"; never pass "." as the file path.',
           'If the workspace is empty, create the required project files with fs.write or an appropriate write-capable tool.',
@@ -1022,12 +1048,19 @@ Always be helpful, thorough, and provide clear explanations.`;
     let toolRounds = 0;
     let toolCalls = 0;
     let recoverableErrorRetryRequested = false;
+    let recoverableListGuidanceAdded = false;
     let successfulMutations = 0;
+    let workspaceMutationGeneration = 0;
+    let workspaceInspected = false;
+    let workspaceVerifiedAfterMutation = false;
+    const inspectedFilePaths = new Set<string>();
     let observedToolFailure = false;
 
     let roundLimit = this.isLimitedStarterModel(config)
       ? Math.min(config.maxToolRounds, 1)
-      : config.maxToolRounds;
+      : workspaceChangesRequested
+        ? Math.max(config.maxToolRounds, WORKSPACE_CHANGE_TOOL_ROUNDS)
+        : config.maxToolRounds;
     for (let round = 0; round < roundLimit; round += 1) {
       const selectionStartedAt = Date.now();
       const decision = await this.requestModelToolDecision(
@@ -1096,7 +1129,10 @@ Always be helpful, thorough, and provide clear explanations.`;
         (toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name) === SUBMIT_WORKFLOW_PLAN
       ));
       if (workflowPlanning && planCall) {
-        const submitted = this.parseToolArguments(planCall.function.arguments);
+        const submitted = this.parseStructuredControlToolArguments(planCall, messages, 'workflow plan');
+        if (!submitted) {
+          continue;
+        }
         const assignments = Array.isArray(submitted.assignments) ? submitted.assignments : [];
         if (assignments.length > 0) {
           return {
@@ -1121,9 +1157,13 @@ Always be helpful, thorough, and provide clear explanations.`;
       ));
       if (structuredAgentLoop && finishCall && executableCalls.length === 0) {
         madeStructuredDecision = true;
-        const finish = this.parseToolArguments(finishCall.function.arguments);
+        const finish = this.parseStructuredControlToolArguments(finishCall, messages, 'project completion');
+        if (!finish) {
+          continue;
+        }
         const response = typeof finish.response === 'string' ? finish.response.trim() : '';
-        const requiresChanges = finish.requestRequiresWorkspaceChanges === true;
+        const requiresChanges = finish.requestRequiresWorkspaceChanges === true ||
+          (structuredAgentLoop && this.hasExplicitWorkspaceChangeRequest(messages));
         const outcome = String(finish.outcome ?? '');
         const completionRecord = finish.completionRecord && typeof finish.completionRecord === 'object' && !Array.isArray(finish.completionRecord)
           ? finish.completionRecord as Record<string, unknown>
@@ -1145,8 +1185,22 @@ Always be helpful, thorough, and provide clear explanations.`;
             role: 'system',
             content: [
               'Completion rejected: this request requires workspace action, but no mutating tool has succeeded in this turn.',
-              'Do the work now with fs.write, bash.run, or another appropriate write-capable tool. Do not merely restate the plan.',
+              'Do the work now with fs.edit for existing files, fs.write for new files, bash.run only for appropriate commands, or another appropriate write-capable tool. Do not merely restate the plan.',
             ].join('\n'),
+          });
+          continue;
+        }
+        if (requiresChanges && !workspaceInspected) {
+          messages.push({
+            role: 'system',
+            content: 'Completion rejected: inspect the relevant workspace source with fs.search/fs.read (or an equivalent workspace read tool) before making changes. Do not guess the implementation location.',
+          });
+          continue;
+        }
+        if (requiresChanges && !workspaceVerifiedAfterMutation) {
+          messages.push({
+            role: 'system',
+            content: 'Completion rejected: after the latest successful change, read the changed file or run an appropriate bounded test and use its actual result to verify the requested behavior.',
           });
           continue;
         }
@@ -1177,7 +1231,9 @@ Always be helpful, thorough, and provide clear explanations.`;
 
       const call = executableCalls[0];
       madeStructuredDecision = true;
-      const signature = `${call.function.name}:${call.function.arguments}`;
+      const callToolName = toolSet.nameMap.get(call.function.name) ?? call.function.name;
+      const isWorkspaceRead = /^fs\.(?:read|search|list)$/i.test(callToolName);
+      const signature = `${call.function.name}:${call.function.arguments}${isWorkspaceRead ? `:after-mutation-${workspaceMutationGeneration}` : ''}`;
       if (executedCallSignatures.has(signature)) {
         break;
       }
@@ -1199,13 +1255,60 @@ Always be helpful, thorough, and provide clear explanations.`;
         });
       }
       const executionStartedAt = Date.now();
-      const execution = await this.appendToolResults(messages, executableCalls, toolSet, events);
+      const execution = await this.appendToolResults(
+        messages,
+        executableCalls,
+        toolSet,
+        events,
+        !workspaceChangesRequested || workspaceInspected,
+        inspectedFilePaths,
+      );
+      if (execution.blockedMutations > 0) {
+        for (const candidate of executableCalls) {
+          const toolName = toolSet.nameMap.get(candidate.function.name) ?? candidate.function.name;
+          if (toolSet.toolsByName.get(toolName)?.readOnly === false) {
+            executedCallSignatures.delete(`${candidate.function.name}:${candidate.function.arguments}`);
+          }
+        }
+      }
       this.compactCompletedToolContext(messages, executableCalls);
       executionMs += Date.now() - executionStartedAt;
       toolCalls += executableCalls.length;
       successfulMutations += execution.successfulMutations;
+      for (const filePath of execution.successfulFileReadPaths) {
+        inspectedFilePaths.add(this.normalizeWorkspaceToolPath(filePath));
+      }
+      if (execution.successfulMutations > 0) {
+        workspaceMutationGeneration += 1;
+        workspaceVerifiedAfterMutation = false;
+      } else if (successfulMutations > 0 && execution.successfulFileReadPaths.length > 0) {
+        workspaceVerifiedAfterMutation = true;
+      }
+      if (execution.blockedMutations === 0 && execution.successfulWorkspaceReads > 0) {
+        workspaceInspected = true;
+      }
       observedToolFailure ||= execution.failedCount > 0;
       producedToolObservation = true;
+      if (execution.blockedMutations > 0) {
+        messages.push({
+          role: 'system',
+          content: 'A requested workspace change was not executed because this turn has not inspected the relevant source yet. Search for a distinctive UI label or component concept, read the exact matching file, and then make the change.',
+        });
+      }
+      if (execution.failedCount > 0
+        && !recoverableListGuidanceAdded
+        && this.hasRecoverableDirectoryListError(messages)) {
+        recoverableListGuidanceAdded = true;
+        messages.push({
+          role: 'system',
+          content: [
+            'The preceding fs.list call failed. Inspect its exact path and error before acting again.',
+            'fs.list accepts a directory, not a source file. If the requested path names a file, use fs.read with that exact path.',
+            'If the path is uncertain or the exact requested path was not found, list "." and choose a file or directory from the returned entries. Do not guess alternate paths.',
+            'Preserve an explicitly requested external absolute path exactly; do not silently replace it with the workspace root.',
+          ].join('\n'),
+        });
+      }
       if (structuredAgentLoop && execution.invalidArgumentsCount > 0) {
         messages.push({
           role: 'system',
@@ -1268,7 +1371,54 @@ Always be helpful, thorough, and provide clear explanations.`;
         typeof result.error === 'string' ? result.error : '',
         result.ok === false && typeof result.stderr === 'string' ? result.stderr : '',
       ].filter(Boolean).join('\n');
-      return /(?:directory|file|executable) not found:|EISDIR|ENOENT|illegal operation on a directory|no module named|not recognized as an internal or external command/i.test(error);
+      return /(?:directory|file|executable) not found:|is a file, not a directory:|EISDIR|ENOTDIR|ENOENT|illegal operation on a directory|no module named|not recognized as an internal or external command/i.test(error);
+    } catch {
+      return false;
+    }
+  }
+
+  private hasExplicitWorkspaceChangeRequest(messages: OpenAiChatMessage[]): boolean {
+    const latestUserMessage = [...messages].reverse().find(message => message.role === 'user');
+    if (!latestUserMessage) {
+      return false;
+    }
+
+    const prompt = this.chatContentToText(latestUserMessage.content).toLowerCase();
+    return /\b(?:just\s+(?:use|set|show|display|rename|replace|change)|should\s+(?:use|show|display|be|have)|(?:please|can you|could you)\s+(?:implement|add|create|build|fix|change|update|modify|rename|replace|remove|delete|make|set|use|show|display)|(?:please|yes,\s*please)\s+(?:proceed|continue)|(?:^|\n)\s*(?:\d+[.)]\s*)?(?:implement|add|create|build|fix|change|update|modify|rename|replace|remove|delete|make|set|show|display|continue|proceed|finish|complete)\b)/i.test(prompt);
+  }
+
+  private normalizeWorkspaceToolPath(filePath: string): string {
+    const normalized = path.normalize(filePath.trim()).replace(/[\\/]+/g, '/');
+    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+  }
+
+  private shouldUseStructuredAgentLoop(
+    request: ChatRequest,
+    messages: OpenAiChatMessage[],
+  ): boolean {
+    return request.structuredAgentLoop === true && (
+      request.toolScope?.source === 'project-chat' ||
+      this.hasExplicitWorkspaceChangeRequest(messages)
+    );
+  }
+
+  private hasRecoverableDirectoryListError(messages: OpenAiChatMessage[]): boolean {
+    const latestToolMessage = [...messages].reverse().find(message => message.role === 'tool');
+    if (!latestToolMessage?.tool_call_id) {
+      return false;
+    }
+
+    const listCall = messages
+      .flatMap(message => message.tool_calls ?? [])
+      .find(call => call.id === latestToolMessage.tool_call_id);
+    if (!listCall || !/^fs[._]list$/i.test(listCall.function.name)) {
+      return false;
+    }
+
+    try {
+      const result = JSON.parse(this.chatContentToText(latestToolMessage.content)) as Record<string, unknown>;
+      const error = typeof result.error === 'string' ? result.error : '';
+      return /(?:directory|file) not found:|is a file, not a directory:|EISDIR|ENOTDIR|ENOENT/i.test(error);
     } catch {
       return false;
     }
@@ -1556,6 +1706,8 @@ Always be helpful, thorough, and provide clear explanations.`;
     toolCalls: OpenAiToolCall[],
     toolSet: OpenAiToolSet,
     events?: AgentRuntimeEventEmitter,
+    allowWorkspaceMutations = true,
+    inspectedFilePaths = new Set<string>(),
   ): Promise<ToolExecutionSummary> {
     if (!this.toolExecutor) {
       throw new Error('Desktop tool executor is not configured');
@@ -1563,6 +1715,9 @@ Always be helpful, thorough, and provide clear explanations.`;
 
     let executedCount = 0;
     let successfulMutations = 0;
+    let successfulWorkspaceReads = 0;
+    const successfulFileReadPaths: string[] = [];
+    let blockedMutations = 0;
     let failedCount = 0;
     let invalidArgumentsCount = 0;
     for (const toolCall of toolCalls) {
@@ -1580,6 +1735,55 @@ Always be helpful, thorough, and provide clear explanations.`;
           );
         }
         this.validateToolArguments(toolName, args, toolSet.toolsByName.get(toolName));
+        if (
+          !allowWorkspaceMutations &&
+          toolName !== 'fs.edit' &&
+          toolSet.toolsByName.get(toolName)?.readOnly === false
+        ) {
+          blockedMutations += 1;
+          failedCount += 1;
+          const error = 'This change was not applied. Read the exact existing file, then use fs.edit with a unique oldText/newText pair. fs.write can only create new files.';
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: this.stringifyToolResult({ error }),
+          });
+          events?.emit({
+            type: 'tool-completed',
+            result: {
+              callId: toolCall.id,
+              name: toolName,
+              success: false,
+              error,
+              durationMs: Date.now() - toolStartedAt,
+            },
+          });
+          continue;
+        }
+        if (toolName === 'fs.edit') {
+          const editPath = typeof args.path === 'string' ? this.normalizeWorkspaceToolPath(args.path) : '';
+          if (!editPath || !inspectedFilePaths.has(editPath)) {
+            blockedMutations += 1;
+            failedCount += 1;
+            const error = 'Read this exact file with fs.read before editing it. Then retry with fs.edit using a unique oldText/newText pair.';
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: this.stringifyToolResult({ error }),
+            });
+            events?.emit({
+              type: 'tool-completed',
+              result: {
+                callId: toolCall.id,
+                name: toolName,
+                success: false,
+                error,
+                durationMs: Date.now() - toolStartedAt,
+              },
+            });
+            continue;
+          }
+        }
         if (toolName === SEARCH_TOOLS) {
           const discovered = this.discoverDeferredTools(toolSet, String(args.query ?? ''), args.limit);
           for (const tool of discovered) {
@@ -1622,6 +1826,11 @@ Always be helpful, thorough, and provide clear explanations.`;
           failedCount += 1;
         } else if (toolSet.toolsByName.get(toolName)?.readOnly === false) {
           successfulMutations += 1;
+        } else if (/^fs\.(?:read|search|list)$/i.test(toolName)) {
+          successfulWorkspaceReads += 1;
+          if (toolName === 'fs.read' && typeof args.path === 'string') {
+            successfulFileReadPaths.push(args.path);
+          }
         }
         messages.push({
           role: 'tool',
@@ -1663,7 +1872,15 @@ Always be helpful, thorough, and provide clear explanations.`;
       }
     }
 
-    return { executedCount, successfulMutations, failedCount, invalidArgumentsCount };
+    return {
+      executedCount,
+      successfulMutations,
+      successfulWorkspaceReads,
+      successfulFileReadPaths,
+      blockedMutations,
+      failedCount,
+      invalidArgumentsCount,
+    };
   }
 
   /**
@@ -1800,6 +2017,33 @@ Always be helpful, thorough, and provide clear explanations.`;
     }
 
     throw new InvalidToolArgumentsError('Tool arguments must be a JSON object.');
+  }
+
+  private parseStructuredControlToolArguments(
+    call: OpenAiToolCall,
+    messages: OpenAiChatMessage[],
+    label: string,
+  ): Record<string, any> | undefined {
+    try {
+      return this.parseToolArguments(call.function.arguments);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      messages.push({
+        role: 'assistant',
+        content: null,
+        tool_calls: [call],
+      });
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: this.stringifyToolResult({ error: message }),
+      });
+      messages.push({
+        role: 'system',
+        content: `The ${label} tool call was not accepted because its arguments were invalid. Retry with one complete, valid JSON object matching the tool schema. Do not copy malformed or truncated arguments.`,
+      });
+      return undefined;
+    }
   }
 
   private validateToolArguments(toolName: string, args: Record<string, any>, tool: Tool | undefined): void {
@@ -1943,7 +2187,7 @@ Always be helpful, thorough, and provide clear explanations.`;
     ].join(' ');
   }
 
-  private toOpenAiMessages(request: ChatRequest): OpenAiChatMessage[] {
+  private toOpenAiMessages(request: ChatRequest, toolsEnabled: boolean): OpenAiChatMessage[] {
     const conversation = request.messages.map(message => ({
         role: message.role,
         content: this.normalizeChatMessageContent(message.content),
@@ -1968,11 +2212,11 @@ Always be helpful, thorough, and provide clear explanations.`;
     };
 
     if (latestUserIndex < 0) {
-      return [{ role: 'system', content: this.buildSystemPrompt(request) }, ...conversation];
+      return [{ role: 'system', content: this.buildSystemPrompt(request, toolsEnabled) }, ...conversation];
     }
 
     return [
-      { role: 'system', content: this.buildSystemPrompt(request) },
+      { role: 'system', content: this.buildSystemPrompt(request, toolsEnabled) },
       ...conversation.slice(0, latestUserIndex),
       currentTurnContext,
       ...conversation.slice(latestUserIndex),

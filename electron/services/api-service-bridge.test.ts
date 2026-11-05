@@ -34,6 +34,30 @@ function toolProvider() {
   }];
 }
 
+test('chat mode does not imply it can inspect or modify workspace files', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)));
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: 'Please switch to Agent mode so I can inspect and change the project.' } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest('Change the page root label to "page".'),
+      enableTools: false,
+    });
+    assert.match(requestBodies[0].messages[0].content, /Workspace tools are disabled for this turn.*Chat mode cannot access or modify the workspace.*switch to Agent mode/i);
+    assert.match(response.content, /switch to Agent mode/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('the model selects a filesystem tool and the answering model receives its real result', async () => {
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
@@ -323,7 +347,7 @@ test('project scope enforcement never reports an unobserved external directory a
 
   try {
     const response = await service.chat(projectRequest('What is under /Users/example/?'));
-    assert.match(response.content, /did not inspect `\/Users\/example`/);
+    assert.match(response.content, /did not inspect `.*Users[\\/]example`/);
     assert.match(response.content, /outside this project chat's authorized workspace/);
     assert.doesNotMatch(response.content, /empty directory/i);
     assert.equal(fetchCount, 0);
@@ -739,10 +763,317 @@ test('a project chat retries a recoverable wrong-root directory call instead of 
   }
 });
 
+test('agent mode inspects, changes, and verifies concise UI requirements before finishing', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
+  let writtenContent = '';
+  service.setToolProvider(async () => [
+    {
+      name: 'fs.search',
+      description: 'Search for literal text inside project files',
+      inputSchema: {
+        type: 'object',
+        properties: { query: { type: 'string' }, path: { type: 'string' } },
+        required: ['query'],
+      },
+      source: 'bridge',
+      readOnly: true,
+    },
+    {
+      name: 'fs.read',
+      description: 'Read a file in the project workspace',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string' } },
+        required: ['path'],
+      },
+      source: 'bridge',
+      readOnly: true,
+    },
+    {
+      name: 'fs.write',
+      description: 'Write a file in the project workspace',
+      inputSchema: {
+        type: 'object',
+        properties: { path: { type: 'string' }, content: { type: 'string' } },
+        required: ['path', 'content'],
+      },
+      source: 'bridge',
+      readOnly: false,
+    },
+  ], async (name, args) => {
+    executions.push({ name, args });
+    if (name === 'fs.search') {
+      return {
+        query: args.query,
+        path: '.',
+        absolutePath: '/tmp/codeagent-project',
+        filesSearched: 35,
+        filesSkipped: 0,
+        truncated: false,
+        matches: [{
+          path: 'public/admin/app.js',
+          line: 1071,
+          text: "const rootLabel = 'Page canvas';",
+        }],
+      };
+    }
+    if (name === 'fs.write') {
+      writtenContent = String(args.content);
+      return { path: args.path, written: true };
+    }
+    return writtenContent || [
+      "const rootLabel = 'Page canvas';",
+      'const childLabel = node.tagName.toLowerCase();',
+      'labelElement.textContent = childLabel;',
+    ].join('\n');
+  });
+
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    requestBodies.push(JSON.parse(String(init?.body)));
+    const body = requestBodies.at(-1);
+    const findToolName = (fragment: string) => body.tools.find((tool: any) => tool.function.name.includes(fragment))?.function.name;
+    if (requestBodies.length === 1 || requestBodies.length === 4) {
+      const writeTool = findToolName('fs_write');
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: {
+          content: '',
+          tool_calls: [{
+            id: requestBodies.length === 1 ? 'write-before-inspection' : 'write-layer-labels',
+            type: 'function',
+            function: {
+              name: writeTool,
+              arguments: JSON.stringify({
+                path: 'public/admin/app.js',
+                content: "const rootLabel = 'Page';\nlabelElement.textContent = node.tagName;",
+              }),
+            },
+          }],
+        } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: {
+          content: '',
+          tool_calls: [{
+            id: 'call-list-file',
+            type: 'function',
+            function: { name: 'fs_search', arguments: '{"query":"page canvas","path":"."}' },
+          }],
+        } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 3 || requestBodies.length === 6) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: {
+          content: '',
+          tool_calls: [{
+            id: requestBodies.length === 3 ? 'call-read-file' : 'verify-layer-labels',
+            type: 'function',
+            function: { name: 'fs_read', arguments: '{"path":"public/admin/app.js"}' },
+          }],
+        } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 5) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'finish-before-verification',
+          type: 'function',
+          function: {
+            name: findToolName('finish_project_turn'),
+            arguments: JSON.stringify({
+              requestRequiresWorkspaceChanges: true,
+              outcome: 'completed',
+              response: 'The requested change is complete.',
+            }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    const finishTool = findToolName('finish_project_turn');
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: 'finish-verified-change',
+        type: 'function',
+        function: {
+          name: finishTool,
+          arguments: JSON.stringify({
+            requestRequiresWorkspaceChanges: true,
+            outcome: 'completed',
+            response: 'Updated and verified both layer-tree labels in `public/admin/app.js`.',
+          }),
+        },
+      }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest(
+        '1. In the layer tree, the root node text is "page canvas"; just use "page".\n2. Child element node labels are half displayed; show the full tag name.',
+      ),
+      structuredAgentLoop: true,
+      maxToolRounds: 16,
+    });
+    assert.equal(requestBodies.length, 7);
+    assert.deepEqual(executions, [
+      { name: 'fs.search', args: { query: 'page canvas', path: '.' } },
+      { name: 'fs.read', args: { path: 'public/admin/app.js' } },
+      { name: 'fs.write', args: {
+        path: 'public/admin/app.js',
+        content: "const rootLabel = 'Page';\nlabelElement.textContent = node.tagName;",
+      } },
+      { name: 'fs.read', args: { path: 'public/admin/app.js' } },
+    ]);
+    assert.match(requestBodies[0].messages[0].content, /Treat concrete desired behavior as an implementation request.*numbered or bulleted requests.*implement each criterion/i);
+    assert.match(requestBodies[0].messages[0].content, /Translate UI symptoms into implementation concepts instead of searching the complaint verbatim.*"half displayed".*read that exact path/i);
+    assert.match(JSON.stringify(requestBodies[1].messages), /public\/admin\/app\.js/);
+    assert.match(JSON.stringify(requestBodies[1].messages), /not executed because this turn has not inspected the relevant source/i);
+    assert.match(JSON.stringify(requestBodies[2].messages), /Page canvas/);
+    assert.match(JSON.stringify(requestBodies[5].messages), /after the latest successful change.*verify/i);
+    assert.match(JSON.stringify(requestBodies[6].messages), /const rootLabel = 'Page'/);
+    assert.match(response.content, /Updated and verified both layer-tree labels/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('existing-file edits require an exact file read and preserve a fresh verification round', async () => {
+  const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
+  const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
+  service.setToolProvider(async () => [{
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: {
+      type: 'object',
+      properties: { path: { type: 'string' } },
+      required: ['path'],
+    },
+    source: 'bridge',
+    readOnly: true,
+  }, {
+    name: 'fs.edit',
+    description: 'Replace one exact match in an existing file',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        oldText: { type: 'string' },
+        newText: { type: 'string' },
+      },
+      required: ['path', 'oldText', 'newText'],
+    },
+    source: 'bridge',
+    readOnly: false,
+  }], async (name, args) => {
+    executions.push({ name, args });
+    return name === 'fs.read'
+      ? { path: args.path, content: 'const label = "Page canvas";\n' }
+      : { path: args.path, replacements: 1 };
+  });
+
+  const requestBodies: any[] = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body));
+    requestBodies.push(body);
+    const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
+    const editTool = body.tools.find((tool: any) => tool.function.name === 'fs_edit');
+    const call = requestBodies.length === 1
+      ? {
+          id: 'edit-before-read',
+          name: editTool.function.name,
+          args: { path: 'public/admin/app.js', oldText: 'Page canvas', newText: 'Page' },
+        }
+      : requestBodies.length === 2 || requestBodies.length === 5
+        ? {
+            id: `read-${requestBodies.length}`,
+            name: readTool.function.name,
+            args: { path: 'public/admin/app.js' },
+          }
+        : requestBodies.length === 3
+          ? {
+              id: 'edit-after-read',
+              name: editTool.function.name,
+              args: { path: 'public/admin/app.js', oldText: 'Page canvas', newText: 'Page' },
+            }
+          : requestBodies.length === 4
+            ? {
+                id: 'finish-before-verify',
+                name: finishTool.function.name,
+                args: {
+                  requestRequiresWorkspaceChanges: true,
+                  outcome: 'completed',
+                  response: 'Updated the label.',
+                },
+              }
+            : {
+                id: 'finish-after-verify',
+                name: finishTool.function.name,
+                args: {
+                  requestRequiresWorkspaceChanges: true,
+                  outcome: 'completed',
+                  response: 'Updated and verified the label.',
+                },
+              };
+    return new Response(JSON.stringify({
+      model: 'test-model',
+      choices: [{ message: { content: '', tool_calls: [{
+        id: call.id,
+        type: 'function',
+        function: {
+          name: call.name,
+          arguments: JSON.stringify(call.args),
+        },
+      }] } }],
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const response = await service.chat({
+      ...projectRequest('Change the page root label to "Page".'),
+      structuredAgentLoop: true,
+    });
+
+    assert.equal(response.content, 'Updated and verified the label.');
+    assert.deepEqual(executions, [
+      { name: 'fs.read', args: { path: 'public/admin/app.js' } },
+      { name: 'fs.edit', args: { path: 'public/admin/app.js', oldText: 'Page canvas', newText: 'Page' } },
+      { name: 'fs.read', args: { path: 'public/admin/app.js' } },
+    ]);
+    assert.match(JSON.stringify(requestBodies[1].messages), /Read this exact file with fs\.read before editing it/);
+    assert.match(JSON.stringify(requestBodies[4].messages), /after the latest successful change.*verify/i);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('a structured project turn cannot finish an action request before a mutating tool succeeds', async () => {
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
   service.setToolProvider(async () => [{
+    name: 'fs.list',
+    description: 'List entries in a workspace-relative directory',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
     name: 'fs.write',
     description: 'Write a file in the project workspace',
     inputSchema: {
@@ -757,7 +1088,12 @@ test('a structured project turn cannot finish an action request before a mutatin
     readOnly: false,
   }], async (name, args) => {
     executions.push({ name, args });
-    return { path: args.path, written: true };
+    if (name === 'fs.list') {
+      return { path: args.path, entries: [{ name: 'main.py', type: 'file' }] };
+    }
+    return name === 'fs.read'
+      ? { path: args.path, content: 'from fastapi import FastAPI\n' }
+      : { path: args.path, written: true };
   });
 
   const requestBodies: any[] = [];
@@ -766,6 +1102,8 @@ test('a structured project turn cannot finish an action request before a mutatin
     const body = JSON.parse(String(init?.body));
     requestBodies.push(body);
     const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const listTool = body.tools.find((tool: any) => tool.function.name === 'fs_list');
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
     const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
 
     if (requestBodies.length === 1) {
@@ -789,12 +1127,49 @@ test('a structured project turn cannot finish an action request before a mutatin
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
+          id: 'inspect-project',
+          type: 'function',
+          function: { name: listTool.function.name, arguments: '{"path":"."}' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 3) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
           id: 'write-main',
           type: 'function',
           function: {
             name: writeTool.function.name,
             arguments: JSON.stringify({ path: 'main.py', content: 'from fastapi import FastAPI\n' }),
           },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 4) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'finish-before-verification',
+          type: 'function',
+          function: {
+            name: finishTool.function.name,
+            arguments: JSON.stringify({
+              requestRequiresWorkspaceChanges: true,
+              outcome: 'completed',
+              response: 'The requested change is complete.',
+            }),
+          },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 5) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'verify-main-file',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"main.py"}' },
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -816,12 +1191,12 @@ test('a structured project turn cannot finish an action request before a mutatin
               criteria: [{
                 index: 1,
                 status: 'passed',
-                evidence: ['main.py was created by fs.write'],
+                evidence: ['main.py was read after the write completed'],
               }],
               verification: [{
-                name: 'file write',
+                name: 'file read',
                 status: 'passed',
-                evidence: 'fs.write completed successfully',
+                evidence: 'fs.read returned the changed file after the write',
               }],
             },
           }),
@@ -843,23 +1218,30 @@ test('a structured project turn cannot finish an action request before a mutatin
       criteria: [{
         index: 1,
         status: 'passed',
-        evidence: ['main.py was created by fs.write'],
+        evidence: ['main.py was read after the write completed'],
       }],
       verification: [{
-        name: 'file write',
+        name: 'file read',
         status: 'passed',
-        evidence: 'fs.write completed successfully',
+        evidence: 'fs.read returned the changed file after the write',
       }],
     });
     assert.deepEqual(executions, [{
+      name: 'fs.list',
+      args: { path: '.' },
+    }, {
       name: 'fs.write',
       args: { path: 'main.py', content: 'from fastapi import FastAPI\n' },
+    }, {
+      name: 'fs.read',
+      args: { path: 'main.py' },
     }]);
-    assert.equal(requestBodies.length, 3);
+    assert.equal(requestBodies.length, 6);
     assert.equal(requestBodies[0].tool_choice, 'required');
     assert.equal(requestBodies[0].max_tokens, 2048);
     assert.equal(requestBodies[1].max_tokens, 2048);
     assert.match(requestBodies[1].messages.at(-1).content, /no mutating tool has succeeded/i);
+    assert.match(requestBodies[4].messages.at(-1).content, /after the latest successful change.*verify/i);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -869,6 +1251,12 @@ test('a structured project turn rejects malformed tool JSON and retries without 
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
   service.setToolProvider(async () => [{
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
     name: 'fs.write',
     description: 'Write a file in the project workspace',
     inputSchema: {
@@ -889,8 +1277,19 @@ test('a structured project turn rejects malformed tool JSON and retries without 
     const body = JSON.parse(String(init?.body));
     requestBodies.push(body);
     const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
     const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
     if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'inspect-app',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"app.py"}' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
@@ -900,7 +1299,7 @@ test('a structured project turn rejects malformed tool JSON and retries without 
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
-    if (requestBodies.length === 2) {
+    if (requestBodies.length === 3) {
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
@@ -910,6 +1309,26 @@ test('a structured project turn rejects malformed tool JSON and retries without 
             name: writeTool.function.name,
             arguments: JSON.stringify({ path: 'app.py', content: 'print("ready")\n' }),
           },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 4) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'verify-app',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"app.py"}' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 5) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'malformed-finish',
+          type: 'function',
+          function: { name: finishTool.function.name, arguments: '{"outcome":"completed","response":"Done' },
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -937,10 +1356,17 @@ test('a structured project turn rejects malformed tool JSON and retries without 
     });
     assert.equal(response.content, 'Created app.py after correcting the tool arguments.');
     assert.deepEqual(executions, [{
+      name: 'fs.read',
+      args: { path: 'app.py' },
+    }, {
       name: 'fs.write',
       args: { path: 'app.py', content: 'print("ready")\n' },
+    }, {
+      name: 'fs.read',
+      args: { path: 'app.py' },
     }]);
-    assert.match(requestBodies[1].messages.at(-1).content, /arguments were invalid/i);
+    assert.match(requestBodies[2].messages.at(-1).content, /arguments were invalid/i);
+    assert.match(requestBodies[5].messages.at(-1).content, /arguments were invalid/i);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -950,6 +1376,12 @@ test('completed large file writes are compacted before the next autonomous model
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const largeSource = `UNIQUE_SOURCE_SENTINEL_${'x'.repeat(8_000)}`;
   service.setToolProvider(async () => [{
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
     name: 'fs.write',
     description: 'Write a file in the project workspace',
     inputSchema: {
@@ -967,8 +1399,19 @@ test('completed large file writes are compacted before the next autonomous model
     const body = JSON.parse(String(init?.body));
     requestBodies.push(body);
     const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
     const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
     if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'inspect-app',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"src/app.py"}' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
@@ -978,6 +1421,16 @@ test('completed large file writes are compacted before the next autonomous model
             name: writeTool.function.name,
             arguments: JSON.stringify({ path: 'src/app.py', content: largeSource }),
           },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 3) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'verify-large-write',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"src/app.py"}' },
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -1004,8 +1457,8 @@ test('completed large file writes are compacted before the next autonomous model
       structuredAgentLoop: true,
     });
     assert.equal(response.content, 'Created src/app.py.');
-    assert.equal(requestBodies.length, 2);
-    const secondRequest = JSON.stringify(requestBodies[1]);
+    assert.equal(requestBodies.length, 4);
+    const secondRequest = JSON.stringify(requestBodies[2]);
     assert.doesNotMatch(secondRequest, /UNIQUE_SOURCE_SENTINEL/);
     assert.match(secondRequest, /src\/app\.py/);
     assert.match(secondRequest, /content omitted after successful tool execution/);
@@ -1018,6 +1471,12 @@ test('an autonomous model cannot materialize a compacted tool argument marker as
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
   service.setToolProvider(async () => [{
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
     name: 'fs.write',
     description: 'Write a file in the project workspace',
     inputSchema: {
@@ -1038,8 +1497,19 @@ test('an autonomous model cannot materialize a compacted tool argument marker as
     const body = JSON.parse(String(init?.body));
     requestBodies.push(body);
     const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
     const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
     if (requestBodies.length === 1) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'inspect-app-ui',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"app_ui.html"}' },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 2) {
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
@@ -1055,7 +1525,7 @@ test('an autonomous model cannot materialize a compacted tool argument marker as
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
-    if (requestBodies.length === 2) {
+    if (requestBodies.length === 3) {
       return new Response(JSON.stringify({
         model: 'test-model',
         choices: [{ message: { content: '', tool_calls: [{
@@ -1065,6 +1535,16 @@ test('an autonomous model cannot materialize a compacted tool argument marker as
             name: writeTool.function.name,
             arguments: JSON.stringify({ path: 'app_ui.html', content: '<!doctype html><title>Photo editor</title>\n' }),
           },
+        }] } }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    if (requestBodies.length === 4) {
+      return new Response(JSON.stringify({
+        model: 'test-model',
+        choices: [{ message: { content: '', tool_calls: [{
+          id: 'verify-app-ui',
+          type: 'function',
+          function: { name: readTool.function.name, arguments: '{"path":"app_ui.html"}' },
         }] } }],
       }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -1092,10 +1572,16 @@ test('an autonomous model cannot materialize a compacted tool argument marker as
     });
     assert.equal(response.content, 'Created app_ui.html with usable content.');
     assert.deepEqual(executions, [{
+      name: 'fs.read',
+      args: { path: 'app_ui.html' },
+    }, {
       name: 'fs.write',
       args: { path: 'app_ui.html', content: '<!doctype html><title>Photo editor</title>\n' },
+    }, {
+      name: 'fs.read',
+      args: { path: 'app_ui.html' },
     }]);
-    assert.match(requestBodies[1].messages.at(-1).content, /arguments were invalid/i);
+    assert.match(requestBodies[2].messages.at(-1).content, /arguments were invalid/i);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -1105,6 +1591,18 @@ test('a structured project turn corrects an fs.write directory path instead of e
   const service = new ApiServiceBridge(undefined, '/tmp/codeagent-project');
   const executions: Array<{ name: string; args: Record<string, unknown> }> = [];
   service.setToolProvider(async () => [{
+    name: 'fs.list',
+    description: 'List entries in a workspace-relative directory',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
+    name: 'fs.read',
+    description: 'Read a workspace file',
+    inputSchema: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] },
+    source: 'bridge',
+    readOnly: true,
+  }, {
     name: 'fs.write',
     description: 'Write a file in the project workspace',
     inputSchema: {
@@ -1116,7 +1614,7 @@ test('a structured project turn corrects an fs.write directory path instead of e
     readOnly: false,
   }], async (name, args) => {
     executions.push({ name, args });
-    if (args.path === '.') {
+    if (name === 'fs.write' && args.path === '.') {
       throw new Error('Failed to read existing file for review: EISDIR: illegal operation on a directory, read');
     }
     return { path: args.path, written: true };
@@ -1128,15 +1626,23 @@ test('a structured project turn corrects an fs.write directory path instead of e
     const body = JSON.parse(String(init?.body));
     requestBodies.push(body);
     const finishTool = body.tools.find((tool: any) => tool.function.name.includes('finish_project_turn'));
+    const listTool = body.tools.find((tool: any) => tool.function.name === 'fs_list');
+    const readTool = body.tools.find((tool: any) => tool.function.name === 'fs_read');
     const writeTool = body.tools.find((tool: any) => tool.function.name === 'fs_write');
     const responseNumber = requestBodies.length;
     const toolCall = responseNumber === 1
       ? {
+          id: 'inspect-project',
+          type: 'function',
+          function: { name: listTool.function.name, arguments: '{"path":"."}' },
+        }
+      : responseNumber === 2
+        ? {
           id: 'write-directory',
           type: 'function',
           function: { name: writeTool.function.name, arguments: '{"path":".","content":"app"}' },
         }
-      : responseNumber === 2
+      : responseNumber === 3
         ? {
             id: 'blocked-too-early',
             type: 'function',
@@ -1149,13 +1655,32 @@ test('a structured project turn corrects an fs.write directory path instead of e
               }),
             },
           }
-        : responseNumber === 3
+        : responseNumber === 4
           ? {
               id: 'write-file',
               type: 'function',
               function: { name: writeTool.function.name, arguments: '{"path":"main.py","content":"app"}' },
             }
-          : {
+          : responseNumber === 5
+            ? {
+                id: 'finish-before-verification',
+                type: 'function',
+                function: {
+                  name: finishTool.function.name,
+                  arguments: JSON.stringify({
+                    requestRequiresWorkspaceChanges: true,
+                    outcome: 'completed',
+                    response: 'The requested change is complete.',
+                  }),
+                },
+              }
+            : responseNumber === 6
+              ? {
+                  id: 'verify-main-file',
+                  type: 'function',
+                  function: { name: readTool.function.name, arguments: '{"path":"main.py"}' },
+                }
+              : {
               id: 'finish-corrected-write',
               type: 'function',
               function: {
@@ -1179,8 +1704,9 @@ test('a structured project turn corrects an fs.write directory path instead of e
       structuredAgentLoop: true,
     });
     assert.equal(response.content, 'Created main.py.');
-    assert.deepEqual(executions.map(execution => execution.args.path), ['.', 'main.py']);
-    assert.match(requestBodies[2].messages.at(-1).content, /fs\.write must name a file/i);
+    assert.deepEqual(executions.map(execution => execution.args.path), ['.', '.', 'main.py', 'main.py']);
+    assert.match(requestBodies[3].messages.at(-1).content, /fs\.write must name a file/i);
+    assert.match(requestBodies[5].messages.at(-1).content, /after the latest successful change.*verify/i);
   } finally {
     globalThis.fetch = originalFetch;
   }

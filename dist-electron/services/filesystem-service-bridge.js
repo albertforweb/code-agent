@@ -41,9 +41,30 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileSystemServiceBridge = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
-const { createTwoFilesPatch } = require('diff');
+const diff_1 = require("diff");
 const MAX_DIFF_INPUT_BYTES = 200000;
 const MAX_WRITE_CHECKPOINTS = 20;
+const MAX_SEARCH_FILES = 5000;
+const MAX_SEARCH_DIRECTORIES = 5000;
+const MAX_SEARCH_FILE_BYTES = 1000000;
+const MAX_SEARCH_TOTAL_BYTES = 25000000;
+const MAX_SEARCH_MATCHES = 100;
+const MAX_SEARCH_LINE_LENGTH = 500;
+const IGNORED_SEARCH_DIRECTORIES = new Set([
+    '.git',
+    '.next',
+    '.venv',
+    '.cache',
+    'build',
+    'coverage',
+    'dist',
+    'dist-build',
+    'dist-electron',
+    'dist-renderer',
+    'node_modules',
+    'target',
+    'venv',
+]);
 /**
  * File System Service Bridge - bridges file operations to IPC
  */
@@ -129,13 +150,109 @@ class FileSystemServiceBridge {
             createdAt: Date.now(),
         };
         await this._writeResolvedFile(fullPath, content, encoding);
-        this.writeCheckpoints.unshift(checkpoint);
-        this.writeCheckpoints = this.writeCheckpoints.slice(0, MAX_WRITE_CHECKPOINTS);
+        this.rememberWriteCheckpoint(checkpoint);
         return {
             ok: true,
             path: checkpoint.path,
             absolutePath: fullPath,
             checkpointId: checkpoint.id,
+        };
+    }
+    async createFileWithCheckpoint(filePath, content, encoding = 'utf-8', review) {
+        const fullPath = this._resolvePath(filePath);
+        this._validatePath(fullPath);
+        this._validateWriteSize(content);
+        const previous = await this._readExistingContent(fullPath, encoding);
+        if (previous.exists) {
+            throw new Error(`File already exists: ${filePath}. Use fs.edit to make a focused change without replacing the whole file.`);
+        }
+        const relativePath = this._relativePath(fullPath);
+        const preview = {
+            path: relativePath,
+            absolutePath: fullPath,
+            exists: false,
+            previousSizeBytes: 0,
+            nextSizeBytes: Buffer.byteLength(content, encoding),
+            diff: this._createDiff(relativePath, '', content, false),
+        };
+        await review?.(preview);
+        const checkpoint = {
+            id: `write-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            path: relativePath,
+            absolutePath: fullPath,
+            existed: false,
+            previousContent: '',
+            encoding,
+            createdAt: Date.now(),
+        };
+        await fs.mkdir(path.dirname(fullPath), { recursive: true });
+        try {
+            await fs.writeFile(fullPath, content, { encoding, flag: 'wx' });
+        }
+        catch (error) {
+            if (error.code === 'EEXIST') {
+                throw new Error(`File already exists: ${filePath}. Use fs.edit to make a focused change without replacing the whole file.`);
+            }
+            throw error;
+        }
+        this.rememberWriteCheckpoint(checkpoint);
+        return {
+            ok: true,
+            path: checkpoint.path,
+            absolutePath: fullPath,
+            checkpointId: checkpoint.id,
+        };
+    }
+    async editFileWithCheckpoint(filePath, oldText, newText, encoding = 'utf-8', review) {
+        if (!oldText) {
+            throw new Error('fs.edit requires non-empty oldText so the replacement is anchored to existing file content.');
+        }
+        const fullPath = this._resolvePath(filePath);
+        this._validatePath(fullPath);
+        const previous = await this._readExistingContent(fullPath, encoding);
+        if (!previous.exists) {
+            throw new Error(`File not found: ${filePath}. Use fs.write to create a new file.`);
+        }
+        const firstMatch = previous.content.indexOf(oldText);
+        if (firstMatch < 0) {
+            throw new Error(`The requested oldText was not found in ${filePath}. Read the current file and retry with an exact match.`);
+        }
+        if (previous.content.indexOf(oldText, firstMatch + oldText.length) >= 0) {
+            throw new Error(`The requested oldText matches more than once in ${filePath}. Include more surrounding context so fs.edit changes exactly one location.`);
+        }
+        const nextContent = previous.content.slice(0, firstMatch) + newText + previous.content.slice(firstMatch + oldText.length);
+        this._validateWriteSize(nextContent);
+        const relativePath = this._relativePath(fullPath);
+        const preview = {
+            path: relativePath,
+            absolutePath: fullPath,
+            exists: true,
+            previousSizeBytes: Buffer.byteLength(previous.content, encoding),
+            nextSizeBytes: Buffer.byteLength(nextContent, encoding),
+            diff: this._createDiff(relativePath, previous.content, nextContent, true),
+        };
+        await review?.(preview);
+        const latestContent = await fs.readFile(fullPath, encoding);
+        if (latestContent !== previous.content) {
+            throw new Error(`File changed while the edit was awaiting review: ${filePath}. Read the latest file and retry.`);
+        }
+        const checkpoint = {
+            id: `write-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            path: relativePath,
+            absolutePath: fullPath,
+            existed: true,
+            previousContent: previous.content,
+            encoding,
+            createdAt: Date.now(),
+        };
+        await this._writeResolvedFile(fullPath, nextContent, encoding);
+        this.rememberWriteCheckpoint(checkpoint);
+        return {
+            ok: true,
+            path: checkpoint.path,
+            absolutePath: fullPath,
+            checkpointId: checkpoint.id,
+            replacements: 1,
         };
     }
     /**
@@ -180,6 +297,10 @@ class FileSystemServiceBridge {
         const fullPath = this._resolvePath(dirPath);
         this._validatePath(fullPath);
         try {
+            const target = await fs.stat(fullPath);
+            if (target.isFile()) {
+                throw new Error(`Path is a file, not a directory: ${dirPath}. Use fs.read to inspect its contents.`);
+            }
             const entries = await fs.readdir(fullPath, { withFileTypes: true });
             const results = [];
             for (const entry of entries) {
@@ -200,11 +321,143 @@ class FileSystemServiceBridge {
             return results;
         }
         catch (error) {
-            if (error.code === 'ENOENT') {
+            if (error instanceof Error && error.message.includes('Path is a file, not a directory:')) {
+                throw error;
+            }
+            if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
                 throw new Error(`Directory not found: ${dirPath}`);
             }
             throw new Error(`Failed to list directory: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+    async searchFiles(query, dirPath = '.', requestedLimit = 50) {
+        const normalizedQuery = query.trim();
+        if (!normalizedQuery) {
+            throw new Error('fs.search requires a non-empty text query.');
+        }
+        if (normalizedQuery.length > 500) {
+            throw new Error('fs.search query cannot exceed 500 characters.');
+        }
+        const rootPath = this._resolvePath(dirPath);
+        this._validatePath(rootPath);
+        let rootStats;
+        try {
+            rootStats = await fs.stat(rootPath);
+        }
+        catch (error) {
+            if (error.code === 'ENOENT') {
+                throw new Error(`Directory not found: ${dirPath}`);
+            }
+            throw new Error(`Failed to search directory ${dirPath}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        if (!rootStats.isDirectory()) {
+            throw new Error(`fs.search requires a directory path, not a file: ${dirPath}`);
+        }
+        const limit = Math.min(MAX_SEARCH_MATCHES, Math.max(1, Math.floor(requestedLimit) || 50));
+        const pendingDirectories = [rootPath];
+        const matches = [];
+        let filesSearched = 0;
+        let filesVisited = 0;
+        let directoriesVisited = 0;
+        let filesSkipped = 0;
+        let totalBytesSearched = 0;
+        let truncated = false;
+        const lowerQuery = normalizedQuery.toLowerCase();
+        while (pendingDirectories.length > 0 && !truncated) {
+            const currentDirectory = pendingDirectories.pop();
+            if (directoriesVisited >= MAX_SEARCH_DIRECTORIES) {
+                truncated = true;
+                break;
+            }
+            directoriesVisited += 1;
+            let entries;
+            try {
+                entries = await fs.readdir(currentDirectory, { withFileTypes: true });
+            }
+            catch (error) {
+                if (error.code === 'ENOENT') {
+                    filesSkipped += 1;
+                    continue;
+                }
+                throw new Error(`Failed to search directory ${this._relativePath(currentDirectory)}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+            entries.sort((left, right) => left.name.localeCompare(right.name));
+            for (const entry of entries) {
+                if (entry.isDirectory()) {
+                    if (!IGNORED_SEARCH_DIRECTORIES.has(entry.name.toLowerCase())) {
+                        pendingDirectories.push(path.join(currentDirectory, entry.name));
+                    }
+                    continue;
+                }
+                if (!entry.isFile()) {
+                    continue;
+                }
+                if (filesVisited >= MAX_SEARCH_FILES) {
+                    truncated = true;
+                    break;
+                }
+                filesVisited += 1;
+                const filePath = path.join(currentDirectory, entry.name);
+                let content;
+                let fileSize = 0;
+                try {
+                    const stats = await fs.stat(filePath);
+                    if (stats.size > MAX_SEARCH_FILE_BYTES) {
+                        filesSkipped += 1;
+                        continue;
+                    }
+                    if (totalBytesSearched + stats.size > MAX_SEARCH_TOTAL_BYTES) {
+                        truncated = true;
+                        break;
+                    }
+                    fileSize = stats.size;
+                    content = await fs.readFile(filePath);
+                }
+                catch (error) {
+                    if (error.code === 'ENOENT') {
+                        filesSkipped += 1;
+                        continue;
+                    }
+                    throw new Error(`Failed to search file ${this._relativePath(filePath)}: ${error instanceof Error ? error.message : String(error)}`);
+                }
+                filesSearched += 1;
+                totalBytesSearched += fileSize;
+                if (content.includes(0)) {
+                    filesSkipped += 1;
+                    continue;
+                }
+                const lines = content.toString('utf8').split(/\r?\n/);
+                for (let index = 0; index < lines.length; index += 1) {
+                    if (!lines[index].toLowerCase().includes(lowerQuery)) {
+                        continue;
+                    }
+                    const lineText = lines[index].trim();
+                    matches.push({
+                        path: this._relativePath(filePath),
+                        line: index + 1,
+                        text: lineText.length > MAX_SEARCH_LINE_LENGTH
+                            ? `${lineText.slice(0, MAX_SEARCH_LINE_LENGTH)}...`
+                            : lineText,
+                    });
+                    if (matches.length >= limit) {
+                        truncated = true;
+                        break;
+                    }
+                }
+                if (truncated) {
+                    break;
+                }
+            }
+        }
+        return {
+            query: normalizedQuery,
+            path: dirPath,
+            absolutePath: rootPath,
+            filesSearched,
+            filesSkipped,
+            truncated,
+            matches,
+        };
     }
     /**
      * Resolve a workspace path for trusted main-process actions.
@@ -321,6 +574,10 @@ class FileSystemServiceBridge {
             throw new Error(`File too large: maximum ${this.maxFileSize} bytes`);
         }
     }
+    rememberWriteCheckpoint(checkpoint) {
+        this.writeCheckpoints.unshift(checkpoint);
+        this.writeCheckpoints = this.writeCheckpoints.slice(0, MAX_WRITE_CHECKPOINTS);
+    }
     async _writeResolvedFile(fullPath, content, encoding) {
         const dir = path.dirname(fullPath);
         await fs.mkdir(dir, { recursive: true });
@@ -357,7 +614,7 @@ class FileSystemServiceBridge {
             ].join('\n');
         }
         const oldLabel = exists ? `${relativePath} (current)` : `${relativePath} (new file)`;
-        return createTwoFilesPatch(oldLabel, `${relativePath} (proposed)`, previousContent, nextContent, '', '', { context: 3 }).trim();
+        return (0, diff_1.createTwoFilesPatch)(oldLabel, `${relativePath} (proposed)`, previousContent, nextContent, '', '', { context: 3 }).trim();
     }
 }
 exports.FileSystemServiceBridge = FileSystemServiceBridge;

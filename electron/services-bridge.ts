@@ -1998,8 +1998,66 @@ function createBridgeTools({
       },
     },
     {
+      name: 'fs.search',
+      description: `Search for literal text inside files under the current workspace (${workspacePath}) by default. Use this for visible UI labels, quoted phrases, and code concepts when the human has not named a specific file. Search results include exact workspace-relative file paths and matching line text; use fs.read with those paths to inspect the full relevant file. Use workspace-relative paths for a narrower directory, and use an external absolute path only when the human explicitly requests an external location.`,
+      source: 'bridge',
+      readOnly: true,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Literal text to search for; case-insensitive.' },
+          path: { type: 'string', description: 'Directory to search, defaulting to the active workspace root.' },
+          limit: { type: 'integer', minimum: 1, maximum: 100, description: 'Maximum matching lines to return. Defaults to 50.' },
+        },
+        required: ['query'],
+      },
+      execute: async (args, context) => {
+        const query = typeof args.query === 'string' ? args.query : '';
+        const requestedPath = normalizeRequestedPath(String(args.path ?? '.'));
+        const scopedFileService = await getFileServiceForPath(requestedPath, 'fs.search', context.toolId, true);
+        return scopedFileService.searchFiles(query, requestedPath, Number(args.limit) || 50);
+      },
+    },
+    {
+      name: 'fs.edit',
+      description: `Make one exact, unique text replacement in an existing file in the current workspace (${workspacePath}). This preserves all surrounding file content. Read the exact file first; oldText must occur exactly once. The proposed diff is reviewed before applying, and edits are checkpointed for undo.`,
+      source: 'bridge',
+      readOnly: false,
+      customReview: true,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Existing workspace-relative file path.' },
+          oldText: { type: 'string', description: 'Exact non-empty source text to replace; must match once.' },
+          newText: { type: 'string', description: 'Replacement text. Empty text deletes the exact oldText match.' },
+          encoding: { type: 'string' },
+        },
+        required: ['path', 'oldText', 'newText'],
+      },
+      execute: async (args, context) => {
+        if (typeof args.path !== 'string' || !args.path.trim()) {
+          throw new Error('fs.edit requires a non-empty string path.');
+        }
+        if (typeof args.oldText !== 'string' || !args.oldText) {
+          throw new Error('fs.edit requires non-empty oldText.');
+        }
+        if (typeof args.newText !== 'string') {
+          throw new Error('fs.edit requires string newText.');
+        }
+        const targetPath = normalizeRequestedPath(args.path);
+        const scopedFilesService = await getFileServiceForPath(targetPath, 'fs.edit', context.toolId, false);
+        return scopedFilesService.editFileWithCheckpoint(
+          targetPath,
+          args.oldText,
+          args.newText,
+          args.encoding as BufferEncoding | undefined,
+          preview => requestFileWriteReview(preview, context.toolId),
+        );
+      },
+    },
+    {
       name: 'fs.write',
-      description: `Write a file in the current workspace (${workspacePath}) by default. Use workspace-relative paths for workspace files. External absolute paths and the current user's ~ home shorthand are governed by the desktop permission profile and may require user approval.`,
+      description: `Create a new file in the current workspace (${workspacePath}) by default. This tool refuses to overwrite an existing file; use fs.edit for focused changes to existing files. External absolute paths and the current user's ~ home shorthand are governed by the desktop permission profile and may require user approval.`,
       source: 'bridge',
       readOnly: false,
       customReview: true,
@@ -2023,11 +2081,12 @@ function createBridgeTools({
         const scopedFilesService = await getFileServiceForPath(targetPath, 'fs.write', context.toolId, false);
         const content = args.content;
         const encoding = args.encoding as BufferEncoding | undefined;
-        const preview = await scopedFilesService.createWritePreview(targetPath, content, encoding);
-
-        await requestFileWriteReview(preview, context.toolId);
-
-        return scopedFilesService.writeFileWithCheckpoint(targetPath, content, encoding);
+        return scopedFilesService.createFileWithCheckpoint(
+          targetPath,
+          content,
+          encoding,
+          preview => requestFileWriteReview(preview, context.toolId),
+        );
       },
     },
     {
@@ -2046,7 +2105,7 @@ function createBridgeTools({
     },
     {
       name: 'fs.list',
-      description: `List a directory in the current workspace (${workspacePath}) by default. Use "." for the current scoped workspace root and workspace-relative paths for its children; do not repeat the workspace folder name as a child path. Pass an external absolute path or the current user's ~ home shorthand exactly when the human explicitly requests that external path; the runtime expands ~ without a shell, then the desktop permission profile will allow access, request approval, or return a scope error. A successful result confirms that the resolved directory exists; an empty entries array means it exists and is empty.`,
+      description: `List a directory, not a file, in the current workspace (${workspacePath}) by default. Use fs.search to find text within files and fs.read to inspect a file. Use "." for the current scoped workspace root and workspace-relative paths for its children; do not repeat the workspace folder name as a child path. Pass an external absolute path or the current user's ~ home shorthand exactly when the human explicitly requests that external path; the runtime expands ~ without a shell, then the desktop permission profile will allow access, request approval, or return a scope error. A successful result confirms that the resolved directory exists; an empty entries array means it exists and is empty.`,
       source: 'bridge',
       readOnly: true,
       inputSchema: {

@@ -152,7 +152,7 @@ export const FEATURE_PACKAGE_MANIFESTS: FeaturePackageManifest[] = [
         ],
         requiredServices: ['tool-service', 'filesystem', 'command', 'web', 'finance', 'mcp'],
         storageNamespaces: ['toolPermissionPolicies', 'disabledLlmTools'],
-        toolSchemas: ['time.now', 'web.probe', 'web.search', 'web.research', 'web.fetch', 'finance.quote', 'bash.run', 'fs.read', 'fs.write', 'fs.undoLastWrite', 'fs.list', 'api.chat', 'app.getConfig', 'mcp.listServers', 'mcp.listTools', 'mcp.callTool'],
+        toolSchemas: ['time.now', 'web.probe', 'web.search', 'web.research', 'web.fetch', 'finance.quote', 'bash.run', 'fs.read', 'fs.search', 'fs.write', 'fs.undoLastWrite', 'fs.list', 'api.chat', 'app.getConfig', 'mcp.listServers', 'mcp.listTools', 'mcp.callTool'],
         permissionPolicies: ['bash.run', 'fs.write', 'fs.undoLastWrite', 'mcp.callTool'],
         historyEventTypes: ['tool-event'],
       },

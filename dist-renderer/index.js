@@ -40691,13 +40691,17 @@
         dangerButton: "App_dangerButton",
         textButton: "App_textButton",
         icon: "App_icon",
+        desktopTitlebar: "App_desktopTitlebar",
+        desktopTitlebarBrand: "App_desktopTitlebarBrand",
+        desktopTitlebarActions: "App_desktopTitlebarActions",
+        desktopTitlebarMac: "App_desktopTitlebarMac",
+        windowContent: "App_windowContent",
         containerCollapsed: "App_containerCollapsed",
+        brandMark: "App_brandMark",
         navSidebar: "App_navSidebar",
         navSidebarCollapsed: "App_navSidebarCollapsed",
-        mobileNavBackdrop: "App_mobileNavBackdrop",
         brandBlock: "App_brandBlock",
         sidebarFooter: "App_sidebarFooter",
-        brandMark: "App_brandMark",
         statusDot: "App_statusDot",
         statusDotBusy: "App_statusDotBusy",
         newChatButton: "App_newChatButton",
@@ -40748,11 +40752,14 @@
         developerContextSelect: "App_developerContextSelect",
         headerTitle: "App_headerTitle",
         headerLeading: "App_headerLeading",
-        headerNavButton: "App_headerNavButton",
         assistantActivity: "App_assistantActivity",
         assistantActivityTitle: "App_assistantActivityTitle",
+        assistantActivityHeadline: "App_assistantActivityHeadline",
         assistantActivityAttention: "App_assistantActivityAttention",
         assistantActivityBody: "App_assistantActivityBody",
+        agentProgress: "App_agentProgress",
+        agentProgressPending: "App_agentProgressPending",
+        agentProgressFailed: "App_agentProgressFailed",
         messagePerformance: "App_messagePerformance",
         messagePerformanceGrid: "App_messagePerformanceGrid",
         messagePerformanceNote: "App_messagePerformanceNote",
@@ -41111,7 +41118,6 @@
         modelPreparationActions: "App_modelPreparationActions",
         localModelList: "App_localModelList",
         localModelRow: "App_localModelRow",
-        containerNarrow: "App_containerNarrow",
         permissionProfileSection: "App_permissionProfileSection",
         permissionProfileHeader: "App_permissionProfileHeader",
         permissionProfileList: "App_permissionProfileList",
@@ -42640,7 +42646,7 @@
               ],
               requiredServices: ["tool-service", "filesystem", "command", "web", "finance", "mcp"],
               storageNamespaces: ["toolPermissionPolicies", "disabledLlmTools"],
-              toolSchemas: ["time.now", "web.probe", "web.search", "web.research", "web.fetch", "finance.quote", "bash.run", "fs.read", "fs.write", "fs.undoLastWrite", "fs.list", "api.chat", "app.getConfig", "mcp.listServers", "mcp.listTools", "mcp.callTool"],
+              toolSchemas: ["time.now", "web.probe", "web.search", "web.research", "web.fetch", "finance.quote", "bash.run", "fs.read", "fs.search", "fs.write", "fs.undoLastWrite", "fs.list", "api.chat", "app.getConfig", "mcp.listServers", "mcp.listTools", "mcp.callTool"],
               permissionPolicies: ["bash.run", "fs.write", "fs.undoLastWrite", "mcp.callTool"],
               historyEventTypes: ["tool-event"]
             }
@@ -44379,6 +44385,14 @@
       })
     });
   }
+  async function uninstallPlatformPackage(baseUrl, token, orgId, packageId) {
+    return readPlatformJson(baseUrl, `/code-agent/packages/${encodeURIComponent(packageId)}/uninstall`, token, {
+      method: "POST",
+      body: JSON.stringify({
+        ...orgId.trim() ? { org_id: orgId.trim() } : {}
+      })
+    });
+  }
   function createPlatformPackageDownloadRequest(baseUrl, token, orgId, manifest) {
     const artifact = manifest.distribution.artifact;
     const normalizedBaseUrl = normalizePlatformBaseUrl(baseUrl);
@@ -44701,6 +44715,7 @@
     const normalized = toolName.toLowerCase();
     if (normalized === "fs.list" || normalized === "fs_list") return "List directory";
     if (normalized === "fs.read" || normalized === "fs_read") return "Read file";
+    if (normalized === "fs.edit" || normalized === "fs_edit") return "Edit file";
     if (normalized === "fs.write" || normalized === "fs_write") return "Write file";
     if (normalized === "bash.run" || normalized === "bash_run") return "Run command";
     if (normalized.includes("search")) return "Search";
@@ -44730,6 +44745,59 @@
     if (activity.result !== void 0) lines.push(`Result: ${formatJson(activity.result)}`);
     if (activity.error) lines.push(`Error: ${activity.error}`);
     return lines.join("\n");
+  }
+  function getAgentProgressSteps(activities) {
+    let hasSuccessfulChange = false;
+    return [...activities].sort((left, right) => left.startedAt - right.startedAt).map((activity) => {
+      const toolName = activity.toolName.toLowerCase().replace(/_/g, ".");
+      const target = getChatToolActivityTarget(activity);
+      let phase = "other";
+      let action = getChatToolActivityAction(activity.toolName);
+      if (toolName === "fs.write" || toolName === "fs.edit") {
+        phase = "change";
+        action = toolName === "fs.edit" ? "Edit" : "Create";
+      } else if (toolName === "fs.read") {
+        phase = hasSuccessfulChange ? "verify" : "inspect";
+        action = phase === "verify" ? "Verify" : "Inspect";
+      } else if (toolName === "fs.search" || toolName === "fs.list") {
+        phase = hasSuccessfulChange ? "verify" : "inspect";
+        action = toolName === "fs.search" ? phase === "verify" ? "Check workspace for" : "Search workspace for" : phase === "verify" ? "Check project files" : "Inspect project files";
+      } else if (toolName === "bash.run") {
+        phase = hasSuccessfulChange ? "verify" : "other";
+        action = hasSuccessfulChange ? "Verify with command" : "Run command";
+      } else if (toolName === "web.search") {
+        action = "Search the web for";
+      }
+      if (toolName === "fs.write" && activity.status === "succeeded") {
+        hasSuccessfulChange = true;
+      }
+      return {
+        id: activity.toolId,
+        label: `${action}${target ? ` ${target}` : ""}`,
+        phase,
+        status: getChatToolActivityStatusLabel(activity.status)
+      };
+    });
+  }
+  function getAgentProgressHeadline(steps) {
+    const pending = [...steps].reverse().find((step) => step.status === "Running" || step.status === "Waiting for approval");
+    if (pending) {
+      return `${pending.label} \xB7 ${pending.status.toLowerCase()}`;
+    }
+    const failed = [...steps].reverse().find((step) => step.status === "Failed" || step.status === "Not approved");
+    if (failed) {
+      return `${failed.label} \xB7 needs attention`;
+    }
+    const phaseLabels = [
+      { phase: "inspect", label: "inspected" },
+      { phase: "change", label: "changed" },
+      { phase: "verify", label: "verified" }
+    ];
+    const completedPhases = phaseLabels.flatMap(({ phase, label }) => {
+      const count = steps.filter((step) => step.phase === phase && step.status === "Completed").length;
+      return count > 0 ? [`${label} ${count}`] : [];
+    });
+    return completedPhases.join(" \xB7 ") || steps.at(-1)?.label || "";
   }
   function formatSidebarLabel(content, maxLength = 42) {
     const normalized = content.replace(/\s+/g, " ").trim();
@@ -45333,7 +45401,6 @@
     const [activeHistorySection, setActiveHistorySection] = useState("overview");
     const [activeSettingsSection, setActiveSettingsSection] = useState("account");
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readStoredSidebarCollapsed());
-    const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
     const developmentPlatformSessionRef = useRef(null);
     const effectiveChatExecutionMode = chatExecutionModeOverride ?? (appConfig?.enableLlmTools === false ? "chat" : "agent");
     const effectiveChatPermissionProfile = chatPermissionProfileOverride ?? appConfig?.desktopPermissionProfile ?? "workspace-only";
@@ -45465,14 +45532,6 @@
       } catch {
       }
     }, [sidebarCollapsed]);
-    useEffect(() => {
-      if (!mobileNavigationOpen) return void 0;
-      const closeOnEscape = (event) => {
-        if (event.key === "Escape") setMobileNavigationOpen(false);
-      };
-      window.addEventListener("keydown", closeOnEscape);
-      return () => window.removeEventListener("keydown", closeOnEscape);
-    }, [mobileNavigationOpen]);
     useEffect(() => {
       softwareProjectsRef.current = softwareProjects;
     }, [softwareProjects]);
@@ -46020,6 +46079,9 @@
         };
       }));
     }
+    function toggleNavigation() {
+      setSidebarCollapsed((value) => !value);
+    }
     function startNewChat() {
       const nextSession = createEmptySession(appInfo?.workspacePath);
       setSessions((current) => {
@@ -46048,7 +46110,6 @@
       setInput("");
       setStatus("Ready");
       setActiveView("chat");
-      setMobileNavigationOpen(false);
       inputRef.current?.focus();
     }
     function loadSession(sessionId) {
@@ -47294,6 +47355,7 @@ ${displayPrompt}` : displayPrompt;
         const chatToolsEnabled = effectiveChatExecutionMode === "agent";
         await ipcClient.api.chatStream({
           requestId,
+          structuredAgentLoop: chatToolsEnabled,
           authorizedWorkspacePath: scopedWorkspacePath || void 0,
           messages: getChatMessages(messages, requestContent),
           provider: activeProvider2,
@@ -48199,9 +48261,28 @@ Attached images: ${imageSummary}` : message.content);
         try {
           setStatus("Uninstalling package");
           setSettingsMessage(`Uninstalling ${packageEntry.manifest.displayName} from this device...`);
+          const storedPlatformSession = await ipcClient.auth.getPlatformSession().catch(() => null);
+          const platformBaseUrl = normalizePlatformBaseUrl(String(
+            storedPlatformSession?.baseUrl || appConfig?.platformBaseUrl || ""
+          ));
+          const platformToken = storedPlatformSession?.accessToken || (typeof appConfig?.platformAccessToken === "string" ? appConfig.platformAccessToken : "");
+          let nextProfile = createUninstalledProfile(profile, packageEntry.manifest.id);
+          if (platformBaseUrl && platformToken) {
+            const platformOrgId = String(storedPlatformSession?.orgId || appConfig?.platformOrgId || profile.accountId || "");
+            const result = await uninstallPlatformPackage(
+              platformBaseUrl,
+              platformToken,
+              platformOrgId,
+              packageEntry.manifest.id
+            );
+            nextProfile = createUninstalledProfile(
+              normalizeFeatureProfile(result.profile),
+              packageEntry.manifest.id
+            );
+          }
           await ipcClient.app.uninstallFeaturePackage({ manifest: packageEntry.manifest });
           await persistFeatureProfile(
-            createUninstalledProfile(profile, packageEntry.manifest.id),
+            nextProfile,
             `${packageEntry.manifest.displayName} was uninstalled from this device. Your purchase is still owned.`
           );
           setPackageOperationError(null);
@@ -48546,7 +48627,6 @@ Attached images: ${imageSummary}` : message.content);
         setHistoryMessage("");
       }
       setActiveView(view);
-      setMobileNavigationOpen(false);
     }
     function openPrimaryNavigationItem(item) {
       if (item.route === "settings") {
@@ -48621,7 +48701,6 @@ Attached images: ${imageSummary}` : message.content);
         setSettingsMessage("");
       }
       setActiveView(view);
-      setMobileNavigationOpen(false);
     }
     const statusLabel = isSending ? "Working" : status;
     const activeProvider = appConfig?.llmProvider || DEFAULT_PROVIDER;
@@ -48663,814 +48742,817 @@ Attached images: ${imageSummary}` : message.content);
     const viewSubtitle = activeView === "chat" ? appConfig?.model || activeProviderDefault.model : activePackagePage?.description || activeSettingsMenuItem.description;
     const skinStyle = getSkinStyle(appConfig?.accentColor);
     const projectNotificationClassName = getProjectNoticeClassName(projectActionMessage);
-    const narrowNavigation = viewportSize.width <= 820;
-    const navigationCollapsed = narrowNavigation ? !mobileNavigationOpen : sidebarCollapsed;
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.container} ${navigationCollapsed ? App_default.containerCollapsed : ""} ${narrowNavigation ? App_default.containerNarrow : ""}`, style: skinStyle, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { className: `${App_default.navSidebar} ${navigationCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 17 }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "CodeAgent" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activeProviderLabel })
+    const navigationCollapsed = sidebarCollapsed;
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.container, style: skinStyle, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.desktopTitlebar} ${appInfo?.platform === "darwin" ? App_default.desktopTitlebarMac : ""}`, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.desktopTitlebarBrand, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 16 }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "CodeAgent" })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.desktopTitlebarActions, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              type: "button",
+              onClick: toggleNavigation,
+              title: navigationCollapsed ? "Open navigation" : "Close navigation",
+              "aria-label": navigationCollapsed ? "Open navigation" : "Close navigation",
+              "aria-controls": "primary-navigation",
+              "aria-expanded": !navigationCollapsed,
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "sidebar", size: 15 }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Navigation" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: startNewChat, title: "New chat", "aria-label": "New chat", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 15 }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "New chat" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: () => setActiveView("settings"), title: "Settings", "aria-label": "Settings", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "settings", size: 15 }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Settings" })
           ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", title: "New chat", onClick: startNewChat, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: "New chat" })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: availablePrimaryNav.map((item) => {
-          const workspaceGroups = getDesktopChildNavigation(featureResolution, item.route);
-          const isPackageWorkspace = item.packageId !== BASE_FEATURE_PACKAGE_ID;
-          const itemIsActive = isPrimaryNavigationItemActive(item);
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "button",
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.windowContent} ${navigationCollapsed ? App_default.containerCollapsed : ""}`, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("aside", { id: "primary-navigation", className: `${App_default.navSidebar} ${navigationCollapsed ? App_default.navSidebarCollapsed : ""}`, "aria-label": "Navigation", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.brandBlock, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.brandMark, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 17 }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "CodeAgent" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activeProviderLabel })
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.newChatButton, type: "button", title: "New chat", onClick: startNewChat, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 14 }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: "New chat" })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.navList, "aria-label": "Primary", children: availablePrimaryNav.map((item) => {
+            const workspaceGroups = getDesktopChildNavigation(featureResolution, item.route);
+            const isPackageWorkspace = item.packageId !== BASE_FEATURE_PACKAGE_ID;
+            const itemIsActive = isPrimaryNavigationItemActive(item);
+            return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.navGroup, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: itemIsActive ? App_default.navItemActive : App_default.navItem,
+                  type: "button",
+                  title: item.description,
+                  "aria-expanded": isPackageWorkspace ? itemIsActive : void 0,
+                  onClick: () => openPrimaryNavigationItem(item),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: item.icon, size: 14 }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: item.title })
+                  ]
+                }
+              ),
+              isPackageWorkspace && itemIsActive && workspaceGroups.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} areas`, children: workspaceGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: activePackageGroup?.id === group.id ? App_default.navChildItemActive : App_default.navChildItem,
+                  type: "button",
+                  title: `${group.title}: ${group.description}`,
+                  onClick: () => openPackageNavigationGroup(group),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: group.icon, size: 13 }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: group.title }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: group.description })
+                    ] })
+                  ]
+                },
+                group.id
+              )) }),
+              !isPackageWorkspace && itemIsActive && activeChildMenu.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} sections`, children: activeChildMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: child.id === activeChildId ? App_default.navChildItemActive : App_default.navChildItem,
+                  type: "button",
+                  title: `${child.title}: ${child.description}`,
+                  onClick: () => openChildRoute(item.route, child.id),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: child.title }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.description })
+                    ] })
+                  ]
+                },
+                child.id
+              )) })
+            ] }, item.id);
+          }) }),
+          !activePackageWorkspace && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Recents" }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              "input",
               {
-                className: itemIsActive ? App_default.navItemActive : App_default.navItem,
-                type: "button",
-                title: item.description,
-                "aria-expanded": isPackageWorkspace ? itemIsActive : void 0,
-                onClick: () => openPrimaryNavigationItem(item),
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: item.icon, size: 14 }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navLabel, children: item.title })
-                ]
+                className: App_default.sessionSearchInput,
+                type: "search",
+                value: sessionSearch,
+                onChange: (event) => setSessionSearch(event.target.value),
+                placeholder: "Search chats",
+                "aria-label": "Search chats"
               }
             ),
-            isPackageWorkspace && itemIsActive && workspaceGroups.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} areas`, children: workspaceGroups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recentList, children: [
+              visibleRecentSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.recentItemActive, type: "button", onClick: () => openPrimaryView("chat"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: sessionSearch.trim() ? "No matches" : "New conversation" }) }),
+              visibleRecentSessions.map((session) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "button",
+                {
+                  className: session.id === currentSessionId ? App_default.recentItemActive : App_default.recentItem,
+                  type: "button",
+                  title: session.title,
+                  onClick: () => loadSession(session.id),
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: formatSidebarLabel(session.title) }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.recentMeta, children: [
+                      session.messages.length,
+                      " messages \xB7 ",
+                      formatRelativeTime(session.updatedAt)
+                    ] })
+                  ]
+                },
+                session.id
+              ))
+            ] })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.sidebarBottom, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+            "button",
+            {
+              className: activeView === "settings" && activeSettingsSection === "account" ? App_default.sidebarAccountButtonActive : App_default.sidebarAccountButton,
+              type: "button",
+              title: sidebarAccountSignedIn ? sidebarAccountName : "Open account settings",
+              onClick: () => openChildRoute("settings", "account"),
+              children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.sidebarAccountAvatar, "aria-hidden": "true", children: sidebarAccountSignedIn ? sidebarAccountInitials : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }) }),
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: sidebarAccountName }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: sidebarAccountSignedIn ? formatAccountTier(sidebarAccountProfile) : "Sign in or create an account" })
+                ] })
+              ]
+            }
+          ) })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.appShell, children: [
+          projectActionMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: projectNotificationClassName, role: "status", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectNoticeContent, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Project update" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: projectActionMessage })
+            ] }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               "button",
               {
-                className: activePackageGroup?.id === group.id ? App_default.navChildItemActive : App_default.navChildItem,
+                className: App_default.projectNoticeClose,
                 type: "button",
-                title: `${group.title}: ${group.description}`,
-                onClick: () => openPackageNavigationGroup(group),
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: group.icon, size: 13 }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: group.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: group.description })
-                  ] })
-                ]
-              },
-              group.id
-            )) }),
-            !isPackageWorkspace && itemIsActive && activeChildMenu.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.navSubList, "aria-label": `${item.title} sections`, children: activeChildMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                title: "Dismiss notification",
+                "aria-label": "Dismiss project notification",
+                onClick: () => setProjectActionMessage(""),
+                children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", { className: App_default.header, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.headerLeading, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
+          ] }) }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workspaceFrame, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workspaceColumn, children: [
+            activePackageWorkspace && activePackageGroup && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.developerPageNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.pageTabs, "aria-label": `${activePackageGroup.title} pages`, children: activePackagePageMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
               "button",
               {
-                className: child.id === activeChildId ? App_default.navChildItemActive : App_default.navChildItem,
+                className: child.id === activeChildId ? App_default.pageTabActive : App_default.pageTab,
                 type: "button",
-                title: `${child.title}: ${child.description}`,
-                onClick: () => openChildRoute(item.route, child.id),
+                title: child.description,
+                onClick: () => openChildRoute(activePackageGroup.route, child.id),
                 children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.navChildGlyph, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.navChildLabel, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: child.title }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.description })
-                  ] })
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.title })
                 ]
               },
               child.id
-            )) })
-          ] }, item.id);
-        }) }),
-        !activePackageWorkspace && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.recentSection, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", { children: "Recents" }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "input",
-            {
-              className: App_default.sessionSearchInput,
-              type: "search",
-              value: sessionSearch,
-              onChange: (event) => setSessionSearch(event.target.value),
-              placeholder: "Search chats",
-              "aria-label": "Search chats"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.recentList, children: [
-            visibleRecentSessions.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { className: App_default.recentItemActive, type: "button", onClick: () => openPrimaryView("chat"), children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: sessionSearch.trim() ? "No matches" : "New conversation" }) }),
-            visibleRecentSessions.map((session) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-              "button",
-              {
-                className: session.id === currentSessionId ? App_default.recentItemActive : App_default.recentItem,
-                type: "button",
-                title: session.title,
-                onClick: () => loadSession(session.id),
-                children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.recentTitle, children: formatSidebarLabel(session.title) }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.recentMeta, children: [
-                    session.messages.length,
-                    " messages \xB7 ",
-                    formatRelativeTime(session.updatedAt)
-                  ] })
-                ]
-              },
-              session.id
-            ))
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.sidebarBottom, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-          "button",
-          {
-            className: activeView === "settings" && activeSettingsSection === "account" ? App_default.sidebarAccountButtonActive : App_default.sidebarAccountButton,
-            type: "button",
-            title: sidebarAccountSignedIn ? sidebarAccountName : "Open account settings",
-            onClick: () => openChildRoute("settings", "account"),
-            children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.sidebarAccountAvatar, "aria-hidden": "true", children: sidebarAccountSignedIn ? sidebarAccountInitials : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "user", size: 14 }) }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: sidebarAccountName }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: sidebarAccountSignedIn ? formatAccountTier(sidebarAccountProfile) : "Sign in or create an account" })
-              ] })
-            ]
-          }
-        ) })
-      ] }),
-      narrowNavigation && mobileNavigationOpen && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        "button",
-        {
-          className: App_default.mobileNavBackdrop,
-          type: "button",
-          "aria-label": "Close navigation",
-          onClick: () => setMobileNavigationOpen(false)
-        }
-      ),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.appShell, children: [
-        projectActionMessage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: projectNotificationClassName, role: "status", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.projectNoticeContent, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Project update" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: projectActionMessage })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: App_default.projectNoticeClose,
-              type: "button",
-              title: "Dismiss notification",
-              "aria-label": "Dismiss project notification",
-              onClick: () => setProjectActionMessage(""),
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 14 })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("header", { className: App_default.header, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerLeading, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: App_default.headerNavButton,
-              type: "button",
-              title: navigationCollapsed ? "Open navigation" : "Close navigation",
-              "aria-label": navigationCollapsed ? "Open navigation" : "Close navigation",
-              "aria-pressed": navigationCollapsed,
-              onClick: () => {
-                if (narrowNavigation) {
-                  setMobileNavigationOpen((value) => !value);
-                } else {
-                  setSidebarCollapsed((value) => !value);
-                }
-              },
-              children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "sidebar", size: 17 })
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.headerTitle, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", { children: viewTitle }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.subtitle, children: viewSubtitle })
-          ] })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.workspaceFrame, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.workspaceColumn, children: [
-          activePackageWorkspace && activePackageGroup && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.developerPageNavigation, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", { className: App_default.pageTabs, "aria-label": `${activePackageGroup.title} pages`, children: activePackagePageMenu.map((child) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: child.id === activeChildId ? App_default.pageTabActive : App_default.pageTab,
-              type: "button",
-              title: child.description,
-              onClick: () => openChildRoute(activePackageGroup.route, child.id),
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: child.icon, size: 13 }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: child.title })
-              ]
-            },
-            child.id
-          )) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""} ${activeView === "settings" ? App_default.workspaceSettings : ""}`, children: [
-            activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
-                groupMessagesByAssistantRun(messages).map(({ message, activities }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  MessageItem,
-                  {
-                    message,
-                    activities,
-                    copied: copiedMessageId === message.id,
-                    onCopy: () => copyMessage(message)
-                  },
-                  message.id
-                )),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  InlineApprovalQueue,
-                  {
-                    fileWriteReviews: mainFileWriteReviews,
-                    commandReviews: mainCommandReviews,
-                    toolPermissionReviews: mainToolPermissionReviews,
-                    onResolveFileWrite: resolveFileWriteReview,
-                    onResolveCommand: resolveCommandReview,
-                    onResolveToolPermission: resolveToolPermissionReview
-                  }
-                ),
-                isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
-                ] })
-              ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
-                event.preventDefault();
-                submitPrompt();
-              }, children: [
-                showCommandPalette && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.commandPalette, role: "listbox", "aria-label": "Desktop commands", children: commandSuggestions.map((command) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                  "button",
-                  {
-                    className: App_default.commandPaletteItem,
-                    type: "button",
-                    onClick: () => {
-                      setInput(command.command.includes("<") ? command.command.split(" ")[0] : command.command);
-                      inputRef.current?.focus();
+            )) }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", { className: `${App_default.workspace} ${activeView !== "chat" ? App_default.workspaceDetail : ""} ${activeView === "settings" ? App_default.workspaceSettings : ""}`, children: [
+              activeView === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.chatPanel, "aria-label": "Chat", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.messageList, ref: messageListRef, children: [
+                  groupMessagesByAssistantRun(messages).map(({ message, activities }) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    MessageItem,
+                    {
+                      message,
+                      activities,
+                      copied: copiedMessageId === message.id,
+                      onCopy: () => copyMessage(message)
                     },
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: command.command }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: command.description })
-                    ]
-                  },
-                  command.command
-                )) }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextPanel, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.composerContextBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextActions, children: [
-                    chatToolWorkspacePath ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.composerFolderMenu, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { title: chatToolWorkspacePath, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: getPathBasename(chatToolWorkspacePath) }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.composerFolderChevron, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 12 }) })
-                      ] }),
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerFolderMenuPopover, children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: chatToolWorkspacePath, children: chatToolWorkspacePath }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: chooseChatToolWorkspaceFolder, disabled: isSending, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                          "Change folder"
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: clearChatToolWorkspaceFolder, disabled: isSending, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 13 }),
-                          "Clear folder"
-                        ] })
-                      ] })
-                    ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                      "button",
-                      {
-                        className: App_default.composerContextChip,
-                        type: "button",
-                        onClick: chooseChatToolWorkspaceFolder,
-                        disabled: isSending,
-                        title: "Choose a working folder",
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
-                          "Set folder"
-                        ]
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                      "button",
-                      {
-                        className: App_default.composerContextChip,
-                        type: "button",
-                        onClick: chooseChatContextAttachments,
-                        disabled: isSending,
-                        title: "Add files or folders as read-only chat context",
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 13 }),
-                          "Add context"
-                        ]
-                      }
-                    )
-                  ] }) }),
-                  chatContextAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerAttachmentList, "aria-label": "Attached chat context", children: [
-                    chatContextAttachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                      "button",
-                      {
-                        className: App_default.composerAttachmentChip,
-                        type: "button",
-                        onClick: () => removeChatContextAttachment(attachment.path),
-                        disabled: isSending,
-                        title: `Remove ${attachment.path}`,
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: attachment.type === "directory" ? "folder" : "file", size: 13 }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: attachment.name }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: attachment.type === "directory" ? "Folder" : formatFileSize(attachment.size) }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
-                        ]
-                      },
-                      attachment.path
-                    )),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        className: App_default.textButton,
-                        type: "button",
-                        onClick: clearChatContextAttachments,
-                        disabled: isSending,
-                        title: "Remove all attached context",
-                        children: "Clear context"
-                      }
-                    )
-                  ] }),
-                  chatImageAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerImageList, "aria-label": "Pasted images", children: [
-                    chatImageAttachments.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                      "button",
-                      {
-                        className: App_default.composerImageChip,
-                        type: "button",
-                        onClick: () => removeChatImageAttachment(image.id),
-                        disabled: isSending,
-                        title: `Remove ${image.name}`,
-                        children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: "" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: image.name }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: [image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
-                        ]
-                      },
-                      image.id
-                    )),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        className: App_default.textButton,
-                        type: "button",
-                        onClick: clearChatImageAttachments,
-                        disabled: isSending,
-                        title: "Remove all pasted images",
-                        children: "Clear images"
-                      }
-                    )
+                    message.id
+                  )),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    InlineApprovalQueue,
+                    {
+                      fileWriteReviews: mainFileWriteReviews,
+                      commandReviews: mainCommandReviews,
+                      toolPermissionReviews: mainToolPermissionReviews,
+                      onResolveFileWrite: resolveFileWriteReview,
+                      onResolveCommand: resolveCommandReview,
+                      onResolveToolPermission: resolveToolPermissionReview
+                    }
+                  ),
+                  isSending && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.typingIndicator, role: "status", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {}),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {})
                   ] })
                 ] }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                  "textarea",
-                  {
-                    ref: inputRef,
-                    value: input,
-                    onChange: (event) => setInput(event.target.value),
-                    onKeyDown: handleInputKeyDown,
-                    onPaste: handleComposerPaste,
-                    placeholder: "Ask CodeAgent\u2026",
-                    rows: 1,
-                    disabled: isSending,
-                    "aria-label": "Message"
-                  }
-                ),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerToolbar, children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerMeta, "aria-label": "Chat execution settings", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", { className: App_default.composer, onSubmit: (event) => {
+                  event.preventDefault();
+                  submitPrompt();
+                }, children: [
+                  showCommandPalette && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.commandPalette, role: "listbox", "aria-label": "Desktop commands", children: commandSuggestions.map((command) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    "button",
+                    {
+                      className: App_default.commandPaletteItem,
+                      type: "button",
+                      onClick: () => {
+                        setInput(command.command.includes("<") ? command.command.split(" ")[0] : command.command);
+                        inputRef.current?.focus();
+                      },
+                      children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: command.command }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: command.description })
+                      ]
+                    },
+                    command.command
+                  )) }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextPanel, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: App_default.composerContextBar, children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerContextActions, children: [
+                      chatToolWorkspacePath ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("details", { className: App_default.composerFolderMenu, children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { title: chatToolWorkspacePath, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: getPathBasename(chatToolWorkspacePath) }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.composerFolderChevron, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 12 }) })
+                        ] }),
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerFolderMenuPopover, children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { title: chatToolWorkspacePath, children: chatToolWorkspacePath }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: chooseChatToolWorkspaceFolder, disabled: isSending, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                            "Change folder"
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { type: "button", onClick: clearChatToolWorkspaceFolder, disabled: isSending, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 13 }),
+                            "Clear folder"
+                          ] })
+                        ] })
+                      ] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                         "button",
                         {
-                          className: App_default.composerSettingTrigger,
+                          className: App_default.composerContextChip,
                           type: "button",
-                          "aria-haspopup": "menu",
-                          "aria-expanded": composerMenu === "mode",
-                          onClick: () => {
-                            setPendingChatPermissionProfile(null);
-                            setComposerMenu((current) => current === "mode" ? null : "mode");
-                          },
+                          onClick: chooseChatToolWorkspaceFolder,
                           disabled: isSending,
-                          title: `Mode: ${effectiveChatExecutionMode === "agent" ? "Agent can use tools and the working folder" : "Chat answers without tools"}`,
+                          title: "Choose a working folder",
                           children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: effectiveChatExecutionMode === "agent" ? "bot" : "chat", size: 13 }),
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: effectiveChatExecutionMode === "agent" ? "Agent" : "Chat" }),
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "folder-open", size: 13 }),
+                            "Set folder"
                           ]
                         }
                       ),
-                      composerMenu === "mode" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingPopover, role: "menu", "aria-label": "Choose chat mode", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Mode for this chat" }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          className: App_default.composerContextChip,
+                          type: "button",
+                          onClick: chooseChatContextAttachments,
+                          disabled: isSending,
+                          title: "Add files or folders as read-only chat context",
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "plus", size: 13 }),
+                            "Add context"
+                          ]
+                        }
+                      )
+                    ] }) }),
+                    chatContextAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerAttachmentList, "aria-label": "Attached chat context", children: [
+                      chatContextAttachments.map((attachment) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          className: App_default.composerAttachmentChip,
+                          type: "button",
+                          onClick: () => removeChatContextAttachment(attachment.path),
+                          disabled: isSending,
+                          title: `Remove ${attachment.path}`,
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: attachment.type === "directory" ? "folder" : "file", size: 13 }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: attachment.name }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: attachment.type === "directory" ? "Folder" : formatFileSize(attachment.size) }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                          ]
+                        },
+                        attachment.path
+                      )),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "button",
+                        {
+                          className: App_default.textButton,
+                          type: "button",
+                          onClick: clearChatContextAttachments,
+                          disabled: isSending,
+                          title: "Remove all attached context",
+                          children: "Clear context"
+                        }
+                      )
+                    ] }),
+                    chatImageAttachments.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerImageList, "aria-label": "Pasted images", children: [
+                      chatImageAttachments.map((image) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                        "button",
+                        {
+                          className: App_default.composerImageChip,
+                          type: "button",
+                          onClick: () => removeChatImageAttachment(image.id),
+                          disabled: isSending,
+                          title: `Remove ${image.name}`,
+                          children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", { src: image.dataUrl, alt: "" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: image.name }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("em", { children: [image.width && image.height ? `${image.width}x${image.height}` : "", formatFileSize(image.size)].filter(Boolean).join(" \xB7 ") }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "x", size: 12 })
+                          ]
+                        },
+                        image.id
+                      )),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                        "button",
+                        {
+                          className: App_default.textButton,
+                          type: "button",
+                          onClick: clearChatImageAttachments,
+                          disabled: isSending,
+                          title: "Remove all pasted images",
+                          children: "Clear images"
+                        }
+                      )
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                    "textarea",
+                    {
+                      ref: inputRef,
+                      value: input,
+                      onChange: (event) => setInput(event.target.value),
+                      onKeyDown: handleInputKeyDown,
+                      onPaste: handleComposerPaste,
+                      placeholder: "Ask CodeAgent\u2026",
+                      rows: 1,
+                      disabled: isSending,
+                      "aria-label": "Message"
+                    }
+                  ),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerToolbar, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerMeta, "aria-label": "Chat execution settings", children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                           "button",
                           {
+                            className: App_default.composerSettingTrigger,
                             type: "button",
-                            role: "menuitemradio",
-                            "aria-checked": effectiveChatExecutionMode === "chat",
+                            "aria-haspopup": "menu",
+                            "aria-expanded": composerMenu === "mode",
                             onClick: () => {
-                              setChatExecutionModeOverride("chat");
-                              setComposerMenu(null);
+                              setPendingChatPermissionProfile(null);
+                              setComposerMenu((current) => current === "mode" ? null : "mode");
                             },
+                            disabled: isSending,
+                            title: `Mode: ${effectiveChatExecutionMode === "agent" ? "Agent can use tools and the working folder" : "Chat answers without tools"}`,
                             children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 15 }),
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Chat" }),
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Answer without running tools." })
-                              ] }),
-                              effectiveChatExecutionMode === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: effectiveChatExecutionMode === "agent" ? "bot" : "chat", size: 13 }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: effectiveChatExecutionMode === "agent" ? "Agent" : "Chat" }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
                             ]
                           }
                         ),
+                        composerMenu === "mode" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingPopover, role: "menu", "aria-label": "Choose chat mode", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Mode for this chat" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                            "button",
+                            {
+                              type: "button",
+                              role: "menuitemradio",
+                              "aria-checked": effectiveChatExecutionMode === "chat",
+                              onClick: () => {
+                                setChatExecutionModeOverride("chat");
+                                setComposerMenu(null);
+                              },
+                              children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chat", size: 15 }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Chat" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Answer without running tools." })
+                                ] }),
+                                effectiveChatExecutionMode === "chat" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                              ]
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                            "button",
+                            {
+                              type: "button",
+                              role: "menuitemradio",
+                              "aria-checked": effectiveChatExecutionMode === "agent",
+                              onClick: () => {
+                                setChatExecutionModeOverride("agent");
+                                setComposerMenu(null);
+                              },
+                              children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 15 }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Agent" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Use tools and work in the selected folder." })
+                                ] }),
+                                effectiveChatExecutionMode === "agent" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                              ]
+                            }
+                          ),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                              setChatExecutionModeOverride(null);
+                              setComposerMenu(null);
+                            }, children: "Use default" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                              setComposerMenu(null);
+                              openChildRoute("settings", "model");
+                            }, children: "Manage default" })
+                          ] })
+                        ] })
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
                         /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
                           "button",
                           {
+                            className: `${App_default.composerSettingTrigger} ${effectiveChatPermissionProfile === "full-access" ? App_default.composerSettingTriggerDanger : ""}`,
                             type: "button",
-                            role: "menuitemradio",
-                            "aria-checked": effectiveChatExecutionMode === "agent",
+                            "aria-haspopup": "menu",
+                            "aria-expanded": composerMenu === "permission",
                             onClick: () => {
-                              setChatExecutionModeOverride("agent");
-                              setComposerMenu(null);
+                              setPendingChatPermissionProfile(null);
+                              setComposerMenu((current) => current === "permission" ? null : "permission");
                             },
+                            disabled: isSending || effectiveChatExecutionMode === "chat",
+                            title: effectiveChatExecutionMode === "chat" ? "Permissions are inactive in Chat mode because tools are disabled" : `Permissions: ${DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.description}`,
                             children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "bot", size: 15 }),
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: "Agent" }),
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: "Use tools and work in the selected folder." })
-                              ] }),
-                              effectiveChatExecutionMode === "agent" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 13 }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.title }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
                             ]
                           }
                         ),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
-                            setChatExecutionModeOverride(null);
-                            setComposerMenu(null);
-                          }, children: "Use default" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
-                            setComposerMenu(null);
-                            openChildRoute("settings", "model");
-                          }, children: "Manage default" })
+                        composerMenu === "permission" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.composerSettingPopover} ${App_default.composerPermissionPopover}`, role: "menu", "aria-label": "Choose permission level", children: [
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Permissions for this chat" }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: App_default.composerSettingWorkspace, title: chatToolWorkspacePath || "No working folder selected", children: chatToolWorkspacePath ? `Working folder: ${chatToolWorkspacePath}` : "No working folder selected" }),
+                          DESKTOP_PERMISSION_PROFILES.map((profile) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                            "button",
+                            {
+                              type: "button",
+                              role: "menuitemradio",
+                              "aria-checked": effectiveChatPermissionProfile === profile.value,
+                              className: profile.danger ? App_default.composerSettingDangerOption : void 0,
+                              onClick: () => {
+                                if (profile.danger) {
+                                  setPendingChatPermissionProfile(profile.value);
+                                  return;
+                                }
+                                setChatPermissionProfileOverride(profile.value);
+                                setComposerMenu(null);
+                              },
+                              children: [
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: profile.danger ? "lock" : "check", size: 15 }),
+                                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: profile.title }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: profile.description })
+                                ] }),
+                                effectiveChatPermissionProfile === profile.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
+                              ]
+                            },
+                            profile.value
+                          )),
+                          pendingChatPermissionProfile === "full-access" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerPermissionConfirm, role: "alert", children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Allow full computer access?" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "CodeAgent may access any path available to your OS account and run supported commands without approval." }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => setPendingChatPermissionProfile(null), children: "Cancel" }),
+                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                                setChatPermissionProfileOverride("full-access");
+                                setPendingChatPermissionProfile(null);
+                                setComposerMenu(null);
+                              }, children: "Use full access" })
+                            ] })
+                          ] }),
+                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                              setChatPermissionProfileOverride(null);
+                              setPendingChatPermissionProfile(null);
+                              setComposerMenu(null);
+                            }, children: "Use default" }),
+                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
+                              setComposerMenu(null);
+                              openChildRoute("settings", "general");
+                            }, children: "Manage default" })
+                          ] })
                         ] })
                       ] })
                     ] }),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingMenu, children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
+                      (input || chatImageAttachments.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                         "button",
                         {
-                          className: `${App_default.composerSettingTrigger} ${effectiveChatPermissionProfile === "full-access" ? App_default.composerSettingTriggerDanger : ""}`,
+                          className: App_default.composerClearButton,
                           type: "button",
-                          "aria-haspopup": "menu",
-                          "aria-expanded": composerMenu === "permission",
-                          onClick: () => {
-                            setPendingChatPermissionProfile(null);
-                            setComposerMenu((current) => current === "permission" ? null : "permission");
-                          },
-                          disabled: isSending || effectiveChatExecutionMode === "chat",
-                          title: effectiveChatExecutionMode === "chat" ? "Permissions are inactive in Chat mode because tools are disabled" : `Permissions: ${DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.description}`,
-                          children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "lock", size: 13 }),
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: DESKTOP_PERMISSION_PROFILES.find((profile) => profile.value === effectiveChatPermissionProfile)?.title }),
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "chevron-right", size: 11 })
-                          ]
+                          onClick: clearComposerInput,
+                          disabled: isSending,
+                          title: "Clear the draft message and pasted images",
+                          children: "Clear input"
                         }
                       ),
-                      composerMenu === "permission" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: `${App_default.composerSettingPopover} ${App_default.composerPermissionPopover}`, role: "menu", "aria-label": "Choose permission level", children: [
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Permissions for this chat" }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { className: App_default.composerSettingWorkspace, title: chatToolWorkspacePath || "No working folder selected", children: chatToolWorkspacePath ? `Working folder: ${chatToolWorkspacePath}` : "No working folder selected" }),
-                        DESKTOP_PERMISSION_PROFILES.map((profile) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-                          "button",
-                          {
-                            type: "button",
-                            role: "menuitemradio",
-                            "aria-checked": effectiveChatPermissionProfile === profile.value,
-                            className: profile.danger ? App_default.composerSettingDangerOption : void 0,
-                            onClick: () => {
-                              if (profile.danger) {
-                                setPendingChatPermissionProfile(profile.value);
-                                return;
-                              }
-                              setChatPermissionProfileOverride(profile.value);
-                              setComposerMenu(null);
-                            },
-                            children: [
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: profile.danger ? "lock" : "check", size: 15 }),
-                              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("b", { children: profile.title }),
-                                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: profile.description })
-                              ] }),
-                              effectiveChatPermissionProfile === profile.value && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "check", size: 14 })
-                            ]
-                          },
-                          profile.value
-                        )),
-                        pendingChatPermissionProfile === "full-access" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerPermissionConfirm, role: "alert", children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: "Allow full computer access?" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "CodeAgent may access any path available to your OS account and run supported commands without approval." }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => setPendingChatPermissionProfile(null), children: "Cancel" }),
-                            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
-                              setChatPermissionProfileOverride("full-access");
-                              setPendingChatPermissionProfile(null);
-                              setComposerMenu(null);
-                            }, children: "Use full access" })
-                          ] })
-                        ] }),
-                        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerSettingFooter, children: [
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
-                            setChatPermissionProfileOverride(null);
-                            setPendingChatPermissionProfile(null);
-                            setComposerMenu(null);
-                          }, children: "Use default" }),
-                          /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", onClick: () => {
-                            setComposerMenu(null);
-                            openChildRoute("settings", "general");
-                          }, children: "Manage default" })
-                        ] })
+                      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim() && chatImageAttachments.length === 0, title: "Send message (Command+Enter)", children: [
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
+                        "Send",
+                        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", { children: "\u2318\u21B5" })
                       ] })
-                    ] })
-                  ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.composerActions, children: [
-                    (input || chatImageAttachments.length > 0) && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-                      "button",
-                      {
-                        className: App_default.composerClearButton,
-                        type: "button",
-                        onClick: clearComposerInput,
-                        disabled: isSending,
-                        title: "Clear the draft message and pasted images",
-                        children: "Clear input"
-                      }
-                    ),
-                    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.primaryButton, type: "submit", disabled: isSending || !input.trim() && chatImageAttachments.length === 0, title: "Send message (Command+Enter)", children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: "send", size: 14 }),
-                      "Send",
-                      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("kbd", { children: "\u2318\u21B5" })
                     ] })
                   ] })
                 ] })
+              ] }),
+              activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `projects:${activeProjectsSection}`, viewLabel: "Projects", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                ProjectsView,
+                {
+                  activeSection: activeProjectsSection,
+                  appInfo,
+                  appConfig,
+                  appState,
+                  activeProviderLabel,
+                  activeProviderDefault,
+                  viewportSize,
+                  tokenUsage,
+                  toolActivities,
+                  teamRuns,
+                  runningProjectIds,
+                  currentSessionTitle: conversationTitle,
+                  sessionCount: sessions.length,
+                  projects: softwareProjects,
+                  activeProjectId: activeSoftwareProjectId,
+                  roles: virtualRoles,
+                  employees: virtualEmployees,
+                  projectTeams,
+                  projectChatMessages,
+                  fileWriteReviews,
+                  commandReviews,
+                  toolPermissionReviews,
+                  projectGeneratedOutputs,
+                  projectChatSendingKeys,
+                  workspacePath,
+                  workspaceEntries,
+                  workspaceBrowserError,
+                  workspaceActionMessage,
+                  isLoadingWorkspaceEntries,
+                  onOpenWorkspaceEntry: openWorkspaceEntry,
+                  onOpenWorkspacePath: openWorkspacePath,
+                  onRevealWorkspacePath: revealWorkspacePath,
+                  onGoToWorkspaceParent: goToWorkspaceParent,
+                  onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
+                  mcpServers,
+                  mcpTools,
+                  onSaveProject: saveSoftwareProjectPlan,
+                  onSaveRole: saveVirtualRoleDefinition,
+                  onDeleteRole: deleteVirtualRoleDefinition,
+                  onSaveEmployee: saveVirtualEmployeeProfile,
+                  onDeleteEmployee: deleteVirtualEmployeeProfile,
+                  onSaveTeam: saveProjectTeamDefinition,
+                  onDeleteTeam: deleteProjectTeamDefinition,
+                  onSelectProject: setActiveSoftwareProjectId,
+                  onSetProjectStatus: markSoftwareProjectStatus,
+                  onDeleteProject: deleteSoftwareProjectPlan,
+                  onSendProjectChat: submitProjectPrompt,
+                  onResolveFileWrite: resolveFileWriteReview,
+                  onResolveCommand: resolveCommandReview,
+                  onResolveToolPermission: resolveToolPermissionReview,
+                  onChangeSection: setActiveProjectsSection
+                }
+              ) }),
+              activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `tools:${activeToolsSection}`, viewLabel: "Tools", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                ToolsView,
+                {
+                  activeSection: activeToolsSection,
+                  tools,
+                  mcpTools,
+                  mcpServers,
+                  appConfig,
+                  routerMessage: toolRouterMessage,
+                  toolActivities,
+                  onToggleModelTool: setModelToolExposure,
+                  onApplyToolPreset: applyToolRouterPreset,
+                  onSetToolPermission: updateToolPermissionPolicy,
+                  onApplyPermissionPreset: applyToolPermissionPreset,
+                  onRunCommand: runWorkspaceCommand,
+                  onOpenWorkspacePath: openWorkspacePath,
+                  onRevealWorkspacePath: revealWorkspacePath,
+                  onRefresh: refreshBridgeData,
+                  onClearActivities: () => setToolActivities([])
+                }
+              ) }),
+              activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `automation:${activeAutomationSection}`, viewLabel: "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                AutomationView,
+                {
+                  providerId: getFeatureOwnerPackageId(featureResolution, "automation"),
+                  activeSection: activeAutomationSection,
+                  skills,
+                  tasks: scheduledTasks,
+                  taskRuns,
+                  schedulerStatus,
+                  remoteControl,
+                  teams: virtualTeams,
+                  teamRuns,
+                  runningTeamIds,
+                  roles: virtualRoles,
+                  employees: virtualEmployees,
+                  appConfig,
+                  workspacePath: appInfo?.workspacePath ?? workspacePath,
+                  message: automationMessage,
+                  exportText: automationExportText,
+                  importText: automationImportText,
+                  onRefresh: refreshAutomationData,
+                  onSetSkillEnabled: setSkillEnabled,
+                  onExportProject: exportAutomationProject,
+                  onImportTextChange: setAutomationImportText,
+                  onImportProject: importAutomationProject,
+                  onSaveTask: saveScheduledTask,
+                  onRunTask: runScheduledTask,
+                  onSetTaskEnabled: setScheduledTaskEnabled,
+                  onDeleteTask: deleteScheduledTask,
+                  onUpdateRemoteControl: updateRemoteControl,
+                  onCreatePairingCode: createRemotePairingCode,
+                  onRevokeRemoteDevice: revokeRemoteDevice,
+                  onCreateDefaultTeam: createDefaultVirtualTeam,
+                  onSaveTeam: saveVirtualTeam,
+                  onRunTeam: runVirtualTeam,
+                  onDeleteTeam: deleteVirtualTeam,
+                  onSetToolPermission: (toolName, mode) => {
+                    void updateToolPermissionPolicy(toolName, mode);
+                    setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
+                  },
+                  onApplyPermissionPreset: (preset) => {
+                    applyToolPermissionPreset(preset);
+                    setAutomationMessage(
+                      preset === "allow-all" ? "All bridge tools are allowed for unattended automation." : preset === "ask-mutating" ? "Read-only tools are allowed and mutating tools require approval." : "Read-only tools are allowed and mutating tools are denied."
+                    );
+                  }
+                }
+              ) }),
+              activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `history:${activeHistorySection}`, viewLabel: "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                HistoryView,
+                {
+                  activeSection: activeHistorySection,
+                  records: historyRecords,
+                  storageInfo: historyStorageInfo,
+                  message: historyMessage,
+                  exportText: historyExportText,
+                  onRefresh: refreshHistoryData,
+                  onDeleteRecord: deleteHistoryRecord,
+                  onRestoreChat: restoreChatFromHistory,
+                  onExportRecords: exportHistoryRecords
+                }
+              ) }),
+              activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                SettingsView,
+                {
+                  activeSection: activeSettingsSection,
+                  draft: settingsDraft,
+                  tools,
+                  sessions,
+                  currentSessionId,
+                  appConfig,
+                  message: settingsMessage,
+                  saving: isSavingSettings,
+                  localModelPreparation,
+                  featureResolution,
+                  onChange: updateSettingsDraft,
+                  onSetToolPermission: updateToolPermissionPolicy,
+                  onApplyToolPermissionPreset: (preset) => applyToolPermissionPreset(preset, tools.filter(isCoreTool)),
+                  onClearToken: clearToken,
+                  onAccountLogin: handleAccountLogin,
+                  onAccountRegister: handleAccountRegister,
+                  onAccountForgotPassword: handleAccountForgotPassword,
+                  onAccountResetPassword: handleAccountResetPassword,
+                  onAccountLogout: handleAccountLogout,
+                  onPlatformSync: handlePlatformSync,
+                  canSyncPlatform,
+                  platformSyncing: isSyncingPlatform,
+                  onDeveloperModeChange: (checked) => void handlePlatformDeveloperModeChange(checked),
+                  onPackageAction: handleFeaturePackageAction,
+                  packageOperationError,
+                  onDismissPackageOperationError: () => setPackageOperationError(null),
+                  onAddPaymentMethod: openPaymentMethodDialog,
+                  onSetDefaultPaymentMethod: (methodId) => void setDefaultAccountPaymentMethod(methodId),
+                  onRemovePaymentMethod: (methodId) => void removeAccountPaymentMethod(methodId),
+                  onOpenChat: loadSession,
+                  onDeleteChat: (sessionId) => void deleteChatSession(sessionId),
+                  onDeleteAllChats: () => void deleteAllChatSessions(),
+                  onSubmit: saveSettings,
+                  onRetryLocalModel: () => void saveSettings(),
+                  onOpenLocalModelLog: () => void openLocalModelLog()
+                }
+              )
+            ] })
+          ] }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: App_default.footer, children: [
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("chat"), children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel })
+            ] }),
+            hasShellFeature(featureResolution, "project-studio") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: App_default.statusPane,
+                type: "button",
+                onClick: () => {
+                  setActiveProjectsSection("studio");
+                  setActiveView("projects");
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : "Unknown" })
+                ]
+              }
+            ),
+            hasShellFeature(featureResolution, "developer-tools") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: App_default.statusPane,
+                type: "button",
+                onClick: () => {
+                  setActiveToolsSection("mcp");
+                  setActiveView("tools");
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                    exposedBridgeToolCount,
+                    "/",
+                    tools.length,
+                    " bridge / ",
+                    mcpTools.length,
+                    " MCP"
+                  ] })
+                ]
+              }
+            ),
+            hasShellFeature(featureResolution, "automation") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: App_default.statusPane,
+                type: "button",
+                onClick: () => {
+                  setActiveAutomationSection("tasks");
+                  setActiveView("automation");
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Automation" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                    scheduledTasks.length,
+                    " tasks / ",
+                    virtualTeams.length,
+                    " teams"
+                  ] })
+                ]
+              }
+            ),
+            hasShellFeature(featureResolution, "project-history") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+              "button",
+              {
+                className: App_default.statusPane,
+                type: "button",
+                onClick: () => {
+                  setActiveHistorySection("overview");
+                  setActiveView("history");
+                },
+                children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "History" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                    historyStorageInfo.recordCount,
+                    " records"
+                  ] })
+                ]
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
+                tokenUsage.inputTokens,
+                " in / ",
+                tokenUsage.outputTokens,
+                " out"
               ] })
             ] }),
-            activeView === "projects" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `projects:${activeProjectsSection}`, viewLabel: "Projects", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              ProjectsView,
-              {
-                activeSection: activeProjectsSection,
-                appInfo,
-                appConfig,
-                appState,
-                activeProviderLabel,
-                activeProviderDefault,
-                viewportSize,
-                tokenUsage,
-                toolActivities,
-                teamRuns,
-                runningProjectIds,
-                currentSessionTitle: conversationTitle,
-                sessionCount: sessions.length,
-                projects: softwareProjects,
-                activeProjectId: activeSoftwareProjectId,
-                roles: virtualRoles,
-                employees: virtualEmployees,
-                projectTeams,
-                projectChatMessages,
-                fileWriteReviews,
-                commandReviews,
-                toolPermissionReviews,
-                projectGeneratedOutputs,
-                projectChatSendingKeys,
-                workspacePath,
-                workspaceEntries,
-                workspaceBrowserError,
-                workspaceActionMessage,
-                isLoadingWorkspaceEntries,
-                onOpenWorkspaceEntry: openWorkspaceEntry,
-                onOpenWorkspacePath: openWorkspacePath,
-                onRevealWorkspacePath: revealWorkspacePath,
-                onGoToWorkspaceParent: goToWorkspaceParent,
-                onRefreshWorkspace: () => loadWorkspaceDirectory(workspacePath),
-                mcpServers,
-                mcpTools,
-                onSaveProject: saveSoftwareProjectPlan,
-                onSaveRole: saveVirtualRoleDefinition,
-                onDeleteRole: deleteVirtualRoleDefinition,
-                onSaveEmployee: saveVirtualEmployeeProfile,
-                onDeleteEmployee: deleteVirtualEmployeeProfile,
-                onSaveTeam: saveProjectTeamDefinition,
-                onDeleteTeam: deleteProjectTeamDefinition,
-                onSelectProject: setActiveSoftwareProjectId,
-                onSetProjectStatus: markSoftwareProjectStatus,
-                onDeleteProject: deleteSoftwareProjectPlan,
-                onSendProjectChat: submitProjectPrompt,
-                onResolveFileWrite: resolveFileWriteReview,
-                onResolveCommand: resolveCommandReview,
-                onResolveToolPermission: resolveToolPermissionReview,
-                onChangeSection: setActiveProjectsSection
-              }
-            ) }),
-            activeView === "tools" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `tools:${activeToolsSection}`, viewLabel: "Tools", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              ToolsView,
-              {
-                activeSection: activeToolsSection,
-                tools,
-                mcpTools,
-                mcpServers,
-                appConfig,
-                routerMessage: toolRouterMessage,
-                toolActivities,
-                onToggleModelTool: setModelToolExposure,
-                onApplyToolPreset: applyToolRouterPreset,
-                onSetToolPermission: updateToolPermissionPolicy,
-                onApplyPermissionPreset: applyToolPermissionPreset,
-                onRunCommand: runWorkspaceCommand,
-                onOpenWorkspacePath: openWorkspacePath,
-                onRevealWorkspacePath: revealWorkspacePath,
-                onRefresh: refreshBridgeData,
-                onClearActivities: () => setToolActivities([])
-              }
-            ) }),
-            activeView === "automation" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `automation:${activeAutomationSection}`, viewLabel: "Automation", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              AutomationView,
-              {
-                providerId: getFeatureOwnerPackageId(featureResolution, "automation"),
-                activeSection: activeAutomationSection,
-                skills,
-                tasks: scheduledTasks,
-                taskRuns,
-                schedulerStatus,
-                remoteControl,
-                teams: virtualTeams,
-                teamRuns,
-                runningTeamIds,
-                roles: virtualRoles,
-                employees: virtualEmployees,
-                appConfig,
-                workspacePath: appInfo?.workspacePath ?? workspacePath,
-                message: automationMessage,
-                exportText: automationExportText,
-                importText: automationImportText,
-                onRefresh: refreshAutomationData,
-                onSetSkillEnabled: setSkillEnabled,
-                onExportProject: exportAutomationProject,
-                onImportTextChange: setAutomationImportText,
-                onImportProject: importAutomationProject,
-                onSaveTask: saveScheduledTask,
-                onRunTask: runScheduledTask,
-                onSetTaskEnabled: setScheduledTaskEnabled,
-                onDeleteTask: deleteScheduledTask,
-                onUpdateRemoteControl: updateRemoteControl,
-                onCreatePairingCode: createRemotePairingCode,
-                onRevokeRemoteDevice: revokeRemoteDevice,
-                onCreateDefaultTeam: createDefaultVirtualTeam,
-                onSaveTeam: saveVirtualTeam,
-                onRunTeam: runVirtualTeam,
-                onDeleteTeam: deleteVirtualTeam,
-                onSetToolPermission: (toolName, mode) => {
-                  void updateToolPermissionPolicy(toolName, mode);
-                  setAutomationMessage(`${toolName} permission policy set to ${mode}.`);
-                },
-                onApplyPermissionPreset: (preset) => {
-                  applyToolPermissionPreset(preset);
-                  setAutomationMessage(
-                    preset === "allow-all" ? "All bridge tools are allowed for unattended automation." : preset === "ask-mutating" ? "Read-only tools are allowed and mutating tools require approval." : "Read-only tools are allowed and mutating tools are denied."
-                  );
-                }
-              }
-            ) }),
-            activeView === "history" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FeatureViewErrorBoundary, { viewKey: `history:${activeHistorySection}`, viewLabel: "History", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              HistoryView,
-              {
-                activeSection: activeHistorySection,
-                records: historyRecords,
-                storageInfo: historyStorageInfo,
-                message: historyMessage,
-                exportText: historyExportText,
-                onRefresh: refreshHistoryData,
-                onDeleteRecord: deleteHistoryRecord,
-                onRestoreChat: restoreChatFromHistory,
-                onExportRecords: exportHistoryRecords
-              }
-            ) }),
-            activeView === "settings" && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-              SettingsView,
-              {
-                activeSection: activeSettingsSection,
-                draft: settingsDraft,
-                tools,
-                sessions,
-                currentSessionId,
-                appConfig,
-                message: settingsMessage,
-                saving: isSavingSettings,
-                localModelPreparation,
-                featureResolution,
-                onChange: updateSettingsDraft,
-                onSetToolPermission: updateToolPermissionPolicy,
-                onApplyToolPermissionPreset: (preset) => applyToolPermissionPreset(preset, tools.filter(isCoreTool)),
-                onClearToken: clearToken,
-                onAccountLogin: handleAccountLogin,
-                onAccountRegister: handleAccountRegister,
-                onAccountForgotPassword: handleAccountForgotPassword,
-                onAccountResetPassword: handleAccountResetPassword,
-                onAccountLogout: handleAccountLogout,
-                onPlatformSync: handlePlatformSync,
-                canSyncPlatform,
-                platformSyncing: isSyncingPlatform,
-                onDeveloperModeChange: (checked) => void handlePlatformDeveloperModeChange(checked),
-                onPackageAction: handleFeaturePackageAction,
-                packageOperationError,
-                onDismissPackageOperationError: () => setPackageOperationError(null),
-                onAddPaymentMethod: openPaymentMethodDialog,
-                onSetDefaultPaymentMethod: (methodId) => void setDefaultAccountPaymentMethod(methodId),
-                onRemovePaymentMethod: (methodId) => void removeAccountPaymentMethod(methodId),
-                onOpenChat: loadSession,
-                onDeleteChat: (sessionId) => void deleteChatSession(sessionId),
-                onDeleteAllChats: () => void deleteAllChatSessions(),
-                onSubmit: saveSettings,
-                onRetryLocalModel: () => void saveSettings(),
-                onOpenLocalModelLog: () => void openLocalModelLog()
-              }
-            )
-          ] })
-        ] }) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("footer", { className: App_default.footer, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", { className: App_default.statusPane, type: "button", onClick: () => setActiveView("chat"), children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Status" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: statusLabel })
-          ] }),
-          hasShellFeature(featureResolution, "project-studio") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.statusPane,
-              type: "button",
-              onClick: () => {
-                setActiveProjectsSection("studio");
-                setActiveView("projects");
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Workspace" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { title: appInfo?.workspacePath || void 0, children: appInfo?.workspacePath ? formatSidebarLabel(appInfo.workspacePath, 34) : "Unknown" })
-              ]
-            }
-          ),
-          hasShellFeature(featureResolution, "developer-tools") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.statusPane,
-              type: "button",
-              onClick: () => {
-                setActiveToolsSection("mcp");
-                setActiveView("tools");
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tools" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-                  exposedBridgeToolCount,
-                  "/",
-                  tools.length,
-                  " bridge / ",
-                  mcpTools.length,
-                  " MCP"
-                ] })
-              ]
-            }
-          ),
-          hasShellFeature(featureResolution, "automation") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.statusPane,
-              type: "button",
-              onClick: () => {
-                setActiveAutomationSection("tasks");
-                setActiveView("automation");
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Automation" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-                  scheduledTasks.length,
-                  " tasks / ",
-                  virtualTeams.length,
-                  " teams"
-                ] })
-              ]
-            }
-          ),
-          hasShellFeature(featureResolution, "project-history") && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-            "button",
-            {
-              className: App_default.statusPane,
-              type: "button",
-              onClick: () => {
-                setActiveHistorySection("overview");
-                setActiveView("history");
-              },
-              children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "History" }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-                  historyStorageInfo.recordCount,
-                  " records"
-                ] })
-              ]
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("strong", { children: [
-              tokenUsage.inputTokens,
-              " in / ",
-              tokenUsage.outputTokens,
-              " out"
+            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mode" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: effectiveChatExecutionMode === "agent" ? "Agent" : "Chat" })
             ] })
-          ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.statusPaneStatic, children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Mode" }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: appConfig?.enableLlmTools ? "Agent" : "Chat" })
           ] })
         ] })
       ] }),
@@ -49846,8 +49928,9 @@ Attached images: ${imageSummary}` : message.content);
     const hasPendingActivity = activities.some((activity) => activity.status === "waiting-approval" || activity.status === "running");
     const hasFailedActivity = activities.some((activity) => activity.status === "failed" || activity.status === "rejected");
     const needsAttention = hasPendingActivity || hasFailedActivity;
-    const previousNeedsAttention = useRef(needsAttention);
     const [open, setOpen] = useState(needsAttention);
+    const progressSteps = getAgentProgressSteps(activities);
+    const progressHeadline = getAgentProgressHeadline(progressSteps);
     const totalMs = performance2?.endToEndMs ?? performance2?.backendMs ?? activities.reduce((sum, activity) => sum + (activity.duration ?? 0), 0);
     const statusLabel = activities.some((activity) => activity.status === "waiting-approval") ? "Approval needed" : activities.some((activity) => activity.status === "running") ? "Running" : hasFailedActivity ? "Needs attention" : "Completed";
     const activitySummary = [
@@ -49858,10 +49941,7 @@ Attached images: ${imageSummary}` : message.content);
     useEffect(() => {
       if (needsAttention) {
         setOpen(true);
-      } else if (previousNeedsAttention.current) {
-        setOpen(false);
       }
-      previousNeedsAttention.current = needsAttention;
     }, [needsAttention]);
     return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
       "details",
@@ -49873,11 +49953,25 @@ Attached images: ${imageSummary}` : message.content);
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("summary", { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: App_default.assistantActivityTitle, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Icon, { name: hasFailedActivity ? "x" : hasPendingActivity ? "activity" : "check", size: 13 }),
-              "Activity"
+              "Agent progress"
             ] }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: activitySummary })
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: App_default.assistantActivityHeadline, children: progressHeadline || activitySummary })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.assistantActivityBody, children: [
+            progressSteps.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", { className: App_default.agentProgress, children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h4", { children: "Work summary" }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ol", { children: progressSteps.map((step) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+                "li",
+                {
+                  className: step.status === "Failed" || step.status === "Not approved" ? App_default.agentProgressFailed : step.status === "Running" || step.status === "Waiting for approval" ? App_default.agentProgressPending : "",
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: step.label }),
+                    /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: step.status })
+                  ]
+                },
+                step.id
+              )) })
+            ] }),
             performance2 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ChatPerformanceDetails, { performance: performance2 }),
             usage && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: App_default.assistantActivityUsage, children: [
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Tokens" }),

@@ -21,7 +21,7 @@ help:
 	@echo "  make reinstall   - Clean reinstall everything"
 	@echo "  make watch       - Watch mode (auto-rebuild)"
 	@echo "  make dev         - Run in development mode"
-	@echo "  make package-desktop - Rebuild and verify dist-build/mac-arm64/CodeAgent.app"
+	@echo "  make package-desktop - Rebuild and verify the current platform's desktop app"
 	@echo "  make verify-desktop  - Verify existing desktop app package"
 	@echo "  make dist-mac        - Build macOS DMG/zip installers into dist-build"
 	@echo "  make package-cli     - Build and verify CLI npm tarball"
@@ -56,8 +56,10 @@ compile:
 
 # Remove build artifacts
 clean:
-	@echo "🧹 Cleaning build artifacts..."
+	@echo "🧹 Cleaning dist build artifacts..."
 	@rm -rf dist
+	@echo "🧹 Cleaning dist-build artifacts..."
+	@rm -rf dist-build
 
 # Full reinstall (nuke everything)
 reinstall: 
@@ -86,7 +88,7 @@ build-desktop:
 	@npm run build:electron
 
 package-desktop:
-	@echo "📦 Rebuilding and verifying CodeAgent.app..."
+	@echo "📦 Rebuilding and verifying the local desktop app..."
 	@npm run pack:desktop:check
 
 verify-desktop:

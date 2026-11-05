@@ -781,9 +781,10 @@ body.App_dark .App_dangerButton:hover {
   background: #432424;
 }
 .App_container {
+  --desktop-titlebar-height: 48px;
   --workbench-editor-width: clamp(360px, 32vw, 440px);
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   height: 100vh;
   height: 100dvh;
   max-height: 100vh;
@@ -794,12 +795,92 @@ body.App_dark .App_dangerButton:hover {
   background: var(--color-background);
   color: var(--color-text);
 }
+.App_desktopTitlebar {
+  position: relative;
+  z-index: 60;
+  display: flex;
+  flex: 0 0 var(--desktop-titlebar-height);
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  height: var(--desktop-titlebar-height);
+  padding: 0 150px 0 12px;
+  background: #fbfaf7;
+  color: #2b2823;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+.App_desktopTitlebarBrand,
+.App_desktopTitlebarActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+.App_desktopTitlebarBrand {
+  font-size: 13px;
+  font-weight: 700;
+}
+.App_desktopTitlebarMac .App_desktopTitlebarBrand {
+  margin-left: 72px;
+}
+.App_desktopTitlebarActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #6d655b;
+  font: inherit;
+  font-size: 12px;
+  -webkit-app-region: no-drag;
+}
+.App_desktopTitlebarActions button:hover {
+  border-color: var(--color-border);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-primary);
+}
+.App_desktopTitlebarActions button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.App_windowContent {
+  display: grid;
+  flex: 1;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
 .App_containerCollapsed {
   grid-template-columns: 0 minmax(0, 1fr);
 }
 body.App_dark .App_container {
   background: #191815;
   color: var(--color-text-dark);
+}
+body.App_dark .App_desktopTitlebar {
+  background: #1f1d1a;
+  color: var(--color-text-dark);
+}
+body.App_dark .App_desktopTitlebarActions button {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_desktopTitlebarActions button:hover {
+  border-color: #4b4439;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e98456;
+}
+.App_desktopTitlebarBrand .App_brandMark {
+  border-color: transparent;
+  border-radius: 9px;
+}
+body.App_dark .App_desktopTitlebarBrand .App_brandMark {
+  background: rgba(233, 132, 86, 0.14);
+  color: #e98456;
 }
 .App_navSidebar {
   position: relative;
@@ -812,9 +893,6 @@ body.App_dark .App_container {
   background: color-mix(in srgb, var(--color-primary) 7%, #f8fafc);
 }
 .App_navSidebarCollapsed {
-  display: none;
-}
-.App_mobileNavBackdrop {
   display: none;
 }
 body.App_dark .App_navSidebar {
@@ -1632,44 +1710,6 @@ body.App_dark .App_header {
   gap: 10px;
   min-width: 0;
 }
-.App_headerNavButton {
-  display: inline-grid;
-  flex: 0 0 auto;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: #6d655b;
-}
-.App_headerNavButton:hover:not(:disabled) {
-  border-color: var(--color-border);
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--color-primary);
-}
-.App_headerNavButton[aria-pressed=true] {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-.App_headerNavButton:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-.App_headerNavButton:disabled {
-  cursor: default;
-  opacity: 0.72;
-}
-body.App_dark .App_headerNavButton {
-  color: var(--color-text-dark-secondary);
-}
-body.App_dark .App_headerNavButton:hover:not(:disabled) {
-  border-color: #4b4439;
-  background: rgba(255, 255, 255, 0.06);
-  color: #e98456;
-}
 .App_header h1 {
   max-width: min(620px, 50vw);
   overflow: hidden;
@@ -1842,6 +1882,14 @@ body.App_dark .App_message_error {
   color: #494239;
   font-weight: 750;
 }
+.App_assistantActivityHeadline {
+  min-width: 0;
+  overflow: hidden;
+  color: #5f574c;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .App_assistantActivityAttention {
   border-color: #e6b7ae;
   background: #fff8f6;
@@ -1851,6 +1899,42 @@ body.App_dark .App_message_error {
   gap: 12px;
   padding: 0 12px 12px;
   border-top: 1px solid #ebe6dd;
+}
+.App_agentProgress h4 {
+  margin: 0 0 7px;
+  color: #494239;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.App_agentProgress ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.App_agentProgress li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #494239;
+}
+.App_agentProgress li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.App_agentProgress li > span:last-child {
+  flex: 0 0 auto;
+  color: #81786c;
+  font-size: 11px;
+}
+.App_agentProgress .App_agentProgressPending > span:last-child {
+  color: #9a6416;
+}
+.App_agentProgress .App_agentProgressFailed > span:last-child {
+  color: #a13d2e;
 }
 .App_messagePerformance {
   width: 100%;
@@ -1930,9 +2014,21 @@ body.App_dark .App_assistantActivity {
   color: var(--color-text-dark-secondary);
 }
 body.App_dark .App_assistantActivityTitle,
+body.App_dark .App_assistantActivityHeadline,
+body.App_dark .App_agentProgress h4,
+body.App_dark .App_agentProgress li,
 body.App_dark .App_messagePerformance h4,
 body.App_dark .App_assistantActivityUsage strong {
   color: var(--color-text-dark);
+}
+body.App_dark .App_agentProgress li > span:last-child {
+  color: var(--color-text-dark-secondary);
+}
+body.App_dark .App_agentProgress .App_agentProgressPending > span:last-child {
+  color: #e6b85f;
+}
+body.App_dark .App_agentProgress .App_agentProgressFailed > span:last-child {
+  color: #ef978b;
 }
 body.App_dark .App_assistantActivityBody {
   border-top-color: #49443c;
@@ -7232,36 +7328,26 @@ body.App_dark .App_settingsMessage {
   }
 }
 @media (max-width: 820px) {
-  .App_container,
-  .App_containerCollapsed {
-    grid-template-columns: minmax(0, 1fr);
+  .App_windowContent {
+    grid-template-columns: clamp(180px, 40vw, 260px) minmax(0, 1fr);
   }
-  .App_containerNarrow .App_appShell {
-    grid-column: 1;
+  .App_windowContent.App_containerCollapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+  .App_desktopTitlebar {
+    padding-right: 140px;
+  }
+  .App_desktopTitlebarActions button span {
+    display: none;
   }
   .App_navSidebar {
-    position: fixed;
-    z-index: 50;
-    top: 0;
-    bottom: 0;
-    left: 0;
+    position: relative;
     display: flex;
-    width: min(300px, 86vw);
-    box-shadow: 12px 0 32px rgba(25, 29, 36, 0.2);
+    width: auto;
+    box-shadow: none;
   }
   .App_navSidebarCollapsed {
     display: none;
-  }
-  .App_mobileNavBackdrop {
-    position: fixed;
-    z-index: 40;
-    inset: 0;
-    display: block;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: rgba(28, 31, 36, 0.28);
-    backdrop-filter: blur(1px);
   }
   .App_header h1,
   .App_subtitle {

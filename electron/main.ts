@@ -148,6 +148,15 @@ function createWindow() {
     height: windowState.height,
     x: windowState.x,
     y: windowState.y,
+    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
+    ...(isMac ? {} : {
+      titleBarOverlay: {
+        color: nativeTheme.shouldUseDarkColors ? '#1f1d1a' : '#fbfaf7',
+        symbolColor: nativeTheme.shouldUseDarkColors ? '#e8e2d8' : '#514a40',
+        height: 48,
+      },
+    }),
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -156,6 +165,7 @@ function createWindow() {
     },
     icon: isMac ? undefined : getWindowIconPath(),
   });
+  mainWindow.setMenuBarVisibility(false);
 
   mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
     console.error(`Preload failed: ${preloadPath}`, error);
@@ -371,6 +381,13 @@ function setupIpcHandlers() {
   // Listen for theme changes
   nativeTheme.on('updated', () => {
     if (mainWindow) {
+      if (!isMac) {
+        mainWindow.setTitleBarOverlay({
+          color: nativeTheme.shouldUseDarkColors ? '#1f1d1a' : '#fbfaf7',
+          symbolColor: nativeTheme.shouldUseDarkColors ? '#e8e2d8' : '#514a40',
+          height: 48,
+        });
+      }
       mainWindow.webContents.send('theme:changed', {
         isDark: nativeTheme.shouldUseDarkColors,
       });

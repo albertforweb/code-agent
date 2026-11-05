@@ -51,26 +51,40 @@ const buildConfig = packageJson.build ?? {};
 const productName = buildConfig.productName ?? 'CodeAgent';
 const appId = buildConfig.appId ?? 'com.albertforweb.codeagent';
 const version = packageJson.version;
+const isMacPackage = process.platform === 'darwin';
+const isWindowsPackage = process.platform === 'win32';
 const failures = [];
 const warnings = [];
 
-const appPath = path.resolve(root, options.app || findMacAppPath(root, productName));
-const contentsPath = path.join(appPath, 'Contents');
-const resourcesPath = path.join(contentsPath, 'Resources');
-const infoPlistPath = path.join(contentsPath, 'Info.plist');
-const executablePath = path.join(contentsPath, 'MacOS', productName);
+const appPath = path.resolve(root, options.app || findAppPath(root, productName, process.platform));
+const contentsPath = isMacPackage ? path.join(appPath, 'Contents') : appPath;
+const resourcesPath = isMacPackage
+  ? path.join(contentsPath, 'Resources')
+  : path.join(appPath, 'resources');
+const infoPlistPath = isMacPackage ? path.join(contentsPath, 'Info.plist') : '';
+const executablePath = isMacPackage
+  ? path.join(contentsPath, 'MacOS', productName)
+  : path.join(appPath, `${productName}${isWindowsPackage ? '.exe' : ''}`);
 const appAsarPath = path.join(resourcesPath, 'app.asar');
 const updateConfigPath = path.join(resourcesPath, 'app-update.yml');
-const iconPath = path.join(resourcesPath, 'icon.icns');
+const iconPath = isMacPackage ? path.join(resourcesPath, 'icon.icns') : '';
 const inferenceEngineRoot = path.join(resourcesPath, 'llama.cpp');
 const bundledModelsRoot = path.join(resourcesPath, 'models');
 
-mustExist(appPath, 'packaged macOS app');
-mustExist(infoPlistPath, 'Info.plist');
+mustExist(appPath, `packaged ${platformLabel(process.platform)} app`);
+if (isMacPackage) {
+  mustExist(infoPlistPath, 'Info.plist');
+}
 mustExist(executablePath, 'app executable');
 mustExist(appAsarPath, 'app.asar');
-mustExist(iconPath, 'macOS app icon');
-mustContainExecutable(inferenceEngineRoot, 'llama-server', 'bundled llama.cpp inference engine');
+if (isMacPackage) {
+  mustExist(iconPath, 'macOS app icon');
+}
+mustContainExecutable(
+  inferenceEngineRoot,
+  `llama-server${isWindowsPackage ? '.exe' : ''}`,
+  'bundled llama.cpp inference engine',
+);
 mustExist(path.join(bundledModelsRoot, 'bundle.json'), 'bundled model manifest');
 mustContainFile(bundledModelsRoot, 'qwen2.5-coder-0.5b-instruct-q4_0.gguf', 'bundled offline starter model');
 mustContainFile(bundledModelsRoot, 'Qwen3-4B-Q4_K_M.gguf', 'bundled offline agent model');
@@ -83,7 +97,7 @@ if (existsSync(infoPlistPath)) {
   verifyInfoPlist(infoPlistPath, appAsarPath);
 }
 
-if (existsSync(executablePath)) {
+if (existsSync(executablePath) && !isWindowsPackage) {
   verifyExecutable(executablePath);
 }
 
@@ -96,7 +110,7 @@ if (existsSync(updateConfigPath)) {
 } else if (options.release) {
   failures.push('Release verification requires Contents/Resources/app-update.yml for electron-updater.');
 } else {
-  warnings.push('Contents/Resources/app-update.yml is not present; local --dir packages disable update checks.');
+  warnings.push('app-update.yml is not present; local --dir packages disable update checks.');
 }
 
 verifyNoLegacyProviderTerms([
@@ -104,7 +118,7 @@ verifyNoLegacyProviderTerms([
   updateConfigPath,
 ].filter(existsSync));
 
-if (process.platform === 'darwin' && !options.skipCodesign) {
+if (isMacPackage && !options.skipCodesign) {
   verifyCodesign(appPath);
   verifyGatekeeper(appPath);
 }
@@ -131,7 +145,7 @@ function printHelp() {
   console.log(`Usage: node scripts/verify-desktop-package.mjs [options]
 
 Options:
-  --app <path>           Path to CodeAgent.app. Defaults to dist-build/**/CodeAgent.app.
+  --app <path>           Path to the packaged app. Defaults to the current platform's local package.
   --release              Require release-only metadata and Developer ID signing.
   --require-notarized    Require Gatekeeper assessment to pass.
   --skip-codesign        Skip macOS codesign and Gatekeeper checks.
@@ -139,17 +153,23 @@ Options:
 `);
 }
 
-function findMacAppPath(baseDir, expectedProductName) {
+function findAppPath(baseDir, expectedProductName, platform) {
   const distBuildPath = path.join(baseDir, 'dist-build');
   const expectedAppName = `${expectedProductName}.app`;
-  const preferredMacArm64Path = path.join(distBuildPath, 'mac-arm64', expectedAppName);
+  const preferredPath = platform === 'darwin'
+    ? path.join(distBuildPath, process.arch === 'arm64' ? 'mac-arm64' : 'mac-x64', expectedAppName)
+    : path.join(distBuildPath, platform === 'win32' ? 'win-unpacked' : 'linux-unpacked');
 
   if (!existsSync(distBuildPath)) {
-    return preferredMacArm64Path;
+    return preferredPath;
   }
 
-  if (existsSync(preferredMacArm64Path)) {
-    return preferredMacArm64Path;
+  if (existsSync(preferredPath)) {
+    return preferredPath;
+  }
+
+  if (platform !== 'darwin') {
+    return preferredPath;
   }
 
   const matches = [];
@@ -176,7 +196,14 @@ function findMacAppPath(baseDir, expectedProductName) {
   }
 
   matches.sort();
-  return matches[0] ?? path.join('dist-build', 'mac-arm64', expectedAppName);
+  return matches[0] ?? preferredPath;
+}
+
+function platformLabel(platform) {
+  if (platform === 'darwin') return 'macOS';
+  if (platform === 'win32') return 'Windows';
+  if (platform === 'linux') return 'Linux';
+  return platform;
 }
 
 function mustExist(filePath, label) {
@@ -193,7 +220,8 @@ function mustContainExecutable(directory, filename, label) {
     for (const entry of readdirSync(current, { withFileTypes: true })) {
       const candidate = path.join(current, entry.name);
       if (entry.isDirectory()) pending.push(candidate);
-      if (entry.isFile() && entry.name === filename && (statSync(candidate).mode & 0o111) !== 0) return;
+      if (entry.isFile() && entry.name === filename
+        && (isWindowsPackage || (statSync(candidate).mode & 0o111) !== 0)) return;
     }
   }
   failures.push(`Missing ${label}: ${path.relative(root, directory)}`);

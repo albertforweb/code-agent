@@ -237,6 +237,16 @@ export class QueryEngine {
 
     this.discoveredSkillNames.clear()
     setCwd(cwd)
+    const getQueryAppState = (): AppState => {
+      const appState = getAppState()
+      return {
+        ...appState,
+        toolPermissionContext: {
+          ...appState.toolPermissionContext,
+          workspaceDirectory: cwd,
+        },
+      }
+    }
     const persistSession = !isSessionPersistenceDisabled()
     const startTime = Date.now()
 
@@ -270,7 +280,7 @@ export class QueryEngine {
       return result
     }
 
-    const initialAppState = getAppState()
+    const initialAppState = getQueryAppState()
     const initialMainLoopModel = userSpecifiedModel
       ? parseUserSpecifiedModel(userSpecifiedModel)
       : getMainLoopModel()
@@ -363,7 +373,7 @@ export class QueryEngine {
         theme: resolveThemeSetting(getGlobalConfig().theme),
         maxBudgetUsd,
       },
-      getAppState,
+      getAppState: getQueryAppState,
       setAppState,
       abortController: this.abortController,
       readFileState: this.readFileState,
@@ -511,7 +521,7 @@ export class QueryEngine {
         agentDefinitions: { activeAgents: agents, allAgents: [] },
         maxBudgetUsd,
       },
-      getAppState,
+      getAppState: getQueryAppState,
       setAppState,
       abortController: this.abortController,
       readFileState: this.readFileState,
